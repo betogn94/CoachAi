@@ -1403,13 +1403,16 @@ footer {
 
 /* =================== LANDING / ACCESO =================== */
 .landing-wrapper {
-  min-height: 100vh;
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: var(--bg);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 40px 24px;
-  position: relative;
+  overflow-y: auto;
 }
 
 .landing-logo {
@@ -1511,7 +1514,7 @@ footer {
   inset: 0;
   background: rgba(0,0,0,0.7);
   backdrop-filter: blur(8px);
-  z-index: 500;
+  z-index: 1100;
   display: none;
   align-items: center;
   justify-content: center;
@@ -1675,39 +1678,6 @@ footer {
 <!-- HEADER -->
 
 <!-- LANDING SCREEN -->
-<div class="landing-wrapper" id="landing-wrapper">
-  <div class="landing-logo" id="landing-logo-text">COACH AI</div>
-  <div class="landing-tagline" id="landing-tagline-text">Tu entrenador personal con inteligencia artificial</div>
-
-  <div class="landing-cards">
-    <div class="landing-card client" onclick="enterAsClient()">
-      <div class="landing-card-icon">💪</div>
-      <div class="landing-card-title" id="landing-client-title">SOY CLIENTE</div>
-      <div class="landing-card-desc" id="landing-client-desc">Accedé a tu coach personal, tu plan y tu progreso</div>
-    </div>
-    <div class="landing-card admin" onclick="showAdminLogin()">
-      <div class="landing-card-icon">⚙️</div>
-      <div class="landing-card-title" id="landing-admin-title">ADMINISTRADOR</div>
-      <div class="landing-card-desc" id="landing-admin-desc">Configurá la marca y personalización del negocio</div>
-    </div>
-  </div>
-
-  <div class="landing-footer-text" id="landing-footer-text">Powered by Anthropic Claude</div>
-</div>
-
-<!-- ADMIN LOGIN MODAL -->
-<div class="modal-overlay" id="admin-modal">
-  <div class="modal-card">
-    <div class="modal-title" id="modal-title">⚙️ ACCESO ADMIN</div>
-    <div class="modal-sub" id="modal-sub">Ingresá la contraseña de administrador</div>
-    <input type="password" class="modal-input" id="admin-password-input" placeholder="••••••••" onkeydown="if(event.key==='Enter') checkAdminPassword()">
-    <div class="modal-error" id="modal-error"></div>
-    <button class="btn-modal-enter" onclick="checkAdminPassword()" id="modal-enter-btn">INGRESAR</button>
-    <button class="btn-modal-cancel" onclick="closeAdminModal()" id="modal-cancel-btn">Cancelar</button>
-    <div class="modal-hint" id="modal-hint">Contraseña predeterminada: <strong>admin123</strong></div>
-  </div>
-</div>
-
 <header id="main-header" style="display:none">
   <div class="logo">COACH AI</div>
   <div class="header-right" id="header-right">
@@ -1788,6 +1758,25 @@ footer {
         <div class="form-group">
           <label data-es="Altura (cm)" data-en="Height (cm)">Altura (cm)</label>
           <input type="number" id="f-altura" placeholder="178" min="140" max="220">
+        </div>
+      </div>
+
+      <div class="form-group full" style="margin-top:16px">
+        <label>📏 Medidas para calcular % graso <span style="color:var(--muted);font-size:11px">(opcional pero recomendado)</span></label>
+        <div style="font-size:11px;color:var(--muted);margin:6px 0 10px;line-height:1.5">Estas medidas nos permiten calcular tu % de grasa corporal inicial con mayor precisión.</div>
+        <div class="form-grid" style="margin-top:8px">
+          <div class="form-group">
+            <label data-es="Cuello (cm)" data-en="Neck (cm)">Cuello (cm)</label>
+            <input type="number" id="f-cuello" placeholder="38" min="20" max="60">
+          </div>
+          <div class="form-group">
+            <label data-es="Cintura (cm)" data-en="Waist (cm)">Cintura (cm)</label>
+            <input type="number" id="f-cintura-form" placeholder="85" min="40" max="200">
+          </div>
+          <div class="form-group">
+            <label data-es="Cadera (cm) — solo mujeres" data-en="Hips (cm) — women only">Cadera (cm) — solo mujeres</label>
+            <input type="number" id="f-cadera-form" placeholder="95" min="40" max="200">
+          </div>
         </div>
       </div>
 
@@ -2274,6 +2263,9 @@ const LS_KEY = 'coachai_profile_v1';
 function saveProfile() {
   const data = {
     nombre: document.getElementById('f-nombre').value,
+    cuello: document.getElementById('f-cuello')?.value || '',
+    cinturaForm: document.getElementById('f-cintura-form')?.value || '',
+    caderaForm: document.getElementById('f-cadera-form')?.value || '',
     edad: document.getElementById('f-edad').value,
     sexo: document.getElementById('f-sexo').value,
     peso: document.getElementById('f-peso').value,
@@ -2325,6 +2317,9 @@ function restoreFormFromProfile(p) {
   document.getElementById('f-duracion').value = p.duracion || '';
   document.getElementById('f-lugar').value = p.lugar || '';
   document.getElementById('f-nodislike').value = p.nodislike || '';
+  if (document.getElementById('f-cuello')) document.getElementById('f-cuello').value = p.cuello || '';
+  if (document.getElementById('f-cintura-form')) document.getElementById('f-cintura-form').value = p.cinturaForm || '';
+  if (document.getElementById('f-cadera-form')) document.getElementById('f-cadera-form').value = p.caderaForm || '';
 
   // Restore state variables
   selectedDias = p.selectedDias || [];
@@ -2693,6 +2688,22 @@ function buildSystemPrompt() {
   const noDislike = document.getElementById('f-nodislike').value || 'ninguno';
   const imc = (parseFloat(peso) / ((parseFloat(altura)/100)**2)).toFixed(1);
 
+  // Body fat % - US Navy formula
+  const cuello = parseFloat(document.getElementById('f-cuello')?.value || 0);
+  const cinturaForm = parseFloat(document.getElementById('f-cintura-form')?.value || 0);
+  const caderaForm = parseFloat(document.getElementById('f-cadera-form')?.value || 0);
+  let bodyFatText = 'no proporcionadas';
+  if (cuello > 0 && cinturaForm > 0) {
+    let bf = 0;
+    const altNum = parseFloat(altura);
+    if (sexo === 'masculino') {
+      bf = 495 / (1.0324 - 0.19077 * Math.log10(cinturaForm - cuello) + 0.15456 * Math.log10(altNum)) - 450;
+    } else if (caderaForm > 0) {
+      bf = 495 / (1.29579 - 0.35004 * Math.log10(cinturaForm + caderaForm - cuello) + 0.22100 * Math.log10(altNum)) - 450;
+    }
+    if (bf > 0) bodyFatText = bf.toFixed(1) + '%';
+  }
+
   const lesiones = [...document.querySelectorAll('#lesiones-chips .chip.selected')].map(c => c.textContent.trim()).join(', ') || 'ninguna';
   const dieta = [...document.querySelectorAll('#dieta-chips .chip.selected')].map(c => c.textContent.trim()).join(', ') || 'sin restricciones';
   const alergias = [...document.querySelectorAll('#alergia-chips .chip.selected')].map(c => c.textContent.trim()).join(', ') || 'ninguna';
@@ -2707,6 +2718,8 @@ PERFIL COMPLETO DEL USUARIO:
 - Objetivo elegido: ${selections.objetivo}
 - Nivel de entrenamiento: ${selections.nivel}
 - Actividad diaria: ${actividad}
+- % Grasa corporal estimado: ${bodyFatText}
+- Medidas: cuello ${cuello||'—'}cm | cintura ${cinturaForm||'—'}cm | cadera ${caderaForm||'—'}cm
 
 ENTRENAMIENTO:
 - Días disponibles: ${diasStr} (${selectedDias.length} días/semana)
@@ -2741,7 +2754,20 @@ Casos a evaluar:
 
 Siempre hacé esta evaluación con energía positiva, NUNCA de forma negativa o condescendiente. El mensaje siempre es: "tu objetivo es válido, y con estos datos podemos llegar ahí de la forma más inteligente posible".
 
-Arrancá saludando a ${nombre} con energía, calculá sus calorías diarias, hacé el análisis del objetivo y presentá el plan de acción claro y motivador.`;
+Arrancá saludando a ${nombre} con energía y en tu PRIMER mensaje siempre:
+1. Calculá y mostrá sus calorías diarias (TDEE) y macros exactos
+2. Si tiene medidas, calculá su % graso con la fórmula de la Marina de EE.UU
+3. Analizá si su objetivo tiene sentido con sus datos
+4. Presentá el plan de acción
+5. Explicá el modo de uso óptimo con estas palabras exactas:
+
+"Para sacarme el máximo provecho te recomiendo usarme así:
+🌅 Mañana — contame tu desayuno
+☀️ Mediodía — almuerzo y cómo te sentís
+🌙 Noche — lo que entrenaste y tu cena
+📊 Cierre — pedime un análisis de tu día
+
+Con 4-5 mensajes diarios vas a tener un seguimiento completo y personalizado. ¡Arrancamos!"`;
   } else {
     return `You are CoachAI, an expert AI personal trainer and nutritionist. You speak in English with positive energy, motivation and deep evidence-based technical knowledge.
 
@@ -2785,7 +2811,20 @@ Cases to evaluate:
 
 Always do this evaluation with positive energy, NEVER in a negative or condescending way. The message is always: "your goal is totally valid, and with your data we can get there in the smartest way possible."
 
-Start by greeting ${nombre} with energy, calculate their daily calories, analyze their goal and present a clear and motivating action plan.`;
+Start by greeting ${nombre} with energy and in your FIRST message always:
+1. Calculate and show their daily calories (TDEE) and exact macros
+2. If they have measurements, calculate their body fat % using the US Navy formula
+3. Analyze if their goal makes sense with their data
+4. Present a clear action plan
+5. Explain the optimal usage mode with these exact words:
+
+"To get the most out of me, here's how I recommend using me:
+🌅 Morning — tell me your breakfast
+☀️ Midday — lunch and how you're feeling
+🌙 Evening — what you trained and your dinner
+📊 Close — ask me for a daily analysis
+
+With 4-5 messages a day you'll have complete personalized tracking. Let's go!"`;
   }
 }
 
@@ -3509,5 +3548,40 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 </script>
+
+<div class="landing-wrapper" id="landing-wrapper">
+  <div class="landing-logo" id="landing-logo-text">COACH AI</div>
+  <div class="landing-tagline" id="landing-tagline-text">Tu entrenador personal con inteligencia artificial</div>
+
+  <div class="landing-cards">
+    <div class="landing-card client" onclick="enterAsClient()">
+      <div class="landing-card-icon">💪</div>
+      <div class="landing-card-title" id="landing-client-title">SOY CLIENTE</div>
+      <div class="landing-card-desc" id="landing-client-desc">Accedé a tu coach personal, tu plan y tu progreso</div>
+    </div>
+    <div class="landing-card admin" onclick="showAdminLogin()">
+      <div class="landing-card-icon">⚙️</div>
+      <div class="landing-card-title" id="landing-admin-title">ADMINISTRADOR</div>
+      <div class="landing-card-desc" id="landing-admin-desc">Configurá la marca y personalización del negocio</div>
+    </div>
+  </div>
+
+  <div class="landing-footer-text" id="landing-footer-text">Powered by Anthropic Claude</div>
+</div>
+
+<!-- ADMIN LOGIN MODAL -->
+<div class="modal-overlay" id="admin-modal">
+  <div class="modal-card">
+    <div class="modal-title" id="modal-title">⚙️ ACCESO ADMIN</div>
+    <div class="modal-sub" id="modal-sub">Ingresá la contraseña de administrador</div>
+    <input type="password" class="modal-input" id="admin-password-input" placeholder="••••••••" onkeydown="if(event.key==='Enter') checkAdminPassword()">
+    <div class="modal-error" id="modal-error"></div>
+    <button class="btn-modal-enter" onclick="checkAdminPassword()" id="modal-enter-btn">INGRESAR</button>
+    <button class="btn-modal-cancel" onclick="closeAdminModal()" id="modal-cancel-btn">Cancelar</button>
+    <div class="modal-hint" id="modal-hint">Contraseña predeterminada: <strong>admin123</strong></div>
+  </div>
+</div>
+
+
 </body>
 </html>
