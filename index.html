@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CoachAI — Entrenador Personal con IA</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -1671,9 +1672,104 @@ footer {
   .landing-logo { font-size: 36px; }
 }
 
+
+/* EMAIL LOGIN */
+.email-login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.email-login-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 40px 32px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  animation: slideIn 0.3s ease;
+}
+
+.email-login-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  letter-spacing: 4px;
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+.email-login-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 32px;
+  line-height: 1.5;
+}
+
+.email-login-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 13px 16px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  outline: none;
+  transition: all 0.2s;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.email-login-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(124,106,255,0.1);
+}
+
+.btn-email-login {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 16px rgba(124,106,255,0.3);
+}
+
+.btn-email-login:hover { transform: translateY(-1px); }
+.btn-email-login:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.email-login-error { font-size: 12px; color: var(--accent2); margin-bottom: 12px; min-height: 18px; }
+.email-login-loading { font-size: 13px; color: var(--muted); margin-top: 12px; }
+
 </style>
 </head>
 <body>
+<!-- EMAIL LOGIN SCREEN -->
+<div class="email-login-overlay" id="email-login-overlay">
+  <div class="email-login-card">
+    <div class="email-login-logo" id="el-logo">COACH AI</div>
+    <div class="email-login-sub">Ingresá tu email para acceder a tu coach personal</div>
+    <input type="text" class="email-login-input" id="el-nombre" placeholder="Tu nombre" style="margin-bottom:10px">
+    <input type="email" class="email-login-input" id="el-email" placeholder="tu@email.com" onkeydown="if(event.key==='Enter') handleEmailLogin()">
+    <div class="email-login-error" id="el-error"></div>
+    <button class="btn-email-login" onclick="handleEmailLogin()" id="el-btn">ENTRAR</button>
+    <div class="email-login-loading" id="el-loading" style="display:none">Conectando...</div>
+  </div>
+</div>
+
 
 <!-- HEADER -->
 
@@ -2241,6 +2337,150 @@ footer {
 <footer>CoachAI — Powered by Anthropic Claude · Tu entrenador personal con inteligencia artificial</footer>
 
 <script>
+// ============================
+// SUPABASE CONFIG
+// ============================
+const SUPABASE_URL = 'https://vmvhlgzwufkardaruutt.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtdmhsZ3p3dWZrYXJkYXJ1dXR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNzA4NjcsImV4cCI6MjA5Mjg0Njg2N30.x9-lV9xi3Kdu_zpHcGC0PC80-GiXpc1WD4lnAuFI_iM';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null; // stores { id, email, nombre }
+
+// ============================
+// SUPABASE FUNCTIONS
+// ============================
+
+async function loginOrRegister(email, nombre) {
+  // Check if user exists
+  const { data: existing } = await supabase
+    .from('usuarios')
+    .select('*')
+    .eq('email', email)
+    .single();
+
+  if (existing) {
+    currentUser = existing;
+    return { isNew: false, user: existing };
+  }
+
+  // Create new user
+  const { data: newUser, error } = await supabase
+    .from('usuarios')
+    .insert([{ email, nombre }])
+    .select()
+    .single();
+
+  if (error) throw error;
+  currentUser = newUser;
+  return { isNew: true, user: newUser };
+}
+
+async function saveProfileToSupabase(profileData) {
+  if (!currentUser) return;
+  const { error } = await supabase
+    .from('usuarios')
+    .update(profileData)
+    .eq('id', currentUser.id);
+  if (error) console.error('Error saving profile:', error);
+}
+
+async function saveWeightToSupabase(peso) {
+  if (!currentUser) return;
+  const today = getTodayKey();
+  await supabase.from('progreso_peso').upsert({
+    usuario_id: currentUser.id,
+    fecha: today,
+    peso: peso
+  }, { onConflict: 'usuario_id,fecha' });
+}
+
+async function loadWeightsFromSupabase() {
+  if (!currentUser) return [];
+  const { data } = await supabase
+    .from('progreso_peso')
+    .select('*')
+    .eq('usuario_id', currentUser.id)
+    .order('fecha', { ascending: true });
+  return data || [];
+}
+
+async function saveMedidasToSupabase(medidas) {
+  if (!currentUser) return;
+  const today = getTodayKey();
+  await supabase.from('progreso_medidas').upsert({
+    usuario_id: currentUser.id,
+    fecha: today,
+    ...medidas
+  }, { onConflict: 'usuario_id,fecha' });
+}
+
+async function saveTrainedDayToSupabase() {
+  if (!currentUser) return;
+  const today = getTodayKey();
+  await supabase.from('dias_entrenados').upsert({
+    usuario_id: currentUser.id,
+    fecha: today
+  }, { onConflict: 'usuario_id,fecha' });
+}
+
+async function loadTrainedDaysFromSupabase() {
+  if (!currentUser) return [];
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const { data } = await supabase
+    .from('dias_entrenados')
+    .select('fecha')
+    .eq('usuario_id', currentUser.id)
+    .gte('fecha', thirtyDaysAgo.toISOString().slice(0,10));
+  return (data || []).map(d => d.fecha);
+}
+
+async function saveChatToSupabase(messages, conversationHistory) {
+  if (!currentUser) return;
+  const today = getTodayKey();
+  await supabase.from('historial_chat').upsert({
+    usuario_id: currentUser.id,
+    fecha: today,
+    mensajes: messages,
+    conversation_history: conversationHistory
+  }, { onConflict: 'usuario_id,fecha' });
+}
+
+async function loadChatFromSupabase() {
+  if (!currentUser) return null;
+  const today = getTodayKey();
+  const { data } = await supabase
+    .from('historial_chat')
+    .select('*')
+    .eq('usuario_id', currentUser.id)
+    .eq('fecha', today)
+    .single();
+  return data;
+}
+
+async function saveDailyProgressToSupabase(progressData) {
+  if (!currentUser) return;
+  const today = getTodayKey();
+  await supabase.from('progreso_diario').upsert({
+    usuario_id: currentUser.id,
+    fecha: today,
+    ...progressData
+  }, { onConflict: 'usuario_id,fecha' });
+}
+
+async function saveExerciseLoadToSupabase(ejercicio, series, repeticiones, pesoKg, notas) {
+  if (!currentUser) return;
+  await supabase.from('cargas_ejercicios').insert({
+    usuario_id: currentUser.id,
+    fecha: getTodayKey(),
+    ejercicio,
+    series,
+    repeticiones,
+    peso_kg: pesoKg,
+    notas
+  });
+}
+
 // ============================
 // STATE
 // ============================
@@ -2832,8 +3072,25 @@ With 4-5 messages a day you'll have complete personalized tracking. Let's go!"`;
 // LAUNCH COACH
 // ============================
 async function launchCoach() {
-  // Save profile to localStorage
+  // Save profile to localStorage and Supabase
   saveProfile();
+  if (currentUser) {
+    const profileData = {
+      nombre: document.getElementById('f-nombre').value,
+      edad: parseInt(document.getElementById('f-edad').value) || null,
+      sexo: document.getElementById('f-sexo').value,
+      peso: parseFloat(document.getElementById('f-peso').value) || null,
+      altura: parseFloat(document.getElementById('f-altura').value) || null,
+      objetivo: selections.objetivo,
+      nivel: selections.nivel,
+      actividad: document.getElementById('f-actividad').value,
+      dias_entreno: selectedDias,
+      duracion_sesion: document.getElementById('f-duracion').value,
+      lugar_entreno: document.getElementById('f-lugar').value,
+      no_le_gusta: document.getElementById('f-nodislike').value,
+    };
+    saveProfileToSupabase(profileData).catch(console.error);
+  }
 
   // Add edit profile button to header
   const headerRight = document.getElementById('header-right');
@@ -3205,6 +3462,7 @@ function logWeight() {
   if (idx >= 0) progress.weights[idx].value = val;
   else progress.weights.push({ date: today, value: val });
   saveProgress(progress);
+  saveWeightToSupabase(val).catch(console.error);
   input.value = '';
 
   // Update profile peso too
@@ -3261,6 +3519,7 @@ function markTrained() {
     progress.trainedDays.push(today);
     saveProgress(progress);
   }
+  saveTrainedDayToSupabase().catch(console.error);
   renderDashboard();
 }
 
@@ -3402,6 +3661,78 @@ function resetWhiteLabel() {
 }
 
 // Apply on page load
+// ============================
+// EMAIL LOGIN
+// ============================
+async function handleEmailLogin() {
+  const nombre = document.getElementById('el-nombre').value.trim();
+  const email = document.getElementById('el-email').value.trim().toLowerCase();
+  const btn = document.getElementById('el-btn');
+  const loading = document.getElementById('el-loading');
+  const error = document.getElementById('el-error');
+
+  if (!nombre) { error.textContent = 'Por favor ingresá tu nombre'; return; }
+  if (!email || !email.includes('@')) { error.textContent = 'Por favor ingresá un email válido'; return; }
+
+  btn.disabled = true;
+  loading.style.display = 'block';
+  error.textContent = '';
+
+  try {
+    const result = await loginOrRegister(email, nombre);
+    document.getElementById('email-login-overlay').style.display = 'none';
+
+    if (result.isNew) {
+      // New user - show form
+      document.getElementById('main-header').style.display = 'flex';
+      document.getElementById('hero-section').style.display = 'block';
+      document.querySelector('.form-wrapper').style.display = 'block';
+      document.querySelector('.progress-bar-container').style.display = 'block';
+      // Pre-fill name
+      document.getElementById('f-nombre').value = nombre;
+    } else {
+      // Existing user - restore profile and go to chat
+      const p = result.user;
+      currentUser = p;
+      restoreProfileFromSupabase(p);
+      document.getElementById('main-header').style.display = 'flex';
+
+      if (p.objetivo && p.nivel) {
+        // Has complete profile - go to chat
+        selections.objetivo = p.objetivo;
+        selections.nivel = p.nivel;
+        selectedDias = p.dias_entreno || [];
+        await launchCoach();
+      } else {
+        // Incomplete profile - show form
+        document.getElementById('hero-section').style.display = 'block';
+        document.querySelector('.form-wrapper').style.display = 'block';
+        document.querySelector('.progress-bar-container').style.display = 'block';
+        document.getElementById('f-nombre').value = p.nombre || nombre;
+      }
+    }
+  } catch(err) {
+    error.textContent = 'Error de conexión. Intentá de nuevo.';
+    console.error(err);
+  }
+
+  btn.disabled = false;
+  loading.style.display = 'none';
+}
+
+function restoreProfileFromSupabase(p) {
+  if (p.nombre) document.getElementById('f-nombre').value = p.nombre;
+  if (p.edad) document.getElementById('f-edad').value = p.edad;
+  if (p.sexo) document.getElementById('f-sexo').value = p.sexo;
+  if (p.peso) document.getElementById('f-peso').value = p.peso;
+  if (p.altura) document.getElementById('f-altura').value = p.altura;
+  if (p.actividad) document.getElementById('f-actividad').value = p.actividad;
+  if (p.cuello) { const el = document.getElementById('f-cuello'); if(el) el.value = p.cuello; }
+  if (p.cintura) { const el = document.getElementById('f-cintura-form'); if(el) el.value = p.cintura; }
+  if (p.cadera) { const el = document.getElementById('f-cadera-form'); if(el) el.value = p.cadera; }
+}
+
+
 window.addEventListener('DOMContentLoaded', () => {
   checkSavedProfile();
   const wl = loadWhiteLabel();
@@ -3533,6 +3864,78 @@ function applyWhiteLabelToLanding(wl) {
 }
 
 // Override the DOMContentLoaded to show landing first
+// ============================
+// EMAIL LOGIN
+// ============================
+async function handleEmailLogin() {
+  const nombre = document.getElementById('el-nombre').value.trim();
+  const email = document.getElementById('el-email').value.trim().toLowerCase();
+  const btn = document.getElementById('el-btn');
+  const loading = document.getElementById('el-loading');
+  const error = document.getElementById('el-error');
+
+  if (!nombre) { error.textContent = 'Por favor ingresá tu nombre'; return; }
+  if (!email || !email.includes('@')) { error.textContent = 'Por favor ingresá un email válido'; return; }
+
+  btn.disabled = true;
+  loading.style.display = 'block';
+  error.textContent = '';
+
+  try {
+    const result = await loginOrRegister(email, nombre);
+    document.getElementById('email-login-overlay').style.display = 'none';
+
+    if (result.isNew) {
+      // New user - show form
+      document.getElementById('main-header').style.display = 'flex';
+      document.getElementById('hero-section').style.display = 'block';
+      document.querySelector('.form-wrapper').style.display = 'block';
+      document.querySelector('.progress-bar-container').style.display = 'block';
+      // Pre-fill name
+      document.getElementById('f-nombre').value = nombre;
+    } else {
+      // Existing user - restore profile and go to chat
+      const p = result.user;
+      currentUser = p;
+      restoreProfileFromSupabase(p);
+      document.getElementById('main-header').style.display = 'flex';
+
+      if (p.objetivo && p.nivel) {
+        // Has complete profile - go to chat
+        selections.objetivo = p.objetivo;
+        selections.nivel = p.nivel;
+        selectedDias = p.dias_entreno || [];
+        await launchCoach();
+      } else {
+        // Incomplete profile - show form
+        document.getElementById('hero-section').style.display = 'block';
+        document.querySelector('.form-wrapper').style.display = 'block';
+        document.querySelector('.progress-bar-container').style.display = 'block';
+        document.getElementById('f-nombre').value = p.nombre || nombre;
+      }
+    }
+  } catch(err) {
+    error.textContent = 'Error de conexión. Intentá de nuevo.';
+    console.error(err);
+  }
+
+  btn.disabled = false;
+  loading.style.display = 'none';
+}
+
+function restoreProfileFromSupabase(p) {
+  if (p.nombre) document.getElementById('f-nombre').value = p.nombre;
+  if (p.edad) document.getElementById('f-edad').value = p.edad;
+  if (p.sexo) document.getElementById('f-sexo').value = p.sexo;
+  if (p.peso) document.getElementById('f-peso').value = p.peso;
+  if (p.altura) document.getElementById('f-altura').value = p.altura;
+  if (p.actividad) document.getElementById('f-actividad').value = p.actividad;
+  if (p.cuello) { const el = document.getElementById('f-cuello'); if(el) el.value = p.cuello; }
+  if (p.cintura) { const el = document.getElementById('f-cintura-form'); if(el) el.value = p.cintura; }
+  if (p.cadera) { const el = document.getElementById('f-cadera-form'); if(el) el.value = p.cadera; }
+}
+
+
 window.addEventListener('DOMContentLoaded', () => {
   // Apply white label on load
   const wl = loadWhiteLabel();
