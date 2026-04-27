@@ -1755,6 +1755,43 @@ footer {
 .email-login-loading { font-size: 13px; color: var(--muted); margin-top: 12px; }
 
 </style>
+
+<script>
+
+// Early definitions needed by HTML onclick handlers
+function handleEmailLogin() {
+  // Will be replaced by full implementation below
+  // This is just a stub to prevent errors during page load
+  const fn = window._handleEmailLogin;
+  if (fn) fn();
+}
+
+window._enterAsClient = function() {
+  const fn = window._enterAsClient;
+  if (fn) fn();
+}
+
+window._enterAsAdmin = function() {
+  const fn = window._enterAsAdmin;
+  if (fn) fn();
+}
+
+window._showAdminLogin = function() {
+  const fn = window._showAdminLogin;
+  if (fn) fn();
+}
+
+window._checkAdminPassword = function() {
+  const fn = window._checkAdminPassword;
+  if (fn) fn();
+}
+
+window._closeAdminModal = function() {
+  const fn = window._closeAdminModal;
+  if (fn) fn();
+}
+
+</script>
 </head>
 <body>
 <!-- EMAIL LOGIN SCREEN -->
@@ -2336,13 +2373,302 @@ footer {
 
 <footer>CoachAI — Powered by Anthropic Claude · Tu entrenador personal con inteligencia artificial</footer>
 
-<script>
+<script>// ============================
+// EMAIL LOGIN
+// ============================
+window._handleEmailLogin = async function() {
+  const nombre = document.getElementById('el-nombre').value.trim();
+  const email = document.getElementById('el-email').value.trim().toLowerCase();
+  const btn = document.getElementById('el-btn');
+  const loading = document.getElementById('el-loading');
+  const error = document.getElementById('el-error');
+
+  if (!nombre) { error.textContent = 'Por favor ingresá tu nombre'; return; }
+  if (!email || !email.includes('@')) { error.textContent = 'Por favor ingresá un email válido'; return; }
+
+  btn.disabled = true;
+  loading.style.display = 'block';
+  error.textContent = '';
+
+  try {
+    const result = await loginOrRegister(email, nombre);
+    document.getElementById('email-login-overlay').style.display = 'none';
+
+    if (result.isNew) {
+      // New user - show form
+      document.getElementById('main-header').style.display = 'flex';
+      document.getElementById('hero-section').style.display = 'block';
+      document.querySelector('.form-wrapper').style.display = 'block';
+      document.querySelector('.progress-bar-container').style.display = 'block';
+      // Pre-fill name
+      document.getElementById('f-nombre').value = nombre;
+    } else {
+      // Existing user - restore profile and go to chat
+      const p = result.user;
+      currentUser = p;
+      restoreProfileFromSupabase(p);
+      document.getElementById('main-header').style.display = 'flex';
+
+      if (p.objetivo && p.nivel) {
+        // Has complete profile - go to chat
+        selections.objetivo = p.objetivo;
+        selections.nivel = p.nivel;
+        selectedDias = p.dias_entreno || [];
+        await launchCoach();
+      } else {
+        // Incomplete profile - show form
+        document.getElementById('hero-section').style.display = 'block';
+        document.querySelector('.form-wrapper').style.display = 'block';
+        document.querySelector('.progress-bar-container').style.display = 'block';
+        document.getElementById('f-nombre').value = p.nombre || nombre;
+      }
+    }
+  } catch(err) {
+    error.textContent = 'Error de conexión. Intentá de nuevo.';
+    console.error(err);
+  }
+
+  btn.disabled = false;
+  loading.style.display = 'none';
+}
+
+function restoreProfileFromSupabase(p) {
+  if (p.nombre) document.getElementById('f-nombre').value = p.nombre;
+  if (p.edad) document.getElementById('f-edad').value = p.edad;
+  if (p.sexo) document.getElementById('f-sexo').value = p.sexo;
+  if (p.peso) document.getElementById('f-peso').value = p.peso;
+  if (p.altura) document.getElementById('f-altura').value = p.altura;
+  if (p.actividad) document.getElementById('f-actividad').value = p.actividad;
+  if (p.cuello) { const el = document.getElementById('f-cuello'); if(el) el.value = p.cuello; }
+  if (p.cintura) { const el = document.getElementById('f-cintura-form'); if(el) el.value = p.cintura; }
+  if (p.cadera) { const el = document.getElementById('f-cadera-form'); if(el) el.value = p.cadera; }
+}
+
+
+window.addEventListener('DOMContentLoaded', () => {
+  checkSavedProfile();
+  const wl = loadWhiteLabel();
+  if (wl) applyWhiteLabelToApp(wl);
+});
+
+
+// ============================
+// LANDING & ADMIN ACCESS
+// ============================
+const LS_ADMIN = 'coachai_admin_v1';
+const DEFAULT_PASSWORD = 'admin123';
+
+function getAdminPassword() {
+  try {
+    const raw = localStorage.getItem(LS_ADMIN);
+    return raw ? JSON.parse(raw).password : DEFAULT_PASSWORD;
+  } catch(e) { return DEFAULT_PASSWORD; }
+}
+
+function changeAdminPassword() {
+  const newPass = document.getElementById('new-password').value.trim();
+  if (!newPass || newPass.length < 4) {
+    alert(lang === 'es' ? 'La contraseña debe tener al menos 4 caracteres.' : 'Password must be at least 4 characters.');
+    return;
+  }
+  localStorage.setItem(LS_ADMIN, JSON.stringify({ password: newPass }));
+  document.getElementById('new-password').value = '';
+  const btn = document.getElementById('change-pass-btn');
+  btn.textContent = '✅';
+  setTimeout(() => { btn.textContent = lang === 'es' ? 'Guardar' : 'Save'; }, 2000);
+}
+
+window._showAdminLogin = function() {
+  document.getElementById('admin-modal').classList.add('visible');
+  document.getElementById('admin-password-input').value = '';
+  document.getElementById('modal-error').textContent = '';
+  setTimeout(() => document.getElementById('admin-password-input').focus(), 100);
+}
+
+window._closeAdminModal = function() {
+  document.getElementById('admin-modal').classList.remove('visible');
+}
+
+window._checkAdminPassword = function() {
+  const input = document.getElementById('admin-password-input').value;
+  const correct = getAdminPassword();
+  if (input === correct) {
+    closeAdminModal();
+    enterAsAdmin();
+  } else {
+    document.getElementById('modal-error').textContent = lang === 'es' ? '❌ Contraseña incorrecta' : '❌ Incorrect password';
+    document.getElementById('admin-password-input').value = '';
+    document.getElementById('admin-password-input').focus();
+  }
+}
+
+window._enterAsClient = function() {
+  document.getElementById('landing-wrapper').style.display = 'none';
+  document.getElementById('main-header').style.display = 'flex';
+  // Check saved profile
+  const p = loadProfile();
+  if (p && p.nombre) {
+    checkSavedProfile();
+    document.getElementById('hero-section').style.display = 'block';
+    document.querySelector('.form-wrapper').style.display = 'block';
+    document.querySelector('.progress-bar-container').style.display = 'block';
+  } else {
+    document.getElementById('hero-section').style.display = 'block';
+    document.querySelector('.form-wrapper').style.display = 'block';
+    document.querySelector('.progress-bar-container').style.display = 'block';
+  }
+}
+
+window._enterAsAdmin = function() {
+  document.getElementById('landing-wrapper').style.display = 'none';
+  document.getElementById('main-header').style.display = 'flex';
+  hideAllSections();
+  // Go directly to white label panel
+  document.getElementById('wl-wrapper').style.display = 'block';
+  document.getElementById('wl-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Load existing WL config
+  const wl = loadWhiteLabel();
+  if (wl) {
+    document.getElementById('wl-nombre').value = wl.nombre || '';
+    document.getElementById('wl-gym').value = wl.gym || '';
+    document.getElementById('wl-tagline').value = wl.tagline || '';
+    if (wl.color) {
+      wlSelectedColor = { color: wl.color, bright: wl.bright };
+      document.querySelectorAll('.color-option').forEach(o => {
+        o.classList.toggle('selected', o.dataset.color === wl.color);
+      });
+    }
+    if (wl.logo) {
+      wlLogoDataUrl = wl.logo;
+      document.getElementById('logo-preview-img').src = wl.logo;
+      document.getElementById('logo-preview-img').style.display = 'block';
+      document.getElementById('upload-icon').style.display = 'none';
+    }
+  }
+  updatePreview();
+  // Change back button to go to landing
+  document.querySelector('.wl-header .btn-back-chat').textContent = lang === 'es' ? '← Volver al inicio' : '← Back to home';
+  document.querySelector('.wl-header .btn-back-chat').onclick = goToLanding;
+}
+
+function goToLanding() {
+  hideAllSections();
+  document.getElementById('main-header').style.display = 'none';
+  document.getElementById('landing-wrapper').style.display = 'flex';
+  // Restore back button
+  document.querySelector('.wl-header .btn-back-chat').textContent = lang === 'es' ? '← Volver al chat' : '← Back to chat';
+  document.querySelector('.wl-header .btn-back-chat').onclick = showChatFromWL;
+}
+
+// Apply white label to landing screen too
+function applyWhiteLabelToLanding(wl) {
+  if (!wl) return;
+  if (wl.nombre) {
+    document.getElementById('landing-logo-text').textContent = wl.nombre;
+  }
+  if (wl.tagline) {
+    document.getElementById('landing-tagline-text').textContent = wl.tagline;
+  }
+  if (wl.color) {
+    document.documentElement.style.setProperty('--accent', wl.color);
+    document.documentElement.style.setProperty('--accent-bright', wl.bright || wl.color);
+  }
+}
+
+// Override the DOMContentLoaded to show landing first
+// ============================
+// EMAIL LOGIN
+// ============================
+window._handleEmailLogin = async function() {
+  const nombre = document.getElementById('el-nombre').value.trim();
+  const email = document.getElementById('el-email').value.trim().toLowerCase();
+  const btn = document.getElementById('el-btn');
+  const loading = document.getElementById('el-loading');
+  const error = document.getElementById('el-error');
+
+  if (!nombre) { error.textContent = 'Por favor ingresá tu nombre'; return; }
+  if (!email || !email.includes('@')) { error.textContent = 'Por favor ingresá un email válido'; return; }
+
+  btn.disabled = true;
+  loading.style.display = 'block';
+  error.textContent = '';
+
+  try {
+    const result = await loginOrRegister(email, nombre);
+    document.getElementById('email-login-overlay').style.display = 'none';
+
+    if (result.isNew) {
+      // New user - show form
+      document.getElementById('main-header').style.display = 'flex';
+      document.getElementById('hero-section').style.display = 'block';
+      document.querySelector('.form-wrapper').style.display = 'block';
+      document.querySelector('.progress-bar-container').style.display = 'block';
+      // Pre-fill name
+      document.getElementById('f-nombre').value = nombre;
+    } else {
+      // Existing user - restore profile and go to chat
+      const p = result.user;
+      currentUser = p;
+      restoreProfileFromSupabase(p);
+      document.getElementById('main-header').style.display = 'flex';
+
+      if (p.objetivo && p.nivel) {
+        // Has complete profile - go to chat
+        selections.objetivo = p.objetivo;
+        selections.nivel = p.nivel;
+        selectedDias = p.dias_entreno || [];
+        await launchCoach();
+      } else {
+        // Incomplete profile - show form
+        document.getElementById('hero-section').style.display = 'block';
+        document.querySelector('.form-wrapper').style.display = 'block';
+        document.querySelector('.progress-bar-container').style.display = 'block';
+        document.getElementById('f-nombre').value = p.nombre || nombre;
+      }
+    }
+  } catch(err) {
+    error.textContent = 'Error de conexión. Intentá de nuevo.';
+    console.error(err);
+  }
+
+  btn.disabled = false;
+  loading.style.display = 'none';
+}
+
+function restoreProfileFromSupabase(p) {
+  if (p.nombre) document.getElementById('f-nombre').value = p.nombre;
+  if (p.edad) document.getElementById('f-edad').value = p.edad;
+  if (p.sexo) document.getElementById('f-sexo').value = p.sexo;
+  if (p.peso) document.getElementById('f-peso').value = p.peso;
+  if (p.altura) document.getElementById('f-altura').value = p.altura;
+  if (p.actividad) document.getElementById('f-actividad').value = p.actividad;
+  if (p.cuello) { const el = document.getElementById('f-cuello'); if(el) el.value = p.cuello; }
+  if (p.cintura) { const el = document.getElementById('f-cintura-form'); if(el) el.value = p.cintura; }
+  if (p.cadera) { const el = document.getElementById('f-cadera-form'); if(el) el.value = p.cadera; }
+}
+
+
+window.addEventListener('DOMContentLoaded', () => {
+  // Apply white label on load
+  const wl = loadWhiteLabel();
+  if (wl) {
+    applyWhiteLabelToApp(wl);
+    applyWhiteLabelToLanding(wl);
+  }
+  // Hide everything except landing
+  document.getElementById('hero-section').style.display = 'none';
+  document.querySelector('.form-wrapper').style.display = 'none';
+  document.querySelector('.progress-bar-container').style.display = 'none';
+  document.getElementById('welcome-back').style.display = 'none';
+});
+
+
 // ============================
 // SUPABASE CONFIG
 // ============================
 const SUPABASE_URL = 'https://vmvhlgzwufkardaruutt.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtdmhsZ3p3dWZrYXJkYXJ1dXR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNzA4NjcsImV4cCI6MjA5Mjg0Njg2N30.x9-lV9xi3Kdu_zpHcGC0PC80-GiXpc1WD4lnAuFI_iM';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = null; // stores { id, email, nombre }
 
@@ -2352,7 +2678,7 @@ let currentUser = null; // stores { id, email, nombre }
 
 async function loginOrRegister(email, nombre) {
   // Check if user exists
-  const { data: existing } = await supabase
+  const { data: existing } = await sbClient
     .from('usuarios')
     .select('*')
     .eq('email', email)
@@ -2364,7 +2690,7 @@ async function loginOrRegister(email, nombre) {
   }
 
   // Create new user
-  const { data: newUser, error } = await supabase
+  const { data: newUser, error } = await sbClient
     .from('usuarios')
     .insert([{ email, nombre }])
     .select()
@@ -2377,7 +2703,7 @@ async function loginOrRegister(email, nombre) {
 
 async function saveProfileToSupabase(profileData) {
   if (!currentUser) return;
-  const { error } = await supabase
+  const { error } = await sbClient
     .from('usuarios')
     .update(profileData)
     .eq('id', currentUser.id);
@@ -2387,7 +2713,7 @@ async function saveProfileToSupabase(profileData) {
 async function saveWeightToSupabase(peso) {
   if (!currentUser) return;
   const today = getTodayKey();
-  await supabase.from('progreso_peso').upsert({
+  await sbClient.from('progreso_peso').upsert({
     usuario_id: currentUser.id,
     fecha: today,
     peso: peso
@@ -2396,7 +2722,7 @@ async function saveWeightToSupabase(peso) {
 
 async function loadWeightsFromSupabase() {
   if (!currentUser) return [];
-  const { data } = await supabase
+  const { data } = await sbClient
     .from('progreso_peso')
     .select('*')
     .eq('usuario_id', currentUser.id)
@@ -2407,7 +2733,7 @@ async function loadWeightsFromSupabase() {
 async function saveMedidasToSupabase(medidas) {
   if (!currentUser) return;
   const today = getTodayKey();
-  await supabase.from('progreso_medidas').upsert({
+  await sbClient.from('progreso_medidas').upsert({
     usuario_id: currentUser.id,
     fecha: today,
     ...medidas
@@ -2417,7 +2743,7 @@ async function saveMedidasToSupabase(medidas) {
 async function saveTrainedDayToSupabase() {
   if (!currentUser) return;
   const today = getTodayKey();
-  await supabase.from('dias_entrenados').upsert({
+  await sbClient.from('dias_entrenados').upsert({
     usuario_id: currentUser.id,
     fecha: today
   }, { onConflict: 'usuario_id,fecha' });
@@ -2427,7 +2753,7 @@ async function loadTrainedDaysFromSupabase() {
   if (!currentUser) return [];
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const { data } = await supabase
+  const { data } = await sbClient
     .from('dias_entrenados')
     .select('fecha')
     .eq('usuario_id', currentUser.id)
@@ -2438,7 +2764,7 @@ async function loadTrainedDaysFromSupabase() {
 async function saveChatToSupabase(messages, conversationHistory) {
   if (!currentUser) return;
   const today = getTodayKey();
-  await supabase.from('historial_chat').upsert({
+  await sbClient.from('historial_chat').upsert({
     usuario_id: currentUser.id,
     fecha: today,
     mensajes: messages,
@@ -2449,7 +2775,7 @@ async function saveChatToSupabase(messages, conversationHistory) {
 async function loadChatFromSupabase() {
   if (!currentUser) return null;
   const today = getTodayKey();
-  const { data } = await supabase
+  const { data } = await sbClient
     .from('historial_chat')
     .select('*')
     .eq('usuario_id', currentUser.id)
@@ -2461,7 +2787,7 @@ async function loadChatFromSupabase() {
 async function saveDailyProgressToSupabase(progressData) {
   if (!currentUser) return;
   const today = getTodayKey();
-  await supabase.from('progreso_diario').upsert({
+  await sbClient.from('progreso_diario').upsert({
     usuario_id: currentUser.id,
     fecha: today,
     ...progressData
@@ -2470,7 +2796,7 @@ async function saveDailyProgressToSupabase(progressData) {
 
 async function saveExerciseLoadToSupabase(ejercicio, series, repeticiones, pesoKg, notas) {
   if (!currentUser) return;
-  await supabase.from('cargas_ejercicios').insert({
+  await sbClient.from('cargas_ejercicios').insert({
     usuario_id: currentUser.id,
     fecha: getTodayKey(),
     ejercicio,
@@ -3661,294 +3987,6 @@ function resetWhiteLabel() {
 }
 
 // Apply on page load
-// ============================
-// EMAIL LOGIN
-// ============================
-async function handleEmailLogin() {
-  const nombre = document.getElementById('el-nombre').value.trim();
-  const email = document.getElementById('el-email').value.trim().toLowerCase();
-  const btn = document.getElementById('el-btn');
-  const loading = document.getElementById('el-loading');
-  const error = document.getElementById('el-error');
-
-  if (!nombre) { error.textContent = 'Por favor ingresá tu nombre'; return; }
-  if (!email || !email.includes('@')) { error.textContent = 'Por favor ingresá un email válido'; return; }
-
-  btn.disabled = true;
-  loading.style.display = 'block';
-  error.textContent = '';
-
-  try {
-    const result = await loginOrRegister(email, nombre);
-    document.getElementById('email-login-overlay').style.display = 'none';
-
-    if (result.isNew) {
-      // New user - show form
-      document.getElementById('main-header').style.display = 'flex';
-      document.getElementById('hero-section').style.display = 'block';
-      document.querySelector('.form-wrapper').style.display = 'block';
-      document.querySelector('.progress-bar-container').style.display = 'block';
-      // Pre-fill name
-      document.getElementById('f-nombre').value = nombre;
-    } else {
-      // Existing user - restore profile and go to chat
-      const p = result.user;
-      currentUser = p;
-      restoreProfileFromSupabase(p);
-      document.getElementById('main-header').style.display = 'flex';
-
-      if (p.objetivo && p.nivel) {
-        // Has complete profile - go to chat
-        selections.objetivo = p.objetivo;
-        selections.nivel = p.nivel;
-        selectedDias = p.dias_entreno || [];
-        await launchCoach();
-      } else {
-        // Incomplete profile - show form
-        document.getElementById('hero-section').style.display = 'block';
-        document.querySelector('.form-wrapper').style.display = 'block';
-        document.querySelector('.progress-bar-container').style.display = 'block';
-        document.getElementById('f-nombre').value = p.nombre || nombre;
-      }
-    }
-  } catch(err) {
-    error.textContent = 'Error de conexión. Intentá de nuevo.';
-    console.error(err);
-  }
-
-  btn.disabled = false;
-  loading.style.display = 'none';
-}
-
-function restoreProfileFromSupabase(p) {
-  if (p.nombre) document.getElementById('f-nombre').value = p.nombre;
-  if (p.edad) document.getElementById('f-edad').value = p.edad;
-  if (p.sexo) document.getElementById('f-sexo').value = p.sexo;
-  if (p.peso) document.getElementById('f-peso').value = p.peso;
-  if (p.altura) document.getElementById('f-altura').value = p.altura;
-  if (p.actividad) document.getElementById('f-actividad').value = p.actividad;
-  if (p.cuello) { const el = document.getElementById('f-cuello'); if(el) el.value = p.cuello; }
-  if (p.cintura) { const el = document.getElementById('f-cintura-form'); if(el) el.value = p.cintura; }
-  if (p.cadera) { const el = document.getElementById('f-cadera-form'); if(el) el.value = p.cadera; }
-}
-
-
-window.addEventListener('DOMContentLoaded', () => {
-  checkSavedProfile();
-  const wl = loadWhiteLabel();
-  if (wl) applyWhiteLabelToApp(wl);
-});
-
-
-// ============================
-// LANDING & ADMIN ACCESS
-// ============================
-const LS_ADMIN = 'coachai_admin_v1';
-const DEFAULT_PASSWORD = 'admin123';
-
-function getAdminPassword() {
-  try {
-    const raw = localStorage.getItem(LS_ADMIN);
-    return raw ? JSON.parse(raw).password : DEFAULT_PASSWORD;
-  } catch(e) { return DEFAULT_PASSWORD; }
-}
-
-function changeAdminPassword() {
-  const newPass = document.getElementById('new-password').value.trim();
-  if (!newPass || newPass.length < 4) {
-    alert(lang === 'es' ? 'La contraseña debe tener al menos 4 caracteres.' : 'Password must be at least 4 characters.');
-    return;
-  }
-  localStorage.setItem(LS_ADMIN, JSON.stringify({ password: newPass }));
-  document.getElementById('new-password').value = '';
-  const btn = document.getElementById('change-pass-btn');
-  btn.textContent = '✅';
-  setTimeout(() => { btn.textContent = lang === 'es' ? 'Guardar' : 'Save'; }, 2000);
-}
-
-function showAdminLogin() {
-  document.getElementById('admin-modal').classList.add('visible');
-  document.getElementById('admin-password-input').value = '';
-  document.getElementById('modal-error').textContent = '';
-  setTimeout(() => document.getElementById('admin-password-input').focus(), 100);
-}
-
-function closeAdminModal() {
-  document.getElementById('admin-modal').classList.remove('visible');
-}
-
-function checkAdminPassword() {
-  const input = document.getElementById('admin-password-input').value;
-  const correct = getAdminPassword();
-  if (input === correct) {
-    closeAdminModal();
-    enterAsAdmin();
-  } else {
-    document.getElementById('modal-error').textContent = lang === 'es' ? '❌ Contraseña incorrecta' : '❌ Incorrect password';
-    document.getElementById('admin-password-input').value = '';
-    document.getElementById('admin-password-input').focus();
-  }
-}
-
-function enterAsClient() {
-  document.getElementById('landing-wrapper').style.display = 'none';
-  document.getElementById('main-header').style.display = 'flex';
-  // Check saved profile
-  const p = loadProfile();
-  if (p && p.nombre) {
-    checkSavedProfile();
-    document.getElementById('hero-section').style.display = 'block';
-    document.querySelector('.form-wrapper').style.display = 'block';
-    document.querySelector('.progress-bar-container').style.display = 'block';
-  } else {
-    document.getElementById('hero-section').style.display = 'block';
-    document.querySelector('.form-wrapper').style.display = 'block';
-    document.querySelector('.progress-bar-container').style.display = 'block';
-  }
-}
-
-function enterAsAdmin() {
-  document.getElementById('landing-wrapper').style.display = 'none';
-  document.getElementById('main-header').style.display = 'flex';
-  hideAllSections();
-  // Go directly to white label panel
-  document.getElementById('wl-wrapper').style.display = 'block';
-  document.getElementById('wl-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  // Load existing WL config
-  const wl = loadWhiteLabel();
-  if (wl) {
-    document.getElementById('wl-nombre').value = wl.nombre || '';
-    document.getElementById('wl-gym').value = wl.gym || '';
-    document.getElementById('wl-tagline').value = wl.tagline || '';
-    if (wl.color) {
-      wlSelectedColor = { color: wl.color, bright: wl.bright };
-      document.querySelectorAll('.color-option').forEach(o => {
-        o.classList.toggle('selected', o.dataset.color === wl.color);
-      });
-    }
-    if (wl.logo) {
-      wlLogoDataUrl = wl.logo;
-      document.getElementById('logo-preview-img').src = wl.logo;
-      document.getElementById('logo-preview-img').style.display = 'block';
-      document.getElementById('upload-icon').style.display = 'none';
-    }
-  }
-  updatePreview();
-  // Change back button to go to landing
-  document.querySelector('.wl-header .btn-back-chat').textContent = lang === 'es' ? '← Volver al inicio' : '← Back to home';
-  document.querySelector('.wl-header .btn-back-chat').onclick = goToLanding;
-}
-
-function goToLanding() {
-  hideAllSections();
-  document.getElementById('main-header').style.display = 'none';
-  document.getElementById('landing-wrapper').style.display = 'flex';
-  // Restore back button
-  document.querySelector('.wl-header .btn-back-chat').textContent = lang === 'es' ? '← Volver al chat' : '← Back to chat';
-  document.querySelector('.wl-header .btn-back-chat').onclick = showChatFromWL;
-}
-
-// Apply white label to landing screen too
-function applyWhiteLabelToLanding(wl) {
-  if (!wl) return;
-  if (wl.nombre) {
-    document.getElementById('landing-logo-text').textContent = wl.nombre;
-  }
-  if (wl.tagline) {
-    document.getElementById('landing-tagline-text').textContent = wl.tagline;
-  }
-  if (wl.color) {
-    document.documentElement.style.setProperty('--accent', wl.color);
-    document.documentElement.style.setProperty('--accent-bright', wl.bright || wl.color);
-  }
-}
-
-// Override the DOMContentLoaded to show landing first
-// ============================
-// EMAIL LOGIN
-// ============================
-async function handleEmailLogin() {
-  const nombre = document.getElementById('el-nombre').value.trim();
-  const email = document.getElementById('el-email').value.trim().toLowerCase();
-  const btn = document.getElementById('el-btn');
-  const loading = document.getElementById('el-loading');
-  const error = document.getElementById('el-error');
-
-  if (!nombre) { error.textContent = 'Por favor ingresá tu nombre'; return; }
-  if (!email || !email.includes('@')) { error.textContent = 'Por favor ingresá un email válido'; return; }
-
-  btn.disabled = true;
-  loading.style.display = 'block';
-  error.textContent = '';
-
-  try {
-    const result = await loginOrRegister(email, nombre);
-    document.getElementById('email-login-overlay').style.display = 'none';
-
-    if (result.isNew) {
-      // New user - show form
-      document.getElementById('main-header').style.display = 'flex';
-      document.getElementById('hero-section').style.display = 'block';
-      document.querySelector('.form-wrapper').style.display = 'block';
-      document.querySelector('.progress-bar-container').style.display = 'block';
-      // Pre-fill name
-      document.getElementById('f-nombre').value = nombre;
-    } else {
-      // Existing user - restore profile and go to chat
-      const p = result.user;
-      currentUser = p;
-      restoreProfileFromSupabase(p);
-      document.getElementById('main-header').style.display = 'flex';
-
-      if (p.objetivo && p.nivel) {
-        // Has complete profile - go to chat
-        selections.objetivo = p.objetivo;
-        selections.nivel = p.nivel;
-        selectedDias = p.dias_entreno || [];
-        await launchCoach();
-      } else {
-        // Incomplete profile - show form
-        document.getElementById('hero-section').style.display = 'block';
-        document.querySelector('.form-wrapper').style.display = 'block';
-        document.querySelector('.progress-bar-container').style.display = 'block';
-        document.getElementById('f-nombre').value = p.nombre || nombre;
-      }
-    }
-  } catch(err) {
-    error.textContent = 'Error de conexión. Intentá de nuevo.';
-    console.error(err);
-  }
-
-  btn.disabled = false;
-  loading.style.display = 'none';
-}
-
-function restoreProfileFromSupabase(p) {
-  if (p.nombre) document.getElementById('f-nombre').value = p.nombre;
-  if (p.edad) document.getElementById('f-edad').value = p.edad;
-  if (p.sexo) document.getElementById('f-sexo').value = p.sexo;
-  if (p.peso) document.getElementById('f-peso').value = p.peso;
-  if (p.altura) document.getElementById('f-altura').value = p.altura;
-  if (p.actividad) document.getElementById('f-actividad').value = p.actividad;
-  if (p.cuello) { const el = document.getElementById('f-cuello'); if(el) el.value = p.cuello; }
-  if (p.cintura) { const el = document.getElementById('f-cintura-form'); if(el) el.value = p.cintura; }
-  if (p.cadera) { const el = document.getElementById('f-cadera-form'); if(el) el.value = p.cadera; }
-}
-
-
-window.addEventListener('DOMContentLoaded', () => {
-  // Apply white label on load
-  const wl = loadWhiteLabel();
-  if (wl) {
-    applyWhiteLabelToApp(wl);
-    applyWhiteLabelToLanding(wl);
-  }
-  // Hide everything except landing
-  document.getElementById('hero-section').style.display = 'none';
-  document.querySelector('.form-wrapper').style.display = 'none';
-  document.querySelector('.progress-bar-container').style.display = 'none';
-  document.getElementById('welcome-back').style.display = 'none';
-});
 
 </script>
 
