@@ -1402,6 +1402,244 @@ footer {
 }
 
 
+/* =================== REGISTRO DIARIO =================== */
+.diario-wrapper {
+  max-width: 860px;
+  margin: 0 auto 48px;
+  padding: 0 36px;
+  display: none;
+}
+
+.diario-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.diario-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  letter-spacing: 3px;
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.diario-date {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+}
+
+.diario-meals-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  padding: 20px 22px;
+}
+
+.diario-meal-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.diario-meal-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.diario-textarea {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 13px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  outline: none;
+  resize: vertical;
+  min-height: 72px;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+
+.diario-textarea:focus { border-color: var(--accent); }
+
+.diario-macros-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 0 22px 18px;
+}
+
+.diario-macro-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.diario-macro-group label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+
+.diario-macro-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+
+.diario-macro-input:focus { border-color: var(--accent); }
+
+.entreno-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 22px;
+  flex-wrap: wrap;
+}
+
+.entreno-toggle-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.entreno-chips { display: flex; gap: 8px; }
+
+.entreno-chip {
+  padding: 7px 16px;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 100px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.entreno-chip.si.selected {
+  background: rgba(0,229,176,0.1);
+  border-color: var(--accent3);
+  color: var(--accent3);
+}
+
+.entreno-chip.no.selected {
+  background: rgba(255,107,107,0.1);
+  border-color: var(--accent2);
+  color: var(--accent2);
+}
+
+.ejercicios-section {
+  display: none;
+  padding: 0 22px 20px;
+}
+
+.ejercicios-section label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  font-weight: 600;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.btn-save-diario {
+  width: calc(100% - 44px);
+  margin: 0 22px 22px;
+  padding: 13px;
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 16px rgba(124,106,255,0.3);
+}
+
+.btn-save-diario:hover { transform: translateY(-1px); }
+
+/* Daily log history in dashboard */
+.log-day-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.log-day-date {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--accent-bright);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.log-day-row {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.log-day-row strong { color: var(--text); font-weight: 500; }
+
+.btn-diario {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-diario:hover {
+  border-color: var(--accent-bright);
+  color: var(--accent-bright);
+  background: rgba(124,106,255,0.06);
+}
+
+@media (max-width: 640px) {
+  .diario-wrapper { padding: 0 20px; }
+  .diario-meals-grid { grid-template-columns: 1fr; }
+  .diario-macros-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+
 /* =================== LANDING / ACCESO =================== */
 .landing-wrapper {
   position: fixed;
@@ -2182,6 +2420,20 @@ footer {
       <button class="btn-mark-trained" onclick="markTrained()">✅ Marcar hoy como entrenado</button>
     </div>
   </div>
+
+  <!-- HISTORIAL DIARIO -->
+  <div class="chart-card">
+    <div class="chart-card-header">
+      <div class="chart-card-title" id="diario-hist-title">📋 REGISTROS DIARIOS</div>
+      <span style="font-size:12px;color:var(--muted)" id="diario-hist-sub">Últimos 7 días</span>
+    </div>
+    <div style="padding:16px 22px 20px" id="diario-history-list">
+      <div class="chart-empty" style="height:80px">
+        <div class="chart-empty-icon" style="font-size:24px">📝</div>
+        <span id="diario-hist-empty">Aún no hay registros diarios</span>
+      </div>
+    </div>
+  </div>
 </div>
 
 
@@ -2291,6 +2543,85 @@ footer {
   </div>
 </div>
 
+<!-- REGISTRO DIARIO -->
+<div class="diario-wrapper" id="diario-wrapper">
+  <div class="diario-header">
+    <div>
+      <div class="diario-title" id="diario-title-text">📝 MI DÍA</div>
+      <div class="diario-date" id="diario-date-display"></div>
+    </div>
+    <button class="btn-back-chat" onclick="showChat()" id="diario-back-btn">← Volver al chat</button>
+  </div>
+
+  <!-- ALIMENTACIÓN -->
+  <div class="chart-card" style="margin-bottom:16px">
+    <div class="chart-card-header">
+      <div class="chart-card-title" id="diario-food-title">🍽️ ALIMENTACIÓN DE HOY</div>
+    </div>
+    <div class="diario-meals-grid">
+      <div class="diario-meal-group">
+        <div class="diario-meal-label" id="d-label-desayuno">🌅 Desayuno</div>
+        <textarea class="diario-textarea" id="d-desayuno" placeholder="Ej: Avena con leche, 2 huevos revueltos, banana..."></textarea>
+      </div>
+      <div class="diario-meal-group">
+        <div class="diario-meal-label" id="d-label-almuerzo">☀️ Almuerzo</div>
+        <textarea class="diario-textarea" id="d-almuerzo" placeholder="Ej: Pollo grillado 200g, arroz integral, ensalada..."></textarea>
+      </div>
+      <div class="diario-meal-group">
+        <div class="diario-meal-label" id="d-label-merienda">🕐 Merienda</div>
+        <textarea class="diario-textarea" id="d-merienda" placeholder="Ej: Yogur griego con granola, fruta..."></textarea>
+      </div>
+      <div class="diario-meal-group">
+        <div class="diario-meal-label" id="d-label-cena">🌙 Cena</div>
+        <textarea class="diario-textarea" id="d-cena" placeholder="Ej: Salmón al horno con verduras salteadas..."></textarea>
+      </div>
+    </div>
+    <div class="diario-macros-row">
+      <div class="diario-macro-group">
+        <label id="d-label-cals">Calorías (kcal)</label>
+        <input type="number" class="diario-macro-input" id="d-calorias" placeholder="~2200">
+      </div>
+      <div class="diario-macro-group">
+        <label id="d-label-prot">Proteínas (g)</label>
+        <input type="number" class="diario-macro-input" id="d-proteinas" placeholder="~180">
+      </div>
+      <div class="diario-macro-group">
+        <label id="d-label-carbs">Carbos (g)</label>
+        <input type="number" class="diario-macro-input" id="d-carbos" placeholder="~220">
+      </div>
+      <div class="diario-macro-group">
+        <label id="d-label-fats">Grasas (g)</label>
+        <input type="number" class="diario-macro-input" id="d-grasas" placeholder="~65">
+      </div>
+    </div>
+  </div>
+
+  <!-- ENTRENAMIENTO -->
+  <div class="chart-card" style="margin-bottom:16px">
+    <div class="chart-card-header">
+      <div class="chart-card-title" id="diario-train-title">💪 ENTRENAMIENTO DE HOY</div>
+    </div>
+    <div class="entreno-toggle">
+      <span class="entreno-toggle-label" id="d-label-entreno">¿Entrenaste hoy?</span>
+      <div class="entreno-chips">
+        <div class="entreno-chip si" id="chip-si" onclick="setEntrenó(true)">✅ Sí</div>
+        <div class="entreno-chip no" id="chip-no" onclick="setEntrenó(false)">❌ No</div>
+      </div>
+    </div>
+    <div class="ejercicios-section" id="ejercicios-section">
+      <label id="d-label-ejercicios">Ejercicios realizados (ejercicio · series × reps × peso)</label>
+      <textarea class="diario-textarea" id="d-ejercicios" style="min-height:110px" placeholder="Ej:
+Press banca: 4×8 × 80kg
+Sentadilla: 3×10 × 100kg
+Remo con barra: 3×10 × 60kg
+Peso muerto: 3×6 × 120kg"></textarea>
+      <label style="margin-top:10px" id="d-label-notas-entreno">Notas del entreno</label>
+      <textarea class="diario-textarea" id="d-notas-entreno" placeholder="Ej: Me sentí fuerte, subí 2.5kg en press. Algo de fatiga en la tercera serie de sentadilla..."></textarea>
+    </div>
+    <button class="btn-save-diario" id="btn-save-diario" onclick="saveDiario()">💾 GUARDAR MI DÍA</button>
+  </div>
+</div>
+
 <footer>CoachAI — Powered by Anthropic Claude · Tu entrenador personal con inteligencia artificial</footer>
 
 <script>
@@ -2320,6 +2651,10 @@ async function loginOrRegister(email, nombre) {
   return { isNew: true, user: newUser };
 }
 
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 async function saveProfileToSupabase(data) {
   if (!sbClient || !currentUser) return;
   await sbClient.from('usuarios').update(data).eq('id', currentUser.id);
@@ -2338,6 +2673,79 @@ async function saveTrainedDayToSupabase() {
 async function saveChatToSupabase(messages, convHistory) {
   if (!sbClient || !currentUser) return;
   await sbClient.from('historial_chat').upsert({ usuario_id: currentUser.id, fecha: getTodayKey(), mensajes: messages, conversation_history: convHistory }, { onConflict: 'usuario_id,fecha' });
+}
+
+async function loadChatFromSupabase() {
+  if (!sbClient || !currentUser) return null;
+  const { data } = await sbClient.from('historial_chat')
+    .select('mensajes, conversation_history')
+    .eq('usuario_id', currentUser.id)
+    .eq('fecha', getTodayKey())
+    .single();
+  return data;
+}
+
+async function saveDiarioToSupabase(data) {
+  if (!sbClient || !currentUser) return;
+  await sbClient.from('progreso_diario').upsert(
+    { usuario_id: currentUser.id, fecha: getTodayKey(), ...data },
+    { onConflict: 'usuario_id,fecha' }
+  );
+}
+
+async function loadTodayDiario() {
+  if (!sbClient || !currentUser) return null;
+  const { data } = await sbClient.from('progreso_diario')
+    .select('*')
+    .eq('usuario_id', currentUser.id)
+    .eq('fecha', getTodayKey())
+    .single();
+  return data;
+}
+
+async function loadRecentDiario(days = 7) {
+  if (!sbClient || !currentUser) return [];
+  const dates = [];
+  for (let i = 0; i < days; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    dates.push(d.toISOString().slice(0, 10));
+  }
+  const { data } = await sbClient.from('progreso_diario')
+    .select('fecha,desayuno,almuerzo,merienda,cena,calorias_consumidas,proteinas_g,carbos_g,grasas_g,entreno,ejercicios_realizados,notas_entreno')
+    .eq('usuario_id', currentUser.id)
+    .in('fecha', dates)
+    .order('fecha', { ascending: false });
+  return data || [];
+}
+
+async function loadRecentChatHistory(days = 7) {
+  if (!sbClient || !currentUser) return [];
+  const dates = [];
+  for (let i = 1; i <= days; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    dates.push(d.toISOString().slice(0, 10));
+  }
+  const { data } = await sbClient
+    .from('historial_chat')
+    .select('fecha, conversation_history')
+    .eq('usuario_id', currentUser.id)
+    .in('fecha', dates)
+    .order('fecha', { ascending: false });
+  return data || [];
+}
+
+function buildHistorySummary() {
+  if (!recentChatHistory || recentChatHistory.length === 0) return '';
+  const lines = recentChatHistory.map(day => {
+    const userMsgs = (day.conversation_history || [])
+      .filter(m => m.role === 'user')
+      .map(m => m.content)
+      .join(' | ');
+    return `• ${day.fecha}: ${userMsgs || '(sin registro)'}`;
+  });
+  return lines.join('\n');
 }
 
 // ============================
@@ -2411,6 +2819,10 @@ let selectedComidas = '';
 let selections = { objetivo: '', nivel: '' };
 let profile = {};
 let conversationHistory = [];
+let chatMessages = [];
+let recentChatHistory = [];
+let recentDiario = [];
+let entrenóHoy = null;
 
 // ============================
 // LOCAL STORAGE
@@ -2458,6 +2870,10 @@ function resetProfile() {
   document.querySelector('.progress-bar-container').style.display = 'block';
   document.getElementById('chat-wrapper').style.display = 'none';
   conversationHistory = [];
+  chatMessages = [];
+  recentChatHistory = [];
+  recentDiario = [];
+  entrenóHoy = null;
   selectedDias = [];
   selectedComidas = '';
   selections = { objetivo: '', nivel: '' };
@@ -2924,7 +3340,16 @@ Arrancá saludando a ${nombre} con energía y en tu PRIMER mensaje siempre:
 🌙 Noche — lo que entrenaste y tu cena
 📊 Cierre — pedime un análisis de tu día
 
-Con 4-5 mensajes diarios vas a tener un seguimiento completo y personalizado. ¡Arrancamos!"`;
+Con 4-5 mensajes diarios vas a tener un seguimiento completo y personalizado. ¡Arrancamos!"
+
+${buildDiarioSummary() ? `\nREGISTRO DIARIO DEL CLIENTE (últimos 7 días — alimentación y entrenamiento REAL cargados por el cliente):
+${buildDiarioSummary()}
+
+Usá esta información como base de tu asesoramiento diario. Si el cliente cumplió el plan calórico, felicitalo. Si no entrenó algún día, preguntá qué pasó. Si registró ejercicios específicos, referenciá los pesos y las series para sugerir progresión. Este es el dato más importante para un seguimiento real.` : ''}
+${buildHistorySummary() ? `\nCONVERSACIONES RECIENTES (lo que el cliente te contó en el chat de los últimos días):
+${buildHistorySummary()}
+
+Combiná estos datos con el registro diario para tener una visión completa del proceso del cliente.` : ''}`;
   } else {
     return `You are CoachAI, an expert AI personal trainer and nutritionist. You speak in English with positive energy, motivation and deep evidence-based technical knowledge.
 
@@ -2981,7 +3406,16 @@ Start by greeting ${nombre} with energy and in your FIRST message always:
 🌙 Evening — what you trained and your dinner
 📊 Close — ask me for a daily analysis
 
-With 4-5 messages a day you'll have complete personalized tracking. Let's go!"`;
+With 4-5 messages a day you'll have complete personalized tracking. Let's go!"
+
+${buildDiarioSummary() ? `\nCLIENT DAILY LOG (last 7 days — actual meals and training logged by the client):
+${buildDiarioSummary()}
+
+Use this as the basis for your daily coaching. If the client hit their calorie target, celebrate it. If they missed a training day, ask what happened. Reference specific exercises and weights to suggest progression. This is the most important data for real ongoing coaching.` : ''}
+${buildHistorySummary() ? `\nRECENT CHAT HISTORY (what the client told you in recent days):
+${buildHistorySummary()}
+
+Combine this with the daily log for a complete picture of the client's journey. When relevant, reference what the client told you in previous days. If they reported difficulties, ask how it went. If they had wins, celebrate them. Act as a coach who has been present throughout the entire process.` : ''}`;
   }
 }
 
@@ -3084,7 +3518,31 @@ async function launchCoach() {
 
   document.getElementById('chat-input').placeholder = lang === 'es' ? 'Escribí tu pregunta...' : 'Type your question...';
 
-  await sendToAI(null, true);
+  // Botón Mi Día en header
+  if (!document.getElementById('btn-diario')) {
+    const diarioBtn = document.createElement('button');
+    diarioBtn.id = 'btn-diario';
+    diarioBtn.className = 'btn-diario';
+    diarioBtn.innerHTML = '📝 Mi día';
+    diarioBtn.onclick = showDiario;
+    document.getElementById('header-right').insertBefore(diarioBtn, document.getElementById('header-right').firstChild);
+  }
+
+  chatMessages = [];
+  const [recentHistory, recentDiarioData, existing] = await Promise.all([
+    loadRecentChatHistory(),
+    loadRecentDiario(),
+    loadChatFromSupabase()
+  ]);
+  recentChatHistory = recentHistory;
+  recentDiario = recentDiarioData;
+  if (existing && existing.mensajes && existing.mensajes.length > 0) {
+    conversationHistory = existing.conversation_history || [];
+    existing.mensajes.forEach(msg => addMessage(msg.content, msg.type, true));
+    chatMessages = existing.mensajes;
+  } else {
+    await sendToAI(null, true);
+  }
 }
 
 // ============================
@@ -3104,13 +3562,14 @@ function autoResize(el) {
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 }
 
-function addMessage(content, type) {
+function addMessage(content, type, skipTrack = false) {
   const container = document.getElementById('chat-messages');
   const div = document.createElement('div');
   div.className = `msg ${type}`;
   div.innerHTML = `<div class="msg-avatar">${type === 'coach' ? '🤖' : '👤'}</div><div class="msg-bubble">${content}</div>`;
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
+  if (!skipTrack) chatMessages.push({ content, type });
 }
 
 function showTyping() {
@@ -3165,6 +3624,7 @@ async function sendToAI(userMessage, isFirst = false) {
     removeTyping();
     addMessage(formatResponse(reply), 'coach');
     conversationHistory.push({ role: 'assistant', content: reply });
+    saveChatToSupabase(chatMessages, conversationHistory).catch(console.error);
   } catch (err) {
     removeTyping();
     addMessage(lang === 'es' ? '❌ Error de conexión. Intentá de nuevo.' : '❌ Connection error. Please try again.', 'coach');
@@ -3181,6 +3641,116 @@ async function sendMessage() {
   input.value = '';
   input.style.height = 'auto';
   await sendToAI(text);
+}
+
+// ============================
+// REGISTRO DIARIO
+// ============================
+function setEntrenó(val) {
+  entrenóHoy = val;
+  document.getElementById('chip-si').classList.toggle('selected', val === true);
+  document.getElementById('chip-no').classList.toggle('selected', val === false);
+  document.getElementById('ejercicios-section').style.display = val ? 'block' : 'none';
+}
+
+async function showDiario() {
+  hideAllSections();
+  document.getElementById('diario-wrapper').style.display = 'block';
+  document.getElementById('diario-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.getElementById('diario-date-display').textContent = new Date().toLocaleDateString(lang === 'es' ? 'es-AR' : 'en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  // Cargar registro de hoy si existe
+  const today = await loadTodayDiario();
+  if (today) {
+    document.getElementById('d-desayuno').value = today.desayuno || '';
+    document.getElementById('d-almuerzo').value = today.almuerzo || '';
+    document.getElementById('d-merienda').value = today.merienda || '';
+    document.getElementById('d-cena').value = today.cena || '';
+    document.getElementById('d-calorias').value = today.calorias_consumidas || '';
+    document.getElementById('d-proteinas').value = today.proteinas_g || '';
+    document.getElementById('d-carbos').value = today.carbos_g || '';
+    document.getElementById('d-grasas').value = today.grasas_g || '';
+    document.getElementById('d-ejercicios').value = today.ejercicios_realizados || '';
+    document.getElementById('d-notas-entreno').value = today.notas_entreno || '';
+    if (today.entreno !== null && today.entreno !== undefined) setEntrenó(today.entreno);
+  }
+}
+
+async function saveDiario() {
+  const data = {
+    desayuno: document.getElementById('d-desayuno').value.trim(),
+    almuerzo: document.getElementById('d-almuerzo').value.trim(),
+    merienda: document.getElementById('d-merienda').value.trim(),
+    cena: document.getElementById('d-cena').value.trim(),
+    calorias_consumidas: parseInt(document.getElementById('d-calorias').value) || null,
+    proteinas_g: parseFloat(document.getElementById('d-proteinas').value) || null,
+    carbos_g: parseFloat(document.getElementById('d-carbos').value) || null,
+    grasas_g: parseFloat(document.getElementById('d-grasas').value) || null,
+    entreno: entrenóHoy,
+    ejercicios_realizados: document.getElementById('d-ejercicios').value.trim(),
+    notas_entreno: document.getElementById('d-notas-entreno').value.trim(),
+  };
+
+  const btn = document.getElementById('btn-save-diario');
+  btn.textContent = '⏳ Guardando...';
+  btn.disabled = true;
+
+  try {
+    await saveDiarioToSupabase(data);
+    // Marcar como entrenado si entrenó
+    if (entrenóHoy) saveTrainedDayToSupabase().catch(console.error);
+    // Refresh cache local
+    recentDiario = await loadRecentDiario();
+    btn.textContent = '✅ DÍA GUARDADO';
+    setTimeout(() => {
+      btn.textContent = '💾 GUARDAR MI DÍA';
+      btn.disabled = false;
+      showChat();
+    }, 1400);
+  } catch(e) {
+    btn.textContent = '❌ Error al guardar';
+    btn.disabled = false;
+    console.error(e);
+  }
+}
+
+function renderDiarioHistory(logs) {
+  const container = document.getElementById('diario-history-list');
+  if (!logs || logs.length === 0) {
+    container.innerHTML = `<div class="chart-empty" style="height:80px"><div class="chart-empty-icon" style="font-size:24px">📝</div><span>${lang==='es'?'Aún no hay registros diarios':'No daily records yet'}</span></div>`;
+    return;
+  }
+  container.innerHTML = logs.map(day => {
+    const comidas = [day.desayuno, day.almuerzo, day.merienda, day.cena].filter(Boolean);
+    const comidasText = comidas.length ? comidas.join(' · ') : (lang==='es'?'Sin comidas registradas':'No meals logged');
+    const entrenoText = day.entreno === true
+      ? `✅ ${day.ejercicios_realizados || (lang==='es'?'Entrenó':'Trained')}`
+      : day.entreno === false ? (lang==='es'?'❌ No entrenó':'❌ Rest day') : '—';
+    const macros = day.calorias_consumidas ? `${day.calorias_consumidas} kcal · ${day.proteinas_g||'?'}g prot` : '';
+    return `<div class="log-day-card">
+      <div class="log-day-date">${day.fecha}</div>
+      <div class="log-day-row">🍽️ <strong>${lang==='es'?'Comidas':'Meals'}:</strong> ${comidasText.slice(0,120)}${comidasText.length>120?'...':''}</div>
+      <div class="log-day-row">💪 <strong>${lang==='es'?'Entreno':'Training'}:</strong> ${entrenoText.slice(0,100)}</div>
+      ${macros ? `<div class="log-day-row">📊 ${macros}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function buildDiarioSummary() {
+  if (!recentDiario || recentDiario.length === 0) return '';
+  return recentDiario.map(day => {
+    const comidas = [
+      day.desayuno ? `Desayuno: ${day.desayuno}` : '',
+      day.almuerzo ? `Almuerzo: ${day.almuerzo}` : '',
+      day.merienda ? `Merienda: ${day.merienda}` : '',
+      day.cena ? `Cena: ${day.cena}` : '',
+    ].filter(Boolean).join(' | ');
+    const macros = day.calorias_consumidas ? `Calorías: ${day.calorias_consumidas}kcal, Proteínas: ${day.proteinas_g||'?'}g` : '';
+    const entreno = day.entreno === true
+      ? `Entrenó: ${day.ejercicios_realizados || 'sí'}`
+      : day.entreno === false ? 'No entrenó (descanso)' : '';
+    return `• ${day.fecha}: ${[comidas, macros, entreno].filter(Boolean).join(' | ')}`;
+  }).join('\n');
 }
 
 // ============================
@@ -3205,6 +3775,7 @@ function hideAllSections() {
   document.getElementById('chat-wrapper').style.display = 'none';
   document.getElementById('dashboard-wrapper').style.display = 'none';
   document.getElementById('wl-wrapper').style.display = 'none';
+  document.getElementById('diario-wrapper').style.display = 'none';
   document.getElementById('hero-section').style.display = 'none';
   document.querySelector('.form-wrapper').style.display = 'none';
   document.querySelector('.progress-bar-container').style.display = 'none';
@@ -3273,6 +3844,9 @@ function renderDashboard() {
 
   // Streak grid
   renderStreakGrid(trainedDays);
+
+  // Historial diario
+  renderDiarioHistory(recentDiario);
 }
 
 function calcStreak(trainedDays) {
@@ -3632,13 +4206,7 @@ function checkAdminPassword() {
 }
 
 function enterAsClient() {
-  const landing = document.getElementById('landing-wrapper');
-  if (landing) {
-    landing.style.visibility = 'hidden';
-    landing.style.pointerEvents = 'none';
-    landing.style.height = '0';
-    landing.style.overflow = 'hidden';
-  }
+  document.getElementById('landing-wrapper').style.display = 'none';
   if (!sbClient) initSupabase();
   document.getElementById('email-login-overlay').style.display = 'flex';
 }
