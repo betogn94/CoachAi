@@ -3768,17 +3768,24 @@ async function showDiario() {
   document.getElementById('diario-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
   document.getElementById('diario-date-display').textContent = new Date().toLocaleDateString(lang === 'es' ? 'es-AR' : 'en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
 
-  // Cargar registro de hoy si existe
+  // Always reset form to empty state
+  ['d-desayuno','d-almuerzo','d-merienda','d-cena','d-ejercicios'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('macros-estimados').style.display = 'none';
+  document.getElementById('macros-estimando').style.display = 'none';
+  entrenóHoy = null;
+  document.getElementById('chip-si').classList.remove('selected');
+  document.getElementById('chip-no').classList.remove('selected');
+  document.getElementById('ejercicios-section').style.display = 'block';
+
+  // Si ya guardó hoy, bloquear el botón
+  const btn = document.getElementById('btn-save-diario');
   const today = await loadTodayDiario();
   if (today) {
-    document.getElementById('d-desayuno').value = today.desayuno || '';
-    document.getElementById('d-almuerzo').value = today.almuerzo || '';
-    document.getElementById('d-merienda').value = today.merienda || '';
-    document.getElementById('d-cena').value = today.cena || '';
-    document.getElementById('d-ejercicios').value = today.ejercicios_realizados || '';
-    if (today.entreno !== null && today.entreno !== undefined) setEntrenó(today.entreno);
-    // Show estimated macros if already saved
-    if (today.calorias_consumidas) showMacrosEstimados(today);
+    btn.textContent = lang === 'es' ? '✅ Ya registraste tu día de hoy' : '✅ Already logged today';
+    btn.disabled = true;
+  } else {
+    btn.textContent = '💾 GUARDAR MI DÍA';
+    btn.disabled = false;
   }
 }
 
