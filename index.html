@@ -1714,40 +1714,26 @@ footer {
 
 .diario-textarea:focus { border-color: var(--accent); }
 
-.diario-macros-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  padding: 0 22px 18px;
-}
-
-.diario-macro-group {
+.macros-estimados {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 0 22px 16px;
 }
 
-.diario-macro-group label {
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--muted);
-}
-
-.diario-macro-input {
+.macro-est-badge {
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 10px;
-  color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
+  border-radius: 100px;
+  padding: 6px 14px;
   font-size: 12px;
-  outline: none;
-  transition: border-color 0.2s;
-  width: 100%;
+  color: var(--muted);
+  flex: 1;
+  text-align: center;
+  min-width: 80px;
 }
 
-.diario-macro-input:focus { border-color: var(--accent); }
+.macro-est-badge strong { color: var(--accent3); }
 
 .entreno-toggle {
   display: flex;
@@ -1873,7 +1859,7 @@ footer {
 @media (max-width: 640px) {
   .diario-wrapper { padding: 0 20px; }
   .diario-meals-grid { grid-template-columns: 1fr; }
-  .diario-macros-row { grid-template-columns: repeat(2, 1fr); }
+  .macros-estimados { gap: 6px; }
 }
 
 
@@ -2703,24 +2689,14 @@ footer {
         <textarea class="diario-textarea" id="d-cena" placeholder="Ej: Salmón al horno con verduras salteadas..."></textarea>
       </div>
     </div>
-    <div class="diario-macros-row">
-      <div class="diario-macro-group">
-        <label id="d-label-cals">Calorías (kcal)</label>
-        <input type="number" class="diario-macro-input" id="d-calorias" placeholder="~2200">
-      </div>
-      <div class="diario-macro-group">
-        <label id="d-label-prot">Proteínas (g)</label>
-        <input type="number" class="diario-macro-input" id="d-proteinas" placeholder="~180">
-      </div>
-      <div class="diario-macro-group">
-        <label id="d-label-carbs">Carbos (g)</label>
-        <input type="number" class="diario-macro-input" id="d-carbos" placeholder="~220">
-      </div>
-      <div class="diario-macro-group">
-        <label id="d-label-fats">Grasas (g)</label>
-        <input type="number" class="diario-macro-input" id="d-grasas" placeholder="~65">
-      </div>
+    <!-- Macros estimados por IA (read-only) -->
+    <div class="macros-estimados" id="macros-estimados" style="display:none">
+      <div class="macro-est-badge">🔥 <strong id="m-kcal">—</strong> kcal</div>
+      <div class="macro-est-badge">🥩 <strong id="m-prot">—</strong>g prot</div>
+      <div class="macro-est-badge">🌾 <strong id="m-carbs">—</strong>g carbos</div>
+      <div class="macro-est-badge">🫒 <strong id="m-fat">—</strong>g grasa</div>
     </div>
+    <div id="macros-estimando" style="display:none;padding:12px 22px;font-size:12px;color:var(--muted)">⏳ Estimando macros con IA...</div>
   </div>
 
   <!-- ENTRENAMIENTO -->
@@ -2736,14 +2712,8 @@ footer {
       </div>
     </div>
     <div class="ejercicios-section" id="ejercicios-section">
-      <label id="d-label-ejercicios">Ejercicios realizados (ejercicio · series × reps × peso)</label>
-      <textarea class="diario-textarea" id="d-ejercicios" style="min-height:110px" placeholder="Ej:
-Press banca: 4×8 × 80kg
-Sentadilla: 3×10 × 100kg
-Remo con barra: 3×10 × 60kg
-Peso muerto: 3×6 × 120kg"></textarea>
-      <label style="margin-top:10px" id="d-label-notas-entreno">Notas del entreno</label>
-      <textarea class="diario-textarea" id="d-notas-entreno" placeholder="Ej: Me sentí fuerte, subí 2.5kg en press. Algo de fatiga en la tercera serie de sentadilla..."></textarea>
+      <label id="d-label-ejercicios">¿Qué entrenaste?</label>
+      <textarea class="diario-textarea" id="d-ejercicios" style="min-height:90px" placeholder="Ej: Espalda y bíceps intensidad moderada, cardio 30 min&#10;Ej: Push day — pecho, hombros, tríceps, 1 hora&#10;Ej: Legs — sentadilla, prensa, extensiones, alta intensidad"></textarea>
     </div>
     <button class="btn-save-diario" id="btn-save-diario" onclick="saveDiario()">💾 GUARDAR MI DÍA</button>
   </div>
@@ -3805,29 +3775,70 @@ async function showDiario() {
     document.getElementById('d-almuerzo').value = today.almuerzo || '';
     document.getElementById('d-merienda').value = today.merienda || '';
     document.getElementById('d-cena').value = today.cena || '';
-    document.getElementById('d-calorias').value = today.calorias_consumidas || '';
-    document.getElementById('d-proteinas').value = today.proteinas_g || '';
-    document.getElementById('d-carbos').value = today.carbos_g || '';
-    document.getElementById('d-grasas').value = today.grasas_g || '';
     document.getElementById('d-ejercicios').value = today.ejercicios_realizados || '';
-    document.getElementById('d-notas-entreno').value = today.notas_entreno || '';
     if (today.entreno !== null && today.entreno !== undefined) setEntrenó(today.entreno);
+    // Show estimated macros if already saved
+    if (today.calorias_consumidas) showMacrosEstimados(today);
   }
 }
 
+function showMacrosEstimados(macros) {
+  document.getElementById('m-kcal').textContent = macros.calorias_consumidas || '—';
+  document.getElementById('m-prot').textContent = macros.proteinas_g || '—';
+  document.getElementById('m-carbs').textContent = macros.carbos_g || '—';
+  document.getElementById('m-fat').textContent = macros.grasas_g || '—';
+  document.getElementById('macros-estimados').style.display = 'flex';
+}
+
+async function estimateMacros(desayuno, almuerzo, merienda, cena) {
+  const meals = [
+    desayuno && `Desayuno: ${desayuno}`,
+    almuerzo && `Almuerzo: ${almuerzo}`,
+    merienda && `Merienda: ${merienda}`,
+    cena && `Cena: ${cena}`
+  ].filter(Boolean).join('\n');
+  if (!meals) return null;
+
+  const resp = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system: 'Sos un nutricionista experto. Analizás comidas en lenguaje natural y estimás macronutrientes totales del día. Respondés SOLO con un JSON válido, sin texto adicional.',
+      messages: [{ role: 'user', content: `Estimá los macronutrientes totales de estas comidas:\n${meals}\n\nRespondé SOLO con este JSON: {"kcal":número,"proteina":número,"carbos":número,"grasa":número}` }]
+    })
+  });
+  const data = await resp.json();
+  const text = data.content?.[0]?.text || '';
+  try {
+    return JSON.parse(text.match(/\{[\s\S]*?\}/)?.[0] || '{}');
+  } catch { return null; }
+}
+
 async function saveDiario() {
+  const desayuno = document.getElementById('d-desayuno').value.trim();
+  const almuerzo = document.getElementById('d-almuerzo').value.trim();
+  const merienda = document.getElementById('d-merienda').value.trim();
+  const cena = document.getElementById('d-cena').value.trim();
+
+  const btn = document.getElementById('btn-save-diario');
+  btn.textContent = '⏳ Estimando macros...';
+  btn.disabled = true;
+  document.getElementById('macros-estimando').style.display = 'block';
+  document.getElementById('macros-estimados').style.display = 'none';
+
+  // Estimate macros with AI
+  const macros = await estimateMacros(desayuno, almuerzo, merienda, cena).catch(() => null);
+  document.getElementById('macros-estimando').style.display = 'none';
+
   const data = {
-    desayuno: document.getElementById('d-desayuno').value.trim(),
-    almuerzo: document.getElementById('d-almuerzo').value.trim(),
-    merienda: document.getElementById('d-merienda').value.trim(),
-    cena: document.getElementById('d-cena').value.trim(),
-    calorias_consumidas: parseInt(document.getElementById('d-calorias').value) || null,
-    proteinas_g: parseFloat(document.getElementById('d-proteinas').value) || null,
-    carbos_g: parseFloat(document.getElementById('d-carbos').value) || null,
-    grasas_g: parseFloat(document.getElementById('d-grasas').value) || null,
+    desayuno, almuerzo, merienda, cena,
+    calorias_consumidas: macros?.kcal || null,
+    proteinas_g: macros?.proteina || null,
+    carbos_g: macros?.carbos || null,
+    grasas_g: macros?.grasa || null,
     entreno: entrenóHoy,
     ejercicios_realizados: document.getElementById('d-ejercicios').value.trim(),
-    notas_entreno: document.getElementById('d-notas-entreno').value.trim(),
+    notas_entreno: '',
   };
 
   const btn = document.getElementById('btn-save-diario');
@@ -3836,16 +3847,16 @@ async function saveDiario() {
 
   try {
     await saveDiarioToSupabase(data);
-    // Marcar como entrenado si entrenó
     if (entrenóHoy) saveTrainedDayToSupabase().catch(console.error);
-    // Refresh cache local
     recentDiario = await loadRecentDiario();
+    // Show estimated macros
+    if (macros) showMacrosEstimados({ calorias_consumidas: macros.kcal, proteinas_g: macros.proteina, carbos_g: macros.carbos, grasas_g: macros.grasa });
     btn.textContent = '✅ DÍA GUARDADO';
     setTimeout(() => {
       btn.textContent = '💾 GUARDAR MI DÍA';
       btn.disabled = false;
       showChat();
-    }, 1400);
+    }, 2000);
   } catch(e) {
     btn.textContent = '❌ Error al guardar';
     btn.disabled = false;
