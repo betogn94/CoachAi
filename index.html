@@ -636,8 +636,9 @@ textarea { resize: vertical; min-height: 80px; }
 .quick-btns {
   padding: 0 20px 16px;
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .qbtn {
@@ -653,6 +654,18 @@ textarea { resize: vertical; min-height: 80px; }
 }
 
 .qbtn:hover { border-color: var(--accent); color: var(--accent-bright); background: rgba(124,106,255,0.06); }
+
+.qbtn-main {
+  padding: 11px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  border-color: var(--accent3);
+  color: var(--accent3);
+  background: rgba(0,229,176,0.06);
+  flex: 1;
+  min-width: 140px;
+}
+.qbtn-main:hover { background: rgba(0,229,176,0.14); border-color: var(--accent3); color: var(--accent3); }
 
 .chat-input-row {
   display: flex;
@@ -3405,31 +3418,38 @@ REGLAS IMPORTANTES:
 - Sé específico: series, reps, descansos, gramos
 - Para temas médicos serios, recomendá profesional
 
-ANALISIS INTELIGENTE DEL OBJETIVO - MUY IMPORTANTE:
-El objetivo que eligió la persona es su objetivo A PRIORI. Antes de arrancar, analizá si ese objetivo tiene sentido con sus datos físicos reales. Si detectás una contradicción, explicásela con respeto, energía positiva y entusiasmo, y proponé una ruta más inteligente en 2 fases.
+MENSAJE DE BIENVENIDA (PRIMER MENSAJE):
+Tu primer mensaje debe ser conciso, cálido y personalizado — máximo 5-6 líneas. Seguí este formato:
+1. Saludá a ${nombre} por su nombre con energía (1 línea)
+2. Confirmá brevemente que ya analizaste su perfil (peso, objetivo, días de entrenamiento) — 1 línea
+3. ANÁLISIS DE OBJETIVO: evaluá si el objetivo elegido es adecuado para su IMC actual:
+   - IMC > 27 queriendo volumen → sugerí fase de definición primero, de forma positiva y motivadora
+   - IMC < 18.5 queriendo definir → sugerí ganar masa primero con entusiasmo
+   - Principiante con objetivo agresivo → proponé construir base sólida primero
+   - Datos coherentes con el objetivo → validá directamente sin rodeos
+4. Terminá invitándolo a elegir por dónde arrancar: su dieta o su rutina de la semana (1 línea)
+NO calculés macros ni TDEE en el mensaje de bienvenida — eso va en el plan.
 
-Casos a evaluar:
-1. IMC mayor a 27 y quiere volumen o ganar músculo: Explicar que primero conviene bajar el % graso (fase definición), y después el volumen va a ser mucho más efectivo, limpio y visible. Proponer ruta en 2 fases.
-2. IMC menor a 18.5 y quiere definir: Explicar que no hay suficiente masa muscular para definir todavía. Primero conviene ganar músculo, después se puede definir y los resultados van a ser mucho mejores.
-3. Principiante con objetivo muy agresivo: Explicar que en los primeros 6 meses se gana músculo y se mejora la composición corporal con cualquier programa bien hecho. Proponer arrancar con una base sólida antes de especializarse.
-4. Datos equilibrados y objetivo coherente con el IMC: Validar el objetivo directamente y arrancar sin rodeos.
+CUANDO EL CLIENTE PIDE "DIETA DE LA SEMANA":
+- Generá un plan de 7 días completo con desayuno, almuerzo, merienda y cena
+- Usá alimentos simples, accesibles y fáciles de conseguir en cualquier supermercado
+- Indicá calorías aproximadas y macros (proteína/carbs/grasa) del día
+- Respetá restricciones, alergias y lo que no le gusta
+- Calculá el TDEE con Mifflin-St Jeor y ajustá según el objetivo (déficit/superávit)
+- Al terminar el plan, agregá SIEMPRE: "¿Tenés alguna duda sobre el plan? Y acordate de cargar tus comidas en Mi Día 📝 para que pueda hacer un seguimiento real de tu progreso."
 
-Siempre hacé esta evaluación con energía positiva, NUNCA de forma negativa o condescendiente. El mensaje siempre es: "tu objetivo es válido, y con estos datos podemos llegar ahí de la forma más inteligente posible".
+CUANDO EL CLIENTE PIDE "RUTINA DE LA SEMANA":
+- Asigná la estructura según los días disponibles:
+  • 2 días → Upper / Lower
+  • 3 días → Push / Pull / Legs
+  • 4 días → Upper / Lower / Upper / Lower
+  • 5+ días → Push / Pull / Legs + Upper / Lower o similar
+- Incluí ejercicios específicos, series, reps y tiempos de descanso
+- Adaptá al lugar (gym/casa), nivel y lesiones
+- Al terminar la rutina, agregá SIEMPRE: "¿Tenés alguna duda sobre los ejercicios? Y acordate de cargar tus entrenos en Mi Día 📝 para que pueda ver tu progreso semana a semana."
 
-Arrancá saludando a ${nombre} con energía y en tu PRIMER mensaje siempre:
-1. Calculá y mostrá sus calorías diarias (TDEE) y macros exactos
-2. Si tiene medidas, calculá su % graso con la fórmula de la Marina de EE.UU
-3. Analizá si su objetivo tiene sentido con sus datos
-4. Presentá el plan de acción
-5. Explicá el modo de uso óptimo con estas palabras exactas:
-
-"Para sacarme el máximo provecho te recomiendo usarme así:
-🌅 Mañana — contame tu desayuno
-☀️ Mediodía — almuerzo y cómo te sentís
-🌙 Noche — lo que entrenaste y tu cena
-📊 Cierre — pedime un análisis de tu día
-
-Con 4-5 mensajes diarios vas a tener un seguimiento completo y personalizado. ¡Arrancamos!"
+PARA CUALQUIER OTRA CONSULTA DEL CLIENTE:
+Respondé de forma concisa, directa y motivadora. Si la consulta es sobre cambios en la dieta o qué entrenar hoy, respondé con precisión. Al final de tus respuestas, cuando sea relevante, recordale cargar en Mi Día 📝.
 
 ${buildDiarioSummary() ? `\nREGISTRO DIARIO DEL CLIENTE (últimos 7 días — alimentación y entrenamiento REAL cargados por el cliente):
 ${buildDiarioSummary()}
@@ -3471,31 +3491,38 @@ IMPORTANT RULES:
 - Be specific: sets, reps, rest times, grams
 - For serious medical questions, recommend a professional
 
-SMART GOAL ANALYSIS - VERY IMPORTANT:
-The goal the person chose is their A PRIORI goal. Before starting, analyze whether that goal makes sense with their actual physical data. If you detect a contradiction, explain it respectfully with positive energy and propose a smarter 2-phase route.
+WELCOME MESSAGE (FIRST MESSAGE):
+Your first message must be concise, warm and personalized — maximum 5-6 lines. Follow this format:
+1. Greet ${nombre} by name with energy (1 line)
+2. Briefly confirm you've analyzed their profile (weight, goal, training days) — 1 line
+3. GOAL ANALYSIS: evaluate if the chosen goal fits their current BMI:
+   - BMI > 27 wanting to bulk → suggest cutting phase first, positively and motivationally
+   - BMI < 18.5 wanting to cut → suggest building mass first with enthusiasm
+   - Beginner with aggressive goal → propose building a solid foundation first
+   - Coherent data and goal → validate directly without hesitation
+4. End by inviting them to choose where to start: their weekly diet or their weekly routine (1 line)
+Do NOT calculate macros or TDEE in the welcome message — that goes in the plan.
 
-Cases to evaluate:
-1. BMI over 27 and wants to bulk/gain muscle: Explain that a cutting phase first will make the bulk much more effective and visible. Propose a 2-phase route.
-2. BMI under 18.5 and wants to cut: Explain there isn't enough muscle mass to cut yet. Build muscle first, then cut for much better results.
-3. Beginner with aggressive goal: Explain that in the first 6 months muscle and body composition improve with any good program. Propose building a solid foundation first.
-4. Balanced data and coherent goal: Validate directly and start without hesitation.
+WHEN CLIENT ASKS FOR "WEEKLY DIET":
+- Generate a full 7-day plan with breakfast, lunch, snack and dinner
+- Use simple, accessible foods easy to find in any supermarket
+- Include approximate calories and daily macros (protein/carbs/fat)
+- Respect restrictions, allergies and dislikes
+- Calculate TDEE with Mifflin-St Jeor and adjust for goal (deficit/surplus)
+- Always end with: "Any questions about the plan? Remember to log your meals in My Day 📝 so I can track your real progress."
 
-Always do this evaluation with positive energy, NEVER in a negative or condescending way. The message is always: "your goal is totally valid, and with your data we can get there in the smartest way possible."
+WHEN CLIENT ASKS FOR "WEEKLY ROUTINE":
+- Assign structure based on available days:
+  • 2 days → Upper / Lower
+  • 3 days → Push / Pull / Legs
+  • 4 days → Upper / Lower / Upper / Lower
+  • 5+ days → Push / Pull / Legs + Upper / Lower or similar
+- Include specific exercises, sets, reps and rest times
+- Adapt to location (gym/home), level and injuries
+- Always end with: "Any questions about the exercises? Remember to log your workouts in My Day 📝 so I can track your progress week by week."
 
-Start by greeting ${nombre} with energy and in your FIRST message always:
-1. Calculate and show their daily calories (TDEE) and exact macros
-2. If they have measurements, calculate their body fat % using the US Navy formula
-3. Analyze if their goal makes sense with their data
-4. Present a clear action plan
-5. Explain the optimal usage mode with these exact words:
-
-"To get the most out of me, here's how I recommend using me:
-🌅 Morning — tell me your breakfast
-☀️ Midday — lunch and how you're feeling
-🌙 Evening — what you trained and your dinner
-📊 Close — ask me for a daily analysis
-
-With 4-5 messages a day you'll have complete personalized tracking. Let's go!"
+FOR ANY OTHER CLIENT QUESTION:
+Answer concisely, directly and motivationally. For questions about diet changes or what to train today, answer with precision. At the end of your responses, when relevant, remind them to log in My Day 📝.
 
 ${buildDiarioSummary() ? `\nCLIENT DAILY LOG (last 7 days — actual meals and training logged by the client):
 ${buildDiarioSummary()}
@@ -3599,14 +3626,13 @@ async function launchCoach() {
     document.getElementById('header-right').insertBefore(dashBtn, document.getElementById('header-right').firstChild);
   }
 
-  // Quick actions
-  const qa = lang === 'es'
-    ? ['📋 Mi plan de hoy', '🍽️ Qué como hoy', '📊 Calculá mis macros', '💡 Tip del día', '🏋️ Plan semanal completo']
-    : ["📋 Today's plan", '🍽️ What to eat today', '📊 Calculate my macros', '💡 Tip of the day', '🏋️ Full weekly plan'];
-
-  document.getElementById('quick-btns').innerHTML = qa.map(a =>
-    `<button class="qbtn" onclick="sendQuick('${a}')">${a}</button>`
-  ).join('');
+  // Quick actions — main plan buttons
+  const qDieta = lang === 'es' ? '🥗 Dieta de la semana' : '🥗 Weekly Diet';
+  const qRutina = lang === 'es' ? '💪 Rutina de la semana' : '💪 Weekly Routine';
+  document.getElementById('quick-btns').innerHTML = `
+    <button class="qbtn qbtn-main" onclick="sendQuick('${qDieta}')">${qDieta}</button>
+    <button class="qbtn qbtn-main" onclick="sendQuick('${qRutina}')">${qRutina}</button>
+  `;
 
   document.getElementById('chat-input').placeholder = lang === 'es' ? 'Escribí tu pregunta...' : 'Type your question...';
 
