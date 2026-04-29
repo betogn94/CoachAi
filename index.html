@@ -3841,9 +3841,7 @@ async function saveDiario() {
     notas_entreno: '',
   };
 
-  const btn = document.getElementById('btn-save-diario');
   btn.textContent = '⏳ Guardando...';
-  btn.disabled = true;
 
   try {
     await saveDiarioToSupabase(data);
