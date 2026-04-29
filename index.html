@@ -3847,14 +3847,18 @@ async function saveDiario() {
     await saveDiarioToSupabase(data);
     if (entrenóHoy) saveTrainedDayToSupabase().catch(console.error);
     recentDiario = await loadRecentDiario();
-    // Show estimated macros
-    if (macros) showMacrosEstimados({ calorias_consumidas: macros.kcal, proteinas_g: macros.proteina, carbos_g: macros.carbos, grasas_g: macros.grasa });
     btn.textContent = '✅ DÍA GUARDADO';
+    // Clear fields
+    ['d-desayuno','d-almuerzo','d-merienda','d-cena','d-ejercicios'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('macros-estimados').style.display = 'none';
+    entrenóHoy = null;
+    document.getElementById('chip-si').classList.remove('selected');
+    document.getElementById('chip-no').classList.remove('selected');
     setTimeout(() => {
       btn.textContent = '💾 GUARDAR MI DÍA';
       btn.disabled = false;
       showChat();
-    }, 2000);
+    }, 1500);
   } catch(e) {
     btn.textContent = '❌ Error al guardar';
     btn.disabled = false;
@@ -4368,7 +4372,8 @@ function showChat() {
   document.getElementById('chat-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function renderDashboard() {
+async function renderDashboard() {
+  recentDiario = await loadRecentDiario().catch(() => recentDiario);
   renderSemanas().catch(console.error);
 }
 
