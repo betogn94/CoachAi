@@ -3677,7 +3677,11 @@ function addMessage(content, type, skipTrack = false) {
   div.className = `msg ${type}`;
   div.innerHTML = `<div class="msg-avatar">${type === 'coach' ? '🤖' : '👤'}</div><div class="msg-bubble">${content}</div>`;
   container.appendChild(div);
-  container.scrollTop = container.scrollHeight;
+  if (type === 'coach') {
+    div.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else {
+    container.scrollTop = container.scrollHeight;
+  }
   if (!skipTrack) chatMessages.push({ content, type });
 }
 
