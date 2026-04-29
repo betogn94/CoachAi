@@ -1494,6 +1494,151 @@ footer {
   .foto-comparacion { grid-template-columns: 1fr 1fr; }
 }
 
+/* =================== SEMANAS DE PROGRESO =================== */
+.semana-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.semana-card.activa { border-color: var(--accent3); }
+.semana-header {
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s;
+}
+.semana-header:hover { background: rgba(255,255,255,0.03); }
+.semana-badge {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 15px;
+  letter-spacing: 1px;
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 4px 10px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.semana-card.activa .semana-badge { background: rgba(0,229,176,0.12); color: var(--accent3); }
+.semana-header-info { flex: 1; }
+.semana-dates { font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+.semana-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.semana-chip {
+  font-size: 11px; padding: 2px 8px;
+  border-radius: 100px; background: var(--surface2);
+  color: var(--muted); border: 1px solid var(--border);
+}
+.semana-chip.good { color: var(--accent3); border-color: rgba(0,229,176,0.3); background: rgba(0,229,176,0.07); }
+.semana-chip.warn { color: var(--accent2); border-color: rgba(255,75,75,0.3); background: rgba(255,75,75,0.07); }
+.semana-chevron { font-size: 12px; color: var(--muted); transition: transform 0.25s; }
+.semana-card.open .semana-chevron { transform: rotate(180deg); }
+.semana-status { font-size: 10px; font-weight: 700; letter-spacing: 0.5px; padding: 3px 8px; border-radius: 100px; }
+.semana-status.cerrada { background: rgba(0,229,176,0.1); color: var(--accent3); }
+.semana-status.en-curso { background: rgba(124,106,255,0.12); color: var(--accent-bright); }
+
+.semana-body { display: none; border-top: 1px solid var(--border); }
+.semana-card.open .semana-body { display: block; }
+
+.semana-comparacion {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; padding: 16px 18px 8px;
+}
+.semana-comp-foto { text-align: center; }
+.semana-comp-foto img {
+  width: 100%; aspect-ratio: 3/4; object-fit: cover;
+  border-radius: 10px; margin-bottom: 4px;
+}
+.semana-comp-label { font-size: 10px; color: var(--muted); font-weight: 700; letter-spacing: 0.5px; }
+
+.semana-analisis {
+  margin: 8px 18px 16px;
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+.semana-analisis-title { font-size: 11px; font-weight: 700; color: var(--accent3); letter-spacing: 0.5px; margin-bottom: 8px; }
+
+.semana-logs { padding: 12px 18px; }
+.semana-log-item {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.semana-log-item:last-child { border-bottom: none; }
+.semana-log-date { font-weight: 600; color: var(--text); font-size: 11px; margin-bottom: 2px; }
+
+.btn-cerrar-semana {
+  width: calc(100% - 36px);
+  margin: 0 18px 18px;
+  padding: 13px;
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  border: none; border-radius: 10px;
+  color: #fff; font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: opacity 0.2s;
+  font-family: 'DM Sans', sans-serif;
+}
+.btn-cerrar-semana:hover { opacity: 0.88; }
+
+/* Cierre overlay */
+.cierre-overlay {
+  position: fixed; inset: 0; z-index: 1500;
+  background: var(--bg); display: none;
+  flex-direction: column; align-items: center;
+  padding: 24px; overflow-y: auto;
+}
+.cierre-overlay.open { display: flex; }
+.cierre-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px 24px;
+  width: 100%; max-width: 480px;
+}
+.cierre-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; margin-bottom: 4px; }
+.cierre-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+.cierre-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.cierre-stat { background: var(--surface2); border-radius: 10px; padding: 12px 14px; text-align: center; }
+.cierre-stat-val { font-size: 22px; font-weight: 700; color: var(--accent3); }
+.cierre-stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.cierre-analisis-result {
+  background: var(--surface2); border-radius: 12px;
+  padding: 16px; margin-top: 16px;
+  font-size: 13px; line-height: 1.65;
+  color: var(--text); white-space: pre-wrap; display: none;
+}
+.btn-generar-analisis {
+  width: 100%; padding: 13px;
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  border: none; border-radius: 10px; color: #fff;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  transition: opacity 0.2s; margin-top: 16px;
+  font-family: 'DM Sans', sans-serif;
+}
+.btn-generar-analisis:hover { opacity: 0.88; }
+.btn-generar-analisis:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-cierre-back {
+  background: none; border: 1px solid var(--border); border-radius: 10px;
+  color: var(--muted); padding: 10px 20px; cursor: pointer;
+  font-size: 13px; margin-top: 10px; width: 100%;
+  font-family: 'DM Sans', sans-serif; transition: border-color 0.2s;
+}
+.btn-cierre-back:hover { border-color: var(--accent); color: var(--accent-bright); }
+
+@media (max-width: 640px) {
+  .semana-comparacion { grid-template-columns: 1fr 1fr; }
+  .cierre-stats-grid { grid-template-columns: 1fr 1fr; }
+}
+
 /* =================== REGISTRO DIARIO =================== */
 .diario-wrapper {
   max-width: 860px;
@@ -2479,55 +2624,16 @@ footer {
     </div>
   </div>
 
-  <!-- HISTORIAL DIARIO -->
+  <!-- SEMANAS DE PROGRESO -->
   <div class="chart-card">
     <div class="chart-card-header">
-      <div class="chart-card-title" id="diario-hist-title">📋 REGISTROS DIARIOS</div>
-      <span style="font-size:12px;color:var(--muted)" id="diario-hist-sub">Últimos 7 días</span>
+      <div class="chart-card-title">📅 SEGUIMIENTO SEMANAL</div>
     </div>
-    <div style="padding:16px 22px 20px" id="diario-history-list">
-      <div class="chart-empty" style="height:80px">
-        <div class="chart-empty-icon" style="font-size:24px">📝</div>
-        <span id="diario-hist-empty">Aún no hay registros diarios</span>
+    <div id="semanas-container" style="padding:12px 16px 20px">
+      <div class="chart-empty" id="semanas-empty">
+        <div class="chart-empty-icon">📅</div>
+        <span>Los registros semanales aparecerán acá</span>
       </div>
-    </div>
-  </div>
-
-  <!-- FOTOS DE PROGRESO -->
-  <div class="chart-card">
-    <div class="chart-card-header">
-      <div class="chart-card-title">📸 FOTOS DE PROGRESO</div>
-    </div>
-    <!-- Comparación inicial vs reciente -->
-    <div id="fotos-comparacion" style="display:none">
-      <div style="font-size:11px;color:var(--muted);text-align:center;padding:12px 0 0;letter-spacing:0.5px">EVOLUCIÓN</div>
-      <div class="foto-comparacion">
-        <div class="foto-comp-item">
-          <img id="foto-comp-inicial" src="" alt="Inicio">
-          <div class="foto-comp-label">INICIO</div>
-        </div>
-        <div class="foto-comp-item">
-          <img id="foto-comp-reciente" src="" alt="Reciente">
-          <div class="foto-comp-label">RECIENTE</div>
-        </div>
-      </div>
-    </div>
-    <!-- Galería -->
-    <div id="fotos-gallery-container">
-      <div class="foto-empty" id="fotos-empty">
-        <div style="font-size:32px;margin-bottom:8px">📷</div>
-        Aún no hay fotos. Subí tu primera foto para empezar a ver tu evolución.
-      </div>
-      <div class="foto-gallery" id="fotos-gallery" style="display:none"></div>
-    </div>
-    <!-- Subir nueva -->
-    <div style="padding:0 22px 20px">
-      <div class="foto-upload-area" id="dash-foto-upload-area" style="margin-bottom:8px">
-        <input type="file" accept="image/*" id="dash-foto-input" onchange="subirFotoDesdeDash(event)">
-        <div class="foto-upload-icon">📷</div>
-        <div class="foto-upload-label">Subir nueva foto<br><strong>JPG, PNG o WEBP</strong></div>
-      </div>
-      <div style="font-size:11px;color:var(--muted2);text-align:center" id="dash-foto-status"></div>
     </div>
   </div>
 </div>
@@ -2536,6 +2642,35 @@ footer {
 <div class="foto-lightbox" id="foto-lightbox" onclick="closeLightbox()">
   <button class="foto-lightbox-close" onclick="closeLightbox()">✕</button>
   <img id="lightbox-img" src="" alt="">
+</div>
+
+<!-- CIERRE DE SEMANA -->
+<div class="cierre-overlay" id="cierre-overlay">
+  <div class="cierre-card">
+    <div class="cierre-title">🏁 CIERRE DE SEMANA</div>
+    <div class="cierre-sub" id="cierre-sub">Resumen de tu semana</div>
+    <div class="cierre-stats-grid" id="cierre-stats-grid"></div>
+
+    <div style="font-size:13px;color:var(--muted);margin-bottom:10px;text-align:center">
+      📸 Subí tu foto de esta semana para la comparativa
+    </div>
+    <div class="foto-upload-area" style="margin-bottom:4px">
+      <input type="file" accept="image/*" id="cierre-foto-input" onchange="previewCierreFoto(event)">
+      <div id="cierre-foto-placeholder">
+        <div class="foto-upload-icon">📷</div>
+        <div class="foto-upload-label">Foto de frente de esta semana<br><strong>Opcional pero recomendada</strong></div>
+      </div>
+      <img class="foto-preview" id="cierre-foto-preview" src="" alt="preview">
+    </div>
+
+    <button class="btn-generar-analisis" id="btn-generar-analisis" onclick="ejecutarCierreSemana()">
+      ✨ Generar análisis de mi semana
+    </button>
+
+    <div class="cierre-analisis-result" id="cierre-analisis-result"></div>
+
+    <button class="btn-cierre-back" id="btn-cierre-back" onclick="closeCierrePanel()">← Volver al progreso</button>
+  </div>
 </div>
 
 
@@ -2805,19 +2940,15 @@ async function loadTodayDiario() {
   return data;
 }
 
-async function loadRecentDiario(days = 7) {
+async function loadRecentDiario(days = 90) {
   if (!sbClient || !currentUser) return [];
-  const dates = [];
-  for (let i = 0; i < days; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    dates.push(d.toISOString().slice(0, 10));
-  }
+  const from = new Date();
+  from.setDate(from.getDate() - days);
   const { data } = await sbClient.from('progreso_diario')
     .select('fecha,desayuno,almuerzo,merienda,cena,calorias_consumidas,proteinas_g,carbos_g,grasas_g,entreno,ejercicios_realizados,notas_entreno')
     .eq('usuario_id', currentUser.id)
-    .in('fecha', dates)
-    .order('fecha', { ascending: false });
+    .gte('fecha', from.toISOString().slice(0, 10))
+    .order('fecha', { ascending: true });
   return data || [];
 }
 
@@ -4014,6 +4145,306 @@ function closeLightbox() {
   document.getElementById('foto-lightbox').classList.remove('open');
 }
 
+// ============================
+// SEMANAS DE PROGRESO
+// ============================
+let cierresSemanales = [];
+let cierreActualWeekNum = null;
+
+function getWeekNum(createdAt) {
+  const start = new Date(createdAt.slice(0, 10) + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.floor((today - start) / 86400000);
+  return Math.floor(diff / 7) + 1;
+}
+
+function getWeekRange(createdAt, weekNum) {
+  const start = new Date(createdAt.slice(0, 10) + 'T00:00:00');
+  const wStart = new Date(start);
+  wStart.setDate(start.getDate() + (weekNum - 1) * 7);
+  const wEnd = new Date(wStart);
+  wEnd.setDate(wStart.getDate() + 6);
+  return { start: wStart.toISOString().slice(0, 10), end: wEnd.toISOString().slice(0, 10) };
+}
+
+function formatDateShort(dateStr) {
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString(lang === 'es' ? 'es-AR' : 'en-US', { day: 'numeric', month: 'short' });
+}
+
+function computeWeekStats(logs, range) {
+  const wLogs = logs.filter(l => l.fecha >= range.start && l.fecha <= range.end);
+  const trained = wLogs.filter(l => l.entreno === true).length;
+  const withCal = wLogs.filter(l => l.calorias_consumidas > 0);
+  const avgCal = withCal.length ? Math.round(withCal.reduce((s, l) => s + l.calorias_consumidas, 0) / withCal.length) : null;
+  const withProt = wLogs.filter(l => l.proteinas_g > 0);
+  const avgProt = withProt.length ? Math.round(withProt.reduce((s, l) => s + l.proteinas_g, 0) / withProt.length) : null;
+  return { trained, avgCal, avgProt, totalLogs: wLogs.length, wLogs };
+}
+
+async function loadCierresSemanales() {
+  if (!sbClient || !currentUser) return [];
+  const { data } = await sbClient.from('cierres_semanales')
+    .select('*').eq('usuario_id', currentUser.id)
+    .order('semana_num', { ascending: true });
+  return data || [];
+}
+
+async function renderSemanas() {
+  const container = document.getElementById('semanas-container');
+  const empty = document.getElementById('semanas-empty');
+  if (!currentUser) return;
+
+  const createdAt = currentUser.created_at || new Date().toISOString();
+  const currentWeek = getWeekNum(createdAt);
+
+  const [cierres, fotos] = await Promise.all([
+    loadCierresSemanales(),
+    loadFotosProgreso()
+  ]);
+  cierresSemanales = cierres;
+
+  const fotoInicial = fotos.find(f => f.nota === 'Foto inicial') || fotos[0] || null;
+
+  const weeks = [];
+  for (let w = currentWeek; w >= 1; w--) weeks.push(w);
+
+  if (weeks.length === 0) { empty.style.display = 'flex'; return; }
+  empty.style.display = 'none';
+
+  container.innerHTML = weeks.map(w => {
+    const range = getWeekRange(createdAt, w);
+    const cierre = cierres.find(c => c.semana_num === w);
+    const stats = computeWeekStats(recentDiario, range);
+    const isCurrent = w === currentWeek;
+    const isOpen = isCurrent;
+
+    const trainedChip = `<span class="semana-chip ${stats.trained >= (selectedDias.length || 3) ? 'good' : stats.trained > 0 ? '' : 'warn'}">${stats.trained} ${lang==='es'?'días entrenados':'training days'}</span>`;
+    const calChip = stats.avgCal ? `<span class="semana-chip">${stats.avgCal} kcal/día</span>` : '';
+    const statusBadge = cierre
+      ? `<span class="semana-status cerrada">✓ ${lang==='es'?'Cerrada':'Closed'}</span>`
+      : isCurrent
+        ? `<span class="semana-status en-curso">${lang==='es'?'En curso':'In progress'}</span>`
+        : `<span class="semana-status" style="color:var(--muted)">${lang==='es'?'Sin cerrar':'Open'}</span>`;
+
+    let bodyHtml = '';
+
+    // Photo comparison (only if cierre has photo and we have initial)
+    if (cierre?.foto_url && fotoInicial) {
+      bodyHtml += `
+        <div class="semana-comparacion">
+          <div class="semana-comp-foto">
+            <img src="${fotoInicial.url}" onclick="openLightbox('${fotoInicial.url}')" loading="lazy">
+            <div class="semana-comp-label">INICIO</div>
+          </div>
+          <div class="semana-comp-foto">
+            <img src="${cierre.foto_url}" onclick="openLightbox('${cierre.foto_url}')" loading="lazy">
+            <div class="semana-comp-label">SEMANA ${w}</div>
+          </div>
+        </div>`;
+    }
+
+    // AI analysis
+    if (cierre?.analisis) {
+      bodyHtml += `
+        <div class="semana-analisis">
+          <div class="semana-analisis-title">📊 ${lang==='es'?'ANÁLISIS DE LA SEMANA':'WEEK ANALYSIS'}</div>
+          ${cierre.analisis}
+        </div>`;
+    }
+
+    // Daily logs for this week
+    if (stats.wLogs.length > 0) {
+      bodyHtml += `<div class="semana-logs">`;
+      bodyHtml += stats.wLogs.map(l => {
+        const comidas = [l.desayuno, l.almuerzo, l.merienda, l.cena].filter(Boolean).join(' · ');
+        const entreno = l.entreno === true ? `💪 ${l.ejercicios_realizados || (lang==='es'?'Entrenó':'Trained')}` : l.entreno === false ? (lang==='es'?'❌ Descanso':'❌ Rest') : '';
+        return `<div class="semana-log-item">
+          <div class="semana-log-date">${formatDateShort(l.fecha)}</div>
+          ${comidas ? `<div>${comidas.slice(0, 80)}${comidas.length > 80 ? '...' : ''}</div>` : ''}
+          ${entreno ? `<div>${entreno}</div>` : ''}
+          ${l.calorias_consumidas ? `<div>📊 ${l.calorias_consumidas} kcal</div>` : ''}
+        </div>`;
+      }).join('');
+      bodyHtml += `</div>`;
+    } else {
+      bodyHtml += `<div style="padding:16px 18px;font-size:12px;color:var(--muted)">${lang==='es'?'Sin registros diarios esta semana.':'No daily logs this week.'}</div>`;
+    }
+
+    // Close week button (current week only, no cierre yet)
+    if (isCurrent && !cierre) {
+      bodyHtml += `<button class="btn-cerrar-semana" onclick="openCierreSemana(${w})">🏁 ${lang==='es'?'Cerrar semana y ver mi análisis':'Close week & see my analysis'}</button>`;
+    }
+
+    return `
+      <div class="semana-card ${isCurrent ? 'activa' : ''} ${isOpen ? 'open' : ''}" id="semana-card-${w}">
+        <div class="semana-header" onclick="toggleSemana(${w})">
+          <div class="semana-badge">SEM ${w}</div>
+          <div class="semana-header-info">
+            <div class="semana-dates">${formatDateShort(range.start)} → ${formatDateShort(range.end)}</div>
+            <div class="semana-chips">${trainedChip}${calChip}</div>
+          </div>
+          ${statusBadge}
+          <div class="semana-chevron">▼</div>
+        </div>
+        <div class="semana-body">${bodyHtml}</div>
+      </div>`;
+  }).join('');
+}
+
+function toggleSemana(weekNum) {
+  const card = document.getElementById(`semana-card-${weekNum}`);
+  card.classList.toggle('open');
+}
+
+async function loadFotosProgreso() {
+  if (!sbClient || !currentUser) return [];
+  const { data } = await sbClient.from('fotos_progreso')
+    .select('*').eq('usuario_id', currentUser.id)
+    .order('fecha', { ascending: true });
+  return data || [];
+}
+
+function openCierreSemana(weekNum) {
+  cierreActualWeekNum = weekNum;
+  const createdAt = currentUser.created_at || new Date().toISOString();
+  const range = getWeekRange(createdAt, weekNum);
+  const stats = computeWeekStats(recentDiario, range);
+
+  document.getElementById('cierre-sub').textContent =
+    `Semana ${weekNum} · ${formatDateShort(range.start)} al ${formatDateShort(range.end)}`;
+
+  document.getElementById('cierre-stats-grid').innerHTML = `
+    <div class="cierre-stat"><div class="cierre-stat-val">${stats.trained}</div><div class="cierre-stat-label">${lang==='es'?'Días entrenados':'Training days'}</div></div>
+    <div class="cierre-stat"><div class="cierre-stat-val">${stats.avgCal || '—'}</div><div class="cierre-stat-label">${lang==='es'?'Kcal promedio/día':'Avg kcal/day'}</div></div>
+    <div class="cierre-stat"><div class="cierre-stat-val">${stats.avgProt ? stats.avgProt + 'g' : '—'}</div><div class="cierre-stat-label">${lang==='es'?'Proteína prom.':'Avg protein'}</div></div>
+    <div class="cierre-stat"><div class="cierre-stat-val">${stats.totalLogs}/7</div><div class="cierre-stat-label">${lang==='es'?'Días registrados':'Logged days'}</div></div>
+  `;
+
+  document.getElementById('cierre-analisis-result').style.display = 'none';
+  document.getElementById('cierre-analisis-result').textContent = '';
+  document.getElementById('cierre-foto-preview').style.display = 'none';
+  document.getElementById('cierre-foto-placeholder').style.display = 'block';
+  document.getElementById('cierre-foto-input').value = '';
+  document.getElementById('btn-generar-analisis').disabled = false;
+  document.getElementById('btn-generar-analisis').textContent = lang === 'es' ? '✨ Generar análisis de mi semana' : '✨ Generate my week analysis';
+
+  document.getElementById('cierre-overlay').classList.add('open');
+}
+
+function closeCierrePanel() {
+  document.getElementById('cierre-overlay').classList.remove('open');
+}
+
+function previewCierreFoto(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const preview = document.getElementById('cierre-foto-preview');
+  preview.src = URL.createObjectURL(file);
+  preview.style.display = 'block';
+  document.getElementById('cierre-foto-placeholder').style.display = 'none';
+}
+
+async function ejecutarCierreSemana() {
+  const btn = document.getElementById('btn-generar-analisis');
+  const result = document.getElementById('cierre-analisis-result');
+  btn.disabled = true;
+  btn.textContent = lang === 'es' ? 'Analizando...' : 'Analyzing...';
+
+  try {
+    const createdAt = currentUser.created_at || new Date().toISOString();
+    const range = getWeekRange(createdAt, cierreActualWeekNum);
+    const stats = computeWeekStats(recentDiario, range);
+    const nombre = document.getElementById('f-nombre').value;
+    const objetivo = selections.objetivo || '';
+
+    // Upload photo if provided
+    let fotoUrl = null;
+    const fotoInput = document.getElementById('cierre-foto-input');
+    if (fotoInput.files[0]) {
+      fotoUrl = await uploadFoto(fotoInput.files[0], `Semana ${cierreActualWeekNum}`);
+    }
+
+    // Generate AI analysis
+    const analisis = await generateWeeklyAnalysis(nombre, cierreActualWeekNum, stats, objetivo, lang);
+
+    // Save cierre to Supabase
+    const statsJson = { trained: stats.trained, avgCal: stats.avgCal, avgProt: stats.avgProt, totalLogs: stats.totalLogs };
+    await sbClient.from('cierres_semanales').upsert([{
+      usuario_id: currentUser.id,
+      semana_num: cierreActualWeekNum,
+      fecha_inicio: range.start,
+      fecha_fin: range.end,
+      foto_url: fotoUrl,
+      analisis,
+      stats: statsJson
+    }], { onConflict: 'usuario_id,semana_num' });
+
+    result.textContent = analisis;
+    result.style.display = 'block';
+    btn.textContent = lang === 'es' ? '✓ Análisis guardado' : '✓ Analysis saved';
+
+    // Refresh semanas
+    await renderSemanas();
+  } catch(e) {
+    console.error(e);
+    btn.disabled = false;
+    btn.textContent = lang === 'es' ? 'Error — intentá de nuevo' : 'Error — try again';
+  }
+}
+
+async function generateWeeklyAnalysis(nombre, weekNum, stats, objetivo, language) {
+  const isEs = language === 'es';
+  const systemPrompt = isEs
+    ? `Sos CoachAI, un coach personal experto. Generás análisis semanales honestos, motivadores y basados en datos reales. Escribís en español rioplatense (voseo), con energía positiva pero sin mentirle al cliente. Siempre hacés inferencias físicas científicamente válidas basadas en los datos de entrenamiento y nutrición.`
+    : `You are CoachAI, an expert personal coach. You generate honest, motivating, data-based weekly analyses. Always make scientifically valid physical inferences based on training and nutrition data.`;
+
+  const userMsg = isEs
+    ? `Generá el análisis de la Semana ${weekNum} del cliente ${nombre}.
+
+DATOS DE LA SEMANA:
+- Días entrenados: ${stats.trained} de 7
+- Calorías promedio: ${stats.avgCal ? stats.avgCal + ' kcal/día' : 'no registradas'}
+- Proteína promedio: ${stats.avgProt ? stats.avgProt + 'g/día' : 'no registrada'}
+- Días con registro completo: ${stats.totalLogs}/7
+- Objetivo del cliente: ${objetivo}
+- Número de semana en el proceso: ${weekNum}
+
+Escribí un análisis de 4-5 párrafos que:
+1. Evalúe honestamente el rendimiento de la semana con los datos reales
+2. Haga inferencias físicas basadas en evidencia: si mantuvo déficit y entrenó → está perdiendo grasa y se debería ver más definido respecto al inicio; si no cumplió → ser honesto pero constructivo
+3. Si es semana 2 o más, referencié el progreso acumulado desde el inicio
+4. Terminé con 2-3 objetivos concretos y alcanzables para la próxima semana
+Usá los datos reales, sé específico con los números.`
+    : `Generate the Week ${weekNum} analysis for client ${nombre}.
+
+WEEK DATA:
+- Training days: ${stats.trained} of 7
+- Average calories: ${stats.avgCal ? stats.avgCal + ' kcal/day' : 'not logged'}
+- Average protein: ${stats.avgProt ? stats.avgProt + 'g/day' : 'not logged'}
+- Days with complete log: ${stats.totalLogs}/7
+- Client goal: ${objetivo}
+- Week number in the process: ${weekNum}
+
+Write a 4-5 paragraph analysis that:
+1. Honestly evaluates weekly performance with real data
+2. Makes evidence-based physical inferences: if they maintained deficit and trained → losing fat and should look more defined vs start; if not → be honest but constructive
+3. If week 2+, reference accumulated progress since day 1
+4. End with 2-3 concrete, achievable goals for next week
+Use the real numbers, be specific.`;
+
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMsg }]
+    })
+  });
+  const data = await response.json();
+  return data.content?.[0]?.text || (isEs ? 'No se pudo generar el análisis.' : 'Could not generate analysis.');
+}
+
 function hideAllSections() {
   document.getElementById('chat-wrapper').style.display = 'none';
   document.getElementById('dashboard-wrapper').style.display = 'none';
@@ -4088,11 +4519,8 @@ function renderDashboard() {
   // Streak grid
   renderStreakGrid(trainedDays);
 
-  // Historial diario
-  renderDiarioHistory(recentDiario);
-
-  // Fotos de progreso
-  loadAndRenderFotos().catch(console.error);
+  // Semanas de progreso
+  renderSemanas().catch(console.error);
 }
 
 function calcStreak(trainedDays) {
