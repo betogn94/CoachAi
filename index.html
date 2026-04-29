@@ -3597,16 +3597,6 @@ async function launchCoach() {
     { l: lang==='es'?'Días':'Days', v: `${selectedDias.length}d/sem` },
   ].map(i => `<div class="cpb-item"><div class="cpb-label">${i.l}</div><div class="cpb-value">${i.v}</div></div>`).join('');
 
-  // White Label button in header
-  if (!document.getElementById('btn-whitelabel')) {
-    const wlBtn = document.createElement('button');
-    wlBtn.id = 'btn-whitelabel';
-    wlBtn.className = 'btn-whitelabel';
-    wlBtn.innerHTML = '🎨 Marca';
-    wlBtn.onclick = showWhiteLabel;
-    document.getElementById('header-right').insertBefore(wlBtn, document.getElementById('header-right').firstChild);
-  }
-
   // Dashboard button in header
   if (!document.getElementById('btn-dashboard')) {
     const dashBtn = document.createElement('button');
