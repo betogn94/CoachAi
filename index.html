@@ -2323,6 +2323,128 @@ footer {
 .email-login-error { font-size: 12px; color: var(--accent2); margin-bottom: 10px; min-height: 18px; }
 .email-login-loading { font-size: 13px; color: var(--muted); margin-top: 10px; display: none; }
 
+
+/* ================================================================
+   RESPONSIVE STABILIZATION — Mobile UX Pass
+   640px → phones & small tablets  |  480px → small phones
+   Only adds/overrides mobile styles. Zero desktop changes.
+   ================================================================ */
+
+/* Prevent iOS auto-zoom: any focused input < 16px triggers page zoom */
+@media (max-width: 640px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  select,
+  .chat-textarea,
+  .email-login-input,
+  .wl-input {
+    font-size: 16px;
+  }
+}
+
+/* --- LANDING PAGE --- */
+@media (max-width: 640px) {
+  .landing-wrapper        { padding: 24px 20px; }
+  .landing-logo           { font-size: 38px; }
+  .landing-tagline        { font-size: 13px; margin-bottom: 20px; }
+  .landing-login-card     { padding: 24px 20px; }
+  .landing-login-icon     { font-size: 30px; margin-bottom: 14px; }
+}
+
+/* --- EMAIL LOGIN & ADMIN LOGIN MODAL --- */
+@media (max-width: 640px) {
+  .email-login-card { padding: 28px 20px; }
+  .modal-card       { padding: 28px 20px; }
+}
+
+/* --- SECTION TITLES: all 32px Bebas headings --- */
+@media (max-width: 640px) {
+  .dash-title,
+  .diario-title,
+  .admin-title,
+  .wl-title    { font-size: 24px; letter-spacing: 2px; }
+  h1           { font-size: 42px; }
+}
+
+/* --- CHAT --- */
+@media (max-width: 640px) {
+  .chat-messages  { height: 52vh; min-height: 260px; padding: 14px 16px; gap: 12px; }
+  .msg-bubble     { max-width: 85%; padding: 10px 14px; }
+  .chat-input-row { padding: 12px 14px; gap: 8px; }
+  .cpb-item       { padding: 10px 12px; }
+  .quick-btns     { padding: 0 14px 12px; gap: 8px; }
+  .qbtn-main      { min-width: unset; flex: 1; font-size: 13px; padding: 10px 16px; }
+}
+
+/* --- MI PROGRESO (dashboard) --- */
+@media (max-width: 640px) {
+  .weight-input-row       { flex-wrap: wrap; gap: 8px; }
+  .weight-input-row input { flex: 1; min-width: 80px; width: auto; }
+  .stat-card              { padding: 14px 10px; }
+  .stat-value             { font-size: 18px; }
+  .chart-card-header      { padding: 14px 16px; }
+  .chart-body             { padding: 14px 16px; }
+}
+
+/* --- SEMANAS (accordion cards in Mi Progreso) --- */
+@media (max-width: 640px) {
+  .semana-header        { padding: 12px 14px; gap: 8px; }
+  .semana-analisis      { margin: 8px 14px 12px; }
+  .semana-logs          { padding: 10px 14px; }
+  .btn-cerrar-semana    { width: calc(100% - 28px); margin: 0 14px 14px; }
+}
+
+/* --- CIERRE SEMANAL panel --- */
+@media (max-width: 640px) {
+  .cierre-overlay { padding: 16px; }
+  .cierre-card    { padding: 20px 16px; border-radius: 14px; }
+}
+
+/* --- MI DÍA (diario) --- */
+@media (max-width: 640px) {
+  .diario-meals-grid { padding: 14px 16px; gap: 10px; }
+  .diario-header     { margin-bottom: 16px; }
+}
+
+/* --- ADMIN DASHBOARD --- */
+@media (max-width: 640px) {
+  .admin-stat-num   { font-size: 36px; }
+  .admin-stat-card  { padding: 16px 12px; }
+  .admin-stat-label { font-size: 9px; letter-spacing: 1px; }
+  .admin-stat-sub   { font-size: 10px; }
+  .admin-profile-card   { padding: 16px; }
+  .admin-detail-header  { gap: 12px; margin-bottom: 16px; }
+  .admin-settings-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .admin-settings-footer input[type="password"] { width: 100%; }
+}
+
+/* --- SMALL PHONES: 480px --- */
+@media (max-width: 480px) {
+  h1                    { font-size: 34px; }
+  .dash-title,
+  .diario-title,
+  .admin-title          { font-size: 22px; }
+  .landing-logo         { font-size: 32px; letter-spacing: 4px; }
+  .landing-login-card   { padding: 20px 16px; }
+  .admin-stats-grid     { gap: 8px; }
+  .admin-stat-num       { font-size: 30px; }
+  .admin-profile-grid   { grid-template-columns: 1fr 1fr; }
+  .medidas-grid         { grid-template-columns: 1fr; }
+  .foto-gallery         { grid-template-columns: 1fr; }
+  .semana-comparacion   { grid-template-columns: 1fr; gap: 10px; }
+  .chat-messages        { height: 45vh; min-height: 220px; }
+  .welcome-back         { padding: 0 16px; }
+  .cierre-stats-grid    { grid-template-columns: 1fr 1fr; }
+}
+
+
 </style>
 </head>
 <body>
