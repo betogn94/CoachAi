@@ -2325,12 +2325,13 @@ footer {
 
 
 /* ================================================================
-   RESPONSIVE STABILIZATION — Mobile UX Pass
+   MOBILE RESPONSIVE — CLIENT SECTIONS
    640px → phones & small tablets  |  480px → small phones
    Only adds/overrides mobile styles. Zero desktop changes.
+   Admin dashboard, landing & login sections are untouched.
    ================================================================ */
 
-/* Prevent iOS auto-zoom: any focused input < 16px triggers page zoom */
+/* Prevent iOS auto-zoom: inputs < 16px trigger page zoom on focus */
 @media (max-width: 640px) {
   input[type="text"],
   input[type="email"],
@@ -2338,78 +2339,180 @@ footer {
   input[type="number"],
   input[type="search"],
   select,
+  textarea,
   .chat-textarea,
+  .diario-textarea,
   .email-login-input,
-  .wl-input {
-    font-size: 16px;
-  }
+  .wl-input { font-size: 16px !important; }
 }
 
-/* --- LANDING PAGE --- */
+/* --- LANDING PAGE (unchanged) --- */
 @media (max-width: 640px) {
-  .landing-wrapper        { padding: 24px 20px; }
-  .landing-logo           { font-size: 38px; }
-  .landing-tagline        { font-size: 13px; margin-bottom: 20px; }
-  .landing-login-card     { padding: 24px 20px; }
-  .landing-login-icon     { font-size: 30px; margin-bottom: 14px; }
+  .landing-wrapper    { padding: 24px 20px; }
+  .landing-logo       { font-size: 38px; }
+  .landing-tagline    { font-size: 13px; margin-bottom: 20px; }
+  .landing-login-card { padding: 24px 20px; }
+  .landing-login-icon { font-size: 30px; margin-bottom: 14px; }
 }
 
-/* --- EMAIL LOGIN & ADMIN LOGIN MODAL --- */
+/* --- EMAIL LOGIN & ADMIN MODAL (unchanged) --- */
 @media (max-width: 640px) {
   .email-login-card { padding: 28px 20px; }
   .modal-card       { padding: 28px 20px; }
 }
 
-/* --- SECTION TITLES: all 32px Bebas headings --- */
+/* --- SECTION TITLES --- */
 @media (max-width: 640px) {
   .dash-title,
   .diario-title,
   .admin-title,
-  .wl-title    { font-size: 24px; letter-spacing: 2px; }
-  h1           { font-size: 42px; }
+  .wl-title { font-size: 24px; letter-spacing: 2px; }
+  h1        { font-size: 42px; }
 }
 
-/* --- CHAT --- */
+/* --- HEADER: client nav buttons --- */
 @media (max-width: 640px) {
-  .chat-messages  { height: 52vh; min-height: 260px; padding: 14px 16px; gap: 12px; }
-  .msg-bubble     { max-width: 85%; padding: 10px 14px; }
-  .chat-input-row { padding: 12px 14px; gap: 8px; }
-  .cpb-item       { padding: 10px 12px; }
-  .quick-btns     { padding: 0 14px 12px; gap: 8px; }
-  .qbtn-main      { min-width: unset; flex: 1; font-size: 13px; padding: 10px 16px; }
+  header           { padding: 12px 16px; }
+  .header-right    { gap: 8px; }
+  .btn-dashboard   { padding: 6px 11px; font-size: 11px; gap: 4px; }
+  .btn-diario      { padding: 6px 11px; font-size: 11px; gap: 4px; }
+  .btn-back-chat   { padding: 6px 11px; font-size: 11px; gap: 4px; }
+  .btn-edit-profile { padding: 6px 10px; font-size: 11px; }
+  .lang-btn        { padding: 4px 9px; font-size: 10px; }
 }
 
-/* --- MI PROGRESO (dashboard) --- */
+/* --- ONBOARDING FLOW --- */
 @media (max-width: 640px) {
-  .weight-input-row       { flex-wrap: wrap; gap: 8px; }
+  .progress-bar-container { padding: 0 16px; }
+  .hero              { padding: 24px 16px 20px; }
+  .hero-eyebrow      { font-size: 10px; padding: 4px 12px; }
+  .hero-sub          { font-size: 14px; }
+  .form-wrapper      { padding: 0 16px; margin-bottom: 24px; }
+  .section-card      { border-radius: 16px; }
+  .section-header    { padding: 16px 18px; gap: 12px; }
+  .section-icon      { width: 36px; height: 36px; font-size: 16px; }
+  .section-title     { font-size: 16px; }
+  .section-desc      { font-size: 13px; }
+  .section-body      { padding: 18px 16px; }
+  .form-grid         { grid-template-columns: 1fr; gap: 14px; }
+  .level-grid        { grid-template-columns: 1fr; gap: 10px; }
+  .level-card        { padding: 16px 14px; }
+  .objetivo-grid     { grid-template-columns: 1fr; gap: 10px; }
+  .objetivo-card     { padding: 18px 14px; }
+  .dias-grid         { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .dia-card          { padding: 10px 4px; }
+  .resumen-grid      { grid-template-columns: 1fr; gap: 10px; }
+  .resumen-item      { padding: 14px 16px; }
+  .nav-buttons       { margin-top: 16px; gap: 8px; }
+  .btn-back          { padding: 12px 18px; font-size: 13px; }
+  .btn-next          { padding: 12px 24px; font-size: 16px; letter-spacing: 1.5px; }
+  .btn-launch        { font-size: 20px; letter-spacing: 2px; padding: 16px; }
+  h1                 { font-size: 42px; }
+}
+
+/* --- WELCOME BACK BANNER --- */
+@media (max-width: 640px) {
+  .welcome-back      { padding: 0 16px; }
+  .welcome-back-card { flex-direction: column; align-items: flex-start; padding: 16px 18px; gap: 12px; }
+  .wb-actions        { width: 100%; display: flex; gap: 8px; }
+  .btn-continue      { flex: 1; text-align: center; font-size: 14px; }
+  .btn-reset         { font-size: 12px; }
+}
+
+/* --- CHAT SCREEN --- */
+@media (max-width: 640px) {
+  .chat-wrapper      { padding: 0 12px; margin-bottom: 16px; }
+  .chat-card         { border-radius: 16px; }
+  .chat-profile-bar  { padding: 0; }
+  .cpb-item          { padding: 10px 12px; }
+  .cpb-label         { font-size: 9px; }
+  .cpb-value         { font-size: 11px; }
+  .chat-messages     { height: 52vh; min-height: 280px; padding: 14px 14px; gap: 12px; }
+  .msg               { gap: 8px; }
+  .msg-avatar        { width: 30px; height: 30px; font-size: 13px; }
+  .msg-bubble        { max-width: 86%; padding: 10px 13px; font-size: 14px; border-radius: 14px; line-height: 1.6; }
+  .typing-bubble     { padding: 10px 14px; }
+  .chat-input-row    { padding: 10px 12px; gap: 8px; }
+  .chat-textarea     { padding: 10px 13px; min-height: 44px; border-radius: 10px; }
+  .send-btn          { width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0; }
+  .quick-btns        { padding: 8px 12px 12px; gap: 8px; }
+  .qbtn              { padding: 7px 13px; font-size: 12px; }
+  .qbtn-main         { flex: 1; min-width: unset; font-size: 13px; padding: 10px 14px; }
+}
+
+/* --- MI PROGRESO (dashboard wrapper + stats) --- */
+@media (max-width: 640px) {
+  .dashboard-wrapper  { padding: 0 16px; margin-bottom: 24px; }
+  .dash-header        { margin-bottom: 14px; }
+  .dash-stats         { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat-card          { padding: 14px 10px; border-radius: 12px; }
+  .stat-icon          { font-size: 18px; margin-bottom: 4px; }
+  .stat-value         { font-size: 18px; }
+  .stat-label         { font-size: 10px; }
+  .chart-card         { border-radius: 14px; margin-bottom: 12px; }
+  .chart-card-header  { padding: 14px 16px; }
+  .chart-body         { padding: 14px 16px; }
+  .weight-input-row   { flex-wrap: wrap; gap: 8px; }
   .weight-input-row input { flex: 1; min-width: 80px; width: auto; }
-  .stat-card              { padding: 14px 10px; }
-  .stat-value             { font-size: 18px; }
-  .chart-card-header      { padding: 14px 16px; }
-  .chart-body             { padding: 14px 16px; }
+  .medidas-grid       { grid-template-columns: 1fr 1fr; }
 }
 
-/* --- SEMANAS (accordion cards in Mi Progreso) --- */
+/* --- SEMANAS accordion cards --- */
 @media (max-width: 640px) {
-  .semana-header        { padding: 12px 14px; gap: 8px; }
-  .semana-analisis      { margin: 8px 14px 12px; }
-  .semana-logs          { padding: 10px 14px; }
-  .btn-cerrar-semana    { width: calc(100% - 28px); margin: 0 14px 14px; }
+  .semana-card        { border-radius: 12px; margin-bottom: 10px; }
+  .semana-header      { padding: 13px 14px; gap: 8px; }
+  .semana-badge       { font-size: 14px; padding: 4px 10px; }
+  .semana-dates       { font-size: 12px; }
+  .semana-chip        { font-size: 12px; padding: 3px 10px; }
+  .semana-chevron     { font-size: 14px; }
+  .semana-analisis    { margin: 8px 12px 12px; padding: 12px 14px; font-size: 13px; }
+  .semana-analisis-title { font-size: 11px; }
+  .semana-logs        { padding: 10px 12px; }
+  .semana-log-item    { font-size: 12px; padding: 9px 0; }
+  .semana-log-date    { font-size: 12px; }
+  .btn-cerrar-semana  { width: calc(100% - 24px); margin: 0 12px 12px; padding: 12px; font-size: 14px; }
 }
 
 /* --- CIERRE SEMANAL panel --- */
 @media (max-width: 640px) {
-  .cierre-overlay { padding: 16px; }
-  .cierre-card    { padding: 20px 16px; border-radius: 14px; }
+  .cierre-overlay          { padding: 16px; }
+  .cierre-card             { padding: 22px 18px; border-radius: 16px; }
+  .cierre-title            { font-size: 20px; }
+  .cierre-sub              { font-size: 13px; margin-bottom: 16px; }
+  .cierre-stats-grid       { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .cierre-stat             { padding: 14px 12px; border-radius: 10px; }
+  .cierre-stat-val         { font-size: 24px; }
+  .cierre-stat-label       { font-size: 12px; margin-top: 3px; }
+  .cierre-analisis-result  { font-size: 13px; padding: 14px; }
+  .btn-generar-analisis    { padding: 14px; font-size: 14px; }
+  .btn-cierre-back         { padding: 12px 20px; font-size: 13px; }
 }
 
-/* --- MI DÍA (diario) --- */
+/* --- MI DÍA form --- */
 @media (max-width: 640px) {
-  .diario-meals-grid { padding: 14px 16px; gap: 10px; }
-  .diario-header     { margin-bottom: 16px; }
+  .diario-wrapper      { padding: 0 16px; margin-bottom: 24px; }
+  .diario-header       { margin-bottom: 14px; gap: 8px; }
+  .diario-meals-grid   { grid-template-columns: 1fr; gap: 10px; padding: 16px; }
+  .diario-meal-label   { font-size: 11px; letter-spacing: 1px; }
+  .macros-estimados    { padding: 0 16px 14px; gap: 6px; }
+  .macro-est-badge     { font-size: 12px; padding: 6px 10px; }
+  .entreno-toggle      { padding: 14px 16px; gap: 10px; }
+  .entreno-toggle-label { font-size: 12px; }
+  .entreno-chip        { padding: 8px 18px; font-size: 13px; }
+  .ejercicios-section  { padding: 0 16px 16px; }
+  .btn-save-diario     { width: calc(100% - 32px); margin: 0 16px 16px; font-size: 16px; padding: 14px; }
 }
 
-/* --- ADMIN DASHBOARD --- */
+/* --- FOTOS PROGRESO --- */
+@media (max-width: 640px) {
+  .foto-upload-area  { padding: 20px 16px; }
+  .foto-preview      { max-height: 220px; }
+  .foto-gallery      { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .foto-item-date    { font-size: 12px; }
+  .foto-comparacion  { grid-template-columns: 1fr 1fr; gap: 8px; }
+}
+
+/* --- ADMIN DASHBOARD (unchanged) --- */
 @media (max-width: 640px) {
   .admin-stat-num   { font-size: 36px; }
   .admin-stat-card  { padding: 16px 12px; }
@@ -2427,21 +2530,33 @@ footer {
 
 /* --- SMALL PHONES: 480px --- */
 @media (max-width: 480px) {
-  h1                    { font-size: 34px; }
+  h1                   { font-size: 34px; }
   .dash-title,
   .diario-title,
-  .admin-title          { font-size: 22px; }
-  .landing-logo         { font-size: 32px; letter-spacing: 4px; }
-  .landing-login-card   { padding: 20px 16px; }
-  .admin-stats-grid     { gap: 8px; }
-  .admin-stat-num       { font-size: 30px; }
-  .admin-profile-grid   { grid-template-columns: 1fr 1fr; }
-  .medidas-grid         { grid-template-columns: 1fr; }
-  .foto-gallery         { grid-template-columns: 1fr; }
-  .semana-comparacion   { grid-template-columns: 1fr; gap: 10px; }
-  .chat-messages        { height: 45vh; min-height: 220px; }
-  .welcome-back         { padding: 0 16px; }
-  .cierre-stats-grid    { grid-template-columns: 1fr 1fr; }
+  .admin-title         { font-size: 22px; }
+  .landing-logo        { font-size: 32px; letter-spacing: 4px; }
+  .landing-login-card  { padding: 20px 16px; }
+  /* Admin */
+  .admin-stats-grid    { gap: 8px; }
+  .admin-stat-num      { font-size: 30px; }
+  .admin-profile-grid  { grid-template-columns: 1fr 1fr; }
+  /* Client */
+  .form-wrapper        { padding: 0 12px; }
+  .section-body        { padding: 16px 14px; }
+  .chat-wrapper        { padding: 0 8px; }
+  .chat-card           { border-radius: 12px; }
+  .chat-messages       { height: 48vh; min-height: 240px; }
+  .dashboard-wrapper   { padding: 0 12px; }
+  .diario-wrapper      { padding: 0 12px; }
+  .diario-meals-grid   { padding: 14px 12px; }
+  .medidas-grid        { grid-template-columns: 1fr; }
+  .foto-gallery        { grid-template-columns: 1fr; }
+  .semana-comparacion  { grid-template-columns: 1fr; gap: 10px; }
+  .welcome-back        { padding: 0 12px; }
+  .cierre-stats-grid   { grid-template-columns: 1fr 1fr; }
+  .dias-grid           { gap: 4px; }
+  .dia-card            { padding: 8px 2px; }
+  .dia-num             { font-size: 17px; }
 }
 
 
