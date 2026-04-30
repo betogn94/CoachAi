@@ -3052,6 +3052,17 @@ async function loadChatFromSupabase() {
   return data;
 }
 
+async function loadLatestChatFromSupabase() {
+  if (!sbClient || !currentUser) return null;
+  const { data } = await sbClient.from('historial_chat')
+    .select('mensajes, conversation_history')
+    .eq('usuario_id', currentUser.id)
+    .order('fecha', { ascending: false })
+    .limit(1)
+    .single();
+  return data;
+}
+
 async function saveDiarioToSupabase(data) {
   if (!sbClient || !currentUser) return;
   await sbClient.from('progreso_diario').upsert(
@@ -3898,17 +3909,19 @@ async function launchCoach() {
   }
 
   chatMessages = [];
-  const [recentHistory, recentDiarioData, existing] = await Promise.all([
+  const [recentHistory, recentDiarioData, latest] = await Promise.all([
     loadRecentChatHistory(),
     loadRecentDiario(),
-    loadChatFromSupabase()
+    loadLatestChatFromSupabase()
   ]);
   recentChatHistory = recentHistory;
   recentDiario = recentDiarioData;
-  if (existing && existing.mensajes && existing.mensajes.length > 0) {
-    conversationHistory = existing.conversation_history || [];
-    existing.mensajes.forEach(msg => addMessage(msg.content, msg.type, true));
-    chatMessages = existing.mensajes;
+  if (latest && latest.mensajes && latest.mensajes.length > 0) {
+    conversationHistory = latest.conversation_history || [];
+    latest.mensajes.forEach(msg => addMessage(msg.content, msg.type, true));
+    chatMessages = latest.mensajes;
+    const container = document.getElementById('chat-messages');
+    container.scrollTop = container.scrollHeight;
   } else {
     await sendToAI(null, true);
   }
