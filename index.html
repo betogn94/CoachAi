@@ -2543,13 +2543,28 @@ footer {
 
 .landing-login-card {
   background: var(--surface);
-  border: 1.5px solid var(--border);
+  border: 1.5px solid rgba(124,106,255,0.28);
   border-radius: 20px;
   padding: 36px 32px;
   width: 100%;
   max-width: 400px;
   text-align: center;
   margin-bottom: 16px;
+  box-shadow:
+    0 4px 32px rgba(0,0,0,0.45),
+    0 0 0 1px rgba(124,106,255,0.08),
+    0 0 28px rgba(124,106,255,0.12),
+    inset 0 2px 0 var(--accent);
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+}
+.landing-login-card:hover {
+  border-color: rgba(124,106,255,0.5);
+  box-shadow:
+    0 8px 48px rgba(0,0,0,0.55),
+    0 0 0 1px rgba(124,106,255,0.14),
+    0 0 48px rgba(124,106,255,0.22),
+    inset 0 2px 0 var(--accent-bright);
+  transform: translateY(-3px);
 }
 
 .landing-login-icon {
