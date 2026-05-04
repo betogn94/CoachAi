@@ -3042,14 +3042,69 @@ async function saveChatToSupabase(messages, convHistory) {
   await sbClient.from('historial_chat').upsert({ usuario_id: currentUser.id, fecha: getTodayKey(), mensajes: messages, conversation_history: convHistory }, { onConflict: 'usuario_id,fecha' });
 }
 
-async function loadChatFromSupabase() {
-  if (!sbClient || !currentUser) return null;
+// Loads ALL chat rows for the current user, ordered chronologically.
+// Used to render full conversation continuity across sessions/days.
+async function loadAllChatHistory() {
+  if (!sbClient || !currentUser) return [];
   const { data } = await sbClient.from('historial_chat')
-    .select('mensajes, conversation_history')
+    .select('fecha, mensajes, conversation_history')
     .eq('usuario_id', currentUser.id)
-    .eq('fecha', getTodayKey())
-    .single();
+    .order('fecha', { ascending: true });
+  return data || [];
+}
+
+// ============================
+// WEEKLY PLANS (DIETA / RUTINA) — persistence so CoachAI never re-offers
+// a plan it already delivered this ISO week.
+// ============================
+function getISOWeekKey(date = new Date()) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+}
+
+async function loadCurrentWeekPlans() {
+  if (!sbClient || !currentUser) return { dieta: null, rutina: null };
+  const semana = getISOWeekKey();
+  const { data } = await sbClient.from('planes_semanales')
+    .select('tipo, contenido, fecha_entrega, semana_iso')
+    .eq('usuario_id', currentUser.id)
+    .eq('semana_iso', semana);
+  const result = { dieta: null, rutina: null };
+  (data || []).forEach(p => { result[p.tipo] = p; });
+  return result;
+}
+
+async function saveWeeklyPlan(tipo, contenido) {
+  if (!sbClient || !currentUser) return null;
+  const semana = getISOWeekKey();
+  const fecha = getTodayKey();
+  const { data, error } = await sbClient.from('planes_semanales').upsert({
+    usuario_id: currentUser.id,
+    tipo,
+    semana_iso: semana,
+    fecha_entrega: fecha,
+    contenido,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'usuario_id,tipo,semana_iso' }).select().single();
+  if (error) { console.error('saveWeeklyPlan error', error); return null; }
   return data;
+}
+
+// Detects whether a user message is asking for the weekly diet or routine.
+// Returns 'dieta' | 'rutina' | null. Used to mark the next AI reply
+// as a plan delivery so we can persist it.
+function detectPlanRequest(userMessage) {
+  if (!userMessage || typeof userMessage !== 'string') return null;
+  const lower = userMessage.toLowerCase();
+  const dietaRx = /(dieta\s+(de\s+la\s+)?semana|dieta\s+semanal|plan\s+(semanal\s+)?de\s+comidas|plan\s+(de\s+)?alimentaci[oó]n|weekly\s+diet|meal\s+plan|7[\-\s]day\s+(meal|diet))/i;
+  const rutinaRx = /(rutina\s+(de\s+la\s+)?semana|rutina\s+semanal|plan\s+(semanal\s+)?de\s+entrenamiento|plan\s+(de\s+)?entreno|weekly\s+(routine|workout|training)|workout\s+plan|training\s+plan)/i;
+  if (dietaRx.test(lower)) return 'dieta';
+  if (rutinaRx.test(lower)) return 'rutina';
+  return null;
 }
 
 async function saveDiarioToSupabase(data) {
@@ -3181,10 +3236,14 @@ let selectedAlergias = [];
 let selectedComidas = '';
 let selections = { objetivo: '', nivel: '' };
 let profile = {};
-let conversationHistory = [];
-let chatMessages = [];
-let recentChatHistory = [];
+let conversationHistory = [];      // sent to the AI — spans recent days for continuity
+let chatMessages = [];             // today's rendered messages, persisted to historial_chat.mensajes
+let todayConversation = [];        // today's role/content turns, persisted to historial_chat.conversation_history
+let recentChatHistory = [];        // last 7 days, used to build the system-prompt history summary
+let allChatHistory = [];           // full chronological list of historial_chat rows for this user
 let recentDiario = [];
+let weeklyPlans = { dieta: null, rutina: null };  // current ISO-week plans for this user
+let pendingPlanDelivery = null;    // 'dieta' | 'rutina' — set when user requests a plan, consumed when AI responds
 let entrenóHoy = null;
 
 // ============================
@@ -3234,8 +3293,12 @@ function resetProfile() {
   document.getElementById('chat-wrapper').style.display = 'none';
   conversationHistory = [];
   chatMessages = [];
+  todayConversation = [];
   recentChatHistory = [];
+  allChatHistory = [];
   recentDiario = [];
+  weeklyPlans = { dieta: null, rutina: null };
+  pendingPlanDelivery = null;
   entrenóHoy = null;
   selectedDias = [];
   selectedComidas = '';
@@ -3645,6 +3708,12 @@ function buildSystemPrompt() {
   const alergias = [...document.querySelectorAll('#alergia-chips .chip.selected')].map(c => c.textContent.trim()).join(', ') || 'ninguna';
   const diasStr = selectedDias.join(', ') || 'no especificados';
 
+  // Weekly plan delivery state — drives whether CoachAI should still offer/generate this week's plan.
+  const semanaActual = (typeof getISOWeekKey === 'function') ? getISOWeekKey() : '';
+  const dietaPlan = weeklyPlans && weeklyPlans.dieta;
+  const rutinaPlan = weeklyPlans && weeklyPlans.rutina;
+  const isReturningUser = Array.isArray(allChatHistory) && allChatHistory.some(d => (d.mensajes || []).length > 0);
+
   if (lang === 'es') {
     return `Sos CoachAI, un entrenador personal y nutricionista experto con inteligencia artificial. Hablás en español rioplatense (voseo), con energía positiva, motivación y conocimiento técnico profundo basado en evidencia científica.
 
@@ -3679,7 +3748,12 @@ REGLAS IMPORTANTES:
 - Sé específico: series, reps, descansos, gramos
 - Para temas médicos serios, recomendá profesional
 
-MENSAJE DE BIENVENIDA (PRIMER MENSAJE):
+CONTINUIDAD DE CONVERSACIÓN:
+${isReturningUser
+  ? `Este cliente YA viene conversando con vos. NO repitas mensaje de bienvenida, NO hagas onboarding, NO te presentes de cero, NO ofrezcas dieta/rutina automáticamente. Retomá la conversación donde quedó de forma natural, como un coach que se acuerda perfectamente de la última charla. Si el cliente entra y no escribe, esperá su mensaje — no inicies vos.`
+  : `Este es el PRIMER MENSAJE con este cliente. Hacé el onboarding cálido (ver formato más abajo).`}
+
+MENSAJE DE BIENVENIDA (SOLO PARA EL PRIMER MENSAJE — no aplica si CONTINUIDAD indica que es cliente recurrente):
 Tu primer mensaje debe ser conciso, cálido y personalizado — máximo 5-6 líneas. Seguí este formato:
 1. Saludá a ${nombre} por su nombre con energía (1 línea)
 2. Confirmá brevemente que ya analizaste su perfil (peso, objetivo, días de entrenamiento) — 1 línea
@@ -3691,26 +3765,93 @@ Tu primer mensaje debe ser conciso, cálido y personalizado — máximo 5-6 lín
 4. Terminá invitándolo a elegir por dónde arrancar: su dieta o su rutina de la semana (1 línea)
 NO calculés macros ni TDEE en el mensaje de bienvenida — eso va en el plan.
 
+PLANES SEMANALES (semana ISO ${semanaActual}):
+- Dieta de la semana: ${dietaPlan ? `YA ENTREGADA el ${dietaPlan.fecha_entrega}` : 'aún no entregada esta semana'}
+- Rutina de la semana: ${rutinaPlan ? `YA ENTREGADA el ${rutinaPlan.fecha_entrega}` : 'aún no entregada esta semana'}
+
+REGLAS DE PLANES SEMANALES (IMPORTANTÍSIMO):
+- Si un plan YA fue entregado esta semana, NUNCA lo ofrezcas de nuevo, NUNCA lo regeneres entero, y NUNCA preguntes si lo quiere otra vez. Esa planificación ya es la del cliente para esta semana.
+- Si el cliente pide "la dieta" o "la rutina" y ya fue entregada, referenciala como "tu planificación de esta semana" y respondé puntualmente sobre ella (un día específico, un ejercicio puntual, una sustitución, etc.). Asumí que el cliente ya la tiene a la vista y no la pegues entera de nuevo.
+- Solo generá el plan completo de 7 días si NO está entregado todavía esta semana.
+- En tu mensaje, ofrecé proactivamente solo los planes que aún no entregaste. Si ambos ya están entregados, NO ofrezcas planes — seguí la conversación normal como coach.
+${dietaPlan ? `\nCONTENIDO DE LA DIETA YA ENTREGADA ESTA SEMANA:\n"""\n${dietaPlan.contenido}\n"""` : ''}
+${rutinaPlan ? `\nCONTENIDO DE LA RUTINA YA ENTREGADA ESTA SEMANA:\n"""\n${rutinaPlan.contenido}\n"""` : ''}
+
+ESTILO DE COMUNICACIÓN SEGÚN CONTEXTO:
+- CHAT CASUAL (preguntas, dudas, seguimiento): warm, motivador, humano — 2 a 5 oraciones.
+- PLANES SEMANALES (dieta / rutina): MODE COACH PROFESIONAL. Sin intro larga. Sin filler emocional. Empezá DIRECTAMENTE con el plan. El token budget se gasta en información útil, no en palabras de relleno.
+
 CUANDO EL CLIENTE PIDE "DIETA DE LA SEMANA":
-- Generá un plan de 7 días completo con desayuno, almuerzo, merienda y cena
-- Usá alimentos simples, accesibles y fáciles de conseguir en cualquier supermercado
-- Indicá calorías aproximadas y macros (proteína/carbs/grasa) del día
-- Respetá restricciones, alergias y lo que no le gusta
-- Calculá el TDEE con Mifflin-St Jeor y ajustá según el objetivo (déficit/superávit)
-- Al terminar el plan, agregá SIEMPRE: "¿Tenés alguna duda sobre el plan? Y acordate de cargar tus comidas en Mi Día 📝 para que pueda hacer un seguimiento real de tu progreso."
+PROHIBIDO ABSOLUTAMENTE: tablas markdown (sin pipes |, sin encabezados de tabla, sin filas con |---|). Esto rompe el formato del chat y desperdicia tokens.
+
+FORMATO OBLIGATORIO — lista compacta, una línea por comida, sin markdown decorativo:
+
+🥗 Plan nutricional — [Nombre] | Target: Xkcal/día | P:Xg C:Xg G:Xg
+
+LUNES
+Des: [alimento + cantidad] — Xcal
+Alm: [alimento + cantidad] — Xcal
+Mer: [alimento + cantidad] — Xcal
+Cena: [alimento + cantidad] — Xcal
+Total: Xkcal
+
+MARTES
+Des: [alimento + cantidad] — Xcal
+Alm: [alimento + cantidad] — Xcal
+Mer: [alimento + cantidad] — Xcal
+Cena: [alimento + cantidad] — Xcal
+Total: Xkcal
+
+MIÉRCOLES
+Des: ...
+[continuar igual hasta DOMINGO]
+
+¿Dudas sobre el plan? Cargá tus comidas en Mi Día 📝
+
+REGLAS CRÍTICAS:
+- NUNCA uses tablas (|pipes|). NUNCA uses "...similar para el resto". Los 7 días son OBLIGATORIOS.
+- Una línea por comida. Sin asteriscos, sin guiones decorativos, sin líneas en blanco dentro de cada día.
+- Si una descripción de comida es larga, acortála — no eliminés días.
+- Calculá TDEE internamente (Mifflin-St Jeor): déficit 400kcal para definir / superávit 250kcal para volumen.
+- Cantidades en gramos/ml. Solo alimentos de supermercado latinoamericano.
+- Respetá restricciones, alergias y lo que no le gusta al 100%.
+- Total del día dentro de ±80kcal del target. Variá menús entre días.
 
 CUANDO EL CLIENTE PIDE "RUTINA DE LA SEMANA":
-- Asigná la estructura según los días disponibles:
-  • 2 días → Upper / Lower
-  • 3 días → Push / Pull / Legs
-  • 4 días → Upper / Lower / Upper / Lower
-  • 5+ días → Push / Pull / Legs + Upper / Lower o similar
-- Incluí ejercicios específicos, series, reps y tiempos de descanso
-- Adaptá al lugar (gym/casa), nivel y lesiones
-- Al terminar la rutina, agregá SIEMPRE: "¿Tenés alguna duda sobre los ejercicios? Y acordate de cargar tus entrenos en Mi Día 📝 para que pueda ver tu progreso semana a semana."
+REGLAS DE GENERACIÓN (críticas — no las ignorés):
+1. Determiná la estructura según los días disponibles:
+   • 1-2 días → Full Body
+   • 3 días → Push / Pull / Legs
+   • 4 días → Upper A / Lower A / Upper B / Lower B
+   • 5+ días → PPL + Upper / Lower o Push / Pull / Legs / Upper / Lower
+2. Empezá la respuesta DIRECTAMENTE con esta estructura — sin saludo previo, sin intro motivacional:
+
+**💪 RUTINA SEMANAL — [NOMBRE]**
+📋 *Estructura: [tipo] | Días: [días elegidos] | Lugar: [gym/casa]*
+
+---
+**[DÍA] — [NOMBRE DEL BLOQUE, ej: PUSH / UPPER / FULL BODY]**
+1. [Ejercicio] — X series × X reps | Descanso: Xs
+2. [Ejercicio] — X series × X reps | Descanso: Xs
+[mínimo 5-7 ejercicios por sesión]
+
+[Repetí el bloque para CADA día de entrenamiento — todos los días son OBLIGATORIOS]
+
+**🛋️ DÍAS DE DESCANSO:** [días restantes]
+*Recomendación: caminata suave, stretching o movilidad — 20-30 min.*
+
+---
+💬 ¿Tenés alguna duda sobre los ejercicios? Acordate de cargar tus entrenos en Mi Día 📝.
+
+RESTRICCIONES CRÍTICAS:
+- Todos los días de entrenamiento son OBLIGATORIOS. No uses "...continuar con esquema similar". Completá cada sesión.
+- Para cada ejercicio: series, reps y descanso — sin excepciones.
+- Para principiantes: agregá una nota de técnica en los ejercicios compuestos.
+- Adaptá al lugar (gym con máquinas / casa con peso corporal o mancuernas).
+- Respetá lesiones al 100% — sustituí ejercicios que las afecten.
 
 PARA CUALQUIER OTRA CONSULTA DEL CLIENTE:
-Respondé de forma concisa, directa y motivadora. Si la consulta es sobre cambios en la dieta o qué entrenar hoy, respondé con precisión. Al final de tus respuestas, cuando sea relevante, recordale cargar en Mi Día 📝.
+Respondé de forma concisa, directa y motivadora. Máximo 4-6 oraciones a menos que el tema requiera más detalle. Si la consulta es sobre cambios en la dieta o qué entrenar hoy, respondé con precisión. Al final de tus respuestas, cuando sea relevante, recordale cargar en Mi Día 📝.
 
 ${buildDiarioSummary() ? `\nREGISTRO DIARIO DEL CLIENTE (últimos 7 días — alimentación y entrenamiento REAL cargados por el cliente):
 ${buildDiarioSummary()}
@@ -3752,7 +3893,12 @@ IMPORTANT RULES:
 - Be specific: sets, reps, rest times, grams
 - For serious medical questions, recommend a professional
 
-WELCOME MESSAGE (FIRST MESSAGE):
+CONVERSATION CONTINUITY:
+${isReturningUser
+  ? `This client has ALREADY been chatting with you. Do NOT repeat a welcome message, do NOT do onboarding, do NOT introduce yourself again, do NOT auto-offer diet/routine. Pick up the conversation naturally as a coach who remembers the prior chat. If the client opens the app without typing, wait for their message — do not initiate.`
+  : `This is the FIRST MESSAGE with this client. Do the warm onboarding (format below).`}
+
+WELCOME MESSAGE (FIRST MESSAGE ONLY — skip if CONTINUITY says they're returning):
 Your first message must be concise, warm and personalized — maximum 5-6 lines. Follow this format:
 1. Greet ${nombre} by name with energy (1 line)
 2. Briefly confirm you've analyzed their profile (weight, goal, training days) — 1 line
@@ -3764,26 +3910,93 @@ Your first message must be concise, warm and personalized — maximum 5-6 lines.
 4. End by inviting them to choose where to start: their weekly diet or their weekly routine (1 line)
 Do NOT calculate macros or TDEE in the welcome message — that goes in the plan.
 
+WEEKLY PLANS (ISO week ${semanaActual}):
+- Weekly diet: ${dietaPlan ? `ALREADY DELIVERED on ${dietaPlan.fecha_entrega}` : 'not delivered yet this week'}
+- Weekly routine: ${rutinaPlan ? `ALREADY DELIVERED on ${rutinaPlan.fecha_entrega}` : 'not delivered yet this week'}
+
+WEEKLY PLAN RULES (CRITICAL):
+- If a plan has ALREADY been delivered this week, NEVER offer it again, NEVER regenerate the full plan, NEVER ask if they want it again. That planning is theirs for this week.
+- If the client asks for "the diet" or "the routine" and it's already delivered, refer to it as "your weekly plan" and answer specifically (a single day, a specific exercise, a substitution). Assume the client already has it on screen — do not paste the full plan again.
+- Only generate the full 7-day plan if it is NOT yet delivered this week.
+- In your messages, only proactively offer the plans that are still missing this week. If both are delivered, do NOT offer plans — continue the conversation normally as a coach.
+${dietaPlan ? `\nCONTENT OF THE DIET ALREADY DELIVERED THIS WEEK:\n"""\n${dietaPlan.contenido}\n"""` : ''}
+${rutinaPlan ? `\nCONTENT OF THE ROUTINE ALREADY DELIVERED THIS WEEK:\n"""\n${rutinaPlan.contenido}\n"""` : ''}
+
+COMMUNICATION STYLE BY CONTEXT:
+- CASUAL CHAT (questions, doubts, check-ins): warm, motivating, human — 2 to 5 sentences.
+- WEEKLY DELIVERABLES (diet / routine): PROFESSIONAL COACH MODE. No long intro. No emotional filler. Start DIRECTLY with the plan. Spend every token on useful information, not padding.
+
 WHEN CLIENT ASKS FOR "WEEKLY DIET":
-- Generate a full 7-day plan with breakfast, lunch, snack and dinner
-- Use simple, accessible foods easy to find in any supermarket
-- Include approximate calories and daily macros (protein/carbs/fat)
-- Respect restrictions, allergies and dislikes
-- Calculate TDEE with Mifflin-St Jeor and adjust for goal (deficit/surplus)
-- Always end with: "Any questions about the plan? Remember to log your meals in My Day 📝 so I can track your real progress."
+ABSOLUTELY FORBIDDEN: markdown tables (no pipes |, no table headers, no |---| rows). They break chat display and waste tokens.
+
+MANDATORY FORMAT — compact list, one line per meal, no decorative markdown. Calculate TDEE internally (Mifflin-St Jeor): 400kcal deficit to cut / 250kcal surplus to bulk.
+
+🥗 Nutrition plan — [Name] | Target: Xkcal/day | P:Xg C:Xg F:Xg
+
+MONDAY
+Bkf: [food + quantity] — Xcal
+Lnc: [food + quantity] — Xcal
+Snk: [food + quantity] — Xcal
+Din: [food + quantity] — Xcal
+Total: Xkcal
+
+TUESDAY
+Bkf: [food + quantity] — Xcal
+Lnc: [food + quantity] — Xcal
+Snk: [food + quantity] — Xcal
+Din: [food + quantity] — Xcal
+Total: Xkcal
+
+WEDNESDAY
+[same pattern]
+
+[continue identically through THURSDAY, FRIDAY, SATURDAY, SUNDAY]
+
+Any questions about the plan? Log your meals in My Day 📝
+
+CRITICAL RULES:
+- NEVER use tables (|pipes|). NEVER write "...similar for the rest". All 7 days MANDATORY.
+- One line per meal. No asterisks, no decorative dashes, no blank lines inside each day.
+- If a food description runs long, shorten it — do not drop days.
+- Quantities in grams/ml. Regular supermarket foods only.
+- Respect restrictions, allergies and dislikes 100%.
+- Day total within ±80kcal of target. Vary menus across days.
 
 WHEN CLIENT ASKS FOR "WEEKLY ROUTINE":
-- Assign structure based on available days:
-  • 2 days → Upper / Lower
-  • 3 days → Push / Pull / Legs
-  • 4 days → Upper / Lower / Upper / Lower
-  • 5+ days → Push / Pull / Legs + Upper / Lower or similar
-- Include specific exercises, sets, reps and rest times
-- Adapt to location (gym/home), level and injuries
-- Always end with: "Any questions about the exercises? Remember to log your workouts in My Day 📝 so I can track your progress week by week."
+GENERATION RULES (critical — do not ignore):
+1. Determine structure based on available days:
+   • 1-2 days → Full Body
+   • 3 days → Push / Pull / Legs
+   • 4 days → Upper A / Lower A / Upper B / Lower B
+   • 5+ days → PPL + Upper / Lower or Push / Pull / Legs / Upper / Lower
+2. Begin the response DIRECTLY with this structure — no greeting, no motivational intro:
+
+**💪 WEEKLY TRAINING ROUTINE — [NAME]**
+📋 *Structure: [type] | Days: [chosen days] | Location: [gym/home]*
+
+---
+**[DAY] — [BLOCK NAME, e.g. PUSH / UPPER / FULL BODY]**
+1. [Exercise] — X sets × X reps | Rest: Xs
+2. [Exercise] — X sets × X reps | Rest: Xs
+[minimum 5-7 exercises per session]
+
+[Repeat the block for EACH training day — all days are MANDATORY]
+
+**🛋️ REST DAYS:** [remaining days]
+*Recommendation: light walk, stretching or mobility work — 20-30 min.*
+
+---
+💬 Any questions about the exercises? Remember to log your workouts in My Day 📝.
+
+CRITICAL CONSTRAINTS:
+- All training days are MANDATORY. Do not write "...continue with similar scheme". Complete every session.
+- For every exercise: sets, reps and rest — no exceptions.
+- For beginners: add a technique note on compound movements.
+- Adapt to location (gym with machines / home with bodyweight or dumbbells).
+- Respect injuries 100% — substitute any exercises that affect them.
 
 FOR ANY OTHER CLIENT QUESTION:
-Answer concisely, directly and motivationally. For questions about diet changes or what to train today, answer with precision. At the end of your responses, when relevant, remind them to log in My Day 📝.
+Answer concisely, directly and motivationally. Maximum 4-6 sentences unless the topic requires more detail. For questions about diet changes or what to train today, answer with precision. At the end of your responses, when relevant, remind them to log in My Day 📝.
 
 ${buildDiarioSummary() ? `\nCLIENT DAILY LOG (last 7 days — actual meals and training logged by the client):
 ${buildDiarioSummary()}
@@ -3877,13 +4090,8 @@ async function launchCoach() {
     document.getElementById('header-right').insertBefore(dashBtn, document.getElementById('header-right').firstChild);
   }
 
-  // Quick actions — main plan buttons
-  const qDieta = lang === 'es' ? '🥗 Dieta de la semana' : '🥗 Weekly Diet';
-  const qRutina = lang === 'es' ? '💪 Rutina de la semana' : '💪 Weekly Routine';
-  document.getElementById('quick-btns').innerHTML = `
-    <button class="qbtn qbtn-main" onclick="sendQuick('${qDieta}')">${qDieta}</button>
-    <button class="qbtn qbtn-main" onclick="sendQuick('${qRutina}')">${qRutina}</button>
-  `;
+  // Quick actions — built dynamically based on whether weekly plans were already delivered
+  refreshQuickButtons();
 
   document.getElementById('chat-input').placeholder = lang === 'es' ? 'Escribí tu pregunta...' : 'Type your question...';
 
@@ -3897,20 +4105,60 @@ async function launchCoach() {
     document.getElementById('header-right').insertBefore(diarioBtn, document.getElementById('header-right').firstChild);
   }
 
+  // ===== Full conversation memory =====
+  // Load EVERY chat row this user has ever had + current week's plans + recent diario.
+  // This is what makes CoachAI feel continuous instead of a fresh bot every login.
   chatMessages = [];
-  const [recentHistory, recentDiarioData, existing] = await Promise.all([
-    loadRecentChatHistory(),
+  conversationHistory = [];
+  todayConversation = [];
+
+  const [history, recentDiarioData, plans] = await Promise.all([
+    loadAllChatHistory(),
     loadRecentDiario(),
-    loadChatFromSupabase()
+    loadCurrentWeekPlans()
   ]);
-  recentChatHistory = recentHistory;
+  allChatHistory = history;
   recentDiario = recentDiarioData;
-  if (existing && existing.mensajes && existing.mensajes.length > 0) {
-    conversationHistory = existing.conversation_history || [];
-    existing.mensajes.forEach(msg => addMessage(msg.content, msg.type, true));
-    chatMessages = existing.mensajes;
-  } else {
+  weeklyPlans = plans;
+
+  // Build the recent (last 7 days) summary slice used by buildHistorySummary().
+  recentChatHistory = allChatHistory.slice(-7).slice().reverse();
+
+  // Render every prior message in chronological order so the user sees their full thread.
+  const todayKey = getTodayKey();
+  let renderedAny = false;
+  for (const day of allChatHistory) {
+    const msgs = day.mensajes || [];
+    for (const msg of msgs) {
+      addMessage(msg.content, msg.type, true);
+      renderedAny = true;
+    }
+  }
+
+  // Today's persisted state — what we'll keep upserting on today's row.
+  const todayRow = allChatHistory.find(r => r.fecha === todayKey);
+  chatMessages = todayRow ? [...(todayRow.mensajes || [])] : [];
+  todayConversation = todayRow ? [...(todayRow.conversation_history || [])] : [];
+
+  // AI conversation context — concat last ~7 days of role/content turns, capped to keep tokens bounded.
+  const MAX_TURNS = 40;
+  const merged = [];
+  for (const day of allChatHistory.slice(-7)) {
+    if (Array.isArray(day.conversation_history)) merged.push(...day.conversation_history);
+  }
+  conversationHistory = merged.slice(-MAX_TURNS);
+
+  // Refresh quick buttons now that weeklyPlans is populated.
+  refreshQuickButtons();
+
+  // ONLY trigger the onboarding welcome flow for true first-time users.
+  // Any prior message means the user already has a relationship with CoachAI.
+  if (!renderedAny) {
     await sendToAI(null, true);
+  } else {
+    // Scroll to bottom so user lands at the most recent message.
+    const container = document.getElementById('chat-messages');
+    if (container) container.scrollTop = container.scrollHeight;
   }
 }
 
@@ -3976,7 +4224,17 @@ async function sendToAI(userMessage, isFirst = false) {
   sendBtn.disabled = true;
   showTyping();
 
-  if (userMessage) conversationHistory.push({ role: 'user', content: userMessage });
+  if (userMessage) {
+    conversationHistory.push({ role: 'user', content: userMessage });
+    todayConversation.push({ role: 'user', content: userMessage });
+
+    // Mark the next assistant reply as a plan delivery if the user asked for one
+    // and we don't already have that plan stored for the current ISO week.
+    const requested = detectPlanRequest(userMessage);
+    if (requested && !weeklyPlans[requested]) {
+      pendingPlanDelivery = requested;
+    }
+  }
 
   try {
     const messages = isFirst
@@ -3997,7 +4255,27 @@ async function sendToAI(userMessage, isFirst = false) {
     removeTyping();
     addMessage(formatResponse(reply), 'coach');
     conversationHistory.push({ role: 'assistant', content: reply });
-    saveChatToSupabase(chatMessages, conversationHistory).catch(console.error);
+    todayConversation.push({ role: 'assistant', content: reply });
+    saveChatToSupabase(chatMessages, todayConversation).catch(console.error);
+
+    // If the user asked for a weekly plan and the assistant produced a substantial
+    // response, persist it as the plan for this ISO week. Length guard avoids
+    // saving short clarifying replies as a "plan".
+    if (pendingPlanDelivery && reply && reply.length > 400) {
+      const tipo = pendingPlanDelivery;
+      pendingPlanDelivery = null;
+      const saved = await saveWeeklyPlan(tipo, reply);
+      weeklyPlans[tipo] = saved || {
+        tipo,
+        contenido: reply,
+        fecha_entrega: getTodayKey(),
+        semana_iso: getISOWeekKey()
+      };
+      refreshQuickButtons();
+    } else if (pendingPlanDelivery && reply && reply.length <= 400) {
+      // Reply was likely a clarifying question, not a plan — leave the flag for the next turn.
+      // Keep flag if it still looks like the user is mid-flow asking for the plan.
+    }
   } catch (err) {
     removeTyping();
     addMessage(lang === 'es' ? '❌ Error de conexión. Intentá de nuevo.' : '❌ Connection error. Please try again.', 'coach');
@@ -4014,6 +4292,40 @@ async function sendMessage() {
   input.value = '';
   input.style.height = 'auto';
   await sendToAI(text);
+}
+
+// Renders the weekly action buttons. Once a plan is delivered for the current
+// ISO week, swap "request" → "view" so we never re-trigger a fresh generation.
+function refreshQuickButtons() {
+  const container = document.getElementById('quick-btns');
+  if (!container) return;
+  const qDieta = lang === 'es' ? '🥗 Dieta de la semana' : '🥗 Weekly Diet';
+  const qRutina = lang === 'es' ? '💪 Rutina de la semana' : '💪 Weekly Routine';
+  const verDieta = lang === 'es' ? '🥗 Ver mi dieta de esta semana' : '🥗 View this week\'s diet';
+  const verRutina = lang === 'es' ? '💪 Ver mi rutina de esta semana' : '💪 View this week\'s routine';
+
+  const dietaBtn = weeklyPlans.dieta
+    ? `<button class="qbtn qbtn-main" onclick="showWeeklyPlan('dieta')">${verDieta}</button>`
+    : `<button class="qbtn qbtn-main" onclick="sendQuick('${qDieta}')">${qDieta}</button>`;
+
+  const rutinaBtn = weeklyPlans.rutina
+    ? `<button class="qbtn qbtn-main" onclick="showWeeklyPlan('rutina')">${verRutina}</button>`
+    : `<button class="qbtn qbtn-main" onclick="sendQuick('${qRutina}')">${qRutina}</button>`;
+
+  container.innerHTML = dietaBtn + rutinaBtn;
+}
+
+// Re-renders an already-delivered weekly plan from cache, with no AI call.
+function showWeeklyPlan(tipo) {
+  const plan = weeklyPlans[tipo];
+  if (!plan || !plan.contenido) return;
+  const heading = tipo === 'dieta'
+    ? (lang === 'es' ? '🥗 Tu dieta de esta semana' : '🥗 Your diet for this week')
+    : (lang === 'es' ? '💪 Tu rutina de esta semana' : '💪 Your routine for this week');
+  const fechaTxt = plan.fecha_entrega
+    ? (lang === 'es' ? `Entregada el ${plan.fecha_entrega}` : `Delivered on ${plan.fecha_entrega}`)
+    : '';
+  addMessage(`<strong>${heading}</strong>${fechaTxt ? `<br><em style="opacity:.7">${fechaTxt}</em>` : ''}<br><br>${formatResponse(plan.contenido)}`, 'coach');
 }
 
 // ============================
