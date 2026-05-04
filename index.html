@@ -1670,6 +1670,113 @@ footer {
   .admin-student-last { display: none; }
 }
 
+/* =================== ADHERENCIA WIDGETS =================== */
+.adherencia-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  padding: 18px 20px 20px;
+}
+.adherencia-widget {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.adherencia-widget-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  align-self: flex-start;
+}
+/* Ring */
+.ring-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 108px;
+  height: 108px;
+}
+.ring-wrap svg { transform: rotate(-90deg); }
+.ring-track { fill: none; stroke: var(--border); stroke-width: 8; }
+.ring-fill  { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.6s ease; }
+.ring-center {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.1;
+}
+.ring-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 1px;
+  color: var(--text);
+}
+.ring-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+/* Calorie bars */
+.kcal-bars-wrap { width: 100%; }
+.kcal-bars-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 60px;
+  gap: 4px;
+  width: 100%;
+}
+.kcal-bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1;
+  height: 100%;
+}
+.kcal-bar {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  min-height: 0;
+  transition: height 0.4s ease;
+}
+.kcal-bar.has-data { background: var(--accent3); opacity: 0.85; }
+.kcal-bar.no-data  { background: transparent; }
+.kcal-day-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  margin-top: 5px;
+  text-transform: uppercase;
+}
+.kcal-day-label.today { color: var(--accent3); }
+.kcal-bars-avg {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 8px;
+  text-align: center;
+  align-self: flex-start;
+  width: 100%;
+}
+@media (max-width: 500px) {
+  .adherencia-grid { grid-template-columns: 1fr; }
+  .ring-wrap { width: 96px; height: 96px; }
+  .ring-num { font-size: 24px; }
+}
+
 /* =================== ADMIN ACTIONS =================== */
 .admin-action-bar {
   display: flex;
@@ -2993,6 +3100,37 @@ footer {
     </div>
     <div id="plan-tab-dieta" class="plan-tab-content">
       <div class="plan-empty">No hay dieta entregada esta semana.<br><small>Pedísela a CoachAI desde el chat.</small></div>
+    </div>
+  </div>
+
+  <!-- RESUMEN DE ADHERENCIA -->
+  <div class="chart-card" id="adherencia-card">
+    <div class="chart-card-header">
+      <div class="chart-card-title">📊 RESUMEN DE ADHERENCIA</div>
+      <span id="adherencia-week-label" style="font-size:11px;color:var(--muted);letter-spacing:0.5px"></span>
+    </div>
+    <div class="adherencia-grid">
+      <div class="adherencia-widget" id="adherencia-ring-widget">
+        <div class="adherencia-widget-title">Entrenos esta semana</div>
+        <div class="ring-wrap">
+          <svg width="108" height="108" viewBox="0 0 108 108">
+            <circle class="ring-track" cx="54" cy="54" r="42"/>
+            <circle class="ring-fill" id="ring-fill-circle" cx="54" cy="54" r="42"
+              stroke="var(--accent)" stroke-dasharray="263.9" stroke-dashoffset="263.9"/>
+          </svg>
+          <div class="ring-center">
+            <span class="ring-num" id="ring-num-text">–</span>
+            <span class="ring-label" id="ring-label-text">entrenos</span>
+          </div>
+        </div>
+      </div>
+      <div class="adherencia-widget" id="adherencia-bars-widget">
+        <div class="adherencia-widget-title">Calorías esta semana</div>
+        <div class="kcal-bars-wrap">
+          <div class="kcal-bars-row" id="kcal-bars-row"></div>
+          <div class="kcal-bars-avg" id="kcal-bars-avg"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -5142,7 +5280,109 @@ function showChat() {
 async function renderDashboard() {
   recentDiario = await loadRecentDiario().catch(() => recentDiario);
   renderPlanSemanalCard();
+  renderAdherencia().catch(console.error);
   renderSemanas().catch(console.error);
+}
+
+function getISOWeekRange(date = new Date()) {
+  const d = new Date(date);
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() - day + 1);
+  const start = d.toISOString().slice(0, 10);
+  d.setDate(d.getDate() + 6);
+  const end = d.toISOString().slice(0, 10);
+  return { start, end };
+}
+
+async function loadThisWeekTraining(start, end) {
+  if (!sbClient || !currentUser) return [];
+  const { data } = await sbClient.from('dias_entrenados')
+    .select('fecha')
+    .eq('usuario_id', currentUser.id)
+    .gte('fecha', start)
+    .lte('fecha', end);
+  return data || [];
+}
+
+async function renderAdherencia() {
+  if (!currentUser) return;
+  const range  = getISOWeekRange();
+  const today  = getTodayKey();
+
+  const weekLabel = document.getElementById('adherencia-week-label');
+  if (weekLabel) weekLabel.textContent = getISOWeekKey();
+
+  // ── RING ──────────────────────────────────────────────
+  const trainedRows = await loadThisWeekTraining(range.start, range.end);
+  const completed   = trainedRows.length;
+  const target      = (currentUser.dias_entreno && currentUser.dias_entreno.length > 0)
+    ? currentUser.dias_entreno.length
+    : 4;
+  const pct         = Math.min(completed / target, 1);
+  const circ        = 2 * Math.PI * 42;           // r = 42 → ≈ 263.9
+
+  const ringCircle  = document.getElementById('ring-fill-circle');
+  const ringNum     = document.getElementById('ring-num-text');
+  const ringLbl     = document.getElementById('ring-label-text');
+
+  if (ringCircle) {
+    ringCircle.style.strokeDasharray  = circ;
+    ringCircle.style.strokeDashoffset = circ * (1 - pct);
+    ringCircle.style.stroke = pct >= 1
+      ? '#00c896'
+      : pct > 0 ? 'var(--accent)' : 'var(--border)';
+  }
+  if (ringNum) ringNum.textContent = `${completed}/${target}`;
+  if (ringLbl) ringLbl.textContent = 'entrenos';
+
+  // ── CALORIE BARS ──────────────────────────────────────
+  const DAY_LABELS = ['L','M','X','J','V','S','D'];
+  const barsRow    = document.getElementById('kcal-bars-row');
+  const barsAvg    = document.getElementById('kcal-bars-avg');
+  if (!barsRow) return;
+
+  // Build a map date → kcal from recentDiario for this ISO week
+  const kcalMap = {};
+  (recentDiario || []).forEach(l => {
+    if (l.fecha >= range.start && l.fecha <= range.end && l.calorias_consumidas > 0) {
+      kcalMap[l.fecha] = l.calorias_consumidas;
+    }
+  });
+
+  // Build Mon–Sun date array
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(range.start + 'T12:00:00');
+    d.setDate(d.getDate() + i);
+    days.push(d.toISOString().slice(0, 10));
+  }
+
+  const kcalValues  = days.map(d => kcalMap[d] || 0);
+  const maxKcal     = Math.max(...kcalValues, 1);
+  const loggedDays  = kcalValues.filter(v => v > 0);
+  const avgKcal     = loggedDays.length
+    ? Math.round(loggedDays.reduce((a, b) => a + b, 0) / loggedDays.length)
+    : null;
+
+  barsRow.innerHTML = days.map((date, i) => {
+    const kcal    = kcalValues[i];
+    const barH    = kcal > 0 ? Math.round((kcal / maxKcal) * 52) : 0;
+    const hasData = kcal > 0;
+    const isToday = date === today;
+    const tip     = hasData ? `${kcal} kcal` : '';
+    return `
+      <div class="kcal-bar-col">
+        <div class="kcal-bar ${hasData ? 'has-data' : 'no-data'}"
+             style="height:${barH}px" title="${tip}"></div>
+        <span class="kcal-day-label${isToday ? ' today' : ''}">${DAY_LABELS[i]}</span>
+      </div>`;
+  }).join('');
+
+  if (barsAvg) {
+    barsAvg.textContent = avgKcal
+      ? `Promedio: ${avgKcal} kcal/día`
+      : 'Sin registros esta semana';
+  }
 }
 
 function renderPlanSemanalCard() {
