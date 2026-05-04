@@ -992,22 +992,27 @@ footer {
 }
 .plan-empty { padding: 22px 0; text-align: center; color: var(--muted); font-size: 13px; line-height: 1.6; }
 
-/* =================== DASHBOARD CARD SYSTEM =================== */
-/* Scoped to dashboard-wrapper so diario cards are unaffected */
-.dashboard-wrapper .chart-card {
-  border-color: rgba(124,106,255,0.16);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 0 0 1px rgba(124,106,255,0.04);
+/* =================== GLOBAL COACH CARD SYSTEM =================== */
+.coach-card {
+  background: var(--surface2);
+  border: 1px solid rgba(124,106,255,0.18);
+  box-shadow:
+    0 4px 24px rgba(0,0,0,0.4),
+    0 0 0 1px rgba(124,106,255,0.05),
+    inset 0 2px 0 var(--accent);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
-.dashboard-wrapper .chart-card:hover {
-  border-color: rgba(124,106,255,0.3);
-  box-shadow: 0 6px 28px rgba(0,0,0,0.45), 0 0 18px rgba(124,106,255,0.08);
+.coach-card:hover {
+  border-color: rgba(124,106,255,0.32);
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.5),
+    0 0 20px rgba(124,106,255,0.1),
+    inset 0 2px 0 var(--accent-bright);
 }
-.dashboard-wrapper .chart-card-header {
+.coach-card .chart-card-header {
   border-bottom-color: rgba(124,106,255,0.1);
-  padding: 16px 20px;
 }
-.dashboard-wrapper .chart-card-title {
+.coach-card .chart-card-title {
   background: linear-gradient(90deg, var(--accent-bright), rgba(165,148,255,0.7));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1622,6 +1627,7 @@ footer {
 .admin-stat-card.verde.active  { border-color: #00c896; box-shadow: 0 0 0 2px rgba(0,200,150,0.25); }
 .admin-stat-card.amarillo.active { border-color: #ffd700; box-shadow: 0 0 0 2px rgba(255,215,0,0.25); }
 .admin-stat-card.rojo.active   { border-color: #ff4757; box-shadow: 0 0 0 2px rgba(255,71,87,0.25); }
+.admin-stat-card.coach-card    { border-top-width: 3px; }
 .admin-stat-num {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 52px;
@@ -3237,7 +3243,7 @@ footer {
   </div>
 
   <!-- PLAN SEMANAL COACHÁI -->
-  <div class="chart-card plan-collapsed" id="plan-semanal-card">
+  <div class="chart-card coach-card plan-collapsed" id="plan-semanal-card">
     <div class="chart-card-header">
       <div class="chart-card-title">📋 MI PLANIFICACIÓN</div>
       <div style="display:flex;align-items:center;gap:10px">
@@ -3268,7 +3274,7 @@ footer {
   </div>
 
   <!-- RESUMEN DE ADHERENCIA -->
-  <div class="chart-card" id="adherencia-card">
+  <div class="chart-card coach-card" id="adherencia-card">
     <div class="chart-card-header">
       <div class="chart-card-title">📊 RESUMEN DE ADHERENCIA</div>
       <span id="adherencia-week-label" style="font-size:11px;color:var(--muted);letter-spacing:0.5px"></span>
@@ -3304,7 +3310,7 @@ footer {
   </div>
 
   <!-- SEMANAS DE PROGRESO -->
-  <div class="chart-card">
+  <div class="chart-card coach-card">
     <div class="chart-card-header">
       <div class="chart-card-title">📅 SEGUIMIENTO SEMANAL</div>
     </div>
@@ -3325,7 +3331,7 @@ footer {
 
 <!-- CIERRE DE SEMANA -->
 <div class="cierre-overlay" id="cierre-overlay">
-  <div class="cierre-card">
+  <div class="cierre-card coach-card">
     <div class="cierre-title">🏁 CIERRE DE SEMANA</div>
     <div class="cierre-sub" id="cierre-sub">Resumen de tu semana</div>
     <div class="cierre-stats-grid" id="cierre-stats-grid"></div>
@@ -3368,21 +3374,21 @@ footer {
   <!-- Stats cards -->
   <div id="admin-stats-section" style="display:none">
     <div class="admin-stats-grid">
-      <div class="admin-stat-card" id="stat-card-all" onclick="adminFilterStudents('all')">
+      <div class="admin-stat-card coach-card" id="stat-card-all" onclick="adminFilterStudents('all')">
         <div class="admin-stat-num" id="stat-total">–</div>
         <div class="admin-stat-label">TOTAL ALUMNOS</div>
       </div>
-      <div class="admin-stat-card verde" id="stat-card-verde" onclick="adminFilterStudents('verde')">
+      <div class="admin-stat-card verde coach-card" id="stat-card-verde" onclick="adminFilterStudents('verde')">
         <div class="admin-stat-num" id="stat-verde">–</div>
         <div class="admin-stat-label">COMPROMETIDOS</div>
         <div class="admin-stat-sub">4+ días / semana</div>
       </div>
-      <div class="admin-stat-card amarillo" id="stat-card-amarillo" onclick="adminFilterStudents('amarillo')">
+      <div class="admin-stat-card amarillo coach-card" id="stat-card-amarillo" onclick="adminFilterStudents('amarillo')">
         <div class="admin-stat-num" id="stat-amarillo">–</div>
         <div class="admin-stat-label">ADHERENCIA MEDIA</div>
         <div class="admin-stat-sub">2–3 días / semana</div>
       </div>
-      <div class="admin-stat-card rojo" id="stat-card-rojo" onclick="adminFilterStudents('rojo')">
+      <div class="admin-stat-card rojo coach-card" id="stat-card-rojo" onclick="adminFilterStudents('rojo')">
         <div class="admin-stat-num" id="stat-rojo">–</div>
         <div class="admin-stat-label">INACTIVOS</div>
         <div class="admin-stat-sub">0–1 días / semana</div>
@@ -3428,7 +3434,7 @@ footer {
   </div>
 
   <!-- ALIMENTACIÓN -->
-  <div class="chart-card" style="margin-bottom:16px">
+  <div class="chart-card coach-card" style="margin-bottom:16px">
     <div class="chart-card-header">
       <div class="chart-card-title" id="diario-food-title">🍽️ ALIMENTACIÓN DE HOY</div>
     </div>
@@ -3461,7 +3467,7 @@ footer {
   </div>
 
   <!-- ENTRENAMIENTO -->
-  <div class="chart-card" style="margin-bottom:16px">
+  <div class="chart-card coach-card" style="margin-bottom:16px">
     <div class="chart-card-header">
       <div class="chart-card-title" id="diario-train-title">💪 ENTRENAMIENTO DE HOY</div>
     </div>
@@ -6125,7 +6131,7 @@ function adminFilterStudents(status) {
     list.innerHTML = filtered.map(u => {
       const statusLabel = { verde: 'Verde ✓', amarillo: 'Amarillo ●', rojo: 'Rojo ✗' }[u._status];
       return `
-        <div class="admin-student-card">
+        <div class="admin-student-card coach-card">
           <div class="admin-student-dot ${u._status}"></div>
           <div class="admin-student-info">
             <div class="admin-student-name">${u.nombre || u.email}</div>
@@ -6201,7 +6207,7 @@ function adminBuildDetailHTML(user, diario, cierres, fotos, planes = []) {
     </div>`;
 
   const profileHTML = `
-    <div class="admin-profile-card">
+    <div class="admin-profile-card coach-card">
       <div class="admin-section-subtitle">PERFIL DEL ALUMNO</div>
       <div class="admin-profile-grid">
         <div class="admin-profile-field">
@@ -6270,7 +6276,7 @@ function adminBuildPlanesHTML(planes) {
           </div>`;
       }).join('');
 
-  return `<div class="admin-profile-card" style="margin-bottom:16px">
+  return `<div class="admin-profile-card coach-card" style="margin-bottom:16px">
     <div class="admin-section-subtitle">PLANES SEMANALES COACHÁI</div>
     <div style="margin-top:10px">${inner}</div>
   </div>`;
@@ -6604,7 +6610,7 @@ window.addEventListener('DOMContentLoaded', () => {
   <div class="landing-logo" id="landing-logo-text">COACH AI</div>
   <div class="landing-tagline" id="landing-tagline-text">Tu entrenador personal con inteligencia artificial</div>
 
-  <div class="landing-login-card">
+  <div class="landing-login-card coach-card">
     <span class="landing-login-icon">💪</span>
     <input type="text" class="email-login-input" id="el-nombre" placeholder="Tu nombre" onkeydown="if(event.key==='Enter') handleEmailLogin()">
     <input type="email" class="email-login-input" id="el-email" placeholder="tu@email.com" onkeydown="if(event.key==='Enter') handleEmailLogin()">
@@ -6619,7 +6625,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 <!-- ADMIN ACTION MODAL (edit profile / edit plan / delete) -->
 <div class="modal-overlay" id="admin-action-modal" onclick="if(event.target===this)adminCloseActionModal()">
-  <div class="modal-card">
+  <div class="modal-card coach-card">
     <div class="modal-title" id="aam-title"></div>
     <div id="aam-body"></div>
   </div>
@@ -6627,7 +6633,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 <!-- ADMIN LOGIN MODAL -->
 <div class="modal-overlay" id="admin-modal">
-  <div class="modal-card">
+  <div class="modal-card coach-card">
     <div class="modal-title" id="modal-title">⚙️ ACCESO ADMIN</div>
     <div class="modal-sub" id="modal-sub">Ingresá la contraseña de administrador</div>
     <input type="password" class="modal-input" id="admin-password-input" placeholder="••••••••" onkeydown="if(event.key==='Enter') checkAdminPassword()">
