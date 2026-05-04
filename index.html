@@ -919,6 +919,72 @@ footer {
 
 .chart-body { padding: 20px 22px; }
 
+/* =================== PLAN SEMANAL CARD (Mi Progreso) =================== */
+.plan-semanal-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+.plan-tab-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 11px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.plan-tab-btn.active { color: var(--accent-bright); border-bottom-color: var(--accent-bright); }
+.plan-tab-content { display: none; padding: 16px 20px; }
+.plan-tab-content.active { display: block; }
+.plan-meta { font-size: 11px; color: var(--muted); margin-bottom: 10px; display: flex; gap: 14px; flex-wrap: wrap; }
+.plan-text {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text);
+  white-space: pre-wrap;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.plan-empty { padding: 22px 0; text-align: center; color: var(--muted); font-size: 13px; line-height: 1.6; }
+
+/* =================== ADMIN PLANES SEMANALES =================== */
+.admin-planes-block {
+  background: rgba(0,0,0,0.15);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+.admin-planes-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  user-select: none;
+}
+.admin-planes-tipo { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--accent-bright); flex-shrink: 0; }
+.admin-planes-meta { font-size: 11px; color: var(--muted); flex: 1; }
+.admin-planes-chevron { color: var(--muted); font-size: 10px; transition: transform 0.2s; flex-shrink: 0; }
+.admin-planes-block.open .admin-planes-chevron { transform: rotate(180deg); }
+.admin-planes-body { display: none; padding: 0 14px 12px; }
+.admin-planes-block.open .admin-planes-body { display: block; }
+.admin-planes-text {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+  max-height: 380px;
+  overflow-y: auto;
+  background: rgba(0,0,0,0.2);
+  padding: 12px;
+  border-radius: 8px;
+}
+
 /* SVG CHART */
 .weight-chart { width: 100%; height: 180px; }
 
@@ -2810,6 +2876,24 @@ footer {
   <div class="dash-header">
     <div class="dash-title" id="dash-title-text">📊 MI PROGRESO</div>
     <button class="btn-back-chat" onclick="showChat()" id="dash-back-btn">← Volver al chat</button>
+  </div>
+
+  <!-- PLAN SEMANAL COACHÁI -->
+  <div class="chart-card" id="plan-semanal-card">
+    <div class="chart-card-header">
+      <div class="chart-card-title">📋 MI PLANIFICACIÓN</div>
+      <span id="plan-semanal-week" style="font-size:11px;color:var(--muted);letter-spacing:0.5px"></span>
+    </div>
+    <div class="plan-semanal-tabs">
+      <button class="plan-tab-btn active" onclick="switchPlanTab('rutina')">💪 RUTINA</button>
+      <button class="plan-tab-btn" onclick="switchPlanTab('dieta')">🥗 DIETA</button>
+    </div>
+    <div id="plan-tab-rutina" class="plan-tab-content active">
+      <div class="plan-empty">No hay rutina entregada esta semana.<br><small>Pedísela a CoachAI desde el chat.</small></div>
+    </div>
+    <div id="plan-tab-dieta" class="plan-tab-content">
+      <div class="plan-empty">No hay dieta entregada esta semana.<br><small>Pedísela a CoachAI desde el chat.</small></div>
+    </div>
   </div>
 
   <!-- SEMANAS DE PROGRESO -->
@@ -4957,7 +5041,43 @@ function showChat() {
 
 async function renderDashboard() {
   recentDiario = await loadRecentDiario().catch(() => recentDiario);
+  renderPlanSemanalCard();
   renderSemanas().catch(console.error);
+}
+
+function renderPlanSemanalCard() {
+  const rutinaEl = document.getElementById('plan-tab-rutina');
+  const dietaEl  = document.getElementById('plan-tab-dieta');
+  const weekEl   = document.getElementById('plan-semanal-week');
+  if (!rutinaEl || !dietaEl) return;
+
+  if (weekEl) weekEl.textContent = getISOWeekKey();
+
+  const buildContent = (plan, tipo) => {
+    if (!plan || !plan.contenido) {
+      const label = tipo === 'rutina' ? 'rutina' : 'dieta';
+      const cta   = tipo === 'rutina' ? '💪 Rutina de la semana' : '🥗 Dieta de la semana';
+      return `<div class="plan-empty">No hay ${label} entregada esta semana.<br><small>Pedísela a CoachAI con el botón "${cta}" en el chat.</small></div>`;
+    }
+    const fechaTxt = plan.fecha_entrega ? `Entregada el ${plan.fecha_entrega}` : '';
+    return `<div class="plan-meta">
+        <span>📅 ${plan.semana_iso || getISOWeekKey()}</span>
+        ${fechaTxt ? `<span>${fechaTxt}</span>` : ''}
+      </div>
+      <div class="plan-text">${formatResponse(plan.contenido)}</div>`;
+  };
+
+  rutinaEl.innerHTML = buildContent(weeklyPlans.rutina, 'rutina');
+  dietaEl.innerHTML  = buildContent(weeklyPlans.dieta,  'dieta');
+}
+
+function switchPlanTab(tipo) {
+  document.querySelectorAll('.plan-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.plan-tab-content').forEach(c => c.classList.remove('active'));
+  const btn = document.querySelector(`.plan-tab-btn[onclick="switchPlanTab('${tipo}')"]`);
+  if (btn) btn.classList.add('active');
+  const content = document.getElementById(`plan-tab-${tipo}`);
+  if (content) content.classList.add('active');
 }
 
 function calcStreak(trainedDays) {
@@ -5458,17 +5578,23 @@ async function showAdminStudentDetail(userId) {
   detailEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   try {
-    const [diarioRes, cierresRes, fotosRes] = await Promise.all([
+    const [diarioRes, cierresRes, fotosRes, planesRes] = await Promise.all([
       sbClient.from('progreso_diario').select('*').eq('usuario_id', userId).order('fecha', { ascending: true }),
       sbClient.from('cierres_semanales').select('*').eq('usuario_id', userId).order('semana_num', { ascending: true }),
-      sbClient.from('fotos_progreso').select('*').eq('usuario_id', userId).order('fecha', { ascending: true })
+      sbClient.from('fotos_progreso').select('*').eq('usuario_id', userId).order('fecha', { ascending: true }),
+      sbClient.from('planes_semanales')
+        .select('tipo, semana_iso, fecha_entrega, contenido')
+        .eq('usuario_id', userId)
+        .order('fecha_entrega', { ascending: false })
+        .limit(10)
     ]);
 
     contentEl.innerHTML = adminBuildDetailHTML(
       user,
       diarioRes.data || [],
       cierresRes.data || [],
-      fotosRes.data || []
+      fotosRes.data || [],
+      planesRes.data || []
     );
   } catch(e) {
     contentEl.innerHTML = '<div style="padding:20px;color:#ff4757">Error al cargar el progreso. Intentá de nuevo.</div>';
@@ -5476,7 +5602,7 @@ async function showAdminStudentDetail(userId) {
   }
 }
 
-function adminBuildDetailHTML(user, diario, cierres, fotos) {
+function adminBuildDetailHTML(user, diario, cierres, fotos, planes = []) {
   const diasStr = Array.isArray(user.dias_entreno)
     ? user.dias_entreno.join(', ')
     : (user.dias_entreno || '—');
@@ -5524,8 +5650,35 @@ function adminBuildDetailHTML(user, diario, cierres, fotos) {
       </div>
     </div>`;
 
+  const planesHTML  = adminBuildPlanesHTML(planes);
   const semanasHTML = adminBuildSemanasHTML(user, diario, cierres, fotos);
-  return profileHTML + semanasHTML;
+  return profileHTML + planesHTML + semanasHTML;
+}
+
+function adminBuildPlanesHTML(planes) {
+  const escHtml = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  const inner = planes.length === 0
+    ? `<div style="padding:10px 0;font-size:13px;color:var(--muted)">Aún no se entregaron planes semanales a este alumno.</div>`
+    : planes.map((p, i) => {
+        const tipoLabel = p.tipo === 'dieta' ? '🥗 DIETA' : '💪 RUTINA';
+        return `
+          <div class="admin-planes-block" onclick="this.classList.toggle('open')">
+            <div class="admin-planes-header">
+              <span class="admin-planes-tipo">${tipoLabel}</span>
+              <span class="admin-planes-meta">Semana ${p.semana_iso} · ${p.fecha_entrega}</span>
+              <span class="admin-planes-chevron">▼</span>
+            </div>
+            <div class="admin-planes-body">
+              <div class="admin-planes-text">${escHtml(p.contenido)}</div>
+            </div>
+          </div>`;
+      }).join('');
+
+  return `<div class="admin-profile-card" style="margin-bottom:16px">
+    <div class="admin-section-subtitle">PLANES SEMANALES COACHÁI</div>
+    <div style="margin-top:10px">${inner}</div>
+  </div>`;
 }
 
 // Mirrors renderSemanas() but works on local data instead of globals,
