@@ -920,6 +920,47 @@ footer {
 .chart-body { padding: 20px 22px; }
 
 /* =================== PLAN SEMANAL CARD (Mi Progreso) =================== */
+.plan-toggle-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.plan-toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+.plan-semanal-summary {
+  padding: 12px 22px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.plan-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.plan-summary-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--accent-bright);
+  background: rgba(124,106,255,0.1);
+  border-radius: 4px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+#plan-semanal-card.plan-collapsed .plan-semanal-tabs   { display: none; }
+#plan-semanal-card.plan-collapsed .plan-tab-content    { display: none !important; }
+#plan-semanal-card:not(.plan-collapsed) .plan-semanal-summary { display: none; }
 .plan-semanal-tabs {
   display: flex;
   border-bottom: 1px solid var(--border);
@@ -1672,8 +1713,15 @@ footer {
 
 /* =================== ADHERENCIA WIDGETS =================== */
 #adherencia-card {
-  border-color: rgba(124,106,255,0.18);
-  box-shadow: 0 0 28px rgba(124,106,255,0.05);
+  border-color: rgba(124,106,255,0.28);
+  border-top: 2px solid var(--accent);
+  box-shadow: 0 0 36px rgba(124,106,255,0.1), 0 4px 24px rgba(0,0,0,0.4);
+}
+#adherencia-card .chart-card-title {
+  background: linear-gradient(90deg, var(--accent-bright), var(--accent3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 .adherencia-grid {
   display: grid;
@@ -1683,21 +1731,27 @@ footer {
 }
 .adherencia-widget {
   background: var(--surface2);
-  border: 1px solid rgba(124,106,255,0.18);
+  border: 1px solid rgba(124,106,255,0.2);
   border-radius: 12px;
-  padding: 14px 14px 14px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(124,106,255,0.05);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+.adherencia-widget:hover {
+  border-color: rgba(124,106,255,0.4);
+  box-shadow: 0 6px 28px rgba(0,0,0,0.45), 0 0 16px rgba(124,106,255,0.1);
+  transform: translateY(-1px);
 }
 .adherencia-widget-title {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1.5px;
   text-transform: uppercase;
-  color: var(--muted);
+  color: rgba(255,255,255,0.5);
   align-self: flex-start;
   border-left: 2px solid var(--accent);
   padding-left: 6px;
@@ -1708,12 +1762,17 @@ footer {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 108px;
-  height: 108px;
+  width: 124px;
+  height: 124px;
 }
 .ring-wrap svg { transform: rotate(-90deg); }
-.ring-track { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 8; }
-.ring-fill  { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.6s ease, stroke 0.4s ease; }
+.ring-track { fill: none; stroke: rgba(255,255,255,0.07); stroke-width: 10; }
+.ring-fill  {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.7s cubic-bezier(0.34,1.56,0.64,1), stroke 0.4s ease;
+}
 .ring-center {
   position: absolute;
   display: flex;
@@ -1724,16 +1783,16 @@ footer {
 }
 .ring-num {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 28px;
+  font-size: 30px;
   letter-spacing: 1px;
-  color: var(--text);
+  color: #fff;
 }
 .ring-label {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: var(--muted);
+  color: rgba(255,255,255,0.45);
 }
 .ring-stats {
   display: flex;
@@ -1742,16 +1801,16 @@ footer {
   flex-wrap: wrap;
   justify-content: center;
 }
-.ring-stat      { font-size: 10px; color: var(--muted); white-space: nowrap; }
+.ring-stat      { font-size: 10px; color: rgba(255,255,255,0.4); white-space: nowrap; }
 .ring-stat-sep  { font-size: 10px; color: var(--muted2); }
-.ring-stat-goal { font-size: 10px; color: var(--accent); font-weight: 700; white-space: nowrap; }
-.ring-stat-done { font-size: 10px; color: #00c896;       font-weight: 700; white-space: nowrap; }
+.ring-stat-goal { font-size: 10px; color: var(--accent-bright); font-weight: 700; white-space: nowrap; }
+.ring-stat-done { font-size: 10px; color: #00e5b0;              font-weight: 700; white-space: nowrap; }
 /* Calorie bars */
 .kcal-bars-wrap { width: 100%; }
 .kcal-bars-row {
   display: flex;
   align-items: flex-end;
-  gap: 5px;
+  gap: 6px;
   width: 100%;
 }
 .kcal-bar-col {
@@ -1763,12 +1822,12 @@ footer {
 }
 .kcal-bar-track {
   width: 100%;
-  height: 52px;
-  background: rgba(255,255,255,0.04);
+  height: 66px;
+  background: rgba(255,255,255,0.07);
   border-radius: 4px;
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
 }
 .kcal-bar-fill {
   position: absolute;
@@ -1776,19 +1835,20 @@ footer {
   left: 0;
   width: 100%;
   background: var(--accent3);
-  opacity: 0.8;
+  opacity: 0.82;
   border-radius: 3px 3px 0 0;
-  transition: height 0.4s ease;
+  transition: height 0.5s cubic-bezier(0.22,1,0.36,1);
+  box-shadow: 0 -3px 10px rgba(0,229,176,0.2);
 }
 .kcal-bar-fill.is-today {
   opacity: 1;
-  box-shadow: 0 0 10px rgba(0,229,176,0.4);
+  box-shadow: 0 -4px 14px rgba(0,229,176,0.45);
 }
 .kcal-day-label {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  color: var(--muted);
+  color: rgba(255,255,255,0.3);
   text-transform: uppercase;
 }
 .kcal-day-label.today { color: var(--accent3); }
@@ -1800,19 +1860,13 @@ footer {
   margin-top: 10px;
   width: 100%;
 }
-.kcal-stats-row span {
-  font-size: 11px;
-  color: var(--muted);
-}
-.kcal-stats-row span.kcal-logs-count {
-  color: var(--accent3);
-  font-weight: 600;
-}
+.kcal-stats-row span        { font-size: 11px; color: rgba(255,255,255,0.35); }
+.kcal-stats-row .kcal-logs-count { color: var(--accent3); font-weight: 600; }
 .kcal-bars-avg { width: 100%; }
 @media (max-width: 500px) {
   .adherencia-grid { grid-template-columns: 1fr; }
-  .ring-wrap { width: 96px; height: 96px; }
-  .ring-num { font-size: 24px; }
+  .ring-wrap { width: 110px; height: 110px; }
+  .ring-num  { font-size: 26px; }
 }
 
 /* =================== ADMIN ACTIONS =================== */
@@ -3124,10 +3178,23 @@ footer {
   </div>
 
   <!-- PLAN SEMANAL COACHÁI -->
-  <div class="chart-card" id="plan-semanal-card">
+  <div class="chart-card plan-collapsed" id="plan-semanal-card">
     <div class="chart-card-header">
       <div class="chart-card-title">📋 MI PLANIFICACIÓN</div>
-      <span id="plan-semanal-week" style="font-size:11px;color:var(--muted);letter-spacing:0.5px"></span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span id="plan-semanal-week" style="font-size:11px;color:var(--muted);letter-spacing:0.5px"></span>
+        <button class="plan-toggle-btn" id="plan-toggle-btn" onclick="togglePlanCard()">Ver detalle ▼</button>
+      </div>
+    </div>
+    <div class="plan-semanal-summary" id="plan-semanal-summary">
+      <div class="plan-summary-row" id="plan-summary-rutina">
+        <span class="plan-summary-badge">RUTINA</span>
+        <span id="plan-summary-rutina-text" style="color:var(--muted);font-size:12px">—</span>
+      </div>
+      <div class="plan-summary-row" id="plan-summary-dieta">
+        <span class="plan-summary-badge" style="color:var(--accent3);background:rgba(0,229,176,0.1)">DIETA</span>
+        <span id="plan-summary-dieta-text" style="color:var(--muted);font-size:12px">—</span>
+      </div>
     </div>
     <div class="plan-semanal-tabs">
       <button class="plan-tab-btn active" onclick="switchPlanTab('rutina')">💪 RUTINA</button>
@@ -3151,10 +3218,10 @@ footer {
       <div class="adherencia-widget" id="adherencia-ring-widget">
         <div class="adherencia-widget-title">Entrenos esta semana</div>
         <div class="ring-wrap">
-          <svg width="108" height="108" viewBox="0 0 108 108">
-            <circle class="ring-track" cx="54" cy="54" r="42"/>
-            <circle class="ring-fill" id="ring-fill-circle" cx="54" cy="54" r="42"
-              stroke="var(--accent)" stroke-dasharray="263.9" stroke-dashoffset="263.9"/>
+          <svg width="124" height="124" viewBox="0 0 124 124">
+            <circle class="ring-track" cx="62" cy="62" r="48"/>
+            <circle class="ring-fill" id="ring-fill-circle" cx="62" cy="62" r="48"
+              stroke="var(--accent)" stroke-dasharray="301.6" stroke-dashoffset="301.6"/>
           </svg>
           <div class="ring-center">
             <span class="ring-num" id="ring-num-text">–</span>
@@ -5362,14 +5429,14 @@ async function renderAdherencia() {
     ? currentUser.dias_entreno.length
     : 4;
   const pct         = Math.min(completed / target, 1);
-  const circ        = 2 * Math.PI * 42;           // r = 42 → ≈ 263.9
+  const circ        = 2 * Math.PI * 48;           // r = 48 → ≈ 301.6
 
   const ringCircle  = document.getElementById('ring-fill-circle');
   const ringNum     = document.getElementById('ring-num-text');
   const ringLbl     = document.getElementById('ring-label-text');
 
-  const strokeColor = pct >= 1 ? '#00c896' : pct > 0 ? '#7c6aff' : '#1e1e32';
-  const glowColor   = pct >= 1 ? 'rgba(0,200,150,0.65)' : pct > 0 ? 'rgba(124,106,255,0.65)' : 'rgba(0,0,0,0)';
+  const strokeColor = pct >= 1 ? '#00e5b0' : pct > 0 ? '#a594ff' : '#2a2a42';
+  const glowColor   = pct >= 1 ? 'rgba(0,229,176,0.8)'  : pct > 0 ? 'rgba(165,148,255,0.8)'  : 'rgba(0,0,0,0)';
   if (ringCircle) {
     ringCircle.style.strokeDasharray  = circ;
     ringCircle.style.strokeDashoffset = circ * (1 - pct);
@@ -5441,13 +5508,23 @@ async function renderAdherencia() {
 
   if (barsAvg) {
     const avgText  = avgKcal ? `Prom. ${avgKcal} kcal/día` : 'Sin registros';
-    const logsText = `${loggedDays.length}/7 días`;
+    const n = loggedDays.length;
+    const logsText = n === 0 ? 'Sin días registrados'
+                   : n === 1 ? '1 día registrado'
+                   : `${n}/7 días activos`;
     barsAvg.innerHTML = `
       <div class="kcal-stats-row">
         <span>${avgText}</span>
         <span class="kcal-logs-count">${logsText}</span>
       </div>`;
   }
+}
+
+function togglePlanCard() {
+  const card = document.getElementById('plan-semanal-card');
+  const btn  = document.getElementById('plan-toggle-btn');
+  const collapsed = card.classList.toggle('plan-collapsed');
+  btn.textContent = collapsed ? 'Ver detalle ▼' : 'Ocultar ▲';
 }
 
 function renderPlanSemanalCard() {
@@ -5474,6 +5551,26 @@ function renderPlanSemanalCard() {
 
   rutinaEl.innerHTML = buildContent(weeklyPlans.rutina, 'rutina');
   dietaEl.innerHTML  = buildContent(weeklyPlans.dieta,  'dieta');
+
+  // Populate collapsed summary
+  const rutinaText = document.getElementById('plan-summary-rutina-text');
+  const dietaText  = document.getElementById('plan-summary-dieta-text');
+  if (rutinaText) {
+    if (weeklyPlans.rutina?.contenido) {
+      const dias = currentUser?.dias_entreno?.length || '—';
+      rutinaText.textContent = `Rutina entregada · ${dias} días/semana`;
+    } else {
+      rutinaText.textContent = 'Sin rutina esta semana';
+    }
+  }
+  if (dietaText) {
+    if (weeklyPlans.dieta?.contenido) {
+      const comidas = currentUser?.comidas_dia || null;
+      dietaText.textContent = comidas ? `Dieta entregada · ${comidas} comidas/día` : 'Dieta entregada';
+    } else {
+      dietaText.textContent = 'Sin dieta esta semana';
+    }
+  }
 }
 
 function switchPlanTab(tipo) {
