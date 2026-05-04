@@ -1671,21 +1671,26 @@ footer {
 }
 
 /* =================== ADHERENCIA WIDGETS =================== */
+#adherencia-card {
+  border-color: rgba(124,106,255,0.18);
+  box-shadow: 0 0 28px rgba(124,106,255,0.05);
+}
 .adherencia-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  padding: 18px 20px 20px;
+  gap: 12px;
+  padding: 14px 16px 16px;
 }
 .adherencia-widget {
-  background: var(--bg);
-  border: 1px solid var(--border);
+  background: var(--surface2);
+  border: 1px solid rgba(124,106,255,0.18);
   border-radius: 12px;
-  padding: 18px 16px 16px;
+  padding: 14px 14px 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(124,106,255,0.05);
 }
 .adherencia-widget-title {
   font-size: 10px;
@@ -1694,6 +1699,8 @@ footer {
   text-transform: uppercase;
   color: var(--muted);
   align-self: flex-start;
+  border-left: 2px solid var(--accent);
+  padding-left: 6px;
 }
 /* Ring */
 .ring-wrap {
@@ -1705,15 +1712,15 @@ footer {
   height: 108px;
 }
 .ring-wrap svg { transform: rotate(-90deg); }
-.ring-track { fill: none; stroke: var(--border); stroke-width: 8; }
-.ring-fill  { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.6s ease; }
+.ring-track { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 8; }
+.ring-fill  { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.6s ease, stroke 0.4s ease; }
 .ring-center {
   position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  line-height: 1.1;
+  line-height: 1.15;
 }
 .ring-num {
   font-family: 'Bebas Neue', sans-serif;
@@ -1728,49 +1735,80 @@ footer {
   text-transform: uppercase;
   color: var(--muted);
 }
+.ring-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.ring-stat      { font-size: 10px; color: var(--muted); white-space: nowrap; }
+.ring-stat-sep  { font-size: 10px; color: var(--muted2); }
+.ring-stat-goal { font-size: 10px; color: var(--accent); font-weight: 700; white-space: nowrap; }
+.ring-stat-done { font-size: 10px; color: #00c896;       font-weight: 700; white-space: nowrap; }
 /* Calorie bars */
 .kcal-bars-wrap { width: 100%; }
 .kcal-bars-row {
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
-  height: 60px;
-  gap: 4px;
+  gap: 5px;
   width: 100%;
 }
 .kcal-bar-col {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
-  flex: 1;
-  height: 100%;
+  gap: 5px;
 }
-.kcal-bar {
+.kcal-bar-track {
   width: 100%;
+  height: 52px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+.kcal-bar-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: var(--accent3);
+  opacity: 0.8;
   border-radius: 3px 3px 0 0;
-  min-height: 0;
   transition: height 0.4s ease;
 }
-.kcal-bar.has-data { background: var(--accent3); opacity: 0.85; }
-.kcal-bar.no-data  { background: transparent; }
+.kcal-bar-fill.is-today {
+  opacity: 1;
+  box-shadow: 0 0 10px rgba(0,229,176,0.4);
+}
 .kcal-day-label {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.5px;
   color: var(--muted);
-  margin-top: 5px;
   text-transform: uppercase;
 }
 .kcal-day-label.today { color: var(--accent3); }
-.kcal-bars-avg {
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 8px;
-  text-align: center;
-  align-self: flex-start;
+.kcal-stats-row {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 10px;
   width: 100%;
 }
+.kcal-stats-row span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.kcal-stats-row span.kcal-logs-count {
+  color: var(--accent3);
+  font-weight: 600;
+}
+.kcal-bars-avg { width: 100%; }
 @media (max-width: 500px) {
   .adherencia-grid { grid-template-columns: 1fr; }
   .ring-wrap { width: 96px; height: 96px; }
@@ -3122,6 +3160,11 @@ footer {
             <span class="ring-num" id="ring-num-text">–</span>
             <span class="ring-label" id="ring-label-text">entrenos</span>
           </div>
+        </div>
+        <div class="ring-stats">
+          <span class="ring-stat" id="ring-pct-text"></span>
+          <span class="ring-stat-sep" id="ring-sep">·</span>
+          <span class="ring-stat-goal" id="ring-meta-text"></span>
         </div>
       </div>
       <div class="adherencia-widget" id="adherencia-bars-widget">
@@ -5325,15 +5368,33 @@ async function renderAdherencia() {
   const ringNum     = document.getElementById('ring-num-text');
   const ringLbl     = document.getElementById('ring-label-text');
 
+  const strokeColor = pct >= 1 ? '#00c896' : pct > 0 ? '#7c6aff' : '#1e1e32';
+  const glowColor   = pct >= 1 ? 'rgba(0,200,150,0.65)' : pct > 0 ? 'rgba(124,106,255,0.65)' : 'rgba(0,0,0,0)';
   if (ringCircle) {
     ringCircle.style.strokeDasharray  = circ;
     ringCircle.style.strokeDashoffset = circ * (1 - pct);
-    ringCircle.style.stroke = pct >= 1
-      ? '#00c896'
-      : pct > 0 ? 'var(--accent)' : 'var(--border)';
+    ringCircle.style.stroke  = strokeColor;
+    ringCircle.style.filter  = `drop-shadow(0 0 5px ${glowColor})`;
   }
   if (ringNum) ringNum.textContent = `${completed}/${target}`;
   if (ringLbl) ringLbl.textContent = 'entrenos';
+
+  const pctEl  = document.getElementById('ring-pct-text');
+  const metaEl = document.getElementById('ring-meta-text');
+  const sepEl  = document.getElementById('ring-sep');
+  const pctDisplay = Math.round(pct * 100);
+  const remaining  = Math.max(target - completed, 0);
+  if (pctEl)  pctEl.textContent = `${pctDisplay}% completado`;
+  if (metaEl) {
+    if (pct >= 1) {
+      metaEl.textContent = '¡Meta cumplida! 🎯';
+      metaEl.className   = 'ring-stat-done';
+    } else {
+      metaEl.textContent = remaining === 1 ? 'te falta 1' : `te faltan ${remaining}`;
+      metaEl.className   = 'ring-stat-goal';
+    }
+  }
+  if (sepEl) sepEl.style.display = (pctEl && metaEl) ? '' : 'none';
 
   // ── CALORIE BARS ──────────────────────────────────────
   const DAY_LABELS = ['L','M','X','J','V','S','D'];
@@ -5366,22 +5427,26 @@ async function renderAdherencia() {
 
   barsRow.innerHTML = days.map((date, i) => {
     const kcal    = kcalValues[i];
-    const barH    = kcal > 0 ? Math.round((kcal / maxKcal) * 52) : 0;
-    const hasData = kcal > 0;
+    const barPct  = kcal > 0 ? Math.round((kcal / maxKcal) * 100) : 0;
     const isToday = date === today;
-    const tip     = hasData ? `${kcal} kcal` : '';
+    const tip     = kcal > 0 ? `${kcal} kcal` : '';
     return `
       <div class="kcal-bar-col">
-        <div class="kcal-bar ${hasData ? 'has-data' : 'no-data'}"
-             style="height:${barH}px" title="${tip}"></div>
+        <div class="kcal-bar-track" title="${tip}">
+          <div class="kcal-bar-fill${isToday && kcal > 0 ? ' is-today' : ''}" style="height:${barPct}%"></div>
+        </div>
         <span class="kcal-day-label${isToday ? ' today' : ''}">${DAY_LABELS[i]}</span>
       </div>`;
   }).join('');
 
   if (barsAvg) {
-    barsAvg.textContent = avgKcal
-      ? `Promedio: ${avgKcal} kcal/día`
-      : 'Sin registros esta semana';
+    const avgText  = avgKcal ? `Prom. ${avgKcal} kcal/día` : 'Sin registros';
+    const logsText = `${loggedDays.length}/7 días`;
+    barsAvg.innerHTML = `
+      <div class="kcal-stats-row">
+        <span>${avgText}</span>
+        <span class="kcal-logs-count">${logsText}</span>
+      </div>`;
   }
 }
 
