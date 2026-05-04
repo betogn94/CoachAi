@@ -992,6 +992,65 @@ footer {
 }
 .plan-empty { padding: 22px 0; text-align: center; color: var(--muted); font-size: 13px; line-height: 1.6; }
 
+/* =================== DASHBOARD CARD SYSTEM =================== */
+/* Scoped to dashboard-wrapper so diario cards are unaffected */
+.dashboard-wrapper .chart-card {
+  border-color: rgba(124,106,255,0.16);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 0 0 1px rgba(124,106,255,0.04);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.dashboard-wrapper .chart-card:hover {
+  border-color: rgba(124,106,255,0.3);
+  box-shadow: 0 6px 28px rgba(0,0,0,0.45), 0 0 18px rgba(124,106,255,0.08);
+}
+.dashboard-wrapper .chart-card-header {
+  border-bottom-color: rgba(124,106,255,0.1);
+  padding: 16px 20px;
+}
+.dashboard-wrapper .chart-card-title {
+  background: linear-gradient(90deg, var(--accent-bright), rgba(165,148,255,0.7));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+/* Semana cards inside Seguimiento Semanal */
+.semana-card {
+  background: var(--surface2);
+  border-color: rgba(124,106,255,0.12);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.semana-card:hover {
+  border-color: rgba(124,106,255,0.26);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 10px rgba(124,106,255,0.06);
+}
+.semana-card.activa {
+  border-color: rgba(0,229,176,0.3);
+  box-shadow: 0 2px 16px rgba(0,0,0,0.3), 0 0 12px rgba(0,229,176,0.07);
+}
+.semana-card.activa:hover {
+  border-color: rgba(0,229,176,0.45);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 0 18px rgba(0,229,176,0.1);
+}
+.semana-header { transition: background 0.15s; }
+.semana-header:hover { background: rgba(124,106,255,0.04); }
+.semana-body { border-top-color: rgba(124,106,255,0.1); }
+.semana-dates { color: rgba(255,255,255,0.38); }
+.semana-badge {
+  background: rgba(124,106,255,0.08);
+  border: 1px solid rgba(124,106,255,0.15);
+  color: rgba(255,255,255,0.5);
+}
+.semana-card.activa .semana-badge {
+  background: rgba(0,229,176,0.1);
+  border-color: rgba(0,229,176,0.25);
+  color: var(--accent3);
+}
+.semana-analisis {
+  background: rgba(124,106,255,0.05);
+  border: 1px solid rgba(124,106,255,0.1);
+}
+
 /* =================== ADMIN PLANES SEMANALES =================== */
 .admin-planes-block {
   background: rgba(0,0,0,0.15);
