@@ -1627,7 +1627,31 @@ footer {
 .admin-stat-card.verde.active  { border-color: #00c896; box-shadow: 0 0 0 2px rgba(0,200,150,0.25); }
 .admin-stat-card.amarillo.active { border-color: #ffd700; box-shadow: 0 0 0 2px rgba(255,215,0,0.25); }
 .admin-stat-card.rojo.active   { border-color: #ff4757; box-shadow: 0 0 0 2px rgba(255,71,87,0.25); }
-.admin-stat-card.coach-card    { border-top-width: 3px; }
+/* Semantic color overrides — these cards communicate status, not violet */
+.admin-stat-card.verde.coach-card {
+  border-color: rgba(0,200,150,0.25);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,200,150,0.08), inset 0 2px 0 #00c896;
+}
+.admin-stat-card.verde.coach-card:hover {
+  border-color: rgba(0,200,150,0.4);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(0,200,150,0.12), inset 0 2px 0 #00c896;
+}
+.admin-stat-card.amarillo.coach-card {
+  border-color: rgba(255,215,0,0.22);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,215,0,0.06), inset 0 2px 0 #ffd700;
+}
+.admin-stat-card.amarillo.coach-card:hover {
+  border-color: rgba(255,215,0,0.38);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(255,215,0,0.1), inset 0 2px 0 #ffd700;
+}
+.admin-stat-card.rojo.coach-card {
+  border-color: rgba(255,71,87,0.22);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,71,87,0.06), inset 0 2px 0 #ff4757;
+}
+.admin-stat-card.rojo.coach-card:hover {
+  border-color: rgba(255,71,87,0.38);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(255,71,87,0.1), inset 0 2px 0 #ff4757;
+}
 .admin-stat-num {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 52px;
