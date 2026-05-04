@@ -1670,6 +1670,106 @@ footer {
   .admin-student-last { display: none; }
 }
 
+/* =================== ADMIN ACTIONS =================== */
+.admin-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.btn-admin-edit {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.btn-admin-edit:hover { border-color: var(--accent); color: var(--accent); }
+.btn-admin-danger {
+  background: none;
+  border: 1px solid #ff4757;
+  color: #ff4757;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  margin-left: auto;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-admin-danger:hover { background: #ff4757; color: #fff; }
+.admin-planes-block { position: relative; }
+.btn-admin-plan-edit {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.btn-admin-plan-edit:hover { border-color: var(--accent); color: var(--accent); }
+#admin-action-modal .modal-card { max-width: 540px; width: 94%; }
+.admin-modal-form { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+.admin-modal-field { display: flex; flex-direction: column; gap: 5px; }
+.admin-modal-field label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+.admin-modal-field input,
+.admin-modal-field select,
+.admin-modal-field textarea {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+.admin-modal-field input:focus,
+.admin-modal-field select:focus,
+.admin-modal-field textarea:focus { outline: none; border-color: var(--accent); }
+.admin-modal-field select option { background: var(--surface); }
+.admin-modal-field textarea { resize: vertical; min-height: 220px; line-height: 1.6; }
+.admin-modal-actions { display: flex; gap: 10px; margin-top: 4px; }
+.btn-admin-save {
+  flex: 1;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-admin-save:hover { background: var(--accent-bright); }
+.btn-admin-save:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-admin-cancel-modal {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.btn-admin-cancel-modal:hover { border-color: var(--accent); }
+.admin-modal-error { font-size: 12px; color: #ff4757; min-height: 16px; }
+.admin-confirm-text { font-size: 14px; color: var(--text); margin: 8px 0 16px; line-height: 1.7; }
+.admin-confirm-name { color: var(--accent-bright); font-weight: 700; }
+.admin-confirm-warn { color: #ff4757; font-weight: 700; }
 
 /* =================== FOTOS PROGRESO =================== */
 .foto-upload-area {
@@ -5446,6 +5546,8 @@ function enterAsClient() {
 // ============================
 let adminAllUsers = [];
 let adminActiveFilter = null;
+let adminDetailUserId = null;
+let adminDetailPlanes = [];
 
 async function loadAdminDashboard() {
   if (!sbClient) initSupabase();
@@ -5569,6 +5671,7 @@ function adminCloseStudentDetail() {
 async function showAdminStudentDetail(userId) {
   const user = adminAllUsers.find(u => u.id === userId);
   if (!user) return;
+  adminDetailUserId = userId;
 
   const detailEl = document.getElementById('admin-student-detail');
   const contentEl = document.getElementById('admin-detail-content');
@@ -5606,6 +5709,12 @@ function adminBuildDetailHTML(user, diario, cierres, fotos, planes = []) {
   const diasStr = Array.isArray(user.dias_entreno)
     ? user.dias_entreno.join(', ')
     : (user.dias_entreno || '—');
+
+  const actionBar = `
+    <div class="admin-action-bar">
+      <button class="btn-admin-edit" onclick="adminEditStudent()">✏️ Editar alumno</button>
+      <button class="btn-admin-danger" onclick="adminConfirmDelete()">🗑 Eliminar alumno</button>
+    </div>`;
 
   const profileHTML = `
     <div class="admin-profile-card">
@@ -5652,11 +5761,12 @@ function adminBuildDetailHTML(user, diario, cierres, fotos, planes = []) {
 
   const planesHTML  = adminBuildPlanesHTML(planes);
   const semanasHTML = adminBuildSemanasHTML(user, diario, cierres, fotos);
-  return profileHTML + planesHTML + semanasHTML;
+  return actionBar + profileHTML + planesHTML + semanasHTML;
 }
 
 function adminBuildPlanesHTML(planes) {
-  const escHtml = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  adminDetailPlanes = planes;
+  const escHtml = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
   const inner = planes.length === 0
     ? `<div style="padding:10px 0;font-size:13px;color:var(--muted)">Aún no se entregaron planes semanales a este alumno.</div>`
@@ -5667,6 +5777,7 @@ function adminBuildPlanesHTML(planes) {
             <div class="admin-planes-header">
               <span class="admin-planes-tipo">${tipoLabel}</span>
               <span class="admin-planes-meta">Semana ${p.semana_iso} · ${p.fecha_entrega}</span>
+              <button class="btn-admin-plan-edit" onclick="event.stopPropagation();adminEditPlan(${i})">✏️ Editar</button>
               <span class="admin-planes-chevron">▼</span>
             </div>
             <div class="admin-planes-body">
@@ -5764,6 +5875,198 @@ function adminBuildSemanasHTML(user, diario, cierres, fotos) {
   return `<div class="admin-section-subtitle">PROGRESO POR SEMANA</div><div>${cards.join('')}</div>`;
 }
 
+// ============================
+// ADMIN ACTION MODAL
+// ============================
+
+function _esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function _escAttr(s) { return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+function adminCloseActionModal() {
+  document.getElementById('admin-action-modal').classList.remove('visible');
+}
+
+// GOAL 1 — Edit student profile
+function adminEditStudent() {
+  const user = adminAllUsers.find(u => u.id === adminDetailUserId);
+  if (!user) return;
+  const diasVal = Array.isArray(user.dias_entreno) ? user.dias_entreno.join(', ') : (user.dias_entreno || '');
+  const opts = (list, cur) => list.map(v => `<option value="${v}" ${cur===v?'selected':''}>${v.charAt(0).toUpperCase()+v.slice(1)}</option>`).join('');
+
+  document.getElementById('aam-title').textContent = '✏️ EDITAR ALUMNO';
+  document.getElementById('aam-body').innerHTML = `
+    <div class="admin-modal-form">
+      <div class="admin-modal-field">
+        <label>Nombre</label>
+        <input id="aef-nombre" type="text" value="${_escAttr(user.nombre||'')}">
+      </div>
+      <div class="admin-modal-field">
+        <label>Email</label>
+        <input id="aef-email" type="email" value="${_escAttr(user.email||'')}">
+      </div>
+      <div class="admin-modal-field">
+        <label>Objetivo</label>
+        <select id="aef-objetivo">
+          <option value="">— Sin definir —</option>
+          ${opts(['bajar de peso','ganar músculo','definición','mantenimiento','rendimiento'], user.objetivo)}
+        </select>
+      </div>
+      <div class="admin-modal-field">
+        <label>Nivel</label>
+        <select id="aef-nivel">
+          <option value="">— Sin definir —</option>
+          ${opts(['principiante','intermedio','avanzado'], user.nivel)}
+        </select>
+      </div>
+      <div class="admin-modal-field">
+        <label>Días de entrenamiento (separados por coma)</label>
+        <input id="aef-dias" type="text" value="${_escAttr(diasVal)}" placeholder="lunes, miércoles, viernes">
+      </div>
+      <div class="admin-modal-field">
+        <label>Preferencias / no le gusta</label>
+        <input id="aef-nolegusta" type="text" value="${_escAttr(user.no_le_gusta||'')}" placeholder="Ej: brócoli, pollo">
+      </div>
+      <div class="admin-modal-error" id="aef-error"></div>
+      <div class="admin-modal-actions">
+        <button class="btn-admin-cancel-modal" onclick="adminCloseActionModal()">Cancelar</button>
+        <button class="btn-admin-save" id="aef-save-btn" onclick="adminSaveStudent()">Guardar cambios</button>
+      </div>
+    </div>`;
+  document.getElementById('admin-action-modal').classList.add('visible');
+}
+
+async function adminSaveStudent() {
+  const btn = document.getElementById('aef-save-btn');
+  const errEl = document.getElementById('aef-error');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  errEl.textContent = '';
+  const nombre = document.getElementById('aef-nombre').value.trim();
+  const email  = document.getElementById('aef-email').value.trim();
+  if (!nombre || !email) {
+    errEl.textContent = 'Nombre y email son obligatorios.';
+    btn.disabled = false; btn.textContent = 'Guardar cambios'; return;
+  }
+  const diasRaw = document.getElementById('aef-dias').value;
+  const dias = diasRaw ? diasRaw.split(',').map(d => d.trim()).filter(Boolean) : null;
+  const updates = {
+    nombre, email,
+    objetivo:    document.getElementById('aef-objetivo').value || null,
+    nivel:       document.getElementById('aef-nivel').value || null,
+    dias_entreno: dias,
+    no_le_gusta: document.getElementById('aef-nolegusta').value.trim() || null
+  };
+  try {
+    const { error } = await sbClient.from('usuarios').update(updates).eq('id', adminDetailUserId);
+    if (error) throw error;
+    const idx = adminAllUsers.findIndex(u => u.id === adminDetailUserId);
+    if (idx !== -1) adminAllUsers[idx] = { ...adminAllUsers[idx], ...updates };
+    adminCloseActionModal();
+    await showAdminStudentDetail(adminDetailUserId);
+  } catch(e) {
+    errEl.textContent = 'Error: ' + (e.message || 'Intentá de nuevo.');
+    btn.disabled = false; btn.textContent = 'Guardar cambios';
+  }
+}
+
+// GOAL 2 — Edit weekly plan
+function adminEditPlan(idx) {
+  const p = adminDetailPlanes[idx];
+  if (!p) return;
+  const tipoLabel = p.tipo === 'dieta' ? '🥗 DIETA' : '💪 RUTINA';
+  document.getElementById('aam-title').textContent = `✏️ EDITAR ${tipoLabel} — Sem. ${p.semana_iso}`;
+  document.getElementById('aam-body').innerHTML = `
+    <div class="admin-modal-form">
+      <div class="admin-modal-field">
+        <label>Contenido del plan</label>
+        <textarea id="aep-contenido">${_esc(p.contenido)}</textarea>
+      </div>
+      <div class="admin-modal-error" id="aep-error"></div>
+      <div class="admin-modal-actions">
+        <button class="btn-admin-cancel-modal" onclick="adminCloseActionModal()">Cancelar</button>
+        <button class="btn-admin-save" id="aep-save-btn" onclick="adminSavePlan(${idx})">Guardar plan</button>
+      </div>
+    </div>`;
+  document.getElementById('admin-action-modal').classList.add('visible');
+}
+
+async function adminSavePlan(idx) {
+  const btn = document.getElementById('aep-save-btn');
+  const errEl = document.getElementById('aep-error');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  errEl.textContent = '';
+  const contenido = document.getElementById('aep-contenido').value.trim();
+  if (!contenido) {
+    errEl.textContent = 'El plan no puede estar vacío.';
+    btn.disabled = false; btn.textContent = 'Guardar plan'; return;
+  }
+  const p = adminDetailPlanes[idx];
+  try {
+    const { error } = await sbClient.from('planes_semanales')
+      .update({ contenido, updated_at: new Date().toISOString() })
+      .eq('usuario_id', adminDetailUserId)
+      .eq('tipo', p.tipo)
+      .eq('semana_iso', p.semana_iso);
+    if (error) throw error;
+    adminDetailPlanes[idx] = { ...p, contenido };
+    adminCloseActionModal();
+    await showAdminStudentDetail(adminDetailUserId);
+  } catch(e) {
+    errEl.textContent = 'Error: ' + (e.message || 'Intentá de nuevo.');
+    btn.disabled = false; btn.textContent = 'Guardar plan';
+  }
+}
+
+// GOAL 3 — Delete student
+function adminConfirmDelete() {
+  const user = adminAllUsers.find(u => u.id === adminDetailUserId);
+  if (!user) return;
+  document.getElementById('aam-title').textContent = '⚠️ ELIMINAR ALUMNO';
+  document.getElementById('aam-body').innerHTML = `
+    <p class="admin-confirm-text">
+      Vas a eliminar permanentemente a <span class="admin-confirm-name">${_esc(user.nombre || user.email)}</span>
+      y todos sus datos: chat, progreso diario, planes, fotos y cierres semanales.<br><br>
+      Esta acción <span class="admin-confirm-warn">no se puede deshacer</span>.
+    </p>
+    <div class="admin-modal-error" id="adel-error"></div>
+    <div class="admin-modal-actions">
+      <button class="btn-admin-cancel-modal" onclick="adminCloseActionModal()">Cancelar</button>
+      <button class="btn-admin-save" id="adel-btn" style="background:#ff4757" onclick="adminDeleteStudent()">Sí, eliminar</button>
+    </div>`;
+  document.getElementById('admin-action-modal').classList.add('visible');
+}
+
+async function adminDeleteStudent() {
+  const btn = document.getElementById('adel-btn');
+  const errEl = document.getElementById('adel-error');
+  btn.disabled = true; btn.textContent = 'Eliminando...';
+  errEl.textContent = '';
+  const uid = adminDetailUserId;
+  const childTables = [
+    'historial_chat','progreso_diario','cierres_semanales',
+    'dias_entrenados','fotos_progreso','planes_semanales',
+    'progreso_peso','progreso_medidas','cargas_ejercicios'
+  ];
+  try {
+    for (const t of childTables) {
+      const { error } = await sbClient.from(t).delete().eq('usuario_id', uid);
+      if (error) throw new Error(`Error en ${t}: ${error.message}`);
+    }
+    const { error } = await sbClient.from('usuarios').delete().eq('id', uid);
+    if (error) throw error;
+    adminAllUsers = adminAllUsers.filter(u => u.id !== uid);
+    adminCloseActionModal();
+    adminCloseStudentDetail();
+    document.getElementById('stat-total').textContent    = adminAllUsers.length;
+    document.getElementById('stat-verde').textContent    = adminAllUsers.filter(u => u._status === 'verde').length;
+    document.getElementById('stat-amarillo').textContent = adminAllUsers.filter(u => u._status === 'amarillo').length;
+    document.getElementById('stat-rojo').textContent     = adminAllUsers.filter(u => u._status === 'rojo').length;
+    if (adminActiveFilter) adminFilterStudents(adminActiveFilter);
+  } catch(e) {
+    errEl.textContent = 'Error: ' + (e.message || 'No se pudo eliminar.');
+    btn.disabled = false; btn.textContent = 'Sí, eliminar';
+  }
+}
+
 function enterAsAdmin() {
   document.getElementById('landing-wrapper').style.display = 'none';
   document.getElementById('main-header').style.display = 'flex';
@@ -5828,6 +6131,14 @@ window.addEventListener('DOMContentLoaded', () => {
   <div class="landing-admin-link" onclick="showAdminLogin()">⚙️ Acceso administrador</div>
 
   <div class="landing-footer-text" id="landing-footer-text">Powered by Anthropic Claude</div>
+</div>
+
+<!-- ADMIN ACTION MODAL (edit profile / edit plan / delete) -->
+<div class="modal-overlay" id="admin-action-modal" onclick="if(event.target===this)adminCloseActionModal()">
+  <div class="modal-card">
+    <div class="modal-title" id="aam-title"></div>
+    <div id="aam-body"></div>
+  </div>
 </div>
 
 <!-- ADMIN LOGIN MODAL -->
