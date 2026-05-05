@@ -5487,6 +5487,16 @@ async function loadThisWeekTraining(start, end) {
   return data || [];
 }
 
+async function loadThisWeekCalories(start, end) {
+  if (!sbClient || !currentUser) return [];
+  const { data } = await sbClient.from('progreso_diario')
+    .select('fecha, calorias_consumidas')
+    .eq('usuario_id', currentUser.id)
+    .gte('fecha', start)
+    .lte('fecha', end);
+  return data || [];
+}
+
 async function renderAdherencia() {
   if (!currentUser) return;
   const range  = getISOWeekRange();
@@ -5542,12 +5552,11 @@ async function renderAdherencia() {
   const barsAvg    = document.getElementById('kcal-bars-avg');
   if (!barsRow) return;
 
-  // Build a map date → kcal from recentDiario for this ISO week
+  // Query DB directly for this week's calories — same pattern as the training ring
+  const kcalRows = await loadThisWeekCalories(range.start, range.end);
   const kcalMap = {};
-  (recentDiario || []).forEach(l => {
-    if (l.fecha >= range.start && l.fecha <= range.end && l.calorias_consumidas > 0) {
-      kcalMap[l.fecha] = l.calorias_consumidas;
-    }
+  kcalRows.forEach(l => {
+    if (l.calorias_consumidas > 0) kcalMap[l.fecha] = l.calorias_consumidas;
   });
 
   // Build Mon–Sun date array
