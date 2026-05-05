@@ -5533,11 +5533,11 @@ async function renderDashboard() {
 }
 
 function getISOWeekRange(date = new Date()) {
-  const d = new Date(date);
-  const day = d.getDay() || 7;
-  d.setDate(d.getDate() - day + 1);
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() - day + 1);
   const start = d.toISOString().slice(0, 10);
-  d.setDate(d.getDate() + 6);
+  d.setUTCDate(d.getUTCDate() + 6);
   const end = d.toISOString().slice(0, 10);
   return { start, end };
 }
