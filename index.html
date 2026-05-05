@@ -5342,8 +5342,8 @@ async function ejecutarCierreSemana() {
       fotoUrl = await uploadFoto(fotoInput.files[0], `Semana ${cierreActualWeekNum}`);
     }
 
-    // Generate AI analysis
-    const analisis = await generateWeeklyAnalysis(nombre, cierreActualWeekNum, stats, objetivo, lang);
+    // Generate AI analysis (pass fotoUrl so vision is used when available)
+    const analisis = await generateWeeklyAnalysis(nombre, cierreActualWeekNum, stats, objetivo, lang, fotoUrl);
 
     // Save cierre to Supabase
     const statsJson = { trained: stats.trained, avgCal: stats.avgCal, avgProt: stats.avgProt, totalLogs: stats.totalLogs };
@@ -5370,13 +5370,19 @@ async function ejecutarCierreSemana() {
   }
 }
 
-async function generateWeeklyAnalysis(nombre, weekNum, stats, objetivo, language) {
+async function generateWeeklyAnalysis(nombre, weekNum, stats, objetivo, language, fotoUrl = null) {
   const isEs = language === 'es';
   const systemPrompt = isEs
     ? `Sos CoachAI, un coach personal experto. Generás análisis semanales honestos, motivadores y basados en datos reales. Escribís en español rioplatense (voseo), con energía positiva pero sin mentirle al cliente. Siempre hacés inferencias físicas científicamente válidas basadas en los datos de entrenamiento y nutrición.`
     : `You are CoachAI, an expert personal coach. You generate honest, motivating, data-based weekly analyses. Always make scientifically valid physical inferences based on training and nutrition data.`;
 
-  const userMsg = isEs
+  const photoInstructions = fotoUrl
+    ? (isEs
+        ? `\n\nFOTO DE PROGRESO ADJUNTA: Usá la imagen como contexto visual de apoyo. Podés mencionar observaciones generales sobre postura, simetría o cambios visibles. NO hagas estimaciones de porcentaje de grasa corporal, diagnósticos médicos ni afirmaciones físicas precisas. Los datos numéricos son la fuente primaria del análisis.`
+        : `\n\nPROGRESS PHOTO ATTACHED: Use the image as supporting visual context only. You may mention general observations about posture, symmetry, or visible changes. Do NOT estimate body fat percentage, make medical diagnoses, or precise physical claims. Numeric data is the primary analysis source.`)
+    : '';
+
+  const textContent = isEs
     ? `Generá el análisis de la Semana ${weekNum} del cliente ${nombre}.
 
 DATOS DE LA SEMANA:
@@ -5392,7 +5398,7 @@ Escribí un análisis de 4-5 párrafos que:
 2. Haga inferencias físicas basadas en evidencia: si mantuvo déficit y entrenó → está perdiendo grasa y se debería ver más definido respecto al inicio; si no cumplió → ser honesto pero constructivo
 3. Si es semana 2 o más, referencié el progreso acumulado desde el inicio
 4. Terminé con 2-3 objetivos concretos y alcanzables para la próxima semana
-Usá los datos reales, sé específico con los números.`
+Usá los datos reales, sé específico con los números.${photoInstructions}`
     : `Generate the Week ${weekNum} analysis for client ${nombre}.
 
 WEEK DATA:
@@ -5408,14 +5414,22 @@ Write a 4-5 paragraph analysis that:
 2. Makes evidence-based physical inferences: if they maintained deficit and trained → losing fat and should look more defined vs start; if not → be honest but constructive
 3. If week 2+, reference accumulated progress since day 1
 4. End with 2-3 concrete, achievable goals for next week
-Use the real numbers, be specific.`;
+Use the real numbers, be specific.${photoInstructions}`;
+
+  // Build multimodal content array when photo is present, plain string otherwise
+  const messageContent = fotoUrl
+    ? [
+        { type: 'image', source: { type: 'url', url: fotoUrl } },
+        { type: 'text', text: textContent }
+      ]
+    : textContent;
 
   const response = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       system: systemPrompt,
-      messages: [{ role: 'user', content: userMsg }]
+      messages: [{ role: 'user', content: messageContent }]
     })
   });
   const data = await response.json();
