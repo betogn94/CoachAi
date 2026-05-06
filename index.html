@@ -2207,16 +2207,46 @@ footer {
 .semana-body { display: none; border-top: 1px solid var(--border); }
 .semana-card.open .semana-body { display: block; }
 
-.semana-comparacion {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 10px; padding: 16px 18px 8px;
+.semana-transformacion { padding: 16px 18px 8px; }
+.semana-transf-header {
+  font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+  color: var(--accent-bright); text-transform: uppercase; margin-bottom: 12px;
 }
-.semana-comp-foto { text-align: center; }
-.semana-comp-foto img {
-  width: 100%; aspect-ratio: 3/4; object-fit: cover;
-  border-radius: 10px; margin-bottom: 4px;
+.semana-transf-grid {
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  gap: 8px; align-items: center;
 }
-.semana-comp-label { font-size: 10px; color: var(--muted); font-weight: 700; letter-spacing: 0.5px; }
+.semana-transf-vs {
+  font-size: 18px; color: var(--accent); opacity: 0.55;
+  text-align: center; padding: 0 2px; user-select: none;
+}
+.semana-transf-card {
+  background: var(--surface2);
+  border: 1px solid rgba(124,106,255,0.18);
+  border-radius: 14px; overflow: hidden; cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 0 1px rgba(124,106,255,0.05);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.semana-transf-card:hover {
+  border-color: rgba(124,106,255,0.35);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5), 0 0 18px rgba(124,106,255,0.14);
+}
+.semana-transf-card--current {
+  border-color: rgba(124,106,255,0.4);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 22px rgba(124,106,255,0.18), inset 0 2px 0 var(--accent);
+}
+.semana-transf-card--current:hover {
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5), 0 0 32px rgba(124,106,255,0.28), inset 0 2px 0 var(--accent-bright);
+}
+.semana-transf-label {
+  font-size: 9px; font-weight: 700; letter-spacing: 1px;
+  text-align: center; padding: 8px 0 5px;
+  color: var(--muted); text-transform: uppercase;
+}
+.semana-transf-card--current .semana-transf-label { color: var(--accent-bright); }
+.semana-transf-card img {
+  width: 100%; aspect-ratio: 3/4; object-fit: cover; display: block;
+}
 
 .semana-analisis {
   margin: 8px 18px 16px;
@@ -2927,7 +2957,8 @@ footer {
   .admin-profile-grid   { grid-template-columns: 1fr 1fr; }
   .medidas-grid         { grid-template-columns: 1fr; }
   .foto-gallery         { grid-template-columns: 1fr; }
-  .semana-comparacion   { grid-template-columns: 1fr; gap: 10px; }
+  .semana-transf-vs     { display: none; }
+  .semana-transf-grid   { grid-template-columns: 1fr 1fr; gap: 8px; }
   .chat-messages        { height: 45vh; min-height: 220px; }
   .welcome-back         { padding: 0 16px; }
   .cierre-stats-grid    { grid-template-columns: 1fr 1fr; }
@@ -5293,14 +5324,18 @@ async function renderSemanas() {
     // Photo comparison (only if cierre has photo and we have initial)
     if (cierre?.foto_url && fotoInicial) {
       bodyHtml += `
-        <div class="semana-comparacion">
-          <div class="semana-comp-foto">
-            <img src="${fotoInicial.url_foto}" onclick="openLightbox('${fotoInicial.url_foto}')" loading="lazy">
-            <div class="semana-comp-label">INICIO</div>
-          </div>
-          <div class="semana-comp-foto">
-            <img src="${cierre.foto_url}" onclick="openLightbox('${cierre.foto_url}')" loading="lazy">
-            <div class="semana-comp-label">SEMANA ${w}</div>
+        <div class="semana-transformacion">
+          <div class="semana-transf-header">📸 ${lang==='es'?'TRANSFORMACIÓN VISUAL':'VISUAL TRANSFORMATION'}</div>
+          <div class="semana-transf-grid">
+            <div class="semana-transf-card" onclick="openLightbox('${fotoInicial.url_foto}')">
+              <div class="semana-transf-label">INICIO</div>
+              <img src="${fotoInicial.url_foto}" alt="Foto inicial" loading="lazy">
+            </div>
+            <div class="semana-transf-vs">→</div>
+            <div class="semana-transf-card semana-transf-card--current" onclick="openLightbox('${cierre.foto_url}')">
+              <div class="semana-transf-label">SEMANA ${w}</div>
+              <img src="${cierre.foto_url}" alt="Semana ${w}" loading="lazy">
+            </div>
           </div>
         </div>`;
     }
@@ -6425,14 +6460,18 @@ function adminBuildSemanasHTML(user, diario, cierres, fotos) {
 
     if (cierre?.foto_url && fotoInicial) {
       bodyHtml += `
-        <div class="semana-comparacion">
-          <div class="semana-comp-foto">
-            <img src="${fotoInicial.url_foto}" onclick="openLightbox('${fotoInicial.url_foto}')" loading="lazy">
-            <div class="semana-comp-label">INICIO</div>
-          </div>
-          <div class="semana-comp-foto">
-            <img src="${cierre.foto_url}" onclick="openLightbox('${cierre.foto_url}')" loading="lazy">
-            <div class="semana-comp-label">SEMANA ${w}</div>
+        <div class="semana-transformacion">
+          <div class="semana-transf-header">📸 TRANSFORMACIÓN VISUAL</div>
+          <div class="semana-transf-grid">
+            <div class="semana-transf-card" onclick="openLightbox('${fotoInicial.url_foto}')">
+              <div class="semana-transf-label">INICIO</div>
+              <img src="${fotoInicial.url_foto}" alt="Foto inicial" loading="lazy">
+            </div>
+            <div class="semana-transf-vs">→</div>
+            <div class="semana-transf-card semana-transf-card--current" onclick="openLightbox('${cierre.foto_url}')">
+              <div class="semana-transf-label">SEMANA ${w}</div>
+              <img src="${cierre.foto_url}" alt="Semana ${w}" loading="lazy">
+            </div>
           </div>
         </div>`;
     }
