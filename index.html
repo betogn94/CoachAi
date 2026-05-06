@@ -4241,7 +4241,9 @@ function buildSystemPrompt() {
   const duracion = document.getElementById('f-duracion').value || 'no especificada';
   const lugar = document.getElementById('f-lugar').value || 'no especificado';
   const noDislike = document.getElementById('f-nodislike').value || 'ninguno';
-  const imc = (parseFloat(peso) / ((parseFloat(altura)/100)**2)).toFixed(1);
+  const pesoNum = parseFloat(peso);
+  const alturaNum = parseFloat(altura);
+  const imc = (pesoNum > 0 && alturaNum > 0) ? (pesoNum / ((alturaNum / 100) ** 2)).toFixed(1) : 'N/A';
 
   // Body fat % - US Navy formula
   const cuello = parseFloat(document.getElementById('f-cuello')?.value || 0);
@@ -4623,7 +4625,8 @@ async function launchCoach() {
   const nombre = document.getElementById('f-nombre').value;
   const peso = document.getElementById('f-peso').value;
   const altura = document.getElementById('f-altura').value;
-  const imc = (parseFloat(peso) / ((parseFloat(altura)/100)**2)).toFixed(1);
+  const _p = parseFloat(peso), _a = parseFloat(altura);
+  const imc = (_p > 0 && _a > 0) ? (_p / ((_a / 100) ** 2)).toFixed(1) : 'N/A';
   const objLabel = { definir: lang==='es'?'🔥 Definir':'🔥 Cut', volumen: lang==='es'?'💪 Volumen':'💪 Bulk', mantenimiento: lang==='es'?'⚖️ Mantenimiento':'⚖️ Maintain' };
   const nivLabel = { principiante: lang==='es'?'🌱 Principiante':'🌱 Beginner', intermedio: lang==='es'?'⚡ Intermedio':'⚡ Intermediate', avanzado: lang==='es'?'🔱 Avanzado':'🔱 Advanced' };
 
@@ -4806,10 +4809,23 @@ async function sendToAI(userMessage, isFirst = false) {
       })
     });
 
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || `HTTP ${response.status}`);
+    }
+
     const data = await response.json();
-    const reply = data.content?.[0]?.text || (lang === 'es' ? 'Hubo un error, intentá de nuevo.' : 'There was an error, please try again.');
+    const reply = data.content?.[0]?.text;
+    if (!reply) throw new Error('Empty response from API');
     removeTyping();
     addMessage(formatResponse(reply), 'coach');
+    // When isFirst, also push the synthetic user opener so conversationHistory
+    // always starts with role:'user' and alternates correctly for Anthropic.
+    if (isFirst) {
+      const opener = lang === 'es' ? '¡Hola! Empezamos.' : 'Hello! Let\'s start.';
+      conversationHistory.push({ role: 'user', content: opener });
+      todayConversation.push({ role: 'user', content: opener });
+    }
     conversationHistory.push({ role: 'assistant', content: reply });
     todayConversation.push({ role: 'assistant', content: reply });
     saveChatToSupabase(chatMessages, todayConversation).catch(console.error);
