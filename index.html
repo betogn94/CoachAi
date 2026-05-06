@@ -5095,7 +5095,7 @@ function previewFotoInicial(event) {
   document.getElementById('foto-status').textContent = '✓ Foto lista para subir al comenzar';
 }
 
-async function uploadFoto(file, label = '') {
+async function uploadFoto(file, tipo = 'progreso') {
   if (!sbClient || !currentUser) return null;
   const blob = await compressImage(file);
   const fecha = getTodayKey();
@@ -5103,7 +5103,7 @@ async function uploadFoto(file, label = '') {
   const { error: upErr } = await sbClient.storage.from('progress-photos').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
   if (upErr) throw upErr;
   const { data: { publicUrl } } = sbClient.storage.from('progress-photos').getPublicUrl(path);
-  const { error: dbErr } = await sbClient.from('fotos_progreso').insert([{ usuario_id: currentUser.id, fecha, url: publicUrl, storage_path: path, nota: label }]);
+  const { error: dbErr } = await sbClient.from('fotos_progreso').insert([{ usuario_id: currentUser.id, fecha, url_foto: publicUrl, tipo }]);
   if (dbErr) throw dbErr;
   return publicUrl;
 }
@@ -5114,7 +5114,7 @@ async function uploadFotoInicial() {
   if (!input?.files[0]) return;
   try {
     status.textContent = 'Subiendo foto...';
-    await uploadFoto(input.files[0], 'Foto inicial');
+    await uploadFoto(input.files[0], 'inicio');
     status.textContent = '✓ Foto inicial guardada';
   } catch(e) {
     console.error(e);
@@ -5128,7 +5128,7 @@ async function subirFotoDesdeDash(event) {
   const status = document.getElementById('dash-foto-status');
   try {
     status.textContent = 'Subiendo foto...';
-    await uploadFoto(file);
+    await uploadFoto(file, 'progreso');
     status.textContent = '✓ Foto guardada';
     await loadAndRenderFotos();
   } catch(e) {
@@ -5163,16 +5163,18 @@ function renderFotos(fotos) {
   gallery.style.display = 'grid';
 
   gallery.innerHTML = fotos.map(f => `
-    <div class="foto-item" onclick="openLightbox('${f.url}')">
-      <img src="${f.url}" alt="Progreso ${f.fecha}" loading="lazy">
+    <div class="foto-item" onclick="openLightbox('${f.url_foto}')">
+      <img src="${f.url_foto}" alt="Progreso ${f.fecha}" loading="lazy">
       <div class="foto-item-date">${new Date(f.fecha + 'T12:00:00').toLocaleDateString(lang==='es'?'es-AR':'en-US', {day:'numeric',month:'short',year:'numeric'})}</div>
     </div>
   `).join('');
 
   if (fotos.length >= 2) {
+    const inicial = fotos.find(f => f.tipo === 'inicio') || fotos[0];
+    const reciente = fotos[fotos.length - 1];
     comparacion.style.display = 'block';
-    document.getElementById('foto-comp-inicial').src = fotos[0].url;
-    document.getElementById('foto-comp-reciente').src = fotos[fotos.length - 1].url;
+    document.getElementById('foto-comp-inicial').src = inicial.url_foto;
+    document.getElementById('foto-comp-reciente').src = reciente.url_foto;
   } else {
     comparacion.style.display = 'none';
   }
@@ -5246,7 +5248,7 @@ async function renderSemanas() {
   ]);
   cierresSemanales = cierres;
 
-  const fotoInicial = fotos.find(f => f.nota === 'Foto inicial') || fotos[0] || null;
+  const fotoInicial = fotos.find(f => f.tipo === 'inicio') || fotos[0] || null;
 
   const weeks = [];
   for (let w = currentWeek; w >= 1; w--) weeks.push(w);
@@ -5276,7 +5278,7 @@ async function renderSemanas() {
       bodyHtml += `
         <div class="semana-comparacion">
           <div class="semana-comp-foto">
-            <img src="${fotoInicial.url}" onclick="openLightbox('${fotoInicial.url}')" loading="lazy">
+            <img src="${fotoInicial.url_foto}" onclick="openLightbox('${fotoInicial.url_foto}')" loading="lazy">
             <div class="semana-comp-label">INICIO</div>
           </div>
           <div class="semana-comp-foto">
@@ -5404,16 +5406,26 @@ async function ejecutarCierreSemana() {
   try {
     const fotoInput = document.getElementById('cierre-foto-input');
     if (fotoInput.files[0]) {
-      fotoUrl = await uploadFoto(fotoInput.files[0], `Semana ${cierreActualWeekNum}`);
+      fotoUrl = await uploadFoto(fotoInput.files[0], 'semana');
     }
   } catch(e) {
     console.error('Photo upload failed, continuing without:', e);
   }
 
+  // Load initial photo for visual comparison (fallback to earliest if untagged)
+  let fotoInicialUrl = null;
+  try {
+    const fotos = await loadFotosProgreso();
+    const inicial = fotos.find(f => f.tipo === 'inicio') || fotos[0] || null;
+    fotoInicialUrl = inicial?.url_foto || null;
+  } catch(e) {
+    console.error('Could not load initial photo, continuing without comparison:', e);
+  }
+
   // Generate AI analysis — this is the only step that determines success/error UI
   let analisis = null;
   try {
-    analisis = await generateWeeklyAnalysis(nombre, cierreActualWeekNum, stats, objetivo, lang, fotoUrl);
+    analisis = await generateWeeklyAnalysis(nombre, cierreActualWeekNum, stats, objetivo, lang, fotoUrl, fotoInicialUrl);
   } catch(e) {
     console.error('Weekly analysis generation failed:', e);
   }
@@ -5446,17 +5458,22 @@ async function ejecutarCierreSemana() {
   }
 }
 
-async function generateWeeklyAnalysis(nombre, weekNum, stats, objetivo, language, fotoUrl = null) {
+async function generateWeeklyAnalysis(nombre, weekNum, stats, objetivo, language, fotoUrl = null, fotoInicialUrl = null) {
   const isEs = language === 'es';
   const systemPrompt = isEs
     ? `Sos CoachAI, un coach personal experto. Generás análisis semanales honestos, motivadores y basados en datos reales. Escribís en español rioplatense (voseo), con energía positiva pero sin mentirle al cliente. Siempre hacés inferencias físicas científicamente válidas basadas en los datos de entrenamiento y nutrición.`
     : `You are CoachAI, an expert personal coach. You generate honest, motivating, data-based weekly analyses. Always make scientifically valid physical inferences based on training and nutrition data.`;
 
-  const photoInstructions = fotoUrl
+  const hasComparison = fotoUrl && fotoInicialUrl && fotoUrl !== fotoInicialUrl;
+  const photoInstructions = hasComparison
     ? (isEs
-        ? `\n\nFOTO DE PROGRESO ADJUNTA: Usá la imagen como contexto visual de apoyo. Podés mencionar observaciones generales sobre postura, simetría o cambios visibles. NO hagas estimaciones de porcentaje de grasa corporal, diagnósticos médicos ni afirmaciones físicas precisas. Los datos numéricos son la fuente primaria del análisis.`
-        : `\n\nPROGRESS PHOTO ATTACHED: Use the image as supporting visual context only. You may mention general observations about posture, symmetry, or visible changes. Do NOT estimate body fat percentage, make medical diagnoses, or precise physical claims. Numeric data is the primary analysis source.`)
-    : '';
+        ? `\n\nDOS FOTOS ADJUNTAS PARA COMPARACIÓN: la PRIMERA es la foto INICIAL (día 1 del proceso) y la SEGUNDA es la foto ACTUAL (semana ${weekNum}). Compará ambas y comentá cambios visibles en postura, definición, simetría o composición general. NO hagas estimaciones de porcentaje de grasa corporal ni diagnósticos médicos. Los datos numéricos siguen siendo la fuente primaria del análisis; las fotos son contexto visual de apoyo.`
+        : `\n\nTWO PHOTOS ATTACHED FOR COMPARISON: the FIRST is the INITIAL photo (day 1) and the SECOND is the CURRENT photo (week ${weekNum}). Compare both and comment on visible changes in posture, definition, symmetry, or overall composition. Do NOT estimate body fat percentage or make medical diagnoses. Numeric data remains the primary analysis source; photos are supporting visual context.`)
+    : (fotoUrl || fotoInicialUrl)
+      ? (isEs
+          ? `\n\nFOTO DE PROGRESO ADJUNTA: Usá la imagen como contexto visual de apoyo. Podés mencionar observaciones generales sobre postura, simetría o cambios visibles. NO hagas estimaciones de porcentaje de grasa corporal, diagnósticos médicos ni afirmaciones físicas precisas. Los datos numéricos son la fuente primaria del análisis.`
+          : `\n\nPROGRESS PHOTO ATTACHED: Use the image as supporting visual context only. You may mention general observations about posture, symmetry, or visible changes. Do NOT estimate body fat percentage, make medical diagnoses, or precise physical claims. Numeric data is the primary analysis source.`)
+      : '';
 
   const textContent = isEs
     ? `Generá el análisis de la Semana ${weekNum} del cliente ${nombre}.
@@ -5492,13 +5509,24 @@ Write a 4-5 paragraph analysis that:
 4. End with 2-3 concrete, achievable goals for next week
 Use the real numbers, be specific.${photoInstructions}`;
 
-  // Build multimodal content array when photo is present, plain string otherwise
-  const messageContent = fotoUrl
-    ? [
-        { type: 'image', source: { type: 'url', url: fotoUrl } },
-        { type: 'text', text: textContent }
-      ]
-    : textContent;
+  // Build multimodal content: include initial + current photo when both exist
+  // for comparison; otherwise include whichever single photo is available; or
+  // plain text when none.
+  let messageContent;
+  if (hasComparison) {
+    messageContent = [
+      { type: 'image', source: { type: 'url', url: fotoInicialUrl } },
+      { type: 'image', source: { type: 'url', url: fotoUrl } },
+      { type: 'text', text: textContent }
+    ];
+  } else if (fotoUrl || fotoInicialUrl) {
+    messageContent = [
+      { type: 'image', source: { type: 'url', url: fotoUrl || fotoInicialUrl } },
+      { type: 'text', text: textContent }
+    ];
+  } else {
+    messageContent = textContent;
+  }
 
   const response = await fetch('/api/chat', {
     method: 'POST',
@@ -6357,7 +6385,7 @@ function adminBuildPlanesHTML(planes) {
 function adminBuildSemanasHTML(user, diario, cierres, fotos) {
   const createdAt = user.created_at || new Date().toISOString();
   const currentWeek = getWeekNum(createdAt);
-  const fotoInicial = fotos.find(f => f.nota === 'Foto inicial') || fotos[0] || null;
+  const fotoInicial = fotos.find(f => f.tipo === 'inicio') || fotos[0] || null;
 
   if (currentWeek < 1) return '<div style="padding:20px;color:var(--muted)">Sin semanas registradas.</div>';
 
@@ -6382,7 +6410,7 @@ function adminBuildSemanasHTML(user, diario, cierres, fotos) {
       bodyHtml += `
         <div class="semana-comparacion">
           <div class="semana-comp-foto">
-            <img src="${fotoInicial.url}" onclick="openLightbox('${fotoInicial.url}')" loading="lazy">
+            <img src="${fotoInicial.url_foto}" onclick="openLightbox('${fotoInicial.url_foto}')" loading="lazy">
             <div class="semana-comp-label">INICIO</div>
           </div>
           <div class="semana-comp-foto">
