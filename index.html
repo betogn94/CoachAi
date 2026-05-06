@@ -5393,24 +5393,43 @@ async function ejecutarCierreSemana() {
   btn.disabled = true;
   btn.textContent = lang === 'es' ? 'Analizando...' : 'Analyzing...';
 
-  try {
-    const createdAt = currentUser.created_at || new Date().toISOString();
-    const range = getWeekRange(createdAt, cierreActualWeekNum);
-    const stats = computeWeekStats(recentDiario, range);
-    const nombre = document.getElementById('f-nombre').value;
-    const objetivo = selections.objetivo || '';
+  const createdAt = currentUser.created_at || new Date().toISOString();
+  const range = getWeekRange(createdAt, cierreActualWeekNum);
+  const stats = computeWeekStats(recentDiario, range);
+  const nombre = document.getElementById('f-nombre').value;
+  const objetivo = selections.objetivo || '';
 
-    // Upload photo if provided
-    let fotoUrl = null;
+  // Upload photo if provided (failure here doesn't block analysis)
+  let fotoUrl = null;
+  try {
     const fotoInput = document.getElementById('cierre-foto-input');
     if (fotoInput.files[0]) {
       fotoUrl = await uploadFoto(fotoInput.files[0], `Semana ${cierreActualWeekNum}`);
     }
+  } catch(e) {
+    console.error('Photo upload failed, continuing without:', e);
+  }
 
-    // Generate AI analysis (pass fotoUrl so vision is used when available)
-    const analisis = await generateWeeklyAnalysis(nombre, cierreActualWeekNum, stats, objetivo, lang, fotoUrl);
+  // Generate AI analysis — this is the only step that determines success/error UI
+  let analisis = null;
+  try {
+    analisis = await generateWeeklyAnalysis(nombre, cierreActualWeekNum, stats, objetivo, lang, fotoUrl);
+  } catch(e) {
+    console.error('Weekly analysis generation failed:', e);
+  }
 
-    // Save cierre to Supabase
+  if (!analisis) {
+    btn.disabled = false;
+    btn.textContent = lang === 'es' ? 'Error — intentá de nuevo' : 'Error — try again';
+    return;
+  }
+
+  // SUCCESS — show analysis. Subsequent persistence/refresh failures must not flip UI to error.
+  result.textContent = analisis;
+  result.style.display = 'block';
+  btn.textContent = lang === 'es' ? '✓ Análisis guardado' : '✓ Analysis saved';
+
+  try {
     const statsJson = { trained: stats.trained, avgCal: stats.avgCal, avgProt: stats.avgProt, totalLogs: stats.totalLogs };
     await sbClient.from('cierres_semanales').upsert([{
       usuario_id: currentUser.id,
@@ -5421,17 +5440,9 @@ async function ejecutarCierreSemana() {
       analisis,
       stats: statsJson
     }], { onConflict: 'usuario_id,semana_num' });
-
-    result.textContent = analisis;
-    result.style.display = 'block';
-    btn.textContent = lang === 'es' ? '✓ Análisis guardado' : '✓ Analysis saved';
-
-    // Refresh semanas
     await renderSemanas();
   } catch(e) {
-    console.error(e);
-    btn.disabled = false;
-    btn.textContent = lang === 'es' ? 'Error — intentá de nuevo' : 'Error — try again';
+    console.error('Post-analysis save/refresh failed (analysis still shown):', e);
   }
 }
 
@@ -5498,7 +5509,7 @@ Use the real numbers, be specific.${photoInstructions}`;
     })
   });
   const data = await response.json();
-  return data.content?.[0]?.text || (isEs ? 'No se pudo generar el análisis.' : 'Could not generate analysis.');
+  return data.content?.[0]?.text || null;
 }
 
 function hideAllSections() {
