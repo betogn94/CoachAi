@@ -4851,7 +4851,8 @@ async function sendToAI(userMessage, isFirst = false) {
   } catch (err) {
     console.error('[CoachAI] sendToAI error:', err?.message || err);
     removeTyping();
-    addMessage(lang === 'es' ? '❌ Error de conexión. Intentá de nuevo.' : '❌ Connection error. Please try again.', 'coach');
+    // DEBUG: show actual error so we can diagnose — remove once root cause is fixed
+    addMessage(`❌ DEBUG: ${err?.message || 'unknown error'}`, 'coach');
   }
 
   sendBtn.disabled = false;
