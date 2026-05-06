@@ -4849,6 +4849,7 @@ async function sendToAI(userMessage, isFirst = false) {
       // Keep flag if it still looks like the user is mid-flow asking for the plan.
     }
   } catch (err) {
+    console.error('[CoachAI] sendToAI error:', err?.message || err);
     removeTyping();
     addMessage(lang === 'es' ? '❌ Error de conexión. Intentá de nuevo.' : '❌ Connection error. Please try again.', 'coach');
   }
