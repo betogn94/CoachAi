@@ -6101,32 +6101,46 @@ function renderPerfilHero(stats) {
   document.getElementById('perfil-meta-adherencia-label').textContent = isEs ? 'Adherencia global' : 'Overall adherence';
 }
 
-function renderPerfilTransform(fotos) {
+function renderPerfilTransform(fotos, cierres) {
   const empty = document.getElementById('perfil-transform-empty');
   const scroll = document.getElementById('perfil-transform-scroll');
   const isEs = lang === 'es';
 
-  if (!fotos || fotos.length === 0) {
+  // INICIO: from fotos_progreso (independent of weekly cierres).
+  const inicio = (fotos || []).find(f => f.tipo === 'inicio');
+
+  // SEMANAS: source of truth = cierres_semanales. A weekly photo only
+  // appears if its cierre row still exists. Orphan rows in fotos_progreso
+  // (e.g. cierre deleted manually) are intentionally ignored.
+  const weekly = (cierres || [])
+    .filter(c => c.foto_url)
+    .sort((a, b) => a.semana_num - b.semana_num)
+    .map(c => ({
+      url_foto: c.foto_url,
+      fecha: c.fecha_fin || c.fecha_inicio,
+      semana_num: c.semana_num,
+    }));
+
+  const ordered = [];
+  if (inicio) ordered.push({ ...inicio, _kind: 'inicio' });
+  weekly.forEach(w => ordered.push({ ...w, _kind: 'semana' }));
+
+  if (ordered.length === 0) {
     empty.style.display = 'block';
     scroll.style.display = 'none';
     scroll.innerHTML = '';
     return;
   }
 
-  // Order: inicio first, then weekly photos chronologically
-  const inicio = fotos.find(f => f.tipo === 'inicio');
-  const others = fotos.filter(f => f.tipo !== 'inicio');
-  const ordered = inicio ? [inicio, ...others] : fotos;
-
   empty.style.display = 'none';
   scroll.style.display = 'flex';
   const lastIdx = ordered.length - 1;
   scroll.innerHTML = ordered.map((f, idx) => {
-    const isInicio = f.tipo === 'inicio' || (!inicio && idx === 0);
+    const isInicio = f._kind === 'inicio';
     const isCurrent = idx === lastIdx && ordered.length > 1 && !isInicio;
     const label = isInicio
       ? (isEs?'INICIO':'START')
-      : `${isEs?'SEM':'W'} ${idx}`;
+      : `${isEs?'SEM':'W'} ${f.semana_num}`;
     const date = new Date(f.fecha + 'T12:00:00').toLocaleDateString(isEs?'es-AR':'en-US', { day:'numeric', month:'short' });
     const badge = isCurrent
       ? `<div class="perfil-transform-badge">${isEs?'ACTUAL':'CURRENT'}</div>`
@@ -6204,7 +6218,7 @@ async function renderPerfil() {
     loadCierresSemanales(),
   ]);
   renderPerfilHero(stats);
-  renderPerfilTransform(fotos);
+  renderPerfilTransform(fotos, cierres);
   renderPerfilStats(stats);
   renderPerfilAnalisis(cierres);
 }
