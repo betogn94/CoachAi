@@ -2122,6 +2122,95 @@ footer {
   color: var(--text);
   margin: 24px 0 12px;
 }
+
+/* Admin: INICIO vs ACTUAL transformation card */
+.admin-transform-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 14px;
+}
+.admin-transform-card {
+  position: relative;
+  background: var(--surface2);
+  border: 1px solid rgba(124,106,255,0.15);
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+}
+.admin-transform-card:hover {
+  border-color: rgba(124,106,255,0.4);
+  transform: translateY(-2px);
+}
+.admin-transform-card.is-inicio {
+  border-color: rgba(0,229,176,0.28);
+}
+.admin-transform-card.is-current {
+  border-color: rgba(124,106,255,0.5);
+  box-shadow:
+    0 0 0 1px rgba(124,106,255,0.22),
+    0 8px 26px rgba(124,106,255,0.18),
+    0 0 22px rgba(124,106,255,0.14);
+}
+.admin-transform-card img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  display: block;
+}
+.admin-transform-meta {
+  padding: 10px 12px 12px;
+  text-align: center;
+}
+.admin-transform-label {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: var(--accent-bright);
+}
+.admin-transform-card.is-inicio .admin-transform-label { color: var(--accent3); }
+.admin-transform-card.is-current .admin-transform-label {
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.admin-transform-date {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 3px;
+  letter-spacing: 0.4px;
+}
+.admin-transform-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 3px 9px;
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  color: #fff;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(124,106,255,0.45);
+  z-index: 1;
+}
+.admin-transform-empty-card {
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  border-style: dashed;
+  border-color: var(--border);
+}
+.admin-transform-empty-card:hover { transform: none; border-color: var(--border); }
+.admin-transform-empty-text {
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  color: var(--muted);
+}
 .admin-settings-footer {
   display: flex;
   align-items: center;
@@ -7019,9 +7108,55 @@ function adminBuildDetailHTML(user, diario, cierres, fotos, planes = []) {
       </div>
     </div>`;
 
+  const transformHTML = adminBuildTransformacionHTML(fotos, cierres);
   const planesHTML  = adminBuildPlanesHTML(planes);
   const semanasHTML = adminBuildSemanasHTML(user, diario, cierres, fotos);
-  return actionBar + profileHTML + planesHTML + semanasHTML;
+  return actionBar + profileHTML + transformHTML + planesHTML + semanasHTML;
+}
+
+// Compact INICIO vs ACTUAL comparison for the coach.
+// Latest photo derives from cierres_semanales (source of truth) — orphan
+// fotos_progreso rows are ignored, mirroring the Perfil timeline logic.
+function adminBuildTransformacionHTML(fotos, cierres) {
+  const inicio = (fotos || []).find(f => f.tipo === 'inicio');
+  const latestCierre = (cierres || [])
+    .filter(c => c.foto_url)
+    .sort((a, b) => b.semana_num - a.semana_num)[0];
+
+  const fmt = d => d ? formatDateShort(d) : '';
+
+  const inicioCard = inicio
+    ? `<div class="admin-transform-card is-inicio" onclick="openLightbox('${inicio.url_foto}')">
+         <img src="${inicio.url_foto}" alt="Inicio" loading="lazy">
+         <div class="admin-transform-meta">
+           <div class="admin-transform-label">INICIO</div>
+           <div class="admin-transform-date">${fmt(inicio.fecha)}</div>
+         </div>
+       </div>`
+    : `<div class="admin-transform-card admin-transform-empty-card">
+         <div class="admin-transform-empty-text">Sin foto inicial</div>
+       </div>`;
+
+  const actualCard = latestCierre
+    ? `<div class="admin-transform-card is-current" onclick="openLightbox('${latestCierre.foto_url}')">
+         <div class="admin-transform-badge">ACTUAL</div>
+         <img src="${latestCierre.foto_url}" alt="Semana ${latestCierre.semana_num}" loading="lazy">
+         <div class="admin-transform-meta">
+           <div class="admin-transform-label">SEM ${latestCierre.semana_num}</div>
+           <div class="admin-transform-date">${fmt(latestCierre.fecha_fin || latestCierre.fecha_inicio)}</div>
+         </div>
+       </div>`
+    : `<div class="admin-transform-card admin-transform-empty-card">
+         <div class="admin-transform-empty-text">Sin foto semanal</div>
+       </div>`;
+
+  return `<div class="admin-profile-card coach-card" style="margin-bottom:16px">
+    <div class="admin-section-subtitle">📸 TRANSFORMACIÓN VISUAL</div>
+    <div class="admin-transform-grid">
+      ${inicioCard}
+      ${actualCard}
+    </div>
+  </div>`;
 }
 
 function adminBuildPlanesHTML(planes) {
@@ -7047,7 +7182,7 @@ function adminBuildPlanesHTML(planes) {
       }).join('');
 
   return `<div class="admin-profile-card coach-card" style="margin-bottom:16px">
-    <div class="admin-section-subtitle">PLANES SEMANALES COACHÁI</div>
+    <div class="admin-section-subtitle">PLANES SEMANALES COACH AI</div>
     <div style="margin-top:10px">${inner}</div>
   </div>`;
 }
