@@ -849,42 +849,98 @@ footer {
   display: none;
 }
 .perfil-hero {
-  padding: 28px 26px 24px;
+  position: relative;
+  padding: 36px 28px 30px;
+  overflow: hidden;
 }
+.perfil-hero::before {
+  content: '';
+  position: absolute;
+  top: -60%;
+  right: -20%;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(124,106,255,0.18), transparent 70%);
+  pointer-events: none;
+  filter: blur(8px);
+}
+.perfil-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -50%;
+  left: -10%;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(0,229,176,0.10), transparent 70%);
+  pointer-events: none;
+  filter: blur(10px);
+}
+.perfil-hero > * { position: relative; z-index: 1; }
+
 .perfil-hero-name {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 30px;
-  letter-spacing: 3px;
+  font-size: 46px;
+  line-height: 1;
+  letter-spacing: 4px;
+  background: linear-gradient(135deg, #ffffff 0%, var(--accent-bright) 55%, var(--accent3) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 14px;
+  text-shadow: 0 0 30px rgba(124,106,255,0.15);
+}
+
+/* Objective premium chip */
+.perfil-hero-goal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  margin-bottom: 26px;
+  background: linear-gradient(135deg, rgba(124,106,255,0.16), rgba(0,229,176,0.10));
+  border: 1px solid rgba(124,106,255,0.35);
+  border-radius: 999px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--accent-bright);
+  box-shadow:
+    0 4px 14px rgba(124,106,255,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  white-space: nowrap;
+}
+
+.perfil-hero-meta {
+  display: flex;
+  gap: 36px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.perfil-hero-meta-item { display: flex; flex-direction: column; }
+.perfil-hero-meta-item .ph-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  letter-spacing: 2px;
   background: linear-gradient(135deg, var(--accent-bright), var(--accent3));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 4px;
-}
-.perfil-hero-goal {
-  font-size: 13px;
-  color: var(--muted);
-  letter-spacing: 0.4px;
-  margin-bottom: 18px;
-}
-.perfil-hero-meta {
-  display: flex;
-  gap: 28px;
-  flex-wrap: wrap;
-}
-.perfil-hero-meta-item .ph-num {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 24px;
-  letter-spacing: 1.5px;
-  color: var(--accent-bright);
   line-height: 1;
+}
+.perfil-hero-meta-item.is-hero .ph-num {
+  font-size: 56px;
+  letter-spacing: 2.5px;
+  text-shadow: 0 0 28px rgba(124,106,255,0.25);
 }
 .perfil-hero-meta-item .ph-label {
   font-size: 10px;
-  letter-spacing: 1.4px;
+  letter-spacing: 1.6px;
   color: var(--muted);
   text-transform: uppercase;
-  margin-top: 4px;
+  margin-top: 8px;
+  font-weight: 600;
 }
 
 /* Visual transformation timeline */
@@ -908,6 +964,7 @@ footer {
   border-radius: 3px;
 }
 .perfil-transform-card {
+  position: relative;
   flex: 0 0 160px;
   scroll-snap-align: start;
   background: var(--surface);
@@ -915,7 +972,7 @@ footer {
   border-radius: 14px;
   overflow: hidden;
   cursor: pointer;
-  transition: border-color 0.2s, transform 0.2s;
+  transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
 }
 .perfil-transform-card:hover {
   border-color: rgba(124,106,255,0.4);
@@ -924,6 +981,20 @@ footer {
 .perfil-transform-card.is-inicio {
   border-color: rgba(0,229,176,0.3);
 }
+.perfil-transform-card.is-current {
+  border-color: rgba(124,106,255,0.55);
+  box-shadow:
+    0 0 0 1px rgba(124,106,255,0.25),
+    0 8px 28px rgba(124,106,255,0.22),
+    0 0 22px rgba(124,106,255,0.18);
+}
+.perfil-transform-card.is-current:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 0 0 1px rgba(124,106,255,0.35),
+    0 12px 34px rgba(124,106,255,0.3),
+    0 0 28px rgba(124,106,255,0.22);
+}
 .perfil-transform-card img {
   width: 100%;
   height: 200px;
@@ -931,7 +1002,7 @@ footer {
   display: block;
 }
 .perfil-transform-meta {
-  padding: 8px 10px 10px;
+  padding: 9px 10px 11px;
   text-align: center;
 }
 .perfil-transform-label {
@@ -941,6 +1012,25 @@ footer {
   color: var(--accent-bright);
 }
 .perfil-transform-card.is-inicio .perfil-transform-label { color: var(--accent3); }
+.perfil-transform-card.is-current .perfil-transform-label {
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.perfil-transform-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 3px 9px;
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  color: #fff;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(124,106,255,0.45);
+}
 .perfil-transform-date {
   font-size: 10px;
   color: var(--muted);
@@ -952,31 +1042,59 @@ footer {
 .perfil-stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  padding: 18px 22px 22px;
+  gap: 14px;
+  padding: 20px 22px 24px;
 }
 .perfil-stat {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px 12px;
+  position: relative;
+  background:
+    radial-gradient(circle at top, rgba(124,106,255,0.07), transparent 70%),
+    var(--surface);
+  border: 1px solid rgba(124,106,255,0.14);
+  border-radius: 14px;
+  padding: 22px 12px 18px;
   text-align: center;
-  transition: border-color 0.2s;
+  overflow: hidden;
+  transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+  box-shadow:
+    0 2px 10px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.03);
 }
-.perfil-stat:hover { border-color: rgba(124,106,255,0.3); }
+.perfil-stat::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124,106,255,0.5), transparent);
+  opacity: 0.6;
+}
+.perfil-stat:hover {
+  border-color: rgba(124,106,255,0.4);
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 22px rgba(0,0,0,0.4),
+    0 0 18px rgba(124,106,255,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+}
 .perfil-stat-num {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 26px;
-  letter-spacing: 1.5px;
-  color: var(--accent-bright);
+  font-size: 38px;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #ffffff 0%, var(--accent-bright) 70%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   line-height: 1;
+  text-shadow: 0 0 24px rgba(124,106,255,0.18);
 }
 .perfil-stat-label {
   font-size: 10px;
-  letter-spacing: 1.2px;
+  letter-spacing: 1.4px;
   color: var(--muted);
   text-transform: uppercase;
-  margin-top: 6px;
+  margin-top: 10px;
+  font-weight: 500;
+  opacity: 0.85;
 }
 
 /* Last AI analysis preview */
@@ -1045,10 +1163,14 @@ footer {
 
 @media (max-width: 720px) {
   .perfil-wrapper { padding: 0 20px; }
-  .perfil-hero { padding: 22px 20px 20px; }
-  .perfil-hero-name { font-size: 24px; }
-  .perfil-hero-meta { gap: 18px; }
+  .perfil-hero { padding: 28px 22px 24px; }
+  .perfil-hero-name { font-size: 34px; letter-spacing: 3px; margin-bottom: 12px; }
+  .perfil-hero-goal { margin-bottom: 22px; padding: 6px 14px; font-size: 11px; }
+  .perfil-hero-meta { gap: 24px; }
+  .perfil-hero-meta-item.is-hero .ph-num { font-size: 44px; }
+  .perfil-hero-meta-item .ph-num { font-size: 26px; }
   .perfil-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .perfil-stat-num { font-size: 32px; }
   .perfil-transform-card { flex: 0 0 140px; }
   .perfil-transform-card img { height: 170px; }
 }
@@ -3550,13 +3672,13 @@ footer {
       <div class="perfil-hero-name" id="perfil-name">—</div>
       <div class="perfil-hero-goal" id="perfil-goal">—</div>
       <div class="perfil-hero-meta">
+        <div class="perfil-hero-meta-item is-hero">
+          <div class="ph-num" id="perfil-meta-adherencia">–</div>
+          <div class="ph-label" id="perfil-meta-adherencia-label">Adherencia global</div>
+        </div>
         <div class="perfil-hero-meta-item">
           <div class="ph-num" id="perfil-meta-weeks">–</div>
           <div class="ph-label" id="perfil-meta-weeks-label">Semanas activas</div>
-        </div>
-        <div class="perfil-hero-meta-item">
-          <div class="ph-num" id="perfil-meta-adherencia">–</div>
-          <div class="ph-label" id="perfil-meta-adherencia-label">Adherencia global</div>
         </div>
       </div>
     </div>
@@ -5998,14 +6120,21 @@ function renderPerfilTransform(fotos) {
 
   empty.style.display = 'none';
   scroll.style.display = 'flex';
+  const lastIdx = ordered.length - 1;
   scroll.innerHTML = ordered.map((f, idx) => {
     const isInicio = f.tipo === 'inicio' || (!inicio && idx === 0);
+    const isCurrent = idx === lastIdx && ordered.length > 1 && !isInicio;
     const label = isInicio
       ? (isEs?'INICIO':'START')
       : `${isEs?'SEM':'W'} ${idx}`;
     const date = new Date(f.fecha + 'T12:00:00').toLocaleDateString(isEs?'es-AR':'en-US', { day:'numeric', month:'short' });
+    const badge = isCurrent
+      ? `<div class="perfil-transform-badge">${isEs?'ACTUAL':'CURRENT'}</div>`
+      : '';
+    const cls = isInicio ? 'is-inicio' : (isCurrent ? 'is-current' : '');
     return `
-      <div class="perfil-transform-card ${isInicio ? 'is-inicio' : ''}" onclick="openLightbox('${f.url_foto}')">
+      <div class="perfil-transform-card ${cls}" onclick="openLightbox('${f.url_foto}')">
+        ${badge}
         <img src="${f.url_foto}" alt="${label}" loading="lazy">
         <div class="perfil-transform-meta">
           <div class="perfil-transform-label">${label}</div>
@@ -6013,6 +6142,9 @@ function renderPerfilTransform(fotos) {
         </div>
       </div>`;
   }).join('');
+
+  // Auto-scroll to the most recent photo so it's visible right away
+  requestAnimationFrame(() => { scroll.scrollLeft = scroll.scrollWidth; });
 }
 
 function renderPerfilStats(stats) {
