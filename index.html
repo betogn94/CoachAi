@@ -841,6 +841,218 @@ footer {
 
 
 /* =================== DASHBOARD =================== */
+/* =================== PERFIL (premium identity hub) =================== */
+.perfil-wrapper {
+  max-width: 860px;
+  margin: 0 auto 48px;
+  padding: 0 36px;
+  display: none;
+}
+.perfil-hero {
+  padding: 28px 26px 24px;
+}
+.perfil-hero-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 30px;
+  letter-spacing: 3px;
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 4px;
+}
+.perfil-hero-goal {
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0.4px;
+  margin-bottom: 18px;
+}
+.perfil-hero-meta {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+.perfil-hero-meta-item .ph-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  letter-spacing: 1.5px;
+  color: var(--accent-bright);
+  line-height: 1;
+}
+.perfil-hero-meta-item .ph-label {
+  font-size: 10px;
+  letter-spacing: 1.4px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+/* Visual transformation timeline */
+.perfil-transform-empty {
+  padding: 30px 22px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+.perfil-transform-scroll {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 18px 22px 22px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.perfil-transform-scroll::-webkit-scrollbar { height: 6px; }
+.perfil-transform-scroll::-webkit-scrollbar-thumb {
+  background: rgba(124,106,255,0.25);
+  border-radius: 3px;
+}
+.perfil-transform-card {
+  flex: 0 0 160px;
+  scroll-snap-align: start;
+  background: var(--surface);
+  border: 1px solid rgba(124,106,255,0.15);
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.perfil-transform-card:hover {
+  border-color: rgba(124,106,255,0.4);
+  transform: translateY(-2px);
+}
+.perfil-transform-card.is-inicio {
+  border-color: rgba(0,229,176,0.3);
+}
+.perfil-transform-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  display: block;
+}
+.perfil-transform-meta {
+  padding: 8px 10px 10px;
+  text-align: center;
+}
+.perfil-transform-label {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: var(--accent-bright);
+}
+.perfil-transform-card.is-inicio .perfil-transform-label { color: var(--accent3); }
+.perfil-transform-date {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+  letter-spacing: 0.4px;
+}
+
+/* Lifetime stats grid (compact, no charts) */
+.perfil-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 18px 22px 22px;
+}
+.perfil-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 12px;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+.perfil-stat:hover { border-color: rgba(124,106,255,0.3); }
+.perfil-stat-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26px;
+  letter-spacing: 1.5px;
+  color: var(--accent-bright);
+  line-height: 1;
+}
+.perfil-stat-label {
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+
+/* Last AI analysis preview */
+.perfil-analisis-preview {
+  padding: 18px 22px 20px;
+}
+.perfil-analisis-empty {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+  padding: 12px 0;
+}
+.perfil-analisis-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 14px;
+  opacity: 0.92;
+}
+.btn-perfil-ver-analisis {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(124,106,255,0.08);
+  border: 1px solid rgba(124,106,255,0.3);
+  border-radius: 8px;
+  color: var(--accent-bright);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-perfil-ver-analisis:hover {
+  background: rgba(124,106,255,0.15);
+  border-color: var(--accent-bright);
+}
+
+/* Edit data link (subtle, at the bottom) */
+.perfil-edit-row {
+  text-align: center;
+  margin-top: 8px;
+  padding: 6px 0 4px;
+}
+.btn-perfil-editar {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+}
+.btn-perfil-editar:hover {
+  color: var(--accent-bright);
+  background: rgba(124,106,255,0.06);
+}
+
+@media (max-width: 720px) {
+  .perfil-wrapper { padding: 0 20px; }
+  .perfil-hero { padding: 22px 20px 20px; }
+  .perfil-hero-name { font-size: 24px; }
+  .perfil-hero-meta { gap: 18px; }
+  .perfil-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .perfil-transform-card { flex: 0 0 140px; }
+  .perfil-transform-card img { height: 170px; }
+}
+
 .dashboard-wrapper {
   max-width: 860px;
   margin: 0 auto 48px;
@@ -3325,6 +3537,72 @@ footer {
 </div>
 
 
+<!-- PERFIL (premium identity hub) -->
+<div class="perfil-wrapper" id="perfil-wrapper">
+  <div class="dash-header">
+    <div class="dash-title" id="perfil-title-text">👤 PERFIL</div>
+    <button class="btn-back-chat" onclick="showChat()" id="perfil-back-btn">← Volver al chat</button>
+  </div>
+
+  <!-- HEADER CARD -->
+  <div class="chart-card coach-card">
+    <div class="perfil-hero">
+      <div class="perfil-hero-name" id="perfil-name">—</div>
+      <div class="perfil-hero-goal" id="perfil-goal">—</div>
+      <div class="perfil-hero-meta">
+        <div class="perfil-hero-meta-item">
+          <div class="ph-num" id="perfil-meta-weeks">–</div>
+          <div class="ph-label" id="perfil-meta-weeks-label">Semanas activas</div>
+        </div>
+        <div class="perfil-hero-meta-item">
+          <div class="ph-num" id="perfil-meta-adherencia">–</div>
+          <div class="ph-label" id="perfil-meta-adherencia-label">Adherencia global</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VISUAL TRANSFORMATION TIMELINE -->
+  <div class="chart-card coach-card">
+    <div class="chart-card-header">
+      <div class="chart-card-title" id="perfil-transform-title">📸 TRANSFORMACIÓN VISUAL</div>
+    </div>
+    <div id="perfil-transform-body">
+      <div class="perfil-transform-empty" id="perfil-transform-empty">
+        Tus fotos de progreso aparecerán acá ✨
+      </div>
+      <div class="perfil-transform-scroll" id="perfil-transform-scroll" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- LIFETIME STATS -->
+  <div class="chart-card coach-card">
+    <div class="chart-card-header">
+      <div class="chart-card-title" id="perfil-stats-title">📈 TU CAMINO</div>
+    </div>
+    <div class="perfil-stats-grid" id="perfil-stats-grid"></div>
+  </div>
+
+  <!-- LAST AI ANALYSIS PREVIEW -->
+  <div class="chart-card coach-card">
+    <div class="chart-card-header">
+      <div class="chart-card-title" id="perfil-analisis-title">🧠 ÚLTIMO ANÁLISIS</div>
+    </div>
+    <div class="perfil-analisis-preview" id="perfil-analisis-preview">
+      <div class="perfil-analisis-empty" id="perfil-analisis-empty">
+        Cuando cierres tu primera semana, tu análisis aparecerá acá.
+      </div>
+    </div>
+  </div>
+
+  <div class="perfil-edit-row">
+    <button class="btn-perfil-editar" id="btn-perfil-editar" onclick="openEditProfileForm()">
+      ✏️ Editar datos del perfil
+    </button>
+  </div>
+</div>
+
+
 <!-- DASHBOARD -->
 <div class="dashboard-wrapper" id="dashboard-wrapper">
   <div class="dash-header">
@@ -4012,10 +4290,32 @@ function setLang(l) {
 function applyLangToHeader(l) {
   const dashBtn = document.getElementById('btn-dashboard');
   const wlBtn = document.getElementById('btn-whitelabel');
-  const editBtn = document.getElementById('btn-edit-profile');
+  const perfilBtn = document.getElementById('btn-perfil');
   if (dashBtn) dashBtn.innerHTML = l === 'es' ? '📊 Progreso' : '📊 Progress';
   if (wlBtn) wlBtn.innerHTML = l === 'es' ? '🎨 Marca' : '🎨 Branding';
-  if (editBtn) editBtn.innerHTML = l === 'es' ? '✏️ <span>Editar perfil</span>' : '✏️ <span>Edit profile</span>';
+  if (perfilBtn) perfilBtn.innerHTML = l === 'es' ? '👤 <span>Perfil</span>' : '👤 <span>Profile</span>';
+
+  // Translate the Perfil section static labels
+  const perfilTitle = document.getElementById('perfil-title-text');
+  if (perfilTitle) perfilTitle.textContent = l === 'es' ? '👤 PERFIL' : '👤 PROFILE';
+  const perfilBack = document.getElementById('perfil-back-btn');
+  if (perfilBack) perfilBack.textContent = l === 'es' ? '← Volver al chat' : '← Back to chat';
+  const ttTransform = document.getElementById('perfil-transform-title');
+  if (ttTransform) ttTransform.textContent = l === 'es' ? '📸 TRANSFORMACIÓN VISUAL' : '📸 VISUAL TRANSFORMATION';
+  const ttStats = document.getElementById('perfil-stats-title');
+  if (ttStats) ttStats.textContent = l === 'es' ? '📈 TU CAMINO' : '📈 YOUR JOURNEY';
+  const ttAnalisis = document.getElementById('perfil-analisis-title');
+  if (ttAnalisis) ttAnalisis.textContent = l === 'es' ? '🧠 ÚLTIMO ANÁLISIS' : '🧠 LATEST ANALYSIS';
+  const editBtnInline = document.getElementById('btn-perfil-editar');
+  if (editBtnInline) editBtnInline.innerHTML = l === 'es' ? '✏️ Editar datos del perfil' : '✏️ Edit profile data';
+  const transformEmpty = document.getElementById('perfil-transform-empty');
+  if (transformEmpty) transformEmpty.textContent = l === 'es' ? 'Tus fotos de progreso aparecerán acá ✨' : 'Your progress photos will appear here ✨';
+
+  // Re-render perfil if currently visible (refreshes dynamic strings: stats labels, analisis preview)
+  const perfilWrap = document.getElementById('perfil-wrapper');
+  if (perfilWrap && perfilWrap.style.display === 'block' && currentUser) {
+    renderPerfil().catch(console.error);
+  }
 }
 
 function applyLangToDashboard(l) {
@@ -4622,28 +4922,15 @@ async function launchCoach() {
     saveProfileToSupabase(profileData).catch(console.error);
   }
 
-  // Add edit profile button to header
+  // Add profile button to header (opens premium Perfil section)
   const headerRight = document.getElementById('header-right');
-  if (!document.getElementById('btn-edit-profile')) {
-    const editBtn = document.createElement('button');
-    editBtn.id = 'btn-edit-profile';
-    editBtn.className = 'btn-edit-profile';
-    editBtn.innerHTML = '✏️ <span id="edit-btn-text">Editar perfil</span>';
-    editBtn.onclick = () => {
-      const p = loadProfile();
-      if (p) restoreFormFromProfile(p);
-      hideAllSections();
-      document.querySelector('.progress-bar-container').style.display = 'block';
-      document.querySelector('.form-wrapper').style.display = 'block';
-      // Go to step 1
-      document.querySelectorAll('.section-card').forEach(c => c.classList.remove('visible'));
-      document.querySelectorAll('.progress-step').forEach(s => { s.classList.remove('active','done'); });
-      document.getElementById('step1').classList.add('visible');
-      document.getElementById('ps1').classList.add('active');
-      currentStep = 1;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-    headerRight.insertBefore(editBtn, headerRight.firstChild);
+  if (!document.getElementById('btn-perfil')) {
+    const perfilBtn = document.createElement('button');
+    perfilBtn.id = 'btn-perfil';
+    perfilBtn.className = 'btn-edit-profile';
+    perfilBtn.innerHTML = '👤 <span id="perfil-btn-text">Perfil</span>';
+    perfilBtn.onclick = showPerfil;
+    headerRight.insertBefore(perfilBtn, headerRight.firstChild);
   }
 
   document.getElementById('step5').classList.remove('visible');
@@ -5597,10 +5884,197 @@ function hideAllSections() {
   document.getElementById('dashboard-wrapper').style.display = 'none';
   document.getElementById('wl-wrapper').style.display = 'none';
   document.getElementById('diario-wrapper').style.display = 'none';
+  const perfilEl = document.getElementById('perfil-wrapper');
+  if (perfilEl) perfilEl.style.display = 'none';
   document.getElementById('hero-section').style.display = 'none';
   document.querySelector('.form-wrapper').style.display = 'none';
   document.querySelector('.progress-bar-container').style.display = 'none';
   document.getElementById('welcome-back').style.display = 'none';
+}
+
+// ============================
+// PERFIL (premium identity hub)
+// ============================
+function showPerfil() {
+  hideAllSections();
+  const wrapper = document.getElementById('perfil-wrapper');
+  wrapper.style.display = 'block';
+  wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  renderPerfil().catch(console.error);
+}
+
+function openEditProfileForm() {
+  const p = loadProfile();
+  if (p) restoreFormFromProfile(p);
+  hideAllSections();
+  document.querySelector('.progress-bar-container').style.display = 'block';
+  document.querySelector('.form-wrapper').style.display = 'block';
+  document.querySelectorAll('.section-card').forEach(c => c.classList.remove('visible'));
+  document.querySelectorAll('.progress-step').forEach(s => { s.classList.remove('active','done'); });
+  document.getElementById('step1').classList.add('visible');
+  document.getElementById('ps1').classList.add('active');
+  currentStep = 1;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function getWeeksActiveSince(createdAtIso) {
+  if (!createdAtIso) return 1;
+  const created = new Date(createdAtIso);
+  const diffMs = Date.now() - created.getTime();
+  const weeks = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 7)) + 1;
+  return Math.max(1, weeks);
+}
+
+async function loadPerfilLifetimeStats() {
+  if (!sbClient || !currentUser) {
+    return { totalWorkouts: 0, totalLogs: 0, weeksActive: 1, avgAdherencia: 0 };
+  }
+  const [trainedRes, logsRes, cierresRes] = await Promise.all([
+    sbClient.from('dias_entrenados').select('fecha', { count: 'exact', head: true }).eq('usuario_id', currentUser.id),
+    sbClient.from('progreso_diario').select('fecha', { count: 'exact', head: true }).eq('usuario_id', currentUser.id),
+    sbClient.from('cierres_semanales').select('stats').eq('usuario_id', currentUser.id),
+  ]);
+
+  const totalWorkouts = trainedRes?.count || 0;
+  const totalLogs = logsRes?.count || 0;
+  const weeksActive = getWeeksActiveSince(currentUser.created_at);
+
+  // Adherence: average % of weekly target hit across closed weeks
+  const target = (currentUser.dias_entreno && currentUser.dias_entreno.length > 0)
+    ? currentUser.dias_entreno.length : 4;
+  const cierres = cierresRes?.data || [];
+  let avgAdherencia = 0;
+  if (cierres.length > 0) {
+    const pcts = cierres
+      .map(c => c.stats?.trained != null ? Math.min(c.stats.trained / target, 1) : null)
+      .filter(v => v !== null);
+    if (pcts.length > 0) {
+      avgAdherencia = Math.round((pcts.reduce((a,b) => a+b, 0) / pcts.length) * 100);
+    }
+  } else if (weeksActive > 0) {
+    // Fallback: lifetime workouts vs expected
+    const expected = weeksActive * target;
+    avgAdherencia = expected > 0 ? Math.min(100, Math.round((totalWorkouts / expected) * 100)) : 0;
+  }
+
+  return { totalWorkouts, totalLogs, weeksActive, avgAdherencia };
+}
+
+function renderPerfilHero(stats) {
+  const isEs = lang === 'es';
+  const nombre = (currentUser?.nombre || document.getElementById('f-nombre')?.value || (isEs?'Tu perfil':'Your profile')).trim();
+  const objLabel = {
+    definir: isEs?'🔥 Definir':'🔥 Cut',
+    volumen: isEs?'💪 Volumen':'💪 Bulk',
+    mantenimiento: isEs?'⚖️ Mantenimiento':'⚖️ Maintain'
+  };
+  const objKey = currentUser?.objetivo || selections?.objetivo;
+  const goalText = objKey ? (objLabel[objKey] || objKey) : (isEs?'Definí tu objetivo':'Define your goal');
+
+  document.getElementById('perfil-name').textContent = nombre.toUpperCase();
+  document.getElementById('perfil-goal').textContent = goalText;
+  document.getElementById('perfil-meta-weeks').textContent = stats.weeksActive;
+  document.getElementById('perfil-meta-adherencia').textContent = stats.avgAdherencia + '%';
+  document.getElementById('perfil-meta-weeks-label').textContent = isEs ? 'Semanas activas' : 'Active weeks';
+  document.getElementById('perfil-meta-adherencia-label').textContent = isEs ? 'Adherencia global' : 'Overall adherence';
+}
+
+function renderPerfilTransform(fotos) {
+  const empty = document.getElementById('perfil-transform-empty');
+  const scroll = document.getElementById('perfil-transform-scroll');
+  const isEs = lang === 'es';
+
+  if (!fotos || fotos.length === 0) {
+    empty.style.display = 'block';
+    scroll.style.display = 'none';
+    scroll.innerHTML = '';
+    return;
+  }
+
+  // Order: inicio first, then weekly photos chronologically
+  const inicio = fotos.find(f => f.tipo === 'inicio');
+  const others = fotos.filter(f => f.tipo !== 'inicio');
+  const ordered = inicio ? [inicio, ...others] : fotos;
+
+  empty.style.display = 'none';
+  scroll.style.display = 'flex';
+  scroll.innerHTML = ordered.map((f, idx) => {
+    const isInicio = f.tipo === 'inicio' || (!inicio && idx === 0);
+    const label = isInicio
+      ? (isEs?'INICIO':'START')
+      : `${isEs?'SEM':'W'} ${idx}`;
+    const date = new Date(f.fecha + 'T12:00:00').toLocaleDateString(isEs?'es-AR':'en-US', { day:'numeric', month:'short' });
+    return `
+      <div class="perfil-transform-card ${isInicio ? 'is-inicio' : ''}" onclick="openLightbox('${f.url_foto}')">
+        <img src="${f.url_foto}" alt="${label}" loading="lazy">
+        <div class="perfil-transform-meta">
+          <div class="perfil-transform-label">${label}</div>
+          <div class="perfil-transform-date">${date}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderPerfilStats(stats) {
+  const isEs = lang === 'es';
+  const items = [
+    { num: stats.totalWorkouts, label: isEs?'Entrenos totales':'Total workouts' },
+    { num: stats.totalLogs, label: isEs?'Días registrados':'Days logged' },
+    { num: stats.weeksActive, label: isEs?'Semanas activas':'Active weeks' },
+    { num: stats.avgAdherencia + '%', label: isEs?'Adherencia prom.':'Avg. adherence' },
+  ];
+  document.getElementById('perfil-stats-grid').innerHTML = items.map(s => `
+    <div class="perfil-stat">
+      <div class="perfil-stat-num">${s.num}</div>
+      <div class="perfil-stat-label">${s.label}</div>
+    </div>
+  `).join('');
+}
+
+function renderPerfilAnalisis(cierres) {
+  const isEs = lang === 'es';
+  const container = document.getElementById('perfil-analisis-preview');
+  const last = (cierres || []).filter(c => c.analisis).sort((a,b) => b.semana_num - a.semana_num)[0];
+
+  if (!last) {
+    container.innerHTML = `<div class="perfil-analisis-empty">${isEs ? 'Cuando cierres tu primera semana, tu análisis aparecerá acá.' : 'When you close your first week, your analysis will appear here.'}</div>`;
+    return;
+  }
+
+  // Plain-text preview (strip HTML if any)
+  const plain = String(last.analisis).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  const labelSemana = `${isEs?'Semana':'Week'} ${last.semana_num}`;
+  container.innerHTML = `
+    <div style="font-size:11px;letter-spacing:1.2px;color:var(--muted);margin-bottom:8px;text-transform:uppercase">${labelSemana}</div>
+    <div class="perfil-analisis-text">${plain}</div>
+    <button class="btn-perfil-ver-analisis" onclick="goToWeekAnalisis(${last.semana_num})">
+      ${isEs?'VER ANÁLISIS COMPLETO':'SEE FULL ANALYSIS'} →
+    </button>
+  `;
+}
+
+function goToWeekAnalisis(weekNum) {
+  showDashboard();
+  setTimeout(() => {
+    const card = document.getElementById(`semana-card-${weekNum}`);
+    if (card) {
+      card.classList.add('open');
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 300);
+}
+
+async function renderPerfil() {
+  if (!currentUser) return;
+  const [stats, fotos, cierres] = await Promise.all([
+    loadPerfilLifetimeStats(),
+    loadFotosProgreso(),
+    loadCierresSemanales(),
+  ]);
+  renderPerfilHero(stats);
+  renderPerfilTransform(fotos);
+  renderPerfilStats(stats);
+  renderPerfilAnalisis(cierres);
 }
 
 function showDashboard() {
