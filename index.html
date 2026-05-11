@@ -7031,7 +7031,7 @@ function showHome() {
   hideAllSections();
   const wrapper = document.getElementById('home-wrapper');
   wrapper.style.display = 'block';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'instant' });
   renderHome();
   setActiveNav('nav-inicio');
 }
