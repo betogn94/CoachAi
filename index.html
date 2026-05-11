@@ -3567,21 +3567,23 @@ footer {
   position: relative;
   padding: 56px 24px 60px;
   overflow: hidden;
+  background:
+    radial-gradient(ellipse at 80% 20%, rgba(124,106,255,0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 15% 85%, rgba(46,207,181,0.07) 0%, transparent 45%);
 }
-/* Ambient orbs — cinematic depth */
 .home-hero::before {
   content: '';
   position: absolute;
   top: -80px; right: -60px;
-  width: 360px; height: 360px;
-  background: radial-gradient(ellipse, rgba(124,106,255,0.14) 0%, transparent 65%);
+  width: 380px; height: 380px;
+  background: radial-gradient(ellipse at 40% 40%, rgba(124,106,255,0.16) 0%, rgba(124,106,255,0.04) 40%, transparent 65%);
   pointer-events: none;
 }
 .home-hero::after {
   content: '';
   position: absolute;
   bottom: -60px; left: -80px;
-  width: 280px; height: 280px;
+  width: 300px; height: 300px;
   background: radial-gradient(ellipse, rgba(46,207,181,0.09) 0%, transparent 65%);
   pointer-events: none;
 }
@@ -3705,7 +3707,7 @@ footer {
   line-height: 1;
 }
 
-/* ── FEATURED CARDS (large premium storytelling) ────────── */
+/* ── FEATURED CARDS (split: cinematic visual zone + text) ── */
 .home-feature-cards {
   display: flex;
   flex-direction: column;
@@ -3716,36 +3718,60 @@ footer {
   position: relative;
   border-radius: 24px;
   overflow: hidden;
-  min-height: 210px;
   border: 1px solid rgba(255,255,255,0.05);
+  transition: transform 0.3s, box-shadow 0.3s;
 }
-.home-fcard.fcard-ai {
-  background: linear-gradient(140deg, #0e0e24 0%, #14142e 55%, #0c1a2a 100%);
-}
-.home-fcard.fcard-prog {
-  background: linear-gradient(140deg, #0b1a17 0%, #101f28 55%, #0e0e23 100%);
-}
-/* Ambient glow per card */
-.home-fcard.fcard-ai::before {
-  content: '';
-  position: absolute;
-  top: -60px; right: -60px;
-  width: 280px; height: 280px;
-  background: radial-gradient(ellipse, rgba(124,106,255,0.2) 0%, transparent 65%);
-  pointer-events: none;
-}
-.home-fcard.fcard-prog::before {
-  content: '';
-  position: absolute;
-  top: -60px; right: -40px;
-  width: 260px; height: 260px;
-  background: radial-gradient(ellipse, rgba(46,207,181,0.16) 0%, transparent 65%);
-  pointer-events: none;
-}
-.home-fcard-inner {
+.home-fcard:hover { transform: translateY(-2px); }
+
+/* Visual zone — abstract gradient art, no emoji */
+.home-fcard-visual-zone {
+  height: 160px;
   position: relative;
-  z-index: 1;
-  padding: 32px 28px 36px;
+  overflow: hidden;
+}
+.home-fcard.fcard-ai .home-fcard-visual-zone {
+  background:
+    radial-gradient(ellipse at 75% 35%, rgba(124,106,255,0.7) 0%, rgba(124,106,255,0.2) 25%, transparent 55%),
+    radial-gradient(ellipse at 20% 75%, rgba(46,207,181,0.3) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 50%, rgba(180,167,255,0.12) 0%, transparent 60%),
+    linear-gradient(160deg, #08081e 0%, #0e0e2e 100%);
+}
+.home-fcard.fcard-prog .home-fcard-visual-zone {
+  background:
+    radial-gradient(ellipse at 70% 30%, rgba(46,207,181,0.65) 0%, rgba(46,207,181,0.15) 30%, transparent 55%),
+    radial-gradient(ellipse at 15% 80%, rgba(124,106,255,0.3) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 80%, rgba(46,207,181,0.12) 0%, transparent 40%),
+    linear-gradient(160deg, #071310 0%, #0b1c18 100%);
+}
+/* Fade into content zone */
+.home-fcard-visual-zone::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 56px;
+  background: linear-gradient(to bottom, transparent, #0f0f1a);
+  pointer-events: none;
+}
+.home-fcard.fcard-prog .home-fcard-visual-zone::after {
+  background: linear-gradient(to bottom, transparent, #0a1410);
+}
+/* Large ghosted text as texture in visual zone */
+.home-fcard-visual-label {
+  position: absolute;
+  bottom: 8px; left: 22px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 52px;
+  letter-spacing: 4px;
+  color: rgba(255,255,255,0.05);
+  pointer-events: none;
+  line-height: 1;
+  z-index: 0;
+}
+
+/* Text content */
+.home-fcard-inner {
+  padding: 20px 28px 32px;
+  background: var(--surface);
 }
 .home-fcard-tag {
   display: inline-block;
@@ -3754,122 +3780,115 @@ footer {
   letter-spacing: 2.5px;
   font-weight: 700;
   color: var(--muted);
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
   border-radius: 999px;
   padding: 5px 13px;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
 }
 .home-fcard-headline {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 34px;
+  font-size: 32px;
   letter-spacing: 3px;
   color: var(--text);
   line-height: 1.05;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   white-space: pre-line;
 }
 .home-fcard-desc {
   font-size: 14px;
-  color: rgba(238,238,245,0.5);
+  color: rgba(238,238,245,0.48);
   line-height: 1.65;
   font-weight: 300;
   max-width: 300px;
 }
-/* Decorative bg emoji */
-.home-fcard-bg-icon {
-  position: absolute;
-  bottom: 16px; right: 24px;
-  font-size: 72px;
-  opacity: 0.07;
-  pointer-events: none;
-  z-index: 0;
-  line-height: 1;
-}
 
-/* ── MINI FEATURE STRIP (2×2) ────────────────────────────── */
-.home-mini-strip {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  padding: 0 24px;
-  margin-top: 16px;
-}
-.home-mini-card {
-  background: var(--surface);
+/* ── SPEC BAR (replaces icon mini-strip) ─────────────────── */
+.home-spec-bar {
+  margin: 20px 24px 0;
   border: 1px solid var(--border);
   border-radius: 20px;
-  padding: 24px 18px;
+  background: var(--surface);
+  padding: 26px 16px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   position: relative;
   overflow: hidden;
 }
-.home-mini-card::after {
+.home-spec-bar::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(124,106,255,0.22), transparent);
+  background: linear-gradient(90deg, transparent, rgba(124,106,255,0.35) 30%, rgba(46,207,181,0.25) 70%, transparent);
 }
-.home-mini-icon {
-  font-size: 24px;
-  margin-bottom: 12px;
-  display: block;
+.home-spec-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 4px;
+  position: relative;
 }
-.home-mini-title {
+.home-spec-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: 0; top: 10%; bottom: 10%;
+  width: 1px;
+  background: var(--border);
+}
+.home-spec-value {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 15px;
-  letter-spacing: 1.5px;
-  color: var(--accent-bright);
-  margin-bottom: 6px;
+  font-size: 22px;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  margin-bottom: 5px;
 }
-.home-mini-desc {
-  font-size: 12px;
+.home-spec-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1.3px;
   color: var(--muted);
-  line-height: 1.5;
-  font-weight: 300;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
-/* ── HOW IT WORKS ────────────────────────────────────────── */
+/* ── HOW IT WORKS (clean, number-led) ────────────────────── */
 .home-steps {
   display: flex;
   flex-direction: column;
   padding: 0 24px;
 }
 .home-step {
-  display: flex;
-  align-items: flex-start;
-  gap: 20px;
-  padding: 24px 0;
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 4px;
+  padding: 26px 0;
   border-bottom: 1px solid rgba(255,255,255,0.04);
+  align-items: start;
 }
 .home-step:last-child { border-bottom: none; }
 .home-step-num {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 32px;
-  letter-spacing: 1px;
-  color: rgba(124,106,255,0.18);
-  line-height: 1;
-  min-width: 40px;
-  flex-shrink: 0;
+  font-size: 44px;
+  line-height: 0.85;
+  background: linear-gradient(180deg, rgba(124,106,255,0.4) 0%, rgba(124,106,255,0.07) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  padding-top: 4px;
 }
-.home-step-icon {
-  width: 46px; height: 46px;
-  border-radius: 13px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  flex-shrink: 0;
-}
-.home-step-body { flex: 1; min-width: 0; padding-top: 4px; }
+.home-step-body { min-width: 0; padding-top: 6px; }
 .home-step-title {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 18px;
   letter-spacing: 2px;
   color: var(--text);
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 }
 .home-step-desc {
   font-size: 13px;
@@ -3878,7 +3897,7 @@ footer {
   font-weight: 300;
 }
 
-/* ── EXPLORE NAV CARDS ───────────────────────────────────── */
+/* ── EXPLORE NAV CARDS (with gradient visual header) ─────── */
 .home-nav-section {
   padding: 0 24px 56px;
 }
@@ -3899,37 +3918,65 @@ footer {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 18px;
-  padding: 22px 18px 20px;
+  padding: 0;
   cursor: pointer;
   transition: all 0.25s;
-  position: relative;
   overflow: hidden;
 }
-.home-card::after {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(124,106,255,0.22), transparent);
-  opacity: 0;
-  transition: opacity 0.25s;
-}
-.home-card:hover::after { opacity: 1; }
 .home-card:hover {
   border-color: rgba(124,106,255,0.28);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.28);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.32);
 }
 .home-card:active { transform: translateY(0); }
-.home-card-icon { font-size: 24px; margin-bottom: 10px; display: block; }
+
+/* Gradient visual header per card */
+.home-card-visual {
+  height: 80px;
+  position: relative;
+  overflow: hidden;
+}
+.home-card-visual::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 28px;
+  background: linear-gradient(to bottom, transparent, var(--surface));
+  pointer-events: none;
+}
+.home-card-visual.cv-diario {
+  background:
+    radial-gradient(ellipse at 70% 40%, rgba(255,107,107,0.4) 0%, transparent 50%),
+    radial-gradient(ellipse at 20% 70%, rgba(255,180,71,0.22) 0%, transparent 45%),
+    linear-gradient(135deg, #1a0a10 0%, #1e1210 100%);
+}
+.home-card-visual.cv-progreso {
+  background:
+    radial-gradient(ellipse at 65% 35%, rgba(46,207,181,0.45) 0%, transparent 50%),
+    radial-gradient(ellipse at 15% 75%, rgba(124,106,255,0.22) 0%, transparent 45%),
+    linear-gradient(135deg, #071412 0%, #0c1a18 100%);
+}
+.home-card-visual.cv-coach {
+  background:
+    radial-gradient(ellipse at 60% 30%, rgba(124,106,255,0.5) 0%, transparent 50%),
+    radial-gradient(ellipse at 20% 80%, rgba(180,167,255,0.22) 0%, transparent 45%),
+    linear-gradient(135deg, #09091e 0%, #111130 100%);
+}
+.home-card-visual.cv-perfil {
+  background:
+    radial-gradient(ellipse at 55% 35%, rgba(255,180,71,0.35) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, rgba(124,106,255,0.22) 0%, transparent 45%),
+    linear-gradient(135deg, #16100a 0%, #1e1810 100%);
+}
+.home-card-body { padding: 12px 16px 18px; }
 .home-card-title {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 16px;
+  font-size: 15px;
   letter-spacing: 2px;
   color: var(--accent-bright);
-  margin-bottom: 5px;
+  margin-bottom: 4px;
 }
-.home-card-desc { font-size: 12px; color: var(--muted); line-height: 1.5; font-weight: 300; }
+.home-card-desc { font-size: 11.5px; color: var(--muted); line-height: 1.45; font-weight: 300; }
 
 /* ── MOBILE ──────────────────────────────────────────────── */
 @media (max-width: 480px) {
@@ -3937,12 +3984,14 @@ footer {
   .home-hero-headline { font-size: 58px; }
   .home-hero-orb { display: none; }
   .home-section-header { padding: 0 20px; margin: 40px 0 18px; }
-  .home-feature-cards, .home-mini-strip, .home-steps, .home-nav-section { padding-left: 20px; padding-right: 20px; }
-  .home-fcard-headline { font-size: 28px; }
-  .home-mini-strip { gap: 10px; }
-  .home-mini-card { padding: 20px 14px; }
+  .home-feature-cards, .home-steps, .home-nav-section { padding-left: 20px; padding-right: 20px; }
+  .home-spec-bar { margin-left: 20px; margin-right: 20px; padding: 20px 12px; }
+  .home-fcard-headline { font-size: 26px; }
+  .home-fcard-visual-zone { height: 130px; }
   .home-cards-grid { gap: 10px; }
-  .home-card { padding: 18px 14px 16px; border-radius: 14px; }
+  .home-card-visual { height: 70px; }
+  .home-spec-value { font-size: 18px; }
+  .home-spec-label { font-size: 8px; }
 }
 </style>
 </head>
@@ -4054,7 +4103,7 @@ footer {
     <div class="home-hero-orb"></div>
   </div>
 
-  <!-- ── WHY COACHAI — 2 large premium cards ─────────── -->
+  <!-- ── FEATURE CARDS — cinematic split layout ────────── -->
   <div class="home-section-header">
     <div class="home-section-eyebrow">POR QUÉ COACHAI</div>
     <div class="home-section-title">TU COACH, SIEMPRE DISPONIBLE</div>
@@ -4062,52 +4111,52 @@ footer {
   <div class="home-feature-cards">
 
     <div class="home-fcard fcard-ai">
+      <div class="home-fcard-visual-zone">
+        <div class="home-fcard-visual-label">IA</div>
+      </div>
       <div class="home-fcard-inner">
         <div class="home-fcard-tag">IA CONVERSACIONAL</div>
         <div class="home-fcard-headline">UN COACH
 DISPONIBLE 24/7</div>
         <p class="home-fcard-desc">Hacé tus preguntas, ajustá tu plan y recibí orientación personalizada en tiempo real — todos los días.</p>
       </div>
-      <div class="home-fcard-bg-icon">🧠</div>
     </div>
 
     <div class="home-fcard fcard-prog">
+      <div class="home-fcard-visual-zone">
+        <div class="home-fcard-visual-label">PROGRESO</div>
+      </div>
       <div class="home-fcard-inner">
         <div class="home-fcard-tag">SEGUIMIENTO VISUAL</div>
         <div class="home-fcard-headline">EL PROGRESO
 QUE SÍ SE VE</div>
         <p class="home-fcard-desc">Métricas, fotos y análisis semanal que muestran tu transformación real. Ver el cambio sostiene la motivación.</p>
       </div>
-      <div class="home-fcard-bg-icon">📈</div>
     </div>
 
   </div>
 
-  <!-- ── MINI FEATURE STRIP ────────────────────────────── -->
-  <div class="home-mini-strip">
-    <div class="home-mini-card">
-      <span class="home-mini-icon">📅</span>
-      <div class="home-mini-title">REGISTRO DIARIO</div>
-      <div class="home-mini-desc">Comidas, entrenamientos y métricas en un solo lugar.</div>
+  <!-- ── SPEC BAR ──────────────────────────────────────── -->
+  <div class="home-spec-bar">
+    <div class="home-spec-item">
+      <div class="home-spec-value">24/7</div>
+      <div class="home-spec-label">DISPONIBLE</div>
     </div>
-    <div class="home-mini-card">
-      <span class="home-mini-icon">📸</span>
-      <div class="home-mini-title">TRANSFORMACIÓN</div>
-      <div class="home-mini-desc">Fotos de progreso para celebrar cada cambio real.</div>
+    <div class="home-spec-item">
+      <div class="home-spec-value">IA</div>
+      <div class="home-spec-label">ANÁLISIS SEMANAL</div>
     </div>
-    <div class="home-mini-card">
-      <span class="home-mini-icon">📊</span>
-      <div class="home-mini-title">ANÁLISIS IA</div>
-      <div class="home-mini-desc">Tu coach evalúa y ajusta tu plan cada semana.</div>
+    <div class="home-spec-item">
+      <div class="home-spec-value">100%</div>
+      <div class="home-spec-label">PERSONALIZADO</div>
     </div>
-    <div class="home-mini-card">
-      <span class="home-mini-icon">⚡</span>
-      <div class="home-mini-title">PERSONALIZADO</div>
-      <div class="home-mini-desc">100% adaptado a tu cuerpo, objetivo y ritmo de vida.</div>
+    <div class="home-spec-item">
+      <div class="home-spec-value">REAL</div>
+      <div class="home-spec-label">PROGRESO VISIBLE</div>
     </div>
   </div>
 
-  <!-- ── HOW IT WORKS ──────────────────────────────────── -->
+  <!-- ── HOW IT WORKS — number-led, no icons ───────────── -->
   <div class="home-section-header">
     <div class="home-section-eyebrow">PROCESO</div>
     <div class="home-section-title">CÓMO FUNCIONA</div>
@@ -4115,7 +4164,6 @@ QUE SÍ SE VE</div>
   <div class="home-steps">
     <div class="home-step">
       <div class="home-step-num">01</div>
-      <div class="home-step-icon">📝</div>
       <div class="home-step-body">
         <div class="home-step-title">REGISTRÁ TU DÍA</div>
         <div class="home-step-desc">Cargá comidas, entrenamientos y métricas desde Mi Día.</div>
@@ -4123,7 +4171,6 @@ QUE SÍ SE VE</div>
     </div>
     <div class="home-step">
       <div class="home-step-num">02</div>
-      <div class="home-step-icon">📊</div>
       <div class="home-step-body">
         <div class="home-step-title">SEGUÍ TU PROGRESO</div>
         <div class="home-step-desc">Visualizá tu evolución semanal con métricas reales.</div>
@@ -4131,7 +4178,6 @@ QUE SÍ SE VE</div>
     </div>
     <div class="home-step">
       <div class="home-step-num">03</div>
-      <div class="home-step-icon">🧠</div>
       <div class="home-step-body">
         <div class="home-step-title">RECIBÍ ANÁLISIS IA</div>
         <div class="home-step-desc">Tu coach analiza tus datos y te da guía personalizada.</div>
@@ -4139,7 +4185,6 @@ QUE SÍ SE VE</div>
     </div>
     <div class="home-step">
       <div class="home-step-num">04</div>
-      <div class="home-step-icon">📸</div>
       <div class="home-step-body">
         <div class="home-step-title">VISUALIZÁ TU TRANSFORMACIÓN</div>
         <div class="home-step-desc">Subí fotos de progreso y celebrá tu cambio real.</div>
@@ -4147,30 +4192,43 @@ QUE SÍ SE VE</div>
     </div>
   </div>
 
-  <!-- ── EXPLORE NAV ───────────────────────────────────── -->
+  <!-- ── EXPLORE NAV — gradient visual headers ─────────── -->
   <div class="home-nav-section" style="margin-top:48px">
     <div class="home-section-label">EXPLORAR</div>
     <div class="home-cards-grid">
+
       <div class="home-card" onclick="showDiario(); setActiveNav('nav-diario')">
-        <span class="home-card-icon">🍽</span>
-        <div class="home-card-title">MI DÍA</div>
-        <div class="home-card-desc">Registrá comidas y entrenamientos del día.</div>
+        <div class="home-card-visual cv-diario"></div>
+        <div class="home-card-body">
+          <div class="home-card-title">MI DÍA</div>
+          <div class="home-card-desc">Registrá comidas y entrenamientos.</div>
+        </div>
       </div>
+
       <div class="home-card" onclick="showDashboard(); setActiveNav('nav-progreso')">
-        <span class="home-card-icon">📈</span>
-        <div class="home-card-title">PROGRESO</div>
-        <div class="home-card-desc">Seguí tu evolución y adherencia semanal.</div>
+        <div class="home-card-visual cv-progreso"></div>
+        <div class="home-card-body">
+          <div class="home-card-title">PROGRESO</div>
+          <div class="home-card-desc">Seguí tu evolución semanal.</div>
+        </div>
       </div>
+
       <div class="home-card" onclick="showChat(); setActiveNav('nav-coach')">
-        <span class="home-card-icon">🧠</span>
-        <div class="home-card-title">COACH AI</div>
-        <div class="home-card-desc">Acompañamiento y análisis inteligente.</div>
+        <div class="home-card-visual cv-coach"></div>
+        <div class="home-card-body">
+          <div class="home-card-title">COACH AI</div>
+          <div class="home-card-desc">Análisis y orientación personalizada.</div>
+        </div>
       </div>
+
       <div class="home-card" onclick="showPerfil(); setActiveNav('nav-perfil')">
-        <span class="home-card-icon">👤</span>
-        <div class="home-card-title">PERFIL</div>
-        <div class="home-card-desc">Tu transformación y estadísticas personales.</div>
+        <div class="home-card-visual cv-perfil"></div>
+        <div class="home-card-body">
+          <div class="home-card-title">PERFIL</div>
+          <div class="home-card-desc">Tu transformación y estadísticas.</div>
+        </div>
       </div>
+
     </div>
   </div>
 
