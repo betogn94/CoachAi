@@ -3592,42 +3592,14 @@ footer {
   z-index: 2;
 }
 
-/* ── WELLNESS AURA — abstract visual element ────────────── */
-.home-hero-visual {
+/* ── PHONE MOCKUP — cinematic hero visual ────────────────── */
+.home-hero-mockup {
   position: absolute;
-  top: 28px; right: -55px;
-  width: 220px; height: 220px;
+  top: 24px; right: -28px;
+  width: 170px; height: 340px;
   pointer-events: none;
   z-index: 1;
-}
-.hv-ring {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-}
-.hv-ring-1 {
-  width: 200px; height: 200px;
-  border: 1px solid rgba(124,106,255,0.1);
-  box-shadow: 0 0 50px rgba(124,106,255,0.06);
-}
-.hv-ring-2 {
-  width: 148px; height: 148px;
-  border: 1px solid rgba(124,106,255,0.17);
-  box-shadow: 0 0 24px rgba(124,106,255,0.09);
-}
-.hv-ring-3 {
-  width: 96px; height: 96px;
-  border: 1px solid rgba(180,167,255,0.25);
-}
-.hv-center {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  width: 52px; height: 52px;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at 35% 35%, rgba(200,190,255,0.36) 0%, rgba(124,106,255,0.1) 55%, transparent 75%);
-  border: 1px solid rgba(180,167,255,0.2);
+  filter: drop-shadow(0 28px 48px rgba(124,106,255,0.26)) drop-shadow(0 8px 20px rgba(0,0,0,0.55));
 }
 
 /* ── HERO CONTENT ────────────────────────────────────────── */
@@ -3798,20 +3770,12 @@ footer {
   overflow: hidden;
 }
 .home-fcard.fcard-ai .home-fcard-visual-zone {
-  background:
-    radial-gradient(ellipse at 75% 35%, rgba(124,106,255,0.7) 0%, rgba(124,106,255,0.2) 25%, transparent 55%),
-    radial-gradient(ellipse at 20% 75%, rgba(46,207,181,0.3) 0%, transparent 45%),
-    radial-gradient(ellipse at 50% 50%, rgba(180,167,255,0.12) 0%, transparent 60%),
-    linear-gradient(160deg, #08081e 0%, #0e0e2e 100%);
+  background: linear-gradient(160deg, #08081e 0%, #0e0e2e 100%);
 }
 .home-fcard.fcard-prog .home-fcard-visual-zone {
-  background:
-    radial-gradient(ellipse at 70% 30%, rgba(46,207,181,0.65) 0%, rgba(46,207,181,0.15) 30%, transparent 55%),
-    radial-gradient(ellipse at 15% 80%, rgba(124,106,255,0.3) 0%, transparent 45%),
-    radial-gradient(ellipse at 85% 80%, rgba(46,207,181,0.12) 0%, transparent 40%),
-    linear-gradient(160deg, #071310 0%, #0b1c18 100%);
+  background: linear-gradient(160deg, #071310 0%, #0b1c18 100%);
 }
-/* Fade into content zone */
+/* Fade SVG art into content zone */
 .home-fcard-visual-zone::after {
   content: '';
   position: absolute;
@@ -3823,17 +3787,11 @@ footer {
 .home-fcard.fcard-prog .home-fcard-visual-zone::after {
   background: linear-gradient(to bottom, transparent, #0a1410);
 }
-/* Large ghosted text as texture in visual zone */
-.home-fcard-visual-label {
-  position: absolute;
-  bottom: 8px; left: 22px;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 52px;
-  letter-spacing: 4px;
-  color: rgba(255,255,255,0.05);
-  pointer-events: none;
-  line-height: 1;
-  z-index: 0;
+/* SVG illustration fills visual zone */
+.home-fcard-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 /* Text content */
@@ -4013,28 +3971,36 @@ footer {
   pointer-events: none;
 }
 .home-card-visual.cv-diario {
-  background:
-    radial-gradient(ellipse at 70% 40%, rgba(255,107,107,0.4) 0%, transparent 50%),
-    radial-gradient(ellipse at 20% 70%, rgba(255,180,71,0.22) 0%, transparent 45%),
-    linear-gradient(135deg, #1a0a10 0%, #1e1210 100%);
+  background-color: #1a0f0a;
+  background-image:
+    linear-gradient(to bottom, rgba(8,4,2,0.18) 0%, rgba(8,4,2,0.68) 100%),
+    url('https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=400&q=80');
+  background-size: cover;
+  background-position: center;
 }
 .home-card-visual.cv-progreso {
-  background:
-    radial-gradient(ellipse at 65% 35%, rgba(46,207,181,0.45) 0%, transparent 50%),
-    radial-gradient(ellipse at 15% 75%, rgba(124,106,255,0.22) 0%, transparent 45%),
-    linear-gradient(135deg, #071412 0%, #0c1a18 100%);
+  background-color: #071412;
+  background-image:
+    linear-gradient(to bottom, rgba(3,8,7,0.18) 0%, rgba(3,8,7,0.68) 100%),
+    url('https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&q=80');
+  background-size: cover;
+  background-position: center top;
 }
 .home-card-visual.cv-coach {
-  background:
-    radial-gradient(ellipse at 60% 30%, rgba(124,106,255,0.5) 0%, transparent 50%),
-    radial-gradient(ellipse at 20% 80%, rgba(180,167,255,0.22) 0%, transparent 45%),
-    linear-gradient(135deg, #09091e 0%, #111130 100%);
+  background-color: #09091e;
+  background-image:
+    linear-gradient(to bottom, rgba(3,3,12,0.22) 0%, rgba(3,3,12,0.7) 100%),
+    url('https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400&q=80');
+  background-size: cover;
+  background-position: center;
 }
 .home-card-visual.cv-perfil {
-  background:
-    radial-gradient(ellipse at 55% 35%, rgba(255,180,71,0.35) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 70%, rgba(124,106,255,0.22) 0%, transparent 45%),
-    linear-gradient(135deg, #16100a 0%, #1e1810 100%);
+  background-color: #16100a;
+  background-image:
+    linear-gradient(to bottom, rgba(9,6,3,0.18) 0%, rgba(9,6,3,0.68) 100%),
+    url('https://images.unsplash.com/photo-1545389336-cf090694435e?w=400&q=80');
+  background-size: cover;
+  background-position: center;
 }
 .home-card-body { padding: 12px 16px 18px; }
 .home-card-title {
@@ -4051,11 +4017,7 @@ footer {
   .home-hero { min-height: 500px; }
   .home-hero-content { padding: 60px 20px 48px; }
   .home-hero-title { font-size: 64px; }
-  .home-hero-visual { top: 16px; right: -50px; width: 180px; height: 180px; }
-  .hv-ring-1 { width: 162px; height: 162px; }
-  .hv-ring-2 { width: 118px; height: 118px; }
-  .hv-ring-3 { width: 76px; height: 76px; }
-  .hv-center { width: 40px; height: 40px; }
+  .home-hero-mockup { top: 16px; right: -22px; width: 136px; height: 272px; }
   .home-section-header { padding: 0 20px; margin: 40px 0 18px; }
   .home-feature-cards, .home-steps, .home-nav-section { padding-left: 20px; padding-right: 20px; }
   .home-spec-bar { margin-left: 20px; margin-right: 20px; padding: 20px 12px; }
@@ -4167,12 +4129,55 @@ footer {
     <div class="hero-bg-top"></div>
     <div class="hero-bg-fade"></div>
 
-    <!-- Abstract wellness aura visual — top right -->
-    <div class="home-hero-visual" aria-hidden="true">
-      <div class="hv-ring hv-ring-1"></div>
-      <div class="hv-ring hv-ring-2"></div>
-      <div class="hv-ring hv-ring-3"></div>
-      <div class="hv-center"></div>
+    <!-- Phone mockup — CoachAI interface render -->
+    <div class="home-hero-mockup" aria-hidden="true">
+      <svg viewBox="0 0 170 340" fill="none" xmlns="http://www.w3.org/2000/svg" width="170" height="340">
+        <!-- Phone shell -->
+        <rect x="4" y="4" width="162" height="332" rx="28" fill="#0d0d14" stroke="rgba(255,255,255,0.09)" stroke-width="1"/>
+        <rect x="8" y="8" width="154" height="324" rx="25" fill="#111118"/>
+        <!-- Dynamic island -->
+        <rect x="60" y="16" width="50" height="13" rx="6.5" fill="#000"/>
+        <!-- App header bar -->
+        <rect x="8" y="36" width="154" height="34" fill="rgba(124,106,255,0.08)"/>
+        <text x="22" y="57" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="rgba(255,255,255,0.88)" letter-spacing="1.2">COACH AI</text>
+        <circle cx="146" cy="53" r="10" fill="rgba(124,106,255,0.14)" stroke="rgba(124,106,255,0.28)" stroke-width="1"/>
+        <text x="141.5" y="57" font-family="system-ui,sans-serif" font-size="9" fill="rgba(255,255,255,0.7)">✦</text>
+        <!-- Chat bubble — coach left -->
+        <rect x="14" y="82" width="110" height="32" rx="11" rx-bottom-left="3" fill="rgba(124,106,255,0.18)" stroke="rgba(124,106,255,0.24)" stroke-width="0.6"/>
+        <text x="22" y="94" font-family="system-ui,sans-serif" font-size="6.5" fill="rgba(255,255,255,0.72)">Hoy entrenás pierna.</text>
+        <text x="22" y="106" font-family="system-ui,sans-serif" font-size="6.5" fill="rgba(255,255,255,0.45)">¿Cómo te sentís?</text>
+        <!-- Chat bubble — user right -->
+        <rect x="56" y="124" width="102" height="24" rx="11" fill="rgba(46,207,181,0.16)" stroke="rgba(46,207,181,0.26)" stroke-width="0.6"/>
+        <text x="68" y="140" font-family="system-ui,sans-serif" font-size="6.5" fill="rgba(255,255,255,0.78)">Listo para romperla</text>
+        <!-- Chat bubble — coach left, with recommendation -->
+        <rect x="14" y="158" width="126" height="40" rx="11" fill="rgba(124,106,255,0.18)" stroke="rgba(124,106,255,0.24)" stroke-width="0.6"/>
+        <text x="22" y="170" font-family="system-ui,sans-serif" font-size="6.5" fill="rgba(255,255,255,0.72)">Perfecto. 4×12 sentadillas</text>
+        <text x="22" y="181" font-family="system-ui,sans-serif" font-size="6.5" fill="rgba(255,255,255,0.72)">con 70kg — nuevo récord</text>
+        <text x="22" y="192" font-family="system-ui,sans-serif" font-size="6.5" fill="rgba(46,207,181,0.85)">↗ +5kg desde semana 1</text>
+        <!-- Progress widget card -->
+        <rect x="14" y="210" width="142" height="76" rx="11" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.08)" stroke-width="0.6"/>
+        <text x="22" y="224" font-family="system-ui,sans-serif" font-size="6.5" font-weight="700" fill="rgba(255,255,255,0.55)" letter-spacing="0.8">RACHA SEMANAL</text>
+        <text x="130" y="224" font-family="system-ui,sans-serif" font-size="6" fill="rgba(46,207,181,0.75)" text-anchor="end">5 días ↗</text>
+        <!-- Bar chart -->
+        <rect x="22" y="254" width="12" height="18" rx="3" fill="rgba(124,106,255,0.28)"/>
+        <rect x="40" y="248" width="12" height="24" rx="3" fill="rgba(124,106,255,0.38)"/>
+        <rect x="58" y="242" width="12" height="30" rx="3" fill="rgba(124,106,255,0.48)"/>
+        <rect x="76" y="246" width="12" height="26" rx="3" fill="rgba(124,106,255,0.38)"/>
+        <rect x="94" y="236" width="12" height="36" rx="3" fill="rgba(46,207,181,0.75)"/>
+        <rect x="112" y="240" width="12" height="32" rx="3" fill="rgba(124,106,255,0.35)"/>
+        <!-- Day labels -->
+        <text x="28" y="277" font-family="system-ui,sans-serif" font-size="5.5" fill="rgba(255,255,255,0.28)" text-anchor="middle">L</text>
+        <text x="46" y="277" font-family="system-ui,sans-serif" font-size="5.5" fill="rgba(255,255,255,0.28)" text-anchor="middle">M</text>
+        <text x="64" y="277" font-family="system-ui,sans-serif" font-size="5.5" fill="rgba(255,255,255,0.28)" text-anchor="middle">X</text>
+        <text x="82" y="277" font-family="system-ui,sans-serif" font-size="5.5" fill="rgba(255,255,255,0.28)" text-anchor="middle">J</text>
+        <text x="100" y="277" font-family="system-ui,sans-serif" font-size="5.5" fill="rgba(46,207,181,0.7)" text-anchor="middle">V</text>
+        <text x="118" y="277" font-family="system-ui,sans-serif" font-size="5.5" fill="rgba(255,255,255,0.28)" text-anchor="middle">S</text>
+        <!-- Input bar -->
+        <rect x="14" y="297" width="142" height="26" rx="13" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.09)" stroke-width="0.6"/>
+        <text x="26" y="313" font-family="system-ui,sans-serif" font-size="6.5" fill="rgba(255,255,255,0.22)">Preguntale a tu coach...</text>
+        <circle cx="148" cy="310" r="8" fill="rgba(124,106,255,0.5)"/>
+        <text x="144.5" y="313.5" font-family="system-ui,sans-serif" font-size="8" fill="rgba(255,255,255,0.9)">→</text>
+      </svg>
     </div>
 
     <!-- Content -->
@@ -4227,7 +4232,23 @@ footer {
 
     <div class="home-fcard fcard-ai">
       <div class="home-fcard-visual-zone">
-        <div class="home-fcard-visual-label">IA</div>
+        <!-- Chat conversation illustration -->
+        <svg class="home-fcard-svg" viewBox="0 0 400 160" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+          <!-- Coach bubble — left -->
+          <rect x="20" y="18" width="210" height="44" rx="14" fill="rgba(124,106,255,0.2)" stroke="rgba(124,106,255,0.3)" stroke-width="1"/>
+          <rect x="20" y="58" width="16" height="16" rx="4" fill="rgba(124,106,255,0.2)"/>
+          <text x="36" y="36" font-family="system-ui,sans-serif" font-size="12" fill="rgba(255,255,255,0.78)">¿Cómo fue tu entreno?</text>
+          <text x="36" y="53" font-family="system-ui,sans-serif" font-size="10.5" fill="rgba(255,255,255,0.38)">Coach AI · ahora</text>
+          <!-- User bubble — right -->
+          <rect x="150" y="78" width="230" height="44" rx="14" fill="rgba(46,207,181,0.14)" stroke="rgba(46,207,181,0.24)" stroke-width="1"/>
+          <text x="166" y="96" font-family="system-ui,sans-serif" font-size="12" fill="rgba(255,255,255,0.82)">Excelente. Me sentí fuerte</text>
+          <text x="166" y="113" font-family="system-ui,sans-serif" font-size="10.5" fill="rgba(255,255,255,0.38)">Tú · hace un momento</text>
+          <!-- Typing indicator -->
+          <rect x="20" y="132" width="76" height="24" rx="12" fill="rgba(124,106,255,0.11)" stroke="rgba(124,106,255,0.2)" stroke-width="1"/>
+          <circle cx="42" cy="144" r="3.5" fill="rgba(124,106,255,0.65)"/>
+          <circle cx="55" cy="144" r="3.5" fill="rgba(124,106,255,0.42)"/>
+          <circle cx="68" cy="144" r="3.5" fill="rgba(124,106,255,0.24)"/>
+        </svg>
       </div>
       <div class="home-fcard-inner">
         <div class="home-fcard-tag">IA CONVERSACIONAL</div>
@@ -4239,7 +4260,38 @@ DISPONIBLE 24/7</div>
 
     <div class="home-fcard fcard-prog">
       <div class="home-fcard-visual-zone">
-        <div class="home-fcard-visual-label">PROGRESO</div>
+        <!-- Progress chart illustration -->
+        <svg class="home-fcard-svg" viewBox="0 0 400 160" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="area-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="rgba(46,207,181,0.22)"/>
+              <stop offset="100%" stop-color="rgba(46,207,181,0)"/>
+            </linearGradient>
+          </defs>
+          <!-- Subtle grid -->
+          <line x1="20" y1="128" x2="380" y2="128" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+          <line x1="20" y1="98"  x2="380" y2="98"  stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+          <line x1="20" y1="68"  x2="380" y2="68"  stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+          <line x1="20" y1="38"  x2="380" y2="38"  stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+          <!-- Area fill under trend line -->
+          <path d="M20 116 C80 112 120 104 160 96 C200 88 240 74 280 60 C320 46 350 36 380 28 L380 128 L20 128 Z" fill="url(#area-fill)"/>
+          <!-- Trend line -->
+          <path d="M20 116 C80 112 120 104 160 96 C200 88 240 74 280 60 C320 46 350 36 380 28" stroke="rgba(46,207,181,0.88)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <!-- Data points -->
+          <circle cx="20"  cy="116" r="4"  fill="rgba(46,207,181,0.55)" stroke="rgba(46,207,181,0.25)" stroke-width="2"/>
+          <circle cx="160" cy="96"  r="4"  fill="rgba(46,207,181,0.7)"  stroke="rgba(46,207,181,0.3)"  stroke-width="2"/>
+          <circle cx="280" cy="60"  r="4"  fill="rgba(46,207,181,0.82)" stroke="rgba(46,207,181,0.3)"  stroke-width="2"/>
+          <circle cx="380" cy="28"  r="5.5" fill="rgba(46,207,181,1)"  stroke="rgba(46,207,181,0.35)" stroke-width="3"/>
+          <circle cx="380" cy="28"  r="12" fill="rgba(46,207,181,0.1)"/>
+          <!-- Week labels -->
+          <text x="20"  y="146" font-family="system-ui,sans-serif" font-size="10" fill="rgba(255,255,255,0.3)" text-anchor="middle">S1</text>
+          <text x="160" y="146" font-family="system-ui,sans-serif" font-size="10" fill="rgba(255,255,255,0.3)" text-anchor="middle">S2</text>
+          <text x="280" y="146" font-family="system-ui,sans-serif" font-size="10" fill="rgba(255,255,255,0.3)" text-anchor="middle">S3</text>
+          <text x="380" y="146" font-family="system-ui,sans-serif" font-size="10" fill="rgba(46,207,181,0.75)" text-anchor="middle">S4</text>
+          <!-- Value badge -->
+          <rect x="330" y="8" width="58" height="18" rx="9" fill="rgba(46,207,181,0.14)" stroke="rgba(46,207,181,0.3)" stroke-width="1"/>
+          <text x="359" y="21" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="rgba(46,207,181,0.92)" text-anchor="middle">↑ +8.4%</text>
+        </svg>
       </div>
       <div class="home-fcard-inner">
         <div class="home-fcard-tag">SEGUIMIENTO VISUAL</div>
