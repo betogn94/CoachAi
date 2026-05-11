@@ -3388,6 +3388,341 @@ footer {
 }
 
 
+
+/* =================== HAMBURGER BUTTON =================== */
+.hamburger-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  padding: 11px 9px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.hamburger-btn:hover {
+  border-color: var(--accent);
+  background: rgba(124,106,255,0.06);
+}
+.hamburger-btn span {
+  display: block;
+  width: 100%;
+  height: 1.5px;
+  background: var(--text);
+  border-radius: 2px;
+  transition: all 0.25s;
+}
+
+/* =================== NAV OVERLAY =================== */
+.nav-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(3px);
+  z-index: 300;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.nav-overlay.open { opacity: 1; pointer-events: all; }
+
+/* =================== NAV DRAWER =================== */
+.nav-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 288px;
+  max-width: 90vw;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  z-index: 301;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  box-shadow: -8px 0 32px rgba(0,0,0,0.4);
+}
+.nav-drawer.open { transform: translateX(0); }
+
+.nav-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.nav-drawer-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 4px;
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.nav-close-btn {
+  width: 34px;
+  height: 34px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  line-height: 1;
+}
+.nav-close-btn:hover { border-color: var(--accent); color: var(--text); }
+
+.nav-user-chip {
+  margin: 14px 18px;
+  padding: 12px 14px;
+  background: rgba(124,106,255,0.06);
+  border: 1px solid rgba(124,106,255,0.16);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.nav-user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.nav-user-name { font-weight: 600; font-size: 14px; color: var(--text); }
+.nav-user-goal { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+.nav-section { padding: 6px 0; }
+.nav-section-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--muted2);
+  padding: 10px 22px 4px;
+  font-weight: 700;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 22px;
+  cursor: pointer;
+  transition: all 0.18s;
+  border-left: 3px solid transparent;
+  margin: 1px 0;
+}
+.nav-item:hover { background: rgba(124,106,255,0.05); }
+.nav-item.active {
+  border-left-color: var(--accent);
+  background: rgba(124,106,255,0.08);
+}
+.nav-item-icon { font-size: 20px; width: 26px; text-align: center; flex-shrink: 0; }
+.nav-item-label { font-size: 14px; font-weight: 500; color: var(--muted); transition: color 0.18s; }
+.nav-item:hover .nav-item-label { color: var(--text); }
+.nav-item.active .nav-item-label { color: var(--accent-bright); }
+.nav-item-sub { font-size: 11px; color: var(--muted); margin-top: 1px; opacity: 0.75; }
+.nav-item.active .nav-item-sub { color: var(--accent-bright); opacity: 0.65; }
+
+.nav-divider { height: 1px; background: var(--border); margin: 8px 18px; }
+.nav-drawer-footer {
+  margin-top: auto;
+  padding: 16px 22px 20px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.nav-version { font-size: 10px; color: var(--muted2); letter-spacing: 0.5px; }
+
+/* =================== HOME SCREEN =================== */
+.home-wrapper {
+  max-width: 860px;
+  margin: 0 auto 48px;
+  padding: 0 24px;
+  display: none;
+}
+.home-welcome { padding: 28px 2px 22px; }
+.home-greeting {
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0.3px;
+  margin-bottom: 4px;
+}
+.home-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 40px;
+  letter-spacing: 3px;
+  background: linear-gradient(135deg, #fff 0%, var(--accent-bright) 55%, var(--accent3) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+.home-goal-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, rgba(124,106,255,0.1), rgba(46,207,181,0.07));
+  border: 1px solid rgba(124,106,255,0.25);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-bright);
+  letter-spacing: 0.8px;
+  margin-bottom: 16px;
+}
+.home-motivation {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.65;
+  max-width: 420px;
+  font-weight: 300;
+}
+.home-motivation strong { color: var(--text); font-weight: 500; }
+
+.home-section-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 12px;
+  padding: 0 2px;
+}
+.home-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.home-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 22px 18px 20px;
+  cursor: pointer;
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+.home-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124,106,255,0.22), transparent);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.home-card:hover::after { opacity: 1; }
+.home-card:hover {
+  border-color: rgba(124,106,255,0.28);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.28), 0 0 14px rgba(124,106,255,0.05);
+}
+.home-card:active { transform: translateY(0); }
+.home-card-icon { font-size: 26px; margin-bottom: 12px; display: block; }
+.home-card-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 17px;
+  letter-spacing: 2px;
+  color: var(--accent-bright);
+  margin-bottom: 5px;
+}
+.home-card-desc { font-size: 12px; color: var(--muted); line-height: 1.5; font-weight: 300; }
+
+/* Primary CoachAI card — full width */
+.home-card.primary {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, rgba(124,106,255,0.09), rgba(46,207,181,0.05));
+  border-color: rgba(124,106,255,0.22);
+  padding: 22px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.home-card.primary .home-card-icon { font-size: 34px; margin: 0; flex-shrink: 0; }
+.home-card.primary .home-card-info { flex: 1; min-width: 0; }
+.home-card.primary .home-card-title {
+  font-size: 20px;
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.home-card.primary:hover {
+  border-color: rgba(124,106,255,0.36);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.28), 0 0 18px rgba(124,106,255,0.07);
+}
+.home-card-arrow {
+  color: var(--muted);
+  font-size: 18px;
+  flex-shrink: 0;
+  transition: transform 0.2s, color 0.2s;
+}
+.home-card.primary:hover .home-card-arrow { transform: translateX(3px); color: var(--accent-bright); }
+
+/* Tips */
+.home-tips {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.home-tips-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(124,106,255,0.03);
+}
+.home-tips-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: var(--text);
+}
+.home-tips-list { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 13px; }
+.home-tip { display: flex; align-items: flex-start; gap: 12px; }
+.home-tip-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  margin-top: 7px;
+}
+.home-tip-text { font-size: 13px; color: var(--muted); line-height: 1.55; font-weight: 300; }
+.home-tip-text strong { color: var(--text); font-weight: 500; }
+
+@media (max-width: 480px) {
+  .home-wrapper { padding: 0 16px; }
+  .home-name { font-size: 34px; }
+  .home-cards-grid { gap: 10px; }
+  .home-card { padding: 18px 14px 16px; border-radius: 14px; }
+  .home-card-title { font-size: 15px; }
+  .home-card.primary { padding: 18px 16px; }
+  .home-card.primary .home-card-title { font-size: 18px; }
+}
 </style>
 </head>
 <body>
@@ -3403,8 +3738,55 @@ footer {
       <button class="lang-btn active" onclick="setLang('es')">ES</button>
       <button class="lang-btn" onclick="setLang('en')">EN</button>
     </div>
+    <button class="hamburger-btn" id="hamburger-btn" onclick="openNav()" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </header>
+
+<!-- NAV OVERLAY -->
+<div class="nav-overlay" id="nav-overlay" onclick="closeNav()"></div>
+
+<!-- NAV DRAWER -->
+<div class="nav-drawer" id="nav-drawer">
+  <div class="nav-drawer-header">
+    <div class="nav-drawer-logo">COACH AI</div>
+    <button class="nav-close-btn" onclick="closeNav()">×</button>
+  </div>
+  <div class="nav-user-chip">
+    <div class="nav-user-avatar">🏋</div>
+    <div>
+      <div class="nav-user-name" id="nav-user-name">—</div>
+      <div class="nav-user-goal" id="nav-user-goal">—</div>
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-label">Navegación</div>
+    <div class="nav-item active" id="nav-inicio" onclick="showHome(); closeNav()">
+      <div class="nav-item-icon">🏠</div>
+      <div><div class="nav-item-label">Inicio</div></div>
+    </div>
+    <div class="nav-item" id="nav-coach" onclick="showChat(); closeNav()">
+      <div class="nav-item-icon">🧠</div>
+      <div><div class="nav-item-label">Coach AI</div></div>
+    </div>
+    <div class="nav-item" id="nav-diario" onclick="showDiario(); closeNav()">
+      <div class="nav-item-icon">🍽</div>
+      <div><div class="nav-item-label">Mi Día</div></div>
+    </div>
+    <div class="nav-item" id="nav-progreso" onclick="showDashboard(); closeNav()">
+      <div class="nav-item-icon">📈</div>
+      <div><div class="nav-item-label">Progreso</div></div>
+    </div>
+    <div class="nav-item" id="nav-perfil" onclick="showPerfil(); closeNav()">
+      <div class="nav-item-icon">👤</div>
+      <div><div class="nav-item-label">Perfil</div></div>
+    </div>
+  </div>
+  <div class="nav-drawer-footer">
+    <div class="nav-version">CoachAI · Entrenador Personal con IA</div>
+  </div>
+</div>
 
 <!-- PROGRESS -->
 <div class="progress-bar-container">
@@ -3430,6 +3812,78 @@ footer {
       <button class="btn-continue" onclick="continueSession()" id="btn-continue">CONTINUAR →</button>
     </div>
   </div>
+</div>
+
+<!-- HOME SCREEN -->
+<div class="home-wrapper" id="home-wrapper">
+
+  <!-- Welcome -->
+  <div class="home-welcome">
+    <div class="home-greeting" id="home-greeting">Bienvenido</div>
+    <div class="home-name" id="home-name">ATLETA</div>
+    <div class="home-goal-chip" id="home-goal-chip">🎯 Tu objetivo</div>
+    <p class="home-motivation" id="home-motivation">CoachAI te acompaña día a día para ayudarte a cumplir tu objetivo.</p>
+  </div>
+
+  <!-- Feature cards -->
+  <div class="home-section-label">¿Qué querés hacer?</div>
+  <div class="home-cards-grid">
+
+    <!-- CoachAI — primary full-width -->
+    <div class="home-card primary" onclick="showChat(); setActiveNav('nav-coach')">
+      <div class="home-card-icon">🧠</div>
+      <div class="home-card-info">
+        <div class="home-card-title">COACH AI</div>
+        <div class="home-card-desc">Acompañamiento y análisis inteligente personalizado.</div>
+      </div>
+      <div class="home-card-arrow">→</div>
+    </div>
+
+    <!-- Mi Día -->
+    <div class="home-card" onclick="showDiario(); setActiveNav('nav-diario')">
+      <span class="home-card-icon">🍽</span>
+      <div class="home-card-title">MI DÍA</div>
+      <div class="home-card-desc">Registrá comidas y entrenamientos del día.</div>
+    </div>
+
+    <!-- Progreso -->
+    <div class="home-card" onclick="showDashboard(); setActiveNav('nav-progreso')">
+      <span class="home-card-icon">📈</span>
+      <div class="home-card-title">PROGRESO</div>
+      <div class="home-card-desc">Seguí tu evolución y adherencia semanal.</div>
+    </div>
+
+    <!-- Perfil -->
+    <div class="home-card" onclick="showPerfil(); setActiveNav('nav-perfil')">
+      <span class="home-card-icon">👤</span>
+      <div class="home-card-title">PERFIL</div>
+      <div class="home-card-desc">Tu transformación y estadísticas personales.</div>
+    </div>
+
+  </div>
+
+  <!-- Tips -->
+  <div class="home-tips">
+    <div class="home-tips-header">
+      <span>✨</span>
+      <span class="home-tips-title">CÓMO APROVECHAR MEJOR COACHAI</span>
+    </div>
+    <div class="home-tips-list">
+      <div class="home-tip">
+        <div class="home-tip-dot"></div>
+        <span class="home-tip-text"><strong>Registrá tu día a día</strong> para que tu coach tenga contexto real y pueda guiarte mejor.</span>
+      </div>
+      <div class="home-tip">
+        <div class="home-tip-dot"></div>
+        <span class="home-tip-text"><strong>Subí fotos de progreso</strong> cada semana para visualizar tu transformación en el tiempo.</span>
+      </div>
+      <div class="home-tip">
+        <div class="home-tip-dot"></div>
+        <span class="home-tip-text"><strong>Consultá a tu coach</strong> ante cualquier duda sobre tu plan — está disponible 24/7.</span>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- HERO -->
@@ -3752,7 +4206,7 @@ footer {
 <div class="perfil-wrapper" id="perfil-wrapper">
   <div class="dash-header">
     <div class="dash-title" id="perfil-title-text">👤 PERFIL</div>
-    <button class="btn-back-chat" onclick="showChat()" id="perfil-back-btn">← Volver al chat</button>
+    <button class="btn-back-chat" onclick="showHome()" id="perfil-back-btn">← Inicio</button>
   </div>
 
   <!-- HEADER CARD -->
@@ -3818,7 +4272,7 @@ footer {
 <div class="dashboard-wrapper" id="dashboard-wrapper">
   <div class="dash-header">
     <div class="dash-title" id="dash-title-text">📊 MI PROGRESO</div>
-    <button class="btn-back-chat" onclick="showChat()" id="dash-back-btn">← Volver al chat</button>
+    <button class="btn-back-chat" onclick="showHome()" id="dash-back-btn">← Inicio</button>
   </div>
 
   <!-- PLAN SEMANAL COACHÁI -->
@@ -4009,7 +4463,7 @@ footer {
       <div class="diario-title" id="diario-title-text">📝 MI DÍA</div>
       <div class="diario-date" id="diario-date-display"></div>
     </div>
-    <button class="btn-back-chat" onclick="showChat()" id="diario-back-btn">← Volver al chat</button>
+    <button class="btn-back-chat" onclick="showHome()" id="diario-back-btn">← Inicio</button>
   </div>
 
   <!-- ALIMENTACIÓN -->
@@ -4461,6 +4915,8 @@ async function continueSession() {
   document.querySelector('.form-wrapper').style.display = 'none';
   document.querySelector('.progress-bar-container').style.display = 'none';
   await launchCoach();
+  // Returning users land on Home — the hub
+  showHome();
 }
 
 function checkSavedProfile() {
@@ -4499,18 +4955,11 @@ function setLang(l) {
 }
 
 function applyLangToHeader(l) {
-  const dashBtn = document.getElementById('btn-dashboard');
-  const wlBtn = document.getElementById('btn-whitelabel');
-  const perfilBtn = document.getElementById('btn-perfil');
-  if (dashBtn) dashBtn.innerHTML = l === 'es' ? '📊 Progreso' : '📊 Progress';
-  if (wlBtn) wlBtn.innerHTML = l === 'es' ? '🎨 Marca' : '🎨 Branding';
-  if (perfilBtn) perfilBtn.innerHTML = l === 'es' ? '👤 <span>Perfil</span>' : '👤 <span>Profile</span>';
-
   // Translate the Perfil section static labels
   const perfilTitle = document.getElementById('perfil-title-text');
   if (perfilTitle) perfilTitle.textContent = l === 'es' ? '👤 PERFIL' : '👤 PROFILE';
   const perfilBack = document.getElementById('perfil-back-btn');
-  if (perfilBack) perfilBack.textContent = l === 'es' ? '← Volver al chat' : '← Back to chat';
+  if (perfilBack) perfilBack.textContent = l === 'es' ? '← Inicio' : '← Home';
   const ttTransform = document.getElementById('perfil-transform-title');
   if (ttTransform) ttTransform.textContent = l === 'es' ? '📸 TRANSFORMACIÓN VISUAL' : '📸 VISUAL TRANSFORMATION';
   const ttStats = document.getElementById('perfil-stats-title');
@@ -5133,16 +5582,8 @@ async function launchCoach() {
     saveProfileToSupabase(profileData).catch(console.error);
   }
 
-  // Add profile button to header (opens premium Perfil section)
-  const headerRight = document.getElementById('header-right');
-  if (!document.getElementById('btn-perfil')) {
-    const perfilBtn = document.createElement('button');
-    perfilBtn.id = 'btn-perfil';
-    perfilBtn.className = 'btn-edit-profile';
-    perfilBtn.innerHTML = '👤 <span id="perfil-btn-text">Perfil</span>';
-    perfilBtn.onclick = showPerfil;
-    headerRight.insertBefore(perfilBtn, headerRight.firstChild);
-  }
+  // Show hamburger nav (replaces individual header buttons)
+  document.getElementById('hamburger-btn').style.display = 'flex';
 
   document.getElementById('step5').classList.remove('visible');
   document.querySelector('.form-wrapper').style.display = 'none';
@@ -5168,30 +5609,10 @@ async function launchCoach() {
     { l: lang==='es'?'Días':'Days', v: `${selectedDias.length}d/sem` },
   ].map(i => `<div class="cpb-item"><div class="cpb-label">${i.l}</div><div class="cpb-value">${i.v}</div></div>`).join('');
 
-  // Dashboard button in header
-  if (!document.getElementById('btn-dashboard')) {
-    const dashBtn = document.createElement('button');
-    dashBtn.id = 'btn-dashboard';
-    dashBtn.className = 'btn-dashboard';
-    dashBtn.innerHTML = '📊 Progreso';
-    dashBtn.onclick = showDashboard;
-    document.getElementById('header-right').insertBefore(dashBtn, document.getElementById('header-right').firstChild);
-  }
-
   // Quick actions — built dynamically based on whether weekly plans were already delivered
   refreshQuickButtons();
 
   document.getElementById('chat-input').placeholder = lang === 'es' ? 'Escribí tu pregunta...' : 'Type your question...';
-
-  // Botón Mi Día en header
-  if (!document.getElementById('btn-diario')) {
-    const diarioBtn = document.createElement('button');
-    diarioBtn.id = 'btn-diario';
-    diarioBtn.className = 'btn-diario';
-    diarioBtn.innerHTML = '📝 Mi día';
-    diarioBtn.onclick = showDiario;
-    document.getElementById('header-right').insertBefore(diarioBtn, document.getElementById('header-right').firstChild);
-  }
 
   // ===== Full conversation memory =====
   // Load EVERY chat row this user has ever had + current week's plans + recent diario.
@@ -5441,6 +5862,7 @@ function setEntrenó(val) {
 }
 
 async function showDiario() {
+  setActiveNav('nav-diario');
   hideAllSections();
   document.getElementById('diario-wrapper').style.display = 'block';
   document.getElementById('diario-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -6090,11 +6512,81 @@ Use the real numbers, be specific.${photoInstructions}`;
   return data.content?.[0]?.text || null;
 }
 
+// ============================
+// HOME SCREEN
+// ============================
+function showHome() {
+  hideAllSections();
+  const wrapper = document.getElementById('home-wrapper');
+  wrapper.style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  renderHome();
+  setActiveNav('nav-inicio');
+}
+
+function renderHome() {
+  const p = loadProfile();
+  if (!p) return;
+  const greeting = getGreeting();
+  document.getElementById('home-greeting').textContent = greeting;
+  document.getElementById('home-name').textContent = (p.nombre || 'Atleta').toUpperCase();
+  const goalLabels = {
+    definir: '🔥 Definir',
+    ganar_musculo: '💪 Ganar músculo',
+    mantener: '⚖️ Mantener'
+  };
+  const goalText = goalLabels[p.objetivo] || (p.selections?.objetivo ? goalLabels[p.selections.objetivo] : null) || '🎯 Mi objetivo';
+  document.getElementById('home-goal-chip').textContent = goalText;
+  const motivations = [
+    'La constancia es lo que transforma el cuerpo. Estás en el camino correcto.',
+    'Cada día que registrás es un paso más cerca de tu objetivo.',
+    'Tu coach está listo para acompañarte hoy. ¿Empezamos?',
+    'El progreso real se construye día a día, sin apuros.',
+    'Enfocate en el proceso — los resultados llegan solos.',
+    'Hoy es un buen día para ser constante.',
+    'Tu mejor versión se construye con hábitos, no con perfección.'
+  ];
+  const idx = new Date().getDay() % motivations.length;
+  document.getElementById('home-motivation').textContent = motivations[idx];
+  // Update nav user info
+  document.getElementById('nav-user-name').textContent = p.nombre || '—';
+  document.getElementById('nav-user-goal').textContent = goalText;
+}
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Buenos días';
+  if (h < 19) return 'Buenas tardes';
+  return 'Buenas noches';
+}
+
+// ============================
+// NAV DRAWER
+// ============================
+function openNav() {
+  document.getElementById('nav-overlay').classList.add('open');
+  document.getElementById('nav-drawer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeNav() {
+  document.getElementById('nav-overlay').classList.remove('open');
+  document.getElementById('nav-drawer').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function setActiveNav(id) {
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+}
+
 function hideAllSections() {
   document.getElementById('chat-wrapper').style.display = 'none';
   document.getElementById('dashboard-wrapper').style.display = 'none';
   document.getElementById('wl-wrapper').style.display = 'none';
   document.getElementById('diario-wrapper').style.display = 'none';
+  document.getElementById('home-wrapper').style.display = 'none';
   const perfilEl = document.getElementById('perfil-wrapper');
   if (perfilEl) perfilEl.style.display = 'none';
   document.getElementById('hero-section').style.display = 'none';
@@ -6112,6 +6604,7 @@ function showPerfil() {
   wrapper.style.display = 'block';
   wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
   renderPerfil().catch(console.error);
+  setActiveNav('nav-perfil');
 }
 
 function openEditProfileForm() {
@@ -6317,12 +6810,14 @@ function showDashboard() {
   document.getElementById('dashboard-wrapper').style.display = 'block';
   document.getElementById('dashboard-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
   renderDashboard();
+  setActiveNav('nav-progreso');
 }
 
 function showChat() {
   hideAllSections();
   document.getElementById('chat-wrapper').style.display = 'block';
   document.getElementById('chat-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  setActiveNav('nav-coach');
 }
 
 async function renderDashboard() {
