@@ -7031,9 +7031,13 @@ function showHome() {
   hideAllSections();
   const wrapper = document.getElementById('home-wrapper');
   wrapper.style.display = 'block';
-  window.scrollTo({ top: 0, behavior: 'instant' });
   renderHome();
   setActiveNav('nav-inicio');
+  // Defer scroll until after layout settles (fixes iOS Safari partial-scroll on entry)
+  requestAnimationFrame(() => {
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+  });
 }
 
 function renderHome() {
