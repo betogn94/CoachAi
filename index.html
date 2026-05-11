@@ -3551,67 +3551,349 @@ footer {
 .nav-version { font-size: 10px; color: var(--muted2); letter-spacing: 0.5px; }
 
 /* =================== HOME SCREEN =================== */
+/* ═══════════════════════════════════════════════════════════
+   HOME — PREMIUM VISUAL REDESIGN
+   ═══════════════════════════════════════════════════════════ */
+
 .home-wrapper {
   max-width: 860px;
-  margin: 0 auto 48px;
-  padding: 0 24px;
+  margin: 0 auto;
+  padding: 0;
   display: none;
 }
-.home-welcome { padding: 28px 2px 22px; }
-.home-greeting {
-  font-size: 13px;
-  color: var(--muted);
-  letter-spacing: 0.3px;
-  margin-bottom: 4px;
+
+/* ── HERO ───────────────────────────────────────────────── */
+.home-hero {
+  position: relative;
+  padding: 56px 24px 60px;
+  overflow: hidden;
 }
-.home-name {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 40px;
+/* Ambient orbs — cinematic depth */
+.home-hero::before {
+  content: '';
+  position: absolute;
+  top: -80px; right: -60px;
+  width: 360px; height: 360px;
+  background: radial-gradient(ellipse, rgba(124,106,255,0.14) 0%, transparent 65%);
+  pointer-events: none;
+}
+.home-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -60px; left: -80px;
+  width: 280px; height: 280px;
+  background: radial-gradient(ellipse, rgba(46,207,181,0.09) 0%, transparent 65%);
+  pointer-events: none;
+}
+.home-eyebrow-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  text-transform: uppercase;
   letter-spacing: 3px;
-  background: linear-gradient(135deg, #fff 0%, var(--accent-bright) 55%, var(--accent3) 100%);
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 24px;
+  position: relative;
+  z-index: 1;
+}
+.home-greeting-small {
+  font-size: 16px;
+  color: var(--accent-bright);
+  font-weight: 400;
+  letter-spacing: 0.4px;
+  margin-bottom: 6px;
+  position: relative;
+  z-index: 1;
+}
+.home-hero-headline {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 72px;
+  letter-spacing: 4px;
+  line-height: 0.92;
+  background: linear-gradient(135deg, #ffffff 0%, var(--accent-bright) 50%, var(--accent3) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  line-height: 1;
-  margin-bottom: 12px;
+  margin-bottom: 22px;
+  position: relative;
+  z-index: 1;
 }
 .home-goal-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
-  background: linear-gradient(135deg, rgba(124,106,255,0.1), rgba(46,207,181,0.07));
-  border: 1px solid rgba(124,106,255,0.25);
+  padding: 6px 16px;
+  background: rgba(124,106,255,0.08);
+  border: 1px solid rgba(124,106,255,0.22);
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
   color: var(--accent-bright);
   letter-spacing: 0.8px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
 }
-.home-motivation {
-  font-size: 14px;
-  color: var(--muted);
+.home-hero-sub {
+  font-size: 15px;
+  color: rgba(238,238,245,0.55);
   line-height: 1.65;
-  max-width: 420px;
+  max-width: 340px;
+  font-weight: 300;
+  margin-bottom: 36px;
+  position: relative;
+  z-index: 1;
+}
+.btn-home-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 32px;
+  background: linear-gradient(135deg, var(--accent) 0%, rgba(46,207,181,0.85) 100%);
+  border: none;
+  border-radius: 16px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 17px;
+  letter-spacing: 2px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 8px 32px rgba(124,106,255,0.28), 0 2px 8px rgba(0,0,0,0.4);
+  position: relative;
+  z-index: 1;
+}
+.btn-home-cta:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 40px rgba(124,106,255,0.38), 0 4px 12px rgba(0,0,0,0.4);
+}
+.btn-home-cta:active { transform: translateY(0); }
+.btn-home-cta-arrow { font-size: 16px; transition: transform 0.2s; }
+.btn-home-cta:hover .btn-home-cta-arrow { transform: translateX(4px); }
+/* Decorative orb element */
+.home-hero-orb {
+  position: absolute;
+  top: 50%; right: 24px;
+  transform: translateY(-50%);
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  border: 1px solid rgba(124,106,255,0.1);
+  background: radial-gradient(ellipse at 35% 35%, rgba(180,167,255,0.1) 0%, rgba(124,106,255,0.03) 50%, transparent 70%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ── SECTION HEADERS ────────────────────────────────────── */
+.home-section-header {
+  padding: 0 24px;
+  margin: 52px 0 22px;
+}
+.home-section-eyebrow {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: var(--accent3);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.home-section-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 30px;
+  letter-spacing: 3px;
+  color: var(--text);
+  line-height: 1;
+}
+
+/* ── FEATURED CARDS (large premium storytelling) ────────── */
+.home-feature-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 24px;
+}
+.home-fcard {
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  min-height: 210px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.home-fcard.fcard-ai {
+  background: linear-gradient(140deg, #0e0e24 0%, #14142e 55%, #0c1a2a 100%);
+}
+.home-fcard.fcard-prog {
+  background: linear-gradient(140deg, #0b1a17 0%, #101f28 55%, #0e0e23 100%);
+}
+/* Ambient glow per card */
+.home-fcard.fcard-ai::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 280px; height: 280px;
+  background: radial-gradient(ellipse, rgba(124,106,255,0.2) 0%, transparent 65%);
+  pointer-events: none;
+}
+.home-fcard.fcard-prog::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -40px;
+  width: 260px; height: 260px;
+  background: radial-gradient(ellipse, rgba(46,207,181,0.16) 0%, transparent 65%);
+  pointer-events: none;
+}
+.home-fcard-inner {
+  position: relative;
+  z-index: 1;
+  padding: 32px 28px 36px;
+}
+.home-fcard-tag {
+  display: inline-block;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  font-weight: 700;
+  color: var(--muted);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 999px;
+  padding: 5px 13px;
+  margin-bottom: 18px;
+}
+.home-fcard-headline {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 34px;
+  letter-spacing: 3px;
+  color: var(--text);
+  line-height: 1.05;
+  margin-bottom: 14px;
+  white-space: pre-line;
+}
+.home-fcard-desc {
+  font-size: 14px;
+  color: rgba(238,238,245,0.5);
+  line-height: 1.65;
+  font-weight: 300;
+  max-width: 300px;
+}
+/* Decorative bg emoji */
+.home-fcard-bg-icon {
+  position: absolute;
+  bottom: 16px; right: 24px;
+  font-size: 72px;
+  opacity: 0.07;
+  pointer-events: none;
+  z-index: 0;
+  line-height: 1;
+}
+
+/* ── MINI FEATURE STRIP (2×2) ────────────────────────────── */
+.home-mini-strip {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 0 24px;
+  margin-top: 16px;
+}
+.home-mini-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px 18px;
+  position: relative;
+  overflow: hidden;
+}
+.home-mini-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124,106,255,0.22), transparent);
+}
+.home-mini-icon {
+  font-size: 24px;
+  margin-bottom: 12px;
+  display: block;
+}
+.home-mini-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 15px;
+  letter-spacing: 1.5px;
+  color: var(--accent-bright);
+  margin-bottom: 6px;
+}
+.home-mini-desc {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
   font-weight: 300;
 }
-.home-motivation strong { color: var(--text); font-weight: 500; }
 
+/* ── HOW IT WORKS ────────────────────────────────────────── */
+.home-steps {
+  display: flex;
+  flex-direction: column;
+  padding: 0 24px;
+}
+.home-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 24px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.home-step:last-child { border-bottom: none; }
+.home-step-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  letter-spacing: 1px;
+  color: rgba(124,106,255,0.18);
+  line-height: 1;
+  min-width: 40px;
+  flex-shrink: 0;
+}
+.home-step-icon {
+  width: 46px; height: 46px;
+  border-radius: 13px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.home-step-body { flex: 1; min-width: 0; padding-top: 4px; }
+.home-step-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 2px;
+  color: var(--text);
+  margin-bottom: 5px;
+}
+.home-step-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+  font-weight: 300;
+}
+
+/* ── EXPLORE NAV CARDS ───────────────────────────────────── */
+.home-nav-section {
+  padding: 0 24px 56px;
+}
 .home-section-label {
   font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   color: var(--muted);
   font-weight: 700;
-  margin-bottom: 12px;
-  padding: 0 2px;
+  margin-bottom: 14px;
 }
 .home-cards-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin-bottom: 28px;
 }
 .home-card {
   background: var(--surface);
@@ -3636,268 +3918,31 @@ footer {
 .home-card:hover {
   border-color: rgba(124,106,255,0.28);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.28), 0 0 14px rgba(124,106,255,0.05);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.28);
 }
 .home-card:active { transform: translateY(0); }
-.home-card-icon { font-size: 26px; margin-bottom: 12px; display: block; }
+.home-card-icon { font-size: 24px; margin-bottom: 10px; display: block; }
 .home-card-title {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 17px;
+  font-size: 16px;
   letter-spacing: 2px;
   color: var(--accent-bright);
   margin-bottom: 5px;
 }
 .home-card-desc { font-size: 12px; color: var(--muted); line-height: 1.5; font-weight: 300; }
 
-/* Primary CoachAI card — full width */
-.home-card.primary {
-  grid-column: 1 / -1;
-  background: linear-gradient(135deg, rgba(124,106,255,0.09), rgba(46,207,181,0.05));
-  border-color: rgba(124,106,255,0.22);
-  padding: 22px 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.home-card.primary .home-card-icon { font-size: 34px; margin: 0; flex-shrink: 0; }
-.home-card.primary .home-card-info { flex: 1; min-width: 0; }
-.home-card.primary .home-card-title {
-  font-size: 20px;
-  background: linear-gradient(135deg, var(--accent-bright), var(--accent3));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.home-card.primary:hover {
-  border-color: rgba(124,106,255,0.36);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.28), 0 0 18px rgba(124,106,255,0.07);
-}
-.home-card-arrow {
-  color: var(--muted);
-  font-size: 18px;
-  flex-shrink: 0;
-  transition: transform 0.2s, color 0.2s;
-}
-.home-card.primary:hover .home-card-arrow { transform: translateX(3px); color: var(--accent-bright); }
-
-/* Tips */
-.home-tips {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  overflow: hidden;
-}
-.home-tips-header {
-  padding: 15px 20px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(124,106,255,0.03);
-}
-.home-tips-title {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 14px;
-  letter-spacing: 2px;
-  color: var(--text);
-}
-.home-tips-list { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 13px; }
-.home-tip { display: flex; align-items: flex-start; gap: 12px; }
-.home-tip-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--accent);
-  flex-shrink: 0;
-  margin-top: 7px;
-}
-.home-tip-text { font-size: 13px; color: var(--muted); line-height: 1.55; font-weight: 300; }
-.home-tip-text strong { color: var(--text); font-weight: 500; }
-
+/* ── MOBILE ──────────────────────────────────────────────── */
 @media (max-width: 480px) {
-  .home-wrapper { padding: 0 16px; }
-  .home-name { font-size: 34px; }
+  .home-hero { padding: 44px 20px 52px; }
+  .home-hero-headline { font-size: 58px; }
+  .home-hero-orb { display: none; }
+  .home-section-header { padding: 0 20px; margin: 40px 0 18px; }
+  .home-feature-cards, .home-mini-strip, .home-steps, .home-nav-section { padding-left: 20px; padding-right: 20px; }
+  .home-fcard-headline { font-size: 28px; }
+  .home-mini-strip { gap: 10px; }
+  .home-mini-card { padding: 20px 14px; }
   .home-cards-grid { gap: 10px; }
   .home-card { padding: 18px 14px 16px; border-radius: 14px; }
-  .home-card-title { font-size: 15px; }
-  .home-card.primary { padding: 18px 16px; }
-  .home-card.primary .home-card-title { font-size: 18px; }
-}
-
-/* ── HOME HERO ─────────────────────────────────────────── */
-.home-hero {
-  padding: 48px 2px 40px;
-}
-.home-eyebrow-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  color: var(--muted);
-  font-weight: 600;
-  margin-bottom: 22px;
-}
-.home-greeting-small {
-  font-size: 13px;
-  color: var(--muted);
-  font-weight: 400;
-  letter-spacing: 0.3px;
-  margin-bottom: 4px;
-}
-.home-hero-name {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 52px;
-  letter-spacing: 4px;
-  background: linear-gradient(135deg, #fff 0%, var(--accent-bright) 55%, var(--accent3) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  line-height: 1;
-  margin-bottom: 14px;
-}
-.home-hero-sub {
-  font-size: 14px;
-  color: var(--muted);
-  line-height: 1.65;
-  max-width: 400px;
-  font-weight: 300;
-  margin-bottom: 28px;
-}
-.btn-home-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 28px;
-  background: linear-gradient(135deg, var(--accent), rgba(46,207,181,0.85));
-  border: none;
-  border-radius: 14px;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 16px;
-  letter-spacing: 2px;
-  color: #fff;
-  cursor: pointer;
-  transition: all 0.25s;
-  box-shadow: 0 4px 20px rgba(124,106,255,0.25);
-}
-.btn-home-cta:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(124,106,255,0.35);
-}
-.btn-home-cta-arrow { font-size: 14px; transition: transform 0.2s; }
-.btn-home-cta:hover .btn-home-cta-arrow { transform: translateX(3px); }
-
-/* ── HOME SECTION HEADERS ──────────────────────────────── */
-.home-section-header {
-  margin: 36px 0 16px;
-}
-.home-section-eyebrow {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  color: var(--accent3);
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-.home-section-title {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 22px;
-  letter-spacing: 3px;
-  color: var(--text);
-}
-
-/* ── HOME FEATURES GRID ────────────────────────────────── */
-.home-features-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 4px;
-}
-.home-feature-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 20px 16px;
-  position: relative;
-  overflow: hidden;
-}
-.home-feature-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(124,106,255,0.2), transparent);
-}
-.home-feature-icon {
-  font-size: 22px;
-  margin-bottom: 10px;
-  display: block;
-}
-.home-feature-title {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 14px;
-  letter-spacing: 1.5px;
-  color: var(--accent-bright);
-  margin-bottom: 5px;
-}
-.home-feature-desc {
-  font-size: 11.5px;
-  color: var(--muted);
-  line-height: 1.5;
-  font-weight: 300;
-}
-
-/* ── HOME STEPS ────────────────────────────────────────── */
-.home-steps {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 4px;
-}
-.home-step {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 18px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-}
-.home-step:last-child { border-bottom: none; }
-.home-step-num {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 28px;
-  letter-spacing: 1px;
-  color: rgba(124,106,255,0.2);
-  line-height: 1;
-  min-width: 36px;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-.home-step-icon {
-  font-size: 20px;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-.home-step-body { flex: 1; min-width: 0; }
-.home-step-title {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 16px;
-  letter-spacing: 2px;
-  color: var(--text);
-  margin-bottom: 3px;
-}
-.home-step-desc {
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.5;
-  font-weight: 300;
-}
-.home-nav-section { margin-top: 4px; }
-
-@media (max-width: 480px) {
-  .home-hero { padding: 36px 2px 32px; }
-  .home-hero-name { font-size: 42px; }
-  .home-features-grid { gap: 10px; }
-  .home-feature-card { padding: 16px 14px; }
 }
 </style>
 </head>
@@ -3908,7 +3953,7 @@ footer {
 
 <!-- LANDING SCREEN -->
 <header id="main-header" style="display:none">
-  <div class="logo">COACH AI</div>
+  <div class="logo" onclick="showHome(); setActiveNav('nav-inicio')" style="cursor:pointer" title="Inicio">COACH AI</div>
   <div class="header-right" id="header-right">
     <div class="lang-toggle">
       <button class="lang-btn active" onclick="setLang('es')">ES</button>
@@ -3993,47 +4038,76 @@ footer {
 <!-- HOME SCREEN -->
 <div class="home-wrapper" id="home-wrapper">
 
-  <!-- Hero -->
+  <!-- ── HERO ─────────────────────────────────────────── -->
   <div class="home-hero">
-    <div class="home-eyebrow-row"><div class="pulse-dot"></div><span>Entrenador Personal · IA · 24/7</span></div>
+    <div class="home-eyebrow-row">
+      <div class="pulse-dot"></div>
+      <span>AI · WELLNESS · 24/7</span>
+    </div>
     <div class="home-greeting-small" id="home-greeting">Buenos días</div>
-    <div class="home-hero-name" id="home-name">ATLETA</div>
-    <div class="home-goal-chip" id="home-goal-chip">🎯 Tu objetivo</div>
-    <p class="home-hero-sub" id="home-motivation">CoachAI te acompaña día a día para ayudarte a cumplir tu objetivo.</p>
+    <div class="home-hero-headline" id="home-name">ATLETA</div>
+    <div class="home-goal-chip" id="home-goal-chip">Tu objetivo</div>
+    <p class="home-hero-sub" id="home-motivation">Acompañamiento inteligente para transformar tu cuerpo y mantener la constancia.</p>
     <button class="btn-home-cta" onclick="showChat(); setActiveNav('nav-coach')">
-      HABLAR CON MI COACH <span class="btn-home-cta-arrow">→</span>
+      INICIAR CON MI COACH <span class="btn-home-cta-arrow">→</span>
     </button>
+    <div class="home-hero-orb"></div>
   </div>
 
-  <!-- What CoachAI does -->
+  <!-- ── WHY COACHAI — 2 large premium cards ─────────── -->
   <div class="home-section-header">
-    <div class="home-section-eyebrow">CAPACIDADES</div>
-    <div class="home-section-title">QUÉ HACE COACHAI</div>
+    <div class="home-section-eyebrow">POR QUÉ COACHAI</div>
+    <div class="home-section-title">TU COACH, SIEMPRE DISPONIBLE</div>
   </div>
-  <div class="home-features-grid">
-    <div class="home-feature-card">
-      <span class="home-feature-icon">🧠</span>
-      <div class="home-feature-title">ANÁLISIS INTELIGENTE</div>
-      <div class="home-feature-desc">Evalúa tu progreso y ajusta tus recomendaciones en tiempo real.</div>
+  <div class="home-feature-cards">
+
+    <div class="home-fcard fcard-ai">
+      <div class="home-fcard-inner">
+        <div class="home-fcard-tag">IA CONVERSACIONAL</div>
+        <div class="home-fcard-headline">UN COACH
+DISPONIBLE 24/7</div>
+        <p class="home-fcard-desc">Hacé tus preguntas, ajustá tu plan y recibí orientación personalizada en tiempo real — todos los días.</p>
+      </div>
+      <div class="home-fcard-bg-icon">🧠</div>
     </div>
-    <div class="home-feature-card">
-      <span class="home-feature-icon">📅</span>
-      <div class="home-feature-title">SEGUIMIENTO DIARIO</div>
-      <div class="home-feature-desc">Registrá comidas y entrenamientos para un plan coherente.</div>
+
+    <div class="home-fcard fcard-prog">
+      <div class="home-fcard-inner">
+        <div class="home-fcard-tag">SEGUIMIENTO VISUAL</div>
+        <div class="home-fcard-headline">EL PROGRESO
+QUE SÍ SE VE</div>
+        <p class="home-fcard-desc">Métricas, fotos y análisis semanal que muestran tu transformación real. Ver el cambio sostiene la motivación.</p>
+      </div>
+      <div class="home-fcard-bg-icon">📈</div>
     </div>
-    <div class="home-feature-card">
-      <span class="home-feature-icon">📈</span>
-      <div class="home-feature-title">PROGRESO SEMANAL</div>
-      <div class="home-feature-desc">Métricas y gráficos que muestran tu evolución real.</div>
+
+  </div>
+
+  <!-- ── MINI FEATURE STRIP ────────────────────────────── -->
+  <div class="home-mini-strip">
+    <div class="home-mini-card">
+      <span class="home-mini-icon">📅</span>
+      <div class="home-mini-title">REGISTRO DIARIO</div>
+      <div class="home-mini-desc">Comidas, entrenamientos y métricas en un solo lugar.</div>
     </div>
-    <div class="home-feature-card">
-      <span class="home-feature-icon">📸</span>
-      <div class="home-feature-title">TRANSFORMACIÓN VISUAL</div>
-      <div class="home-feature-desc">Fotos de progreso para ver y celebrar tu cambio.</div>
+    <div class="home-mini-card">
+      <span class="home-mini-icon">📸</span>
+      <div class="home-mini-title">TRANSFORMACIÓN</div>
+      <div class="home-mini-desc">Fotos de progreso para celebrar cada cambio real.</div>
+    </div>
+    <div class="home-mini-card">
+      <span class="home-mini-icon">📊</span>
+      <div class="home-mini-title">ANÁLISIS IA</div>
+      <div class="home-mini-desc">Tu coach evalúa y ajusta tu plan cada semana.</div>
+    </div>
+    <div class="home-mini-card">
+      <span class="home-mini-icon">⚡</span>
+      <div class="home-mini-title">PERSONALIZADO</div>
+      <div class="home-mini-desc">100% adaptado a tu cuerpo, objetivo y ritmo de vida.</div>
     </div>
   </div>
 
-  <!-- How it works -->
+  <!-- ── HOW IT WORKS ──────────────────────────────────── -->
   <div class="home-section-header">
     <div class="home-section-eyebrow">PROCESO</div>
     <div class="home-section-title">CÓMO FUNCIONA</div>
@@ -4073,35 +4147,30 @@ footer {
     </div>
   </div>
 
-  <!-- Navigation cards (secondary) -->
-  <div class="home-nav-section">
-    <div class="home-section-label" style="margin-bottom:14px">EXPLORAR</div>
+  <!-- ── EXPLORE NAV ───────────────────────────────────── -->
+  <div class="home-nav-section" style="margin-top:48px">
+    <div class="home-section-label">EXPLORAR</div>
     <div class="home-cards-grid">
-
       <div class="home-card" onclick="showDiario(); setActiveNav('nav-diario')">
         <span class="home-card-icon">🍽</span>
         <div class="home-card-title">MI DÍA</div>
         <div class="home-card-desc">Registrá comidas y entrenamientos del día.</div>
       </div>
-
       <div class="home-card" onclick="showDashboard(); setActiveNav('nav-progreso')">
         <span class="home-card-icon">📈</span>
         <div class="home-card-title">PROGRESO</div>
         <div class="home-card-desc">Seguí tu evolución y adherencia semanal.</div>
       </div>
-
       <div class="home-card" onclick="showChat(); setActiveNav('nav-coach')">
         <span class="home-card-icon">🧠</span>
         <div class="home-card-title">COACH AI</div>
         <div class="home-card-desc">Acompañamiento y análisis inteligente.</div>
       </div>
-
       <div class="home-card" onclick="showPerfil(); setActiveNav('nav-perfil')">
         <span class="home-card-icon">👤</span>
         <div class="home-card-title">PERFIL</div>
         <div class="home-card-desc">Tu transformación y estadísticas personales.</div>
       </div>
-
     </div>
   </div>
 
