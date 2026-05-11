@@ -7033,11 +7033,17 @@ function showHome() {
   wrapper.style.display = 'block';
   renderHome();
   setActiveNav('nav-inicio');
-  // Defer scroll until after layout settles (fixes iOS Safari partial-scroll on entry)
-  requestAnimationFrame(() => {
+  scrollToTop();
+}
+
+function scrollToTop() {
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+  // Second pass — catches iOS Safari scroll-restoration override
+  setTimeout(() => {
     document.body.scrollTop = 0;
     document.documentElement.scrollTop = 0;
-  });
+  }, 80);
 }
 
 function renderHome() {
@@ -8506,6 +8512,8 @@ function applyWhiteLabelToLanding(wl) {
 
 // Override the DOMContentLoaded to show landing first
 window.addEventListener('DOMContentLoaded', () => {
+  // Disable browser scroll restoration so Hero always starts at top
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   // Apply white label on load
   const wl = loadWhiteLabel();
   if (wl) {
