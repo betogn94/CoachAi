@@ -3723,6 +3723,182 @@ footer {
   .home-card.primary { padding: 18px 16px; }
   .home-card.primary .home-card-title { font-size: 18px; }
 }
+
+/* ── HOME HERO ─────────────────────────────────────────── */
+.home-hero {
+  padding: 48px 2px 40px;
+}
+.home-eyebrow-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 22px;
+}
+.home-greeting-small {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 400;
+  letter-spacing: 0.3px;
+  margin-bottom: 4px;
+}
+.home-hero-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 52px;
+  letter-spacing: 4px;
+  background: linear-gradient(135deg, #fff 0%, var(--accent-bright) 55%, var(--accent3) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  margin-bottom: 14px;
+}
+.home-hero-sub {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.65;
+  max-width: 400px;
+  font-weight: 300;
+  margin-bottom: 28px;
+}
+.btn-home-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, var(--accent), rgba(46,207,181,0.85));
+  border: none;
+  border-radius: 14px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 2px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: 0 4px 20px rgba(124,106,255,0.25);
+}
+.btn-home-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(124,106,255,0.35);
+}
+.btn-home-cta-arrow { font-size: 14px; transition: transform 0.2s; }
+.btn-home-cta:hover .btn-home-cta-arrow { transform: translateX(3px); }
+
+/* ── HOME SECTION HEADERS ──────────────────────────────── */
+.home-section-header {
+  margin: 36px 0 16px;
+}
+.home-section-eyebrow {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent3);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.home-section-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 3px;
+  color: var(--text);
+}
+
+/* ── HOME FEATURES GRID ────────────────────────────────── */
+.home-features-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.home-feature-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 16px;
+  position: relative;
+  overflow: hidden;
+}
+.home-feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124,106,255,0.2), transparent);
+}
+.home-feature-icon {
+  font-size: 22px;
+  margin-bottom: 10px;
+  display: block;
+}
+.home-feature-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 1.5px;
+  color: var(--accent-bright);
+  margin-bottom: 5px;
+}
+.home-feature-desc {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.5;
+  font-weight: 300;
+}
+
+/* ── HOME STEPS ────────────────────────────────────────── */
+.home-steps {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 4px;
+}
+.home-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 18px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.home-step:last-child { border-bottom: none; }
+.home-step-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 1px;
+  color: rgba(124,106,255,0.2);
+  line-height: 1;
+  min-width: 36px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.home-step-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.home-step-body { flex: 1; min-width: 0; }
+.home-step-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 2px;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+.home-step-desc {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  font-weight: 300;
+}
+.home-nav-section { margin-top: 4px; }
+
+@media (max-width: 480px) {
+  .home-hero { padding: 36px 2px 32px; }
+  .home-hero-name { font-size: 42px; }
+  .home-features-grid { gap: 10px; }
+  .home-feature-card { padding: 16px 14px; }
+}
 </style>
 </head>
 <body>
@@ -3817,70 +3993,115 @@ footer {
 <!-- HOME SCREEN -->
 <div class="home-wrapper" id="home-wrapper">
 
-  <!-- Welcome -->
-  <div class="home-welcome">
-    <div class="home-greeting" id="home-greeting">Bienvenido</div>
-    <div class="home-name" id="home-name">ATLETA</div>
+  <!-- Hero -->
+  <div class="home-hero">
+    <div class="home-eyebrow-row"><div class="pulse-dot"></div><span>Entrenador Personal · IA · 24/7</span></div>
+    <div class="home-greeting-small" id="home-greeting">Buenos días</div>
+    <div class="home-hero-name" id="home-name">ATLETA</div>
     <div class="home-goal-chip" id="home-goal-chip">🎯 Tu objetivo</div>
-    <p class="home-motivation" id="home-motivation">CoachAI te acompaña día a día para ayudarte a cumplir tu objetivo.</p>
+    <p class="home-hero-sub" id="home-motivation">CoachAI te acompaña día a día para ayudarte a cumplir tu objetivo.</p>
+    <button class="btn-home-cta" onclick="showChat(); setActiveNav('nav-coach')">
+      HABLAR CON MI COACH <span class="btn-home-cta-arrow">→</span>
+    </button>
   </div>
 
-  <!-- Feature cards -->
-  <div class="home-section-label">¿Qué querés hacer?</div>
-  <div class="home-cards-grid">
+  <!-- What CoachAI does -->
+  <div class="home-section-header">
+    <div class="home-section-eyebrow">CAPACIDADES</div>
+    <div class="home-section-title">QUÉ HACE COACHAI</div>
+  </div>
+  <div class="home-features-grid">
+    <div class="home-feature-card">
+      <span class="home-feature-icon">🧠</span>
+      <div class="home-feature-title">ANÁLISIS INTELIGENTE</div>
+      <div class="home-feature-desc">Evalúa tu progreso y ajusta tus recomendaciones en tiempo real.</div>
+    </div>
+    <div class="home-feature-card">
+      <span class="home-feature-icon">📅</span>
+      <div class="home-feature-title">SEGUIMIENTO DIARIO</div>
+      <div class="home-feature-desc">Registrá comidas y entrenamientos para un plan coherente.</div>
+    </div>
+    <div class="home-feature-card">
+      <span class="home-feature-icon">📈</span>
+      <div class="home-feature-title">PROGRESO SEMANAL</div>
+      <div class="home-feature-desc">Métricas y gráficos que muestran tu evolución real.</div>
+    </div>
+    <div class="home-feature-card">
+      <span class="home-feature-icon">📸</span>
+      <div class="home-feature-title">TRANSFORMACIÓN VISUAL</div>
+      <div class="home-feature-desc">Fotos de progreso para ver y celebrar tu cambio.</div>
+    </div>
+  </div>
 
-    <!-- CoachAI — primary full-width -->
-    <div class="home-card primary" onclick="showChat(); setActiveNav('nav-coach')">
-      <div class="home-card-icon">🧠</div>
-      <div class="home-card-info">
+  <!-- How it works -->
+  <div class="home-section-header">
+    <div class="home-section-eyebrow">PROCESO</div>
+    <div class="home-section-title">CÓMO FUNCIONA</div>
+  </div>
+  <div class="home-steps">
+    <div class="home-step">
+      <div class="home-step-num">01</div>
+      <div class="home-step-icon">📝</div>
+      <div class="home-step-body">
+        <div class="home-step-title">REGISTRÁ TU DÍA</div>
+        <div class="home-step-desc">Cargá comidas, entrenamientos y métricas desde Mi Día.</div>
+      </div>
+    </div>
+    <div class="home-step">
+      <div class="home-step-num">02</div>
+      <div class="home-step-icon">📊</div>
+      <div class="home-step-body">
+        <div class="home-step-title">SEGUÍ TU PROGRESO</div>
+        <div class="home-step-desc">Visualizá tu evolución semanal con métricas reales.</div>
+      </div>
+    </div>
+    <div class="home-step">
+      <div class="home-step-num">03</div>
+      <div class="home-step-icon">🧠</div>
+      <div class="home-step-body">
+        <div class="home-step-title">RECIBÍ ANÁLISIS IA</div>
+        <div class="home-step-desc">Tu coach analiza tus datos y te da guía personalizada.</div>
+      </div>
+    </div>
+    <div class="home-step">
+      <div class="home-step-num">04</div>
+      <div class="home-step-icon">📸</div>
+      <div class="home-step-body">
+        <div class="home-step-title">VISUALIZÁ TU TRANSFORMACIÓN</div>
+        <div class="home-step-desc">Subí fotos de progreso y celebrá tu cambio real.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation cards (secondary) -->
+  <div class="home-nav-section">
+    <div class="home-section-label" style="margin-bottom:14px">EXPLORAR</div>
+    <div class="home-cards-grid">
+
+      <div class="home-card" onclick="showDiario(); setActiveNav('nav-diario')">
+        <span class="home-card-icon">🍽</span>
+        <div class="home-card-title">MI DÍA</div>
+        <div class="home-card-desc">Registrá comidas y entrenamientos del día.</div>
+      </div>
+
+      <div class="home-card" onclick="showDashboard(); setActiveNav('nav-progreso')">
+        <span class="home-card-icon">📈</span>
+        <div class="home-card-title">PROGRESO</div>
+        <div class="home-card-desc">Seguí tu evolución y adherencia semanal.</div>
+      </div>
+
+      <div class="home-card" onclick="showChat(); setActiveNav('nav-coach')">
+        <span class="home-card-icon">🧠</span>
         <div class="home-card-title">COACH AI</div>
-        <div class="home-card-desc">Acompañamiento y análisis inteligente personalizado.</div>
+        <div class="home-card-desc">Acompañamiento y análisis inteligente.</div>
       </div>
-      <div class="home-card-arrow">→</div>
-    </div>
 
-    <!-- Mi Día -->
-    <div class="home-card" onclick="showDiario(); setActiveNav('nav-diario')">
-      <span class="home-card-icon">🍽</span>
-      <div class="home-card-title">MI DÍA</div>
-      <div class="home-card-desc">Registrá comidas y entrenamientos del día.</div>
-    </div>
-
-    <!-- Progreso -->
-    <div class="home-card" onclick="showDashboard(); setActiveNav('nav-progreso')">
-      <span class="home-card-icon">📈</span>
-      <div class="home-card-title">PROGRESO</div>
-      <div class="home-card-desc">Seguí tu evolución y adherencia semanal.</div>
-    </div>
-
-    <!-- Perfil -->
-    <div class="home-card" onclick="showPerfil(); setActiveNav('nav-perfil')">
-      <span class="home-card-icon">👤</span>
-      <div class="home-card-title">PERFIL</div>
-      <div class="home-card-desc">Tu transformación y estadísticas personales.</div>
-    </div>
-
-  </div>
-
-  <!-- Tips -->
-  <div class="home-tips">
-    <div class="home-tips-header">
-      <span>✨</span>
-      <span class="home-tips-title">CÓMO APROVECHAR MEJOR COACHAI</span>
-    </div>
-    <div class="home-tips-list">
-      <div class="home-tip">
-        <div class="home-tip-dot"></div>
-        <span class="home-tip-text"><strong>Registrá tu día a día</strong> para que tu coach tenga contexto real y pueda guiarte mejor.</span>
+      <div class="home-card" onclick="showPerfil(); setActiveNav('nav-perfil')">
+        <span class="home-card-icon">👤</span>
+        <div class="home-card-title">PERFIL</div>
+        <div class="home-card-desc">Tu transformación y estadísticas personales.</div>
       </div>
-      <div class="home-tip">
-        <div class="home-tip-dot"></div>
-        <span class="home-tip-text"><strong>Subí fotos de progreso</strong> cada semana para visualizar tu transformación en el tiempo.</span>
-      </div>
-      <div class="home-tip">
-        <div class="home-tip-dot"></div>
-        <span class="home-tip-text"><strong>Consultá a tu coach</strong> ante cualquier duda sobre tu plan — está disponible 24/7.</span>
-      </div>
+
     </div>
   </div>
 
@@ -4915,8 +5136,6 @@ async function continueSession() {
   document.querySelector('.form-wrapper').style.display = 'none';
   document.querySelector('.progress-bar-container').style.display = 'none';
   await launchCoach();
-  // Returning users land on Home — the hub
-  showHome();
 }
 
 function checkSavedProfile() {
@@ -5589,7 +5808,7 @@ async function launchCoach() {
   document.querySelector('.form-wrapper').style.display = 'none';
   document.getElementById('hero-section').style.display = 'none';
   document.querySelector('.progress-bar-container').style.display = 'none';
-  document.getElementById('chat-wrapper').style.display = 'block';
+  showHome();
 
   // Profile bar
   const nombre = document.getElementById('f-nombre').value;
