@@ -7037,13 +7037,22 @@ function showHome() {
 }
 
 function scrollToTop() {
+  // Disable smooth scrolling temporarily so the jump is instant
+  document.documentElement.style.scrollBehavior = 'auto';
+  document.body.style.scrollBehavior = 'auto';
+  window.scrollTo(0, 0);
   document.body.scrollTop = 0;
   document.documentElement.scrollTop = 0;
-  // Second pass — catches iOS Safari scroll-restoration override
-  setTimeout(() => {
+  requestAnimationFrame(() => {
+    window.scrollTo(0, 0);
     document.body.scrollTop = 0;
     document.documentElement.scrollTop = 0;
-  }, 80);
+    // Re-enable smooth scrolling after scroll is settled
+    setTimeout(() => {
+      document.documentElement.style.scrollBehavior = '';
+      document.body.style.scrollBehavior = '';
+    }, 100);
+  });
 }
 
 function renderHome() {
