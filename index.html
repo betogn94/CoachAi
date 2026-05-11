@@ -3565,27 +3565,78 @@ footer {
 /* ── HERO ───────────────────────────────────────────────── */
 .home-hero {
   position: relative;
-  padding: 56px 24px 60px;
   overflow: hidden;
+  min-height: 580px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+/* Deep cinematic backdrop */
+.hero-bg-top {
+  position: absolute;
+  inset: 0;
   background:
-    radial-gradient(ellipse at 80% 20%, rgba(124,106,255,0.1) 0%, transparent 50%),
-    radial-gradient(ellipse at 15% 85%, rgba(46,207,181,0.07) 0%, transparent 45%);
-}
-.home-hero::before {
-  content: '';
-  position: absolute;
-  top: -80px; right: -60px;
-  width: 380px; height: 380px;
-  background: radial-gradient(ellipse at 40% 40%, rgba(124,106,255,0.16) 0%, rgba(124,106,255,0.04) 40%, transparent 65%);
+    radial-gradient(ellipse at 88% 0%, rgba(124,106,255,0.24) 0%, transparent 42%),
+    radial-gradient(ellipse at 8% 100%, rgba(46,207,181,0.13) 0%, transparent 38%),
+    radial-gradient(ellipse at 55% 60%, rgba(124,106,255,0.07) 0%, transparent 55%),
+    linear-gradient(175deg, #070714 0%, #08091a 55%, #0a0b1c 100%);
   pointer-events: none;
 }
-.home-hero::after {
-  content: '';
+/* Seamless fade into page at bottom */
+.hero-bg-fade {
   position: absolute;
-  bottom: -60px; left: -80px;
-  width: 300px; height: 300px;
-  background: radial-gradient(ellipse, rgba(46,207,181,0.09) 0%, transparent 65%);
+  bottom: 0; left: 0; right: 0;
+  height: 110px;
+  background: linear-gradient(to bottom, transparent, var(--bg));
   pointer-events: none;
+  z-index: 2;
+}
+
+/* ── WELLNESS AURA — abstract visual element ────────────── */
+.home-hero-visual {
+  position: absolute;
+  top: 28px; right: -55px;
+  width: 220px; height: 220px;
+  pointer-events: none;
+  z-index: 1;
+}
+.hv-ring {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+.hv-ring-1 {
+  width: 200px; height: 200px;
+  border: 1px solid rgba(124,106,255,0.1);
+  box-shadow: 0 0 50px rgba(124,106,255,0.06);
+}
+.hv-ring-2 {
+  width: 148px; height: 148px;
+  border: 1px solid rgba(124,106,255,0.17);
+  box-shadow: 0 0 24px rgba(124,106,255,0.09);
+}
+.hv-ring-3 {
+  width: 96px; height: 96px;
+  border: 1px solid rgba(180,167,255,0.25);
+}
+.hv-center {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 35% 35%, rgba(200,190,255,0.36) 0%, rgba(124,106,255,0.1) 55%, transparent 75%);
+  border: 1px solid rgba(180,167,255,0.2);
+}
+
+/* ── HERO CONTENT ────────────────────────────────────────── */
+.home-hero-content {
+  position: relative;
+  z-index: 3;
+  padding: 72px 24px 56px;
+  display: flex;
+  flex-direction: column;
 }
 .home-eyebrow-row {
   display: flex;
@@ -3596,95 +3647,112 @@ footer {
   letter-spacing: 3px;
   color: var(--muted);
   font-weight: 700;
-  margin-bottom: 24px;
-  position: relative;
-  z-index: 1;
+  margin-bottom: 28px;
 }
-.home-greeting-small {
-  font-size: 16px;
+
+/* Warm personal greeting — inline "Buenos días, BETO" */
+.home-hero-greeting {
+  font-size: 15px;
+  color: rgba(238,238,245,0.5);
+  font-weight: 300;
+  letter-spacing: 0.5px;
+  margin-bottom: 18px;
+  line-height: 1;
+}
+.hero-greeting-sep { color: rgba(238,238,245,0.22); }
+.hero-greeting-name {
+  font-weight: 600;
   color: var(--accent-bright);
-  font-weight: 400;
-  letter-spacing: 0.4px;
-  margin-bottom: 6px;
-  position: relative;
-  z-index: 1;
+  letter-spacing: 1px;
 }
-.home-hero-headline {
+
+/* Emotional static headline */
+.home-hero-title {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 72px;
+  font-size: 82px;
   letter-spacing: 4px;
-  line-height: 0.92;
-  background: linear-gradient(135deg, #ffffff 0%, var(--accent-bright) 50%, var(--accent3) 100%);
+  line-height: 0.9;
+  color: #ffffff;
+  margin: 0 0 22px 0;
+  font-weight: 400;
+}
+.hero-title-line2 {
+  display: block;
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent3) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 22px;
-  position: relative;
-  z-index: 1;
 }
+
+/* Goal chip */
 .home-goal-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 6px 16px;
-  background: rgba(124,106,255,0.08);
-  border: 1px solid rgba(124,106,255,0.22);
+  background: rgba(124,106,255,0.07);
+  border: 1px solid rgba(124,106,255,0.2);
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
   color: var(--accent-bright);
   letter-spacing: 0.8px;
   margin-bottom: 20px;
-  position: relative;
-  z-index: 1;
+  align-self: flex-start;
 }
+
+/* Sub-text */
 .home-hero-sub {
   font-size: 15px;
-  color: rgba(238,238,245,0.55);
+  color: rgba(238,238,245,0.42);
   line-height: 1.65;
-  max-width: 340px;
+  max-width: 300px;
   font-weight: 300;
-  margin-bottom: 36px;
-  position: relative;
-  z-index: 1;
+  margin: 0 0 36px 0;
 }
+
+/* CTA — premium presence */
+.home-hero-cta-wrap { margin-bottom: 28px; }
 .btn-home-cta {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 16px 32px;
+  gap: 12px;
+  padding: 17px 36px;
   background: linear-gradient(135deg, var(--accent) 0%, rgba(46,207,181,0.85) 100%);
   border: none;
   border-radius: 16px;
   font-family: 'Bebas Neue', sans-serif;
   font-size: 17px;
-  letter-spacing: 2px;
+  letter-spacing: 2.5px;
   color: #fff;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 8px 32px rgba(124,106,255,0.28), 0 2px 8px rgba(0,0,0,0.4);
-  position: relative;
-  z-index: 1;
+  box-shadow:
+    0 8px 32px rgba(124,106,255,0.3),
+    0 2px 8px rgba(0,0,0,0.4),
+    0 0 0 1px rgba(180,167,255,0.08);
 }
 .btn-home-cta:hover {
   transform: translateY(-3px);
-  box-shadow: 0 14px 40px rgba(124,106,255,0.38), 0 4px 12px rgba(0,0,0,0.4);
+  box-shadow:
+    0 14px 40px rgba(124,106,255,0.42),
+    0 4px 12px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(180,167,255,0.15);
 }
 .btn-home-cta:active { transform: translateY(0); }
 .btn-home-cta-arrow { font-size: 16px; transition: transform 0.2s; }
 .btn-home-cta:hover .btn-home-cta-arrow { transform: translateX(4px); }
-/* Decorative orb element */
-.home-hero-orb {
-  position: absolute;
-  top: 50%; right: 24px;
-  transform: translateY(-50%);
-  width: 120px; height: 120px;
-  border-radius: 50%;
-  border: 1px solid rgba(124,106,255,0.1);
-  background: radial-gradient(ellipse at 35% 35%, rgba(180,167,255,0.1) 0%, rgba(124,106,255,0.03) 50%, transparent 70%);
-  z-index: 0;
-  pointer-events: none;
+
+/* Social proof line */
+.home-hero-proof {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: rgba(238,238,245,0.26);
+  letter-spacing: 0.4px;
 }
+.hero-proof-dot { color: rgba(124,106,255,0.32); }
 
 /* ── SECTION HEADERS ────────────────────────────────────── */
 .home-section-header {
@@ -3980,9 +4048,14 @@ footer {
 
 /* ── MOBILE ──────────────────────────────────────────────── */
 @media (max-width: 480px) {
-  .home-hero { padding: 44px 20px 52px; }
-  .home-hero-headline { font-size: 58px; }
-  .home-hero-orb { display: none; }
+  .home-hero { min-height: 500px; }
+  .home-hero-content { padding: 60px 20px 48px; }
+  .home-hero-title { font-size: 64px; }
+  .home-hero-visual { top: 16px; right: -50px; width: 180px; height: 180px; }
+  .hv-ring-1 { width: 162px; height: 162px; }
+  .hv-ring-2 { width: 118px; height: 118px; }
+  .hv-ring-3 { width: 76px; height: 76px; }
+  .hv-center { width: 40px; height: 40px; }
   .home-section-header { padding: 0 20px; margin: 40px 0 18px; }
   .home-feature-cards, .home-steps, .home-nav-section { padding-left: 20px; padding-right: 20px; }
   .home-spec-bar { margin-left: 20px; margin-right: 20px; padding: 20px 12px; }
@@ -4089,18 +4162,60 @@ footer {
 
   <!-- ── HERO ─────────────────────────────────────────── -->
   <div class="home-hero">
-    <div class="home-eyebrow-row">
-      <div class="pulse-dot"></div>
-      <span>AI · WELLNESS · 24/7</span>
+
+    <!-- Cinematic background layers -->
+    <div class="hero-bg-top"></div>
+    <div class="hero-bg-fade"></div>
+
+    <!-- Abstract wellness aura visual — top right -->
+    <div class="home-hero-visual" aria-hidden="true">
+      <div class="hv-ring hv-ring-1"></div>
+      <div class="hv-ring hv-ring-2"></div>
+      <div class="hv-ring hv-ring-3"></div>
+      <div class="hv-center"></div>
     </div>
-    <div class="home-greeting-small" id="home-greeting">Buenos días</div>
-    <div class="home-hero-headline" id="home-name">ATLETA</div>
-    <div class="home-goal-chip" id="home-goal-chip">Tu objetivo</div>
-    <p class="home-hero-sub" id="home-motivation">Acompañamiento inteligente para transformar tu cuerpo y mantener la constancia.</p>
-    <button class="btn-home-cta" onclick="showChat(); setActiveNav('nav-coach')">
-      INICIAR CON MI COACH <span class="btn-home-cta-arrow">→</span>
-    </button>
-    <div class="home-hero-orb"></div>
+
+    <!-- Content -->
+    <div class="home-hero-content">
+
+      <div class="home-eyebrow-row">
+        <div class="pulse-dot"></div>
+        <span>AI · WELLNESS · 24/7</span>
+      </div>
+
+      <!-- Warm personal greeting -->
+      <div class="home-hero-greeting">
+        <span id="home-greeting">Buenos días</span><span class="hero-greeting-sep">,&nbsp;</span><span id="home-name" class="hero-greeting-name">ATLETA</span>
+      </div>
+
+      <!-- Emotional headline — static, aspirational -->
+      <h1 class="home-hero-title">
+        TU MEJOR<span class="hero-title-line2">VERSIÓN.</span>
+      </h1>
+
+      <!-- Goal chip -->
+      <div class="home-goal-chip" id="home-goal-chip">Tu objetivo</div>
+
+      <!-- Motivation text -->
+      <p class="home-hero-sub" id="home-motivation">Acompañamiento inteligente para transformar tu cuerpo y mantener la constancia.</p>
+
+      <!-- Primary CTA -->
+      <div class="home-hero-cta-wrap">
+        <button class="btn-home-cta" onclick="showChat(); setActiveNav('nav-coach')">
+          INICIAR CON MI COACH <span class="btn-home-cta-arrow">→</span>
+        </button>
+      </div>
+
+      <!-- Social proof -->
+      <div class="home-hero-proof">
+        <span>Guiado por IA</span>
+        <span class="hero-proof-dot">·</span>
+        <span>100% personalizado</span>
+        <span class="hero-proof-dot">·</span>
+        <span>24/7</span>
+      </div>
+
+    </div>
   </div>
 
   <!-- ── FEATURE CARDS — cinematic split layout ────────── -->
