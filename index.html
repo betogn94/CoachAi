@@ -7045,8 +7045,18 @@ function showHome() {
   const wrapper = document.getElementById('home-wrapper');
   wrapper.style.display = 'block';
   renderHome();
+  updateCardSVGAspect();
   setActiveNav('nav-inicio');
   scrollToTop();
+}
+
+// Mobile: slice fills full card width (looks great).
+// Desktop: meet shows full SVG content without cropping.
+function updateCardSVGAspect() {
+  const pa = window.innerWidth <= 640 ? 'xMidYMid slice' : 'xMidYMid meet';
+  document.querySelectorAll('.home-fcard-svg').forEach(svg => {
+    svg.setAttribute('preserveAspectRatio', pa);
+  });
 }
 
 function scrollToTop() {
