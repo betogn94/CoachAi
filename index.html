@@ -3672,16 +3672,6 @@ footer {
   pointer-events: none;
   overflow: hidden;
 }
-/* Subtle SVG accents float over the photo for brand consistency */
-.hero-bg-top svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  opacity: 0.55;
-  mix-blend-mode: screen;
-}
 /* Seamless fade into page at bottom */
 .hero-bg-fade {
   position: absolute;
@@ -4272,59 +4262,8 @@ footer {
   <!-- ── HERO ─────────────────────────────────────────── -->
   <div class="home-hero">
 
-    <!-- Abstract SVG hero composition — constellation + energy lines -->
-    <div class="hero-bg-top">
-      <svg viewBox="0 0 900 600" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <defs>
-          <linearGradient id="hero-energy-1" x1="0" y1="0" x2="1" y2="0.5">
-            <stop offset="0%" stop-color="rgba(124,106,255,0)"/>
-            <stop offset="50%" stop-color="rgba(124,106,255,0.55)"/>
-            <stop offset="100%" stop-color="rgba(46,207,181,0)"/>
-          </linearGradient>
-          <linearGradient id="hero-energy-2" x1="0" y1="0" x2="1" y2="0.3">
-            <stop offset="0%" stop-color="rgba(46,207,181,0)"/>
-            <stop offset="50%" stop-color="rgba(46,207,181,0.4)"/>
-            <stop offset="100%" stop-color="rgba(170,100,255,0)"/>
-          </linearGradient>
-          <linearGradient id="hero-energy-3" x1="0" y1="0" x2="1" y2="-0.2">
-            <stop offset="0%" stop-color="rgba(170,100,255,0)"/>
-            <stop offset="50%" stop-color="rgba(170,100,255,0.32)"/>
-            <stop offset="100%" stop-color="rgba(124,106,255,0)"/>
-          </linearGradient>
-          <filter id="hero-glow"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-          <filter id="hero-soft-glow"><feGaussianBlur stdDeviation="6"/></filter>
-        </defs>
-
-        <!-- Sweeping energy lines (motion / progress trails) -->
-        <path d="M-80 220 Q200 180 460 200 T1000 140" stroke="url(#hero-energy-1)" stroke-width="1.4" fill="none" filter="url(#hero-glow)" opacity="0.9"/>
-        <path d="M-80 320 Q260 270 540 290 T1000 220" stroke="url(#hero-energy-2)" stroke-width="1.1" fill="none" filter="url(#hero-glow)" opacity="0.75"/>
-        <path d="M-80 420 Q220 380 520 380 T1000 320" stroke="url(#hero-energy-3)" stroke-width="0.9" fill="none" opacity="0.55"/>
-
-        <!-- Constellation points -->
-        <g fill="rgba(255,255,255,0.55)">
-          <circle cx="120" cy="80" r="1.4"/>
-          <circle cx="240" cy="50" r="1.8"/>
-          <circle cx="380" cy="110" r="1.2"/>
-          <circle cx="540" cy="60" r="1.5"/>
-          <circle cx="680" cy="130" r="1.3"/>
-          <circle cx="820" cy="80" r="1.7"/>
-          <circle cx="80" cy="180" r="1.2"/>
-          <circle cx="300" cy="220" r="1.4"/>
-          <circle cx="620" cy="200" r="1.2"/>
-          <circle cx="780" cy="250" r="1.5"/>
-        </g>
-        <!-- Brighter accent stars with glow -->
-        <g filter="url(#hero-glow)">
-          <circle cx="200" cy="140" r="2.4" fill="#7c6aff"/>
-          <circle cx="460" cy="170" r="2.6" fill="#5b9fff"/>
-          <circle cx="720" cy="100" r="2.4" fill="#2ecfb5"/>
-          <circle cx="350" cy="280" r="2.2" fill="#aa64ff"/>
-        </g>
-
-        <!-- Large soft gradient orb top-right (additional glow) -->
-        <circle cx="750" cy="160" r="120" fill="rgba(124,106,255,0.10)" filter="url(#hero-soft-glow)"/>
-      </svg>
-    </div>
+    <!-- Cinematic gym photo backdrop (overlays handled via CSS) -->
+    <div class="hero-bg-top"></div>
     <div class="hero-bg-fade"></div>
 
 
