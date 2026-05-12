@@ -3007,14 +3007,14 @@ footer {
 /* Landing top: show only the TEXT portion of the official logo via CSS crop */
 .landing-logo {
   display: block;
-  width: 220px;
-  height: 65px;
+  width: 200px;
+  height: 60px;
   margin: 0 auto 8px;
   background-image: url('logo.png');
-  /* logo.png is 1279x299 (cropped tight). Icon: x≈0-280, Text: x≈300-1279 */
-  /* Scale by height: 65/299 = 0.2174 → full image becomes 278 x 65 */
-  background-size: 278px 65px;
-  background-position: -65px 0;
+  /* logo.png is 1700x386 (cropped tight). Text starts at x≈530 */
+  /* Scale by height: 60/386 = 0.1554 → full image becomes 264 x 60 */
+  background-size: 264px 60px;
+  background-position: -68px 0;
   background-repeat: no-repeat;
   text-indent: -9999px;
   overflow: hidden;
