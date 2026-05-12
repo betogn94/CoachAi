@@ -5217,8 +5217,12 @@ function buildHistorySummary() {
 // EMAIL LOGIN
 // ============================
 async function handleEmailLogin() {
-  // Dismiss iOS keyboard immediately so it doesn't cause a scroll offset later
+  // iOS fix: lock the body BEFORE keyboard starts dismissing so it can't scroll the page.
+  // position:fixed + top:0 freezes the scroll position at 0 regardless of keyboard movement.
   if (document.activeElement) document.activeElement.blur();
+  document.body.style.position = 'fixed';
+  document.body.style.top = '0';
+  document.body.style.width = '100%';
   const nombre = document.getElementById('el-nombre').value.trim();
   const email = document.getElementById('el-email').value.trim().toLowerCase();
   const btn = document.getElementById('el-btn');
@@ -5426,6 +5430,10 @@ function restoreFormFromProfile(p) {
 }
 
 async function continueSession() {
+  if (document.activeElement) document.activeElement.blur();
+  document.body.style.position = 'fixed';
+  document.body.style.top = '0';
+  document.body.style.width = '100%';
   const p = loadProfile();
   if (!p) return;
   restoreFormFromProfile(p);
@@ -7042,31 +7050,24 @@ function showHome() {
 }
 
 function scrollToTop() {
-  // Kill smooth scroll so every call is instant
   document.documentElement.style.scrollBehavior = 'auto';
   document.body.style.scrollBehavior = 'auto';
 
-  const snap = () => {
+  // Unlock the iOS body-lock set in handleEmailLogin, then snap to 0.
+  // Doing this in a rAF ensures the layout has painted before we unlock.
+  requestAnimationFrame(() => {
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
     window.scrollTo(0, 0);
     document.body.scrollTop = 0;
     document.documentElement.scrollTop = 0;
-  };
 
-  // Immediate + rAF pass
-  snap();
-  requestAnimationFrame(snap);
-
-  // iOS Safari keyboard dismisses over ~300ms and then re-scrolls the page.
-  // Keep snapping until well past that window.
-  setTimeout(snap, 100);
-  setTimeout(snap, 300);
-  setTimeout(snap, 500);
-
-  // Re-enable smooth scroll only after everything has settled
-  setTimeout(() => {
-    document.documentElement.style.scrollBehavior = '';
-    document.body.style.scrollBehavior = '';
-  }, 600);
+    setTimeout(() => {
+      document.documentElement.style.scrollBehavior = '';
+      document.body.style.scrollBehavior = '';
+    }, 100);
+  });
 }
 
 function renderHome() {
