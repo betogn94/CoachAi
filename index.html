@@ -3656,32 +3656,30 @@ footer {
   flex-direction: column;
   justify-content: flex-end;
 }
-/* Abstract gradient backdrop — coherent with full SVG aesthetic */
+/* Gym photo backdrop with brand-tinted overlays */
 .hero-bg-top {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(ellipse 80% 70% at 75% 25%, rgba(124,106,255,0.32) 0%, transparent 60%),
-    radial-gradient(ellipse 70% 60% at 15% 45%, rgba(46,207,181,0.20) 0%, transparent 65%),
-    radial-gradient(ellipse 60% 50% at 85% 75%, rgba(170,100,255,0.18) 0%, transparent 60%),
-    linear-gradient(135deg, #0e0a1f 0%, #07071a 50%, #050516 100%);
+  background-color: #07071a;
+  background-image:
+    radial-gradient(ellipse 70% 60% at 75% 25%, rgba(124,106,255,0.22) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 55% at 15% 50%, rgba(46,207,181,0.15) 0%, transparent 65%),
+    linear-gradient(to bottom, rgba(7,7,20,0.45) 0%, rgba(7,7,20,0.82) 65%, rgba(7,7,20,1) 100%),
+    url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=900&q=85');
+  background-size: cover;
+  background-position: center 30%;
   pointer-events: none;
   overflow: hidden;
 }
+/* Subtle SVG accents float over the photo for brand consistency */
 .hero-bg-top svg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
-}
-/* Dark gradient overlay so text remains legible */
-.hero-bg-top::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to bottom, rgba(7,7,20,0) 0%, rgba(7,7,20,0.4) 55%, rgba(7,7,20,0.85) 100%);
-  pointer-events: none;
+  opacity: 0.55;
+  mix-blend-mode: screen;
 }
 /* Seamless fade into page at bottom */
 .hero-bg-fade {
@@ -4014,33 +4012,38 @@ footer {
 }
 .home-step {
   display: grid;
-  grid-template-columns: 52px 1fr;
+  grid-template-columns: 58px 1fr;
   gap: 12px;
-  padding: 24px 0;
-  align-items: start;
+  padding: 18px 0;
+  align-items: center;
   position: relative;
 }
-/* Vertical gradient connector line down the left rail */
-.home-step:not(:last-child)::before {
+/* Vertical gradient connector line — passes through the gap between "0" and digit */
+.home-step::before {
   content: '';
   position: absolute;
-  left: 25px;
-  top: 56px;
-  bottom: -10px;
-  width: 1px;
-  background: linear-gradient(to bottom, rgba(124,106,255,0.35), rgba(46,207,181,0.12) 70%, transparent 100%);
+  left: 22px;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  background: linear-gradient(to bottom, rgba(124,106,255,0.5) 0%, rgba(91,159,255,0.35) 50%, rgba(46,207,181,0.4) 100%);
+  z-index: 0;
 }
+/* Trim line ends — first step starts at center, last step ends at center */
+.home-step:first-child::before { top: 50%; }
+.home-step:last-child::before { bottom: 50%; }
 .home-step-num {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 36px;
   line-height: 1;
+  letter-spacing: 10px;
   background: linear-gradient(135deg, var(--accent-bright) 0%, #5b9fff 50%, var(--accent3) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   position: relative;
   z-index: 1;
-  padding: 4px 6px 4px 0;
+  padding: 4px 0;
   filter: drop-shadow(0 0 12px rgba(124,106,255,0.22));
 }
 .home-step-body { min-width: 0; padding-top: 6px; }
@@ -4370,7 +4373,6 @@ footer {
   <!-- ── FEATURE CARDS — cinematic split layout ────────── -->
   <div class="home-section-header">
     <div class="home-section-eyebrow">¿POR QUÉ COACH AI?</div>
-    <div class="home-section-title">DOS PILARES PARA TU TRANSFORMACIÓN</div>
   </div>
   <div class="home-feature-cards">
 
