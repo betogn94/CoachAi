@@ -5217,6 +5217,8 @@ function buildHistorySummary() {
 // EMAIL LOGIN
 // ============================
 async function handleEmailLogin() {
+  // Dismiss iOS keyboard immediately so it doesn't cause a scroll offset later
+  if (document.activeElement) document.activeElement.blur();
   const nombre = document.getElementById('el-nombre').value.trim();
   const email = document.getElementById('el-email').value.trim().toLowerCase();
   const btn = document.getElementById('el-btn');
@@ -7040,22 +7042,31 @@ function showHome() {
 }
 
 function scrollToTop() {
-  // Disable smooth scrolling temporarily so the jump is instant
+  // Kill smooth scroll so every call is instant
   document.documentElement.style.scrollBehavior = 'auto';
   document.body.style.scrollBehavior = 'auto';
-  window.scrollTo(0, 0);
-  document.body.scrollTop = 0;
-  document.documentElement.scrollTop = 0;
-  requestAnimationFrame(() => {
+
+  const snap = () => {
     window.scrollTo(0, 0);
     document.body.scrollTop = 0;
     document.documentElement.scrollTop = 0;
-    // Re-enable smooth scrolling after scroll is settled
-    setTimeout(() => {
-      document.documentElement.style.scrollBehavior = '';
-      document.body.style.scrollBehavior = '';
-    }, 100);
-  });
+  };
+
+  // Immediate + rAF pass
+  snap();
+  requestAnimationFrame(snap);
+
+  // iOS Safari keyboard dismisses over ~300ms and then re-scrolls the page.
+  // Keep snapping until well past that window.
+  setTimeout(snap, 100);
+  setTimeout(snap, 300);
+  setTimeout(snap, 500);
+
+  // Re-enable smooth scroll only after everything has settled
+  setTimeout(() => {
+    document.documentElement.style.scrollBehavior = '';
+    document.body.style.scrollBehavior = '';
+  }, 600);
 }
 
 function renderHome() {
