@@ -3656,18 +3656,19 @@ footer {
   flex-direction: column;
   justify-content: flex-end;
 }
-/* Gym photo backdrop with brand-tinted overlays */
+/* Neon-lit gym backdrop — matches purple brand aesthetic */
 .hero-bg-top {
   position: absolute;
   inset: 0;
   background-color: #07071a;
   background-image:
-    radial-gradient(ellipse 70% 60% at 75% 25%, rgba(124,106,255,0.22) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 55% at 15% 50%, rgba(46,207,181,0.15) 0%, transparent 65%),
-    linear-gradient(to bottom, rgba(7,7,20,0.45) 0%, rgba(7,7,20,0.82) 65%, rgba(7,7,20,1) 100%),
-    url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=900&q=85');
+    radial-gradient(ellipse 70% 60% at 80% 25%, rgba(124,106,255,0.30) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 55% at 15% 55%, rgba(46,207,181,0.18) 0%, transparent 65%),
+    linear-gradient(135deg, rgba(124,106,255,0.18) 0%, rgba(170,100,255,0.10) 50%, rgba(46,207,181,0.08) 100%),
+    linear-gradient(to bottom, rgba(7,7,20,0.35) 0%, rgba(7,7,20,0.78) 65%, rgba(7,7,20,1) 100%),
+    url('https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=900&q=85');
   background-size: cover;
-  background-position: center 30%;
+  background-position: center 35%;
   pointer-events: none;
   overflow: hidden;
 }
@@ -4012,31 +4013,31 @@ footer {
 }
 .home-step {
   display: grid;
-  grid-template-columns: 58px 1fr;
-  gap: 12px;
+  grid-template-columns: 56px 1fr;
+  gap: 14px;
   padding: 18px 0;
   align-items: center;
   position: relative;
 }
-/* Vertical gradient connector line — passes through the gap between "0" and digit */
-.home-step::before {
+/* Connector line lives BETWEEN consecutive numbers (in the padding gap), not through them */
+.home-step:not(:last-child)::after {
   content: '';
   position: absolute;
-  left: 22px;
-  top: 0;
-  bottom: 0;
+  /* Aligned horizontally with the center of the number column */
+  left: 24px;
+  /* Start just below the number text */
+  top: calc(50% + 22px);
+  /* Reach down through bottom padding + next step's top padding to just above next number */
+  height: 32px;
   width: 1.5px;
-  background: linear-gradient(to bottom, rgba(124,106,255,0.5) 0%, rgba(91,159,255,0.35) 50%, rgba(46,207,181,0.4) 100%);
+  background: linear-gradient(to bottom, rgba(124,106,255,0.55) 0%, rgba(91,159,255,0.40) 50%, rgba(46,207,181,0.45) 100%);
   z-index: 0;
 }
-/* Trim line ends — first step starts at center, last step ends at center */
-.home-step:first-child::before { top: 50%; }
-.home-step:last-child::before { bottom: 50%; }
 .home-step-num {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 36px;
   line-height: 1;
-  letter-spacing: 10px;
+  letter-spacing: 1px;
   background: linear-gradient(135deg, var(--accent-bright) 0%, #5b9fff 50%, var(--accent3) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
