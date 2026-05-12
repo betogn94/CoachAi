@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CoachAI — Entrenador Personal con IA</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg: #080810;
@@ -66,13 +66,30 @@ header {
 }
 
 .logo {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 26px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.logo-icon {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 10px rgba(124,106,255,0.28));
+}
+.logo-icon svg { width: 100%; height: 100%; display: block; }
+.logo-text {
+  font-family: 'Aldrich', sans-serif;
+  font-size: 22px;
   letter-spacing: 4px;
-  background: linear-gradient(135deg, var(--accent-bright), var(--accent3));
+  background: linear-gradient(135deg, var(--accent-bright) 0%, #5b9fff 50%, var(--accent3) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  line-height: 1;
+  filter: drop-shadow(0 0 10px rgba(124,106,255,0.28));
+  white-space: nowrap;
+  text-transform: uppercase;
+  font-weight: 400;
 }
 
 .header-right { display: flex; align-items: center; gap: 16px; }
@@ -2988,7 +3005,11 @@ footer {
   position: fixed;
   inset: 0;
   z-index: 999;
-  background: var(--bg);
+  background:
+    radial-gradient(ellipse 60% 50% at 25% 20%, rgba(124,106,255,0.13) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(46,207,181,0.10) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(170,100,255,0.06) 0%, transparent 70%),
+    var(--bg);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2998,15 +3019,17 @@ footer {
 }
 
 .landing-logo {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 48px;
-  letter-spacing: 6px;
-  background: linear-gradient(135deg, var(--accent-bright), var(--accent3));
+  font-family: 'Aldrich', sans-serif;
+  font-size: 38px;
+  letter-spacing: 8px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, var(--accent-bright) 0%, #5b9fff 50%, var(--accent3) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin-bottom: 8px;
   text-align: center;
+  filter: drop-shadow(0 0 14px rgba(124,106,255,0.28));
 }
 
 .landing-tagline {
@@ -3043,10 +3066,18 @@ footer {
   transform: translateY(-3px);
 }
 
+/* Brand outline-ring icon — matches official logo */
 .landing-login-icon {
-  font-size: 40px;
-  margin-bottom: 20px;
-  display: block;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 22px;
+  position: relative;
+  animation: landingIconPulse 3s ease-in-out infinite;
+}
+.landing-login-icon svg { width: 100%; height: 100%; display: block; }
+@keyframes landingIconPulse {
+  0%, 100% { filter: drop-shadow(0 0 16px rgba(124,106,255,0.32)) drop-shadow(0 0 28px rgba(46,207,181,0.16)); }
+  50%      { filter: drop-shadow(0 0 22px rgba(124,106,255,0.45)) drop-shadow(0 0 38px rgba(46,207,181,0.24)); }
 }
 
 .landing-admin-link {
@@ -3296,7 +3327,7 @@ footer {
   .landing-logo           { font-size: 38px; }
   .landing-tagline        { font-size: 13px; margin-bottom: 20px; }
   .landing-login-card     { padding: 24px 20px; }
-  .landing-login-icon     { font-size: 30px; margin-bottom: 14px; }
+  .landing-login-icon     { width: 78px; height: 78px; margin-bottom: 16px; }
 }
 
 /* --- EMAIL LOGIN & ADMIN LOGIN MODAL --- */
@@ -3463,14 +3494,12 @@ footer {
   flex-shrink: 0;
 }
 .nav-drawer-logo {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 22px;
-  letter-spacing: 4px;
-  background: linear-gradient(135deg, var(--accent-bright), var(--accent3));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  display: flex;
+  align-items: center;
+  gap: 9px;
 }
+.nav-drawer-logo .logo-icon { width: 32px; height: 32px; }
+.nav-drawer-logo .logo-text { font-size: 19px; letter-spacing: 3.5px; }
 .nav-close-btn {
   width: 34px;
   height: 34px;
@@ -3500,16 +3529,12 @@ footer {
   flex-shrink: 0;
 }
 .nav-user-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--accent3));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
+  filter: drop-shadow(0 0 8px rgba(124,106,255,0.20));
 }
+.nav-user-avatar svg { width: 100%; height: 100%; display: block; }
 .nav-user-name { font-weight: 600; font-size: 14px; color: var(--text); }
 .nav-user-goal { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
@@ -3596,9 +3621,10 @@ footer {
   margin-bottom: 6px;
 }
 .nav-footer-brand-name {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 16px;
+  font-family: 'Aldrich', sans-serif;
+  font-size: 14px;
   letter-spacing: 3px;
+  text-transform: uppercase;
   background: linear-gradient(135deg, var(--accent-bright) 0%, #5b9fff 50%, var(--accent3) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -4158,7 +4184,22 @@ footer {
 
 <!-- LANDING SCREEN -->
 <header id="main-header" style="display:none">
-  <div class="logo" onclick="showHome(); setActiveNav('nav-inicio')" style="cursor:pointer" title="Inicio">COACH AI</div>
+  <div class="logo" onclick="showHome(); setActiveNav('nav-inicio')" style="cursor:pointer" title="Inicio">
+    <span class="logo-icon">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="logo-ring-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7c6aff"/><stop offset="50%" stop-color="#5b9fff"/><stop offset="100%" stop-color="#2ecfb5"/></linearGradient></defs>
+        <circle cx="50" cy="50" r="42" stroke="url(#logo-ring-grad)" stroke-width="3.5" fill="none"/>
+        <g fill="#fff">
+          <rect x="38" y="46" width="24" height="8" rx="1"/>
+          <rect x="30" y="40" width="9" height="20" rx="1.5"/>
+          <rect x="61" y="40" width="9" height="20" rx="1.5"/>
+          <rect x="23" y="44" width="6" height="12" rx="1.2"/>
+          <rect x="71" y="44" width="6" height="12" rx="1.2"/>
+        </g>
+      </svg>
+    </span>
+    <span class="logo-text">COACHAI</span>
+  </div>
   <div class="header-right" id="header-right">
     <div class="lang-toggle">
       <button class="lang-btn active" onclick="setLang('es')">ES</button>
@@ -4176,11 +4217,38 @@ footer {
 <!-- NAV DRAWER -->
 <div class="nav-drawer" id="nav-drawer">
   <div class="nav-drawer-header">
-    <div class="nav-drawer-logo">COACH AI</div>
+    <div class="nav-drawer-logo">
+      <span class="logo-icon">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs><linearGradient id="nav-ring-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7c6aff"/><stop offset="50%" stop-color="#5b9fff"/><stop offset="100%" stop-color="#2ecfb5"/></linearGradient></defs>
+          <circle cx="50" cy="50" r="42" stroke="url(#nav-ring-grad)" stroke-width="3.5" fill="none"/>
+          <g fill="#fff">
+            <rect x="38" y="46" width="24" height="8" rx="1"/>
+            <rect x="30" y="40" width="9" height="20" rx="1.5"/>
+            <rect x="61" y="40" width="9" height="20" rx="1.5"/>
+            <rect x="23" y="44" width="6" height="12" rx="1.2"/>
+            <rect x="71" y="44" width="6" height="12" rx="1.2"/>
+          </g>
+        </svg>
+      </span>
+      <span class="logo-text">COACHAI</span>
+    </div>
     <button class="nav-close-btn" onclick="closeNav()">×</button>
   </div>
   <div class="nav-user-chip">
-    <div class="nav-user-avatar">🏋</div>
+    <div class="nav-user-avatar">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="avatar-ring-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7c6aff"/><stop offset="50%" stop-color="#5b9fff"/><stop offset="100%" stop-color="#2ecfb5"/></linearGradient></defs>
+        <circle cx="50" cy="50" r="42" stroke="url(#avatar-ring-grad)" stroke-width="3.5" fill="none"/>
+        <g fill="#fff">
+          <rect x="38" y="46" width="24" height="8" rx="1"/>
+          <rect x="30" y="40" width="9" height="20" rx="1.5"/>
+          <rect x="61" y="40" width="9" height="20" rx="1.5"/>
+          <rect x="23" y="44" width="6" height="12" rx="1.2"/>
+          <rect x="71" y="44" width="6" height="12" rx="1.2"/>
+        </g>
+      </svg>
+    </div>
     <div>
       <div class="nav-user-name" id="nav-user-name">—</div>
       <div class="nav-user-goal" id="nav-user-goal">—</div>
@@ -4222,7 +4290,7 @@ footer {
   <div class="nav-drawer-footer">
     <div class="nav-footer-brand">
       <div class="nav-footer-pulse"></div>
-      <div class="nav-footer-brand-name">COACH AI</div>
+      <div class="nav-footer-brand-name">COACHAI</div>
       <span class="nav-version-tag">v1.0</span>
     </div>
     <div class="nav-version">Entrenador Personal con IA · 24/7</div>
@@ -8129,7 +8197,9 @@ function resetWhiteLabel() {
   localStorage.removeItem(LS_WL);
   document.documentElement.style.removeProperty('--accent');
   document.documentElement.style.removeProperty('--accent-bright');
-  document.querySelector('.logo').textContent = 'COACH AI';
+  // Update only the text span so we don't wipe the brand icon
+  const logoText = document.querySelector('.logo .logo-text');
+  if (logoText) logoText.textContent = 'COACHAI';
   document.title = 'CoachAI — Entrenador Personal con IA';
   document.getElementById('wl-nombre').value = '';
   document.getElementById('wl-gym').value = '';
@@ -8833,11 +8903,23 @@ window.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <div class="landing-wrapper" id="landing-wrapper">
-  <div class="landing-logo" id="landing-logo-text">COACH AI</div>
+  <div class="landing-logo" id="landing-logo-text">COACHAI</div>
   <div class="landing-tagline" id="landing-tagline-text">Tu entrenador personal con inteligencia artificial</div>
 
   <div class="landing-login-card coach-card">
-    <span class="landing-login-icon">💪</span>
+    <div class="landing-login-icon">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="landing-ring-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7c6aff"/><stop offset="50%" stop-color="#5b9fff"/><stop offset="100%" stop-color="#2ecfb5"/></linearGradient></defs>
+        <circle cx="50" cy="50" r="42" stroke="url(#landing-ring-grad)" stroke-width="3.5" fill="none"/>
+        <g fill="#fff">
+          <rect x="38" y="46" width="24" height="8" rx="1"/>
+          <rect x="30" y="40" width="9" height="20" rx="1.5"/>
+          <rect x="61" y="40" width="9" height="20" rx="1.5"/>
+          <rect x="23" y="44" width="6" height="12" rx="1.2"/>
+          <rect x="71" y="44" width="6" height="12" rx="1.2"/>
+        </g>
+      </svg>
+    </div>
     <input type="text" class="email-login-input" id="el-nombre" placeholder="Tu nombre" onkeydown="if(event.key==='Enter') handleEmailLogin()">
     <input type="email" class="email-login-input" id="el-email" placeholder="tu@email.com" onkeydown="if(event.key==='Enter') handleEmailLogin()">
     <div class="email-login-error" id="el-error"></div>
