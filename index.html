@@ -3840,57 +3840,73 @@ footer {
 }
 
 /* ── SPEC BAR (replaces icon mini-strip) ─────────────────── */
-.home-spec-bar {
+/* ── JOURNEY FLOW — connected steps with gradient circles ───── */
+.home-journey {
   margin: 20px 24px 0;
   border: 1px solid var(--border);
   border-radius: 20px;
   background: var(--surface);
-  padding: 26px 16px;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  padding: 36px 20px 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
   position: relative;
   overflow: hidden;
 }
-.home-spec-bar::before {
+.home-journey::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(124,106,255,0.35) 30%, rgba(46,207,181,0.25) 70%, transparent);
 }
-.home-spec-item {
+.hj-step {
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
-  padding: 0 4px;
+  gap: 14px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+.hj-circle {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  padding: 2px;
+  background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%);
   position: relative;
+  box-shadow: 0 0 24px rgba(124,106,255,0.18), 0 0 36px rgba(46,207,181,0.10);
 }
-.home-spec-item:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  right: 0; top: 10%; bottom: 10%;
-  width: 1px;
-  background: var(--border);
+.hj-circle-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(238,238,245,0.92);
 }
-.home-spec-value {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 22px;
-  letter-spacing: 2px;
-  background: linear-gradient(135deg, var(--accent-bright), var(--accent3));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.hj-icon {
+  width: 38px;
+  height: 38px;
+}
+.hj-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(238,238,245,0.88);
+  letter-spacing: 0.3px;
+  text-align: center;
   line-height: 1;
-  margin-bottom: 5px;
 }
-.home-spec-label {
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 1.3px;
-  color: var(--muted);
-  font-weight: 600;
-  line-height: 1.4;
+.hj-arrow {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  /* Offset upward to align with circle centers (not labels) */
+  margin-top: -28px;
+  filter: drop-shadow(0 0 6px rgba(124,106,255,0.35));
 }
 
 /* ── HOW IT WORKS (clean, number-led) ────────────────────── */
@@ -4035,13 +4051,15 @@ footer {
   .home-hero-mockup { top: 24px; right: -18px; width: 178px; height: 232px; }
   .home-section-header { padding: 0 20px; margin: 40px 0 18px; }
   .home-feature-cards, .home-steps, .home-nav-section { padding-left: 20px; padding-right: 20px; }
-  .home-spec-bar { margin-left: 20px; margin-right: 20px; padding: 20px 12px; }
+  .home-journey { margin-left: 20px; margin-right: 20px; padding: 24px 10px 20px; gap: 2px; }
+  .hj-circle { width: 62px; height: 62px; }
+  .hj-icon { width: 26px; height: 26px; }
+  .hj-label { font-size: 10.5px; }
+  .hj-arrow { width: 14px; height: 14px; margin-top: -20px; }
   .home-fcard-headline { font-size: 26px; }
   .home-fcard-visual-zone { height: 130px; }
   .home-cards-grid { gap: 10px; }
   .home-card-visual { height: 70px; }
-  .home-spec-value { font-size: 18px; }
-  .home-spec-label { font-size: 8px; }
 }
 </style>
 </head>
@@ -4305,23 +4323,81 @@ QUE SÍ SE VE</div>
 
   </div>
 
-  <!-- ── SPEC BAR ──────────────────────────────────────── -->
-  <div class="home-spec-bar">
-    <div class="home-spec-item">
-      <div class="home-spec-value">24/7</div>
-      <div class="home-spec-label">DISPONIBLE</div>
+  <!-- ── JOURNEY FLOW — connected circles with thin-line icons ── -->
+  <div class="home-journey">
+    <div class="hj-step">
+      <div class="hj-circle">
+        <div class="hj-circle-inner">
+          <svg class="hj-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="8" r="3.5"/>
+            <path d="M5.5 19.5c0-3.59 2.91-6.5 6.5-6.5s6.5 2.91 6.5 6.5"/>
+          </svg>
+        </div>
+      </div>
+      <div class="hj-label">Onboarding</div>
     </div>
-    <div class="home-spec-item">
-      <div class="home-spec-value">IA</div>
-      <div class="home-spec-label">ANÁLISIS SEMANAL</div>
+    <svg class="hj-arrow" viewBox="0 0 24 24" aria-hidden="true">
+      <defs>
+        <linearGradient id="hj-grad-1" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#7c6aff"/>
+          <stop offset="100%" stop-color="#2ecfb5"/>
+        </linearGradient>
+      </defs>
+      <path d="M7 4 L17 12 L7 20 Z" fill="url(#hj-grad-1)"/>
+    </svg>
+    <div class="hj-step">
+      <div class="hj-circle">
+        <div class="hj-circle-inner">
+          <svg class="hj-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 11.5c0-2.485 2.015-4.5 4.5-4.5h5c2.485 0 4.5 2.015 4.5 4.5s-2.015 4.5-4.5 4.5h-4l-3 2.5v-2.5c-1.5-0.8-2.5-2.4-2.5-4.5z"/>
+            <path d="M11 17c0.6 1.6 2.1 2.5 4 2.5h2.5l2.5 2v-2c1.3-0.7 2-2 2-3.5"/>
+          </svg>
+        </div>
+      </div>
+      <div class="hj-label">Chat Coach</div>
     </div>
-    <div class="home-spec-item">
-      <div class="home-spec-value">100%</div>
-      <div class="home-spec-label">PERSONALIZADO</div>
+    <svg class="hj-arrow" viewBox="0 0 24 24" aria-hidden="true">
+      <defs>
+        <linearGradient id="hj-grad-2" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#7c6aff"/>
+          <stop offset="100%" stop-color="#2ecfb5"/>
+        </linearGradient>
+      </defs>
+      <path d="M7 4 L17 12 L7 20 Z" fill="url(#hj-grad-2)"/>
+    </svg>
+    <div class="hj-step">
+      <div class="hj-circle">
+        <div class="hj-circle-inner">
+          <svg class="hj-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="5" width="16" height="15" rx="2"/>
+            <path d="M4 10h16"/>
+            <path d="M9 3v4"/>
+            <path d="M15 3v4"/>
+            <circle cx="12" cy="14.5" r="1.4" fill="currentColor"/>
+          </svg>
+        </div>
+      </div>
+      <div class="hj-label">Mi Día</div>
     </div>
-    <div class="home-spec-item">
-      <div class="home-spec-value">REAL</div>
-      <div class="home-spec-label">PROGRESO VISIBLE</div>
+    <svg class="hj-arrow" viewBox="0 0 24 24" aria-hidden="true">
+      <defs>
+        <linearGradient id="hj-grad-3" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#7c6aff"/>
+          <stop offset="100%" stop-color="#2ecfb5"/>
+        </linearGradient>
+      </defs>
+      <path d="M7 4 L17 12 L7 20 Z" fill="url(#hj-grad-3)"/>
+    </svg>
+    <div class="hj-step">
+      <div class="hj-circle">
+        <div class="hj-circle-inner">
+          <svg class="hj-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3.5 17l4.5-4.5 3 3 7-7"/>
+            <path d="M14 8.5h4v4"/>
+          </svg>
+        </div>
+      </div>
+      <div class="hj-label">Progreso</div>
     </div>
   </div>
 
