@@ -4101,23 +4101,24 @@ footer {
 }
 .home-card-visual.cv-diario {
   background:
-    radial-gradient(ellipse at 50% 60%, rgba(124,106,255,0.22) 0%, transparent 65%),
-    linear-gradient(135deg, #0e0a1f 0%, #07071a 100%);
+    radial-gradient(ellipse at 50% 50%, rgba(124,106,255,0.42) 0%, transparent 70%),
+    linear-gradient(135deg, #1a1240 0%, #0a0820 60%, #07071a 100%);
 }
 .home-card-visual.cv-progreso {
   background:
-    radial-gradient(ellipse at 70% 40%, rgba(46,207,181,0.18) 0%, transparent 65%),
-    linear-gradient(135deg, #0a1024 0%, #07071a 100%);
+    radial-gradient(ellipse at 70% 35%, rgba(46,207,181,0.38) 0%, transparent 70%),
+    radial-gradient(ellipse at 20% 80%, rgba(124,106,255,0.28) 0%, transparent 70%),
+    linear-gradient(135deg, #0a1530 0%, #07071a 100%);
 }
 .home-card-visual.cv-coach {
   background:
-    radial-gradient(ellipse at 50% 50%, rgba(124,106,255,0.22) 0%, transparent 65%),
-    linear-gradient(135deg, #0c0c24 0%, #07071a 100%);
+    radial-gradient(ellipse at 50% 50%, rgba(124,106,255,0.45) 0%, transparent 70%),
+    linear-gradient(135deg, #1c1245 0%, #0a0820 60%, #07071a 100%);
 }
 .home-card-visual.cv-perfil {
   background:
-    radial-gradient(ellipse at 50% 50%, rgba(170,100,255,0.20) 0%, transparent 65%),
-    linear-gradient(135deg, #100a20 0%, #07071a 100%);
+    radial-gradient(ellipse at 50% 50%, rgba(170,100,255,0.40) 0%, transparent 70%),
+    linear-gradient(135deg, #1f0a3a 0%, #100630 60%, #07071a 100%);
 }
 .home-card-body { padding: 12px 16px 18px; }
 .home-card-title {
@@ -4548,21 +4549,23 @@ QUE SÍ SE VE</div>
           <svg viewBox="0 0 400 100" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="ec-diario" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#7c6aff"/>
+                <stop offset="0%" stop-color="#aa64ff"/>
                 <stop offset="100%" stop-color="#2ecfb5"/>
               </linearGradient>
-              <filter id="ec-diario-glow"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              <filter id="ec-diario-glow"><feGaussianBlur stdDeviation="4.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              <filter id="ec-diario-soft"><feGaussianBlur stdDeviation="8"/></filter>
             </defs>
-            <rect x="130" y="14" width="140" height="72" rx="10" stroke="rgba(255,255,255,0.14)" stroke-width="0.8" fill="rgba(255,255,255,0.015)"/>
-            <rect x="130" y="14" width="140" height="14" rx="10" fill="rgba(124,106,255,0.18)"/>
-            <text x="200" y="24" fill="rgba(255,255,255,0.55)" font-family="system-ui,sans-serif" font-size="6.5" text-anchor="middle" letter-spacing="1.4">MAYO 2026</text>
-            <g fill="rgba(255,255,255,0.20)">
-              <circle cx="150" cy="42" r="2"/><circle cx="170" cy="42" r="2"/><circle cx="190" cy="42" r="2"/><circle cx="210" cy="42" r="2"/><circle cx="230" cy="42" r="2"/><circle cx="250" cy="42" r="2"/>
-              <circle cx="150" cy="56" r="2"/><circle cx="170" cy="56" r="2"/><circle cx="210" cy="56" r="2"/><circle cx="230" cy="56" r="2"/><circle cx="250" cy="56" r="2"/>
-              <circle cx="150" cy="70" r="2"/><circle cx="170" cy="70" r="2"/><circle cx="190" cy="70" r="2"/><circle cx="210" cy="70" r="2"/><circle cx="230" cy="70" r="2"/><circle cx="250" cy="70" r="2"/>
+            <circle cx="200" cy="50" r="40" fill="rgba(170,100,255,0.18)" filter="url(#ec-diario-soft)"/>
+            <rect x="125" y="10" width="150" height="80" rx="12" stroke="rgba(255,255,255,0.22)" stroke-width="1" fill="rgba(255,255,255,0.025)"/>
+            <rect x="125" y="10" width="150" height="16" rx="12" fill="rgba(124,106,255,0.32)"/>
+            <text x="200" y="21" fill="rgba(255,255,255,0.85)" font-family="system-ui,sans-serif" font-size="7" text-anchor="middle" letter-spacing="2" font-weight="600">MAYO 2026</text>
+            <g fill="rgba(255,255,255,0.32)">
+              <circle cx="145" cy="40" r="2.5"/><circle cx="167" cy="40" r="2.5"/><circle cx="189" cy="40" r="2.5"/><circle cx="211" cy="40" r="2.5"/><circle cx="233" cy="40" r="2.5"/><circle cx="255" cy="40" r="2.5"/>
+              <circle cx="145" cy="56" r="2.5"/><circle cx="167" cy="56" r="2.5"/><circle cx="211" cy="56" r="2.5"/><circle cx="233" cy="56" r="2.5"/><circle cx="255" cy="56" r="2.5"/>
+              <circle cx="145" cy="72" r="2.5"/><circle cx="167" cy="72" r="2.5"/><circle cx="189" cy="72" r="2.5"/><circle cx="211" cy="72" r="2.5"/><circle cx="233" cy="72" r="2.5"/><circle cx="255" cy="72" r="2.5"/>
             </g>
-            <circle cx="190" cy="56" r="7" fill="url(#ec-diario)" filter="url(#ec-diario-glow)"/>
-            <text x="190" y="58.5" fill="#fff" font-family="system-ui,sans-serif" font-size="6.5" font-weight="700" text-anchor="middle">20</text>
+            <circle cx="189" cy="56" r="10" fill="url(#ec-diario)" filter="url(#ec-diario-glow)"/>
+            <text x="189" y="59" fill="#fff" font-family="system-ui,sans-serif" font-size="9" font-weight="800" text-anchor="middle">20</text>
           </svg>
         </div>
         <div class="home-card-body">
@@ -4576,25 +4579,27 @@ QUE SÍ SE VE</div>
           <svg viewBox="0 0 400 100" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="ec-prog-line" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stop-color="#7c6aff"/>
-                <stop offset="55%" stop-color="#5b9fff"/>
+                <stop offset="0%" stop-color="#aa64ff"/>
+                <stop offset="50%" stop-color="#5b9fff"/>
                 <stop offset="100%" stop-color="#2ecfb5"/>
               </linearGradient>
               <linearGradient id="ec-prog-area" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="rgba(124,106,255,0.32)"/>
+                <stop offset="0%" stop-color="rgba(124,106,255,0.55)"/>
                 <stop offset="100%" stop-color="rgba(46,207,181,0)"/>
               </linearGradient>
-              <filter id="ec-prog-glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              <filter id="ec-prog-glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
             </defs>
-            <g stroke="rgba(255,255,255,0.06)" stroke-width="0.6">
-              <line x1="30" y1="28" x2="370" y2="28"/>
-              <line x1="30" y1="55" x2="370" y2="55"/>
-              <line x1="30" y1="82" x2="370" y2="82"/>
+            <g stroke="rgba(255,255,255,0.10)" stroke-width="0.6">
+              <line x1="20" y1="28" x2="380" y2="28"/>
+              <line x1="20" y1="55" x2="380" y2="55"/>
+              <line x1="20" y1="82" x2="380" y2="82"/>
             </g>
-            <path d="M30 82 Q110 78 170 60 T370 22 L370 95 L30 95 Z" fill="url(#ec-prog-area)"/>
-            <path d="M30 82 Q110 78 170 60 T370 22" stroke="url(#ec-prog-line)" stroke-width="2.6" stroke-linecap="round" filter="url(#ec-prog-glow)" fill="none"/>
-            <circle cx="170" cy="60" r="3.5" fill="#5b9fff" filter="url(#ec-prog-glow)"/>
-            <circle cx="370" cy="22" r="5" fill="#2ecfb5" filter="url(#ec-prog-glow)"/>
+            <path d="M20 82 Q100 80 170 60 T380 18 L380 95 L20 95 Z" fill="url(#ec-prog-area)"/>
+            <path d="M20 82 Q100 80 170 60 T380 18" stroke="url(#ec-prog-line)" stroke-width="3.2" stroke-linecap="round" filter="url(#ec-prog-glow)" fill="none"/>
+            <circle cx="100" cy="80" r="3.5" fill="#aa64ff" filter="url(#ec-prog-glow)"/>
+            <circle cx="170" cy="60" r="4" fill="#5b9fff" filter="url(#ec-prog-glow)"/>
+            <circle cx="275" cy="40" r="4" fill="#5b9fff" filter="url(#ec-prog-glow)"/>
+            <circle cx="380" cy="18" r="6" fill="#2ecfb5" filter="url(#ec-prog-glow)"/>
           </svg>
         </div>
         <div class="home-card-body">
@@ -4607,16 +4612,24 @@ QUE SÍ SE VE</div>
         <div class="home-card-visual cv-coach">
           <svg viewBox="0 0 400 100" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <filter id="ec-coach-glow"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              <filter id="ec-coach-glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              <linearGradient id="ec-coach-b1" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="rgba(124,106,255,0.45)"/>
+                <stop offset="100%" stop-color="rgba(170,100,255,0.32)"/>
+              </linearGradient>
+              <linearGradient id="ec-coach-b2" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="rgba(46,207,181,0.32)"/>
+                <stop offset="100%" stop-color="rgba(91,159,255,0.40)"/>
+              </linearGradient>
             </defs>
-            <rect x="40" y="18" width="170" height="28" rx="14" fill="rgba(124,106,255,0.20)" stroke="rgba(124,106,255,0.42)" stroke-width="0.8"/>
-            <circle cx="62" cy="32" r="2.6" fill="rgba(124,106,255,0.85)"/>
-            <circle cx="76" cy="32" r="2.6" fill="rgba(124,106,255,0.60)"/>
-            <circle cx="90" cy="32" r="2.6" fill="rgba(124,106,255,0.35)"/>
-            <text x="160" y="35.5" fill="rgba(255,255,255,0.55)" font-family="system-ui,sans-serif" font-size="8" text-anchor="middle">Coach AI</text>
-            <rect x="190" y="56" width="170" height="28" rx="14" fill="rgba(46,207,181,0.16)" stroke="rgba(46,207,181,0.40)" stroke-width="0.8"/>
-            <text x="275" y="74" fill="rgba(255,255,255,0.78)" font-family="system-ui,sans-serif" font-size="9" text-anchor="middle">Excelente sesión</text>
-            <circle cx="348" cy="70" r="2.4" fill="#2ecfb5" filter="url(#ec-coach-glow)"/>
+            <rect x="30" y="16" width="180" height="30" rx="15" fill="url(#ec-coach-b1)" stroke="rgba(170,100,255,0.65)" stroke-width="1"/>
+            <circle cx="52" cy="31" r="3" fill="#fff" filter="url(#ec-coach-glow)"/>
+            <circle cx="66" cy="31" r="3" fill="rgba(255,255,255,0.7)"/>
+            <circle cx="80" cy="31" r="3" fill="rgba(255,255,255,0.4)"/>
+            <text x="155" y="34.5" fill="rgba(255,255,255,0.85)" font-family="system-ui,sans-serif" font-size="9" text-anchor="middle" font-weight="500">Coach AI</text>
+            <rect x="190" y="56" width="180" height="30" rx="15" fill="url(#ec-coach-b2)" stroke="rgba(46,207,181,0.7)" stroke-width="1"/>
+            <text x="280" y="75" fill="rgba(255,255,255,0.95)" font-family="system-ui,sans-serif" font-size="10" text-anchor="middle" font-weight="500">Excelente sesión</text>
+            <circle cx="358" cy="71" r="3" fill="#2ecfb5" filter="url(#ec-coach-glow)"/>
           </svg>
         </div>
         <div class="home-card-body">
@@ -4630,20 +4643,20 @@ QUE SÍ SE VE</div>
           <svg viewBox="0 0 400 100" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="ec-perfil" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#7c6aff"/>
+                <stop offset="0%" stop-color="#aa64ff"/>
                 <stop offset="100%" stop-color="#2ecfb5"/>
               </linearGradient>
-              <filter id="ec-perfil-glow"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              <filter id="ec-perfil-glow"><feGaussianBlur stdDeviation="4.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
             </defs>
-            <circle cx="200" cy="50" r="44" stroke="rgba(124,106,255,0.14)" stroke-width="0.7"/>
-            <circle cx="200" cy="50" r="32" stroke="rgba(124,106,255,0.22)" stroke-width="0.8"/>
-            <circle cx="200" cy="50" r="22" stroke="url(#ec-perfil)" stroke-width="1.6" filter="url(#ec-perfil-glow)"/>
-            <circle cx="200" cy="44" r="5.5" fill="url(#ec-perfil)"/>
-            <path d="M189 60c0-6 4.9-11 11-11s11 4.9 11 11" fill="url(#ec-perfil)" opacity="0.72"/>
-            <circle cx="154" cy="50" r="2.4" fill="#7c6aff"/>
-            <circle cx="246" cy="50" r="2.4" fill="#2ecfb5"/>
-            <circle cx="200" cy="6" r="2.4" fill="#5b9fff"/>
-            <circle cx="200" cy="94" r="2.4" fill="#aa64ff"/>
+            <circle cx="200" cy="50" r="46" stroke="rgba(170,100,255,0.32)" stroke-width="0.8"/>
+            <circle cx="200" cy="50" r="34" stroke="rgba(170,100,255,0.45)" stroke-width="1"/>
+            <circle cx="200" cy="50" r="24" stroke="url(#ec-perfil)" stroke-width="2.2" filter="url(#ec-perfil-glow)"/>
+            <circle cx="200" cy="42" r="6.5" fill="url(#ec-perfil)" filter="url(#ec-perfil-glow)"/>
+            <path d="M187 60c0-7 5.8-13 13-13s13 5.8 13 13" fill="url(#ec-perfil)" opacity="0.85" filter="url(#ec-perfil-glow)"/>
+            <circle cx="150" cy="50" r="3" fill="#aa64ff" filter="url(#ec-perfil-glow)"/>
+            <circle cx="250" cy="50" r="3" fill="#2ecfb5" filter="url(#ec-perfil-glow)"/>
+            <circle cx="200" cy="4" r="3" fill="#5b9fff" filter="url(#ec-perfil-glow)"/>
+            <circle cx="200" cy="96" r="3" fill="#7c6aff" filter="url(#ec-perfil-glow)"/>
           </svg>
         </div>
         <div class="home-card-body">
