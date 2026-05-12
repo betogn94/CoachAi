@@ -65,31 +65,17 @@ header {
   z-index: 200;
 }
 
+/* Header logo — uses official PNG, screen-blend so dark bg becomes transparent */
 .logo {
   display: flex;
   align-items: center;
-  gap: 11px;
-}
-.logo-icon {
-  width: 38px;
   height: 38px;
-  flex-shrink: 0;
-  filter: drop-shadow(0 0 10px rgba(124,106,255,0.28));
 }
-.logo-icon svg { width: 100%; height: 100%; display: block; }
-.logo-text {
-  font-family: 'Iceland', sans-serif;
-  font-size: 22px;
-  letter-spacing: 4px;
-  background: linear-gradient(135deg, var(--accent-bright) 0%, #5b9fff 50%, var(--accent3) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  line-height: 1;
-  filter: drop-shadow(0 0 10px rgba(124,106,255,0.28));
-  white-space: nowrap;
-  text-transform: uppercase;
-  font-weight: 400;
+.logo img {
+  height: 100%;
+  width: auto;
+  display: block;
+  mix-blend-mode: lighten;
 }
 
 .header-right { display: flex; align-items: center; gap: 16px; }
@@ -3018,18 +3004,20 @@ footer {
   overflow-y: auto;
 }
 
+/* Landing top: show only the TEXT portion of the official logo via CSS crop */
 .landing-logo {
-  font-family: 'Iceland', sans-serif;
-  font-size: 38px;
-  letter-spacing: 8px;
-  text-transform: uppercase;
-  background: linear-gradient(135deg, var(--accent-bright) 0%, #5b9fff 50%, var(--accent3) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 8px;
-  text-align: center;
-  filter: drop-shadow(0 0 14px rgba(124,106,255,0.28));
+  display: block;
+  width: 220px;
+  height: 65px;
+  margin: 0 auto 8px;
+  background-image: url('logo.png');
+  /* logo.png is 1279x299 (cropped tight). Icon: x≈0-280, Text: x≈300-1279 */
+  /* Scale by height: 65/299 = 0.2174 → full image becomes 278 x 65 */
+  background-size: 278px 65px;
+  background-position: -65px 0;
+  background-repeat: no-repeat;
+  text-indent: -9999px;
+  overflow: hidden;
 }
 
 .landing-tagline {
@@ -3066,15 +3054,20 @@ footer {
   transform: translateY(-3px);
 }
 
-/* Brand outline-ring icon — matches official logo */
+/* Brand icon image — square version (full circle visible) */
 .landing-login-icon {
-  width: 96px;
-  height: 96px;
+  width: 100px;
+  height: 100px;
   margin: 0 auto 22px;
   position: relative;
   animation: landingIconPulse 3s ease-in-out infinite;
 }
-.landing-login-icon svg { width: 100%; height: 100%; display: block; }
+.landing-login-icon img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  mix-blend-mode: lighten;
+}
 @keyframes landingIconPulse {
   0%, 100% { filter: drop-shadow(0 0 16px rgba(124,106,255,0.32)) drop-shadow(0 0 28px rgba(46,207,181,0.16)); }
   50%      { filter: drop-shadow(0 0 22px rgba(124,106,255,0.45)) drop-shadow(0 0 38px rgba(46,207,181,0.24)); }
@@ -3496,10 +3489,14 @@ footer {
 .nav-drawer-logo {
   display: flex;
   align-items: center;
-  gap: 9px;
+  height: 34px;
 }
-.nav-drawer-logo .logo-icon { width: 32px; height: 32px; }
-.nav-drawer-logo .logo-text { font-size: 19px; letter-spacing: 3.5px; }
+.nav-drawer-logo img {
+  height: 100%;
+  width: auto;
+  display: block;
+  mix-blend-mode: lighten;
+}
 .nav-close-btn {
   width: 34px;
   height: 34px;
@@ -3529,12 +3526,16 @@ footer {
   flex-shrink: 0;
 }
 .nav-user-avatar {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
-  filter: drop-shadow(0 0 8px rgba(124,106,255,0.20));
 }
-.nav-user-avatar svg { width: 100%; height: 100%; display: block; }
+.nav-user-avatar img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  mix-blend-mode: lighten;
+}
 .nav-user-name { font-weight: 600; font-size: 14px; color: var(--text); }
 .nav-user-goal { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
@@ -4185,20 +4186,7 @@ footer {
 <!-- LANDING SCREEN -->
 <header id="main-header" style="display:none">
   <div class="logo" onclick="showHome(); setActiveNav('nav-inicio')" style="cursor:pointer" title="Inicio">
-    <span class="logo-icon">
-      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs><linearGradient id="logo-ring-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7c6aff"/><stop offset="50%" stop-color="#5b9fff"/><stop offset="100%" stop-color="#2ecfb5"/></linearGradient></defs>
-        <circle cx="50" cy="50" r="42" stroke="url(#logo-ring-grad)" stroke-width="3.5" fill="none"/>
-        <g fill="#fff">
-          <rect x="38" y="46" width="24" height="8" rx="1"/>
-          <rect x="30" y="40" width="9" height="20" rx="1.5"/>
-          <rect x="61" y="40" width="9" height="20" rx="1.5"/>
-          <rect x="23" y="44" width="6" height="12" rx="1.2"/>
-          <rect x="71" y="44" width="6" height="12" rx="1.2"/>
-        </g>
-      </svg>
-    </span>
-    <span class="logo-text">COACHAI</span>
+    <img src="logo.png" alt="COACHAI">
   </div>
   <div class="header-right" id="header-right">
     <div class="lang-toggle">
@@ -4218,36 +4206,13 @@ footer {
 <div class="nav-drawer" id="nav-drawer">
   <div class="nav-drawer-header">
     <div class="nav-drawer-logo">
-      <span class="logo-icon">
-        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs><linearGradient id="nav-ring-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7c6aff"/><stop offset="50%" stop-color="#5b9fff"/><stop offset="100%" stop-color="#2ecfb5"/></linearGradient></defs>
-          <circle cx="50" cy="50" r="42" stroke="url(#nav-ring-grad)" stroke-width="3.5" fill="none"/>
-          <g fill="#fff">
-            <rect x="38" y="46" width="24" height="8" rx="1"/>
-            <rect x="30" y="40" width="9" height="20" rx="1.5"/>
-            <rect x="61" y="40" width="9" height="20" rx="1.5"/>
-            <rect x="23" y="44" width="6" height="12" rx="1.2"/>
-            <rect x="71" y="44" width="6" height="12" rx="1.2"/>
-          </g>
-        </svg>
-      </span>
-      <span class="logo-text">COACHAI</span>
+      <img src="logo.png" alt="COACHAI">
     </div>
     <button class="nav-close-btn" onclick="closeNav()">×</button>
   </div>
   <div class="nav-user-chip">
     <div class="nav-user-avatar">
-      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs><linearGradient id="avatar-ring-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7c6aff"/><stop offset="50%" stop-color="#5b9fff"/><stop offset="100%" stop-color="#2ecfb5"/></linearGradient></defs>
-        <circle cx="50" cy="50" r="42" stroke="url(#avatar-ring-grad)" stroke-width="3.5" fill="none"/>
-        <g fill="#fff">
-          <rect x="38" y="46" width="24" height="8" rx="1"/>
-          <rect x="30" y="40" width="9" height="20" rx="1.5"/>
-          <rect x="61" y="40" width="9" height="20" rx="1.5"/>
-          <rect x="23" y="44" width="6" height="12" rx="1.2"/>
-          <rect x="71" y="44" width="6" height="12" rx="1.2"/>
-        </g>
-      </svg>
+      <img src="logo-icon.png" alt="">
     </div>
     <div>
       <div class="nav-user-name" id="nav-user-name">—</div>
@@ -8908,17 +8873,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   <div class="landing-login-card coach-card">
     <div class="landing-login-icon">
-      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs><linearGradient id="landing-ring-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7c6aff"/><stop offset="50%" stop-color="#5b9fff"/><stop offset="100%" stop-color="#2ecfb5"/></linearGradient></defs>
-        <circle cx="50" cy="50" r="42" stroke="url(#landing-ring-grad)" stroke-width="3.5" fill="none"/>
-        <g fill="#fff">
-          <rect x="38" y="46" width="24" height="8" rx="1"/>
-          <rect x="30" y="40" width="9" height="20" rx="1.5"/>
-          <rect x="61" y="40" width="9" height="20" rx="1.5"/>
-          <rect x="23" y="44" width="6" height="12" rx="1.2"/>
-          <rect x="71" y="44" width="6" height="12" rx="1.2"/>
-        </g>
-      </svg>
+      <img src="logo-icon.png" alt="">
     </div>
     <input type="text" class="email-login-input" id="el-nombre" placeholder="Tu nombre" onkeydown="if(event.key==='Enter') handleEmailLogin()">
     <input type="email" class="email-login-input" id="el-email" placeholder="tu@email.com" onkeydown="if(event.key==='Enter') handleEmailLogin()">
