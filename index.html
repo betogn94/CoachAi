@@ -1157,6 +1157,73 @@ footer {
   opacity: 0.85;
 }
 
+/* Current plan (rutina + dieta) grid */
+.perfil-plan-grid {
+  padding: 16px 20px 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.perfil-plan-item {
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.perfil-plan-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.perfil-plan-label {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 1.5px;
+  color: var(--text);
+}
+.perfil-plan-date {
+  font-size: 10.5px;
+  color: var(--muted);
+  letter-spacing: 0.3px;
+}
+.perfil-plan-status-text {
+  font-size: 11.5px;
+  color: var(--muted);
+  font-style: italic;
+}
+.perfil-plan-view-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  background-image:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(135deg, rgba(124,106,255,0.55), rgba(46,207,181,0.55)) border-box;
+  color: var(--accent-bright);
+  border-radius: 100px;
+  padding: 7px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: auto;
+  transition: color 0.2s, background-image 0.2s;
+}
+.perfil-plan-view-btn:hover {
+  background-image:
+    linear-gradient(rgba(124,106,255,0.08), rgba(46,207,181,0.08)) padding-box,
+    linear-gradient(135deg, rgba(124,106,255,0.85), rgba(46,207,181,0.85)) border-box;
+  color: #fff;
+}
+.perfil-plan-empty .perfil-plan-view-btn { display: none; }
+@media (max-width: 480px) {
+  .perfil-plan-grid { grid-template-columns: 1fr; padding: 14px 16px 18px; }
+}
+
 /* Last AI analysis preview */
 .perfil-analisis-preview {
   padding: 18px 22px 20px;
@@ -1395,7 +1462,35 @@ footer {
 .plan-tab-btn.active { color: var(--accent-bright); border-bottom-color: var(--accent-bright); }
 .plan-tab-content { display: none; padding: 16px 20px; }
 .plan-tab-content.active { display: block; }
-.plan-meta { font-size: 11px; color: var(--muted); margin-bottom: 10px; display: flex; gap: 14px; flex-wrap: wrap; }
+.plan-meta { font-size: 11px; color: var(--muted); margin-bottom: 10px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.plan-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.plan-badge-active {
+  background: rgba(46,207,181,0.14);
+  color: var(--accent3);
+  border: 1px solid rgba(46,207,181,0.32);
+}
+.plan-badge-closed {
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.plan-closed-hint {
+  font-size: 11.5px;
+  color: var(--muted);
+  background: rgba(124,106,255,0.05);
+  border: 1px solid rgba(124,106,255,0.14);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
 .plan-text {
   font-size: 13px;
   line-height: 1.65;
@@ -5120,6 +5215,14 @@ QUE SÍ SE VE</div>
     <div class="perfil-stats-grid" id="perfil-stats-grid"></div>
   </div>
 
+  <!-- CURRENT PLAN (rutina + dieta) — quick access from profile -->
+  <div class="chart-card coach-card">
+    <div class="chart-card-header">
+      <div class="chart-card-title" id="perfil-plan-title">📋 MI PLAN ACTUAL</div>
+    </div>
+    <div class="perfil-plan-grid" id="perfil-plan-grid"></div>
+  </div>
+
   <!-- LAST AI ANALYSIS PREVIEW -->
   <div class="chart-card coach-card">
     <div class="chart-card-header">
@@ -5469,14 +5572,31 @@ function getISOWeekKey(date = new Date()) {
 }
 
 async function loadCurrentWeekPlans() {
+  // User-driven cycle: load LATEST plan of each type, mark as "closed"
+  // if there is a cierre_semanal registered AFTER the plan.
   if (!sbClient || !currentUser) return { dieta: null, rutina: null };
-  const semana = getISOWeekKey();
-  const { data } = await sbClient.from('planes_semanales')
-    .select('tipo, contenido, fecha_entrega, semana_iso')
-    .eq('usuario_id', currentUser.id)
-    .eq('semana_iso', semana);
+  const [{ data: plans }, { data: cierres }] = await Promise.all([
+    sbClient.from('planes_semanales')
+      .select('tipo, contenido, fecha_entrega, semana_iso, updated_at')
+      .eq('usuario_id', currentUser.id)
+      .order('updated_at', { ascending: false }),
+    sbClient.from('cierres_semanales')
+      .select('created_at')
+      .eq('usuario_id', currentUser.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+  ]);
+  const lastCierreAt = cierres && cierres[0] ? new Date(cierres[0].created_at) : null;
   const result = { dieta: null, rutina: null };
-  (data || []).forEach(p => { result[p.tipo] = p; });
+  (plans || []).forEach(p => {
+    // For each type, keep only the most recent (already sorted DESC)
+    if (!result[p.tipo]) {
+      const planAt = new Date(p.updated_at);
+      // If a closure was registered AFTER this plan was delivered, the plan is "closed"
+      const closed = lastCierreAt && lastCierreAt > planAt;
+      result[p.tipo] = { ...p, closed };
+    }
+  });
   return result;
 }
 
@@ -6620,7 +6740,8 @@ async function sendToAI(userMessage, isFirst = false) {
     // Mark the next assistant reply as a plan delivery if the user asked for one
     // and we don't already have that plan stored for the current ISO week.
     const requested = detectPlanRequest(userMessage);
-    if (requested && !weeklyPlans[requested]) {
+    // Allow new plan delivery when: no plan exists OR existing plan is closed (week was wrapped up).
+    if (requested && (!weeklyPlans[requested] || weeklyPlans[requested].closed)) {
       pendingPlanDelivery = requested;
     }
   }
@@ -6704,14 +6825,19 @@ function refreshQuickButtons() {
   if (!container) return;
   const qDieta = lang === 'es' ? '🥗 Dieta de la semana' : '🥗 Weekly Diet';
   const qRutina = lang === 'es' ? '💪 Rutina de la semana' : '💪 Weekly Routine';
-  const verDieta = lang === 'es' ? '🥗 Ver mi dieta de esta semana' : '🥗 View this week\'s diet';
-  const verRutina = lang === 'es' ? '💪 Ver mi rutina de esta semana' : '💪 View this week\'s routine';
+  const verDieta = lang === 'es' ? '🥗 Ver mi dieta' : '🥗 View my diet';
+  const verRutina = lang === 'es' ? '💪 Ver mi rutina' : '💪 View my routine';
 
-  const dietaBtn = weeklyPlans.dieta
+  // A plan is "active" if it exists AND has NOT been closed by a subsequent week analysis.
+  // Closed/missing plans show the "request" button so the user can ask for a fresh one.
+  const dietaActiva = weeklyPlans.dieta && !weeklyPlans.dieta.closed;
+  const rutinaActiva = weeklyPlans.rutina && !weeklyPlans.rutina.closed;
+
+  const dietaBtn = dietaActiva
     ? `<button class="qbtn qbtn-main" onclick="showWeeklyPlan('dieta')">${verDieta}</button>`
     : `<button class="qbtn qbtn-main" onclick="sendQuick('${qDieta}')">${qDieta}</button>`;
 
-  const rutinaBtn = weeklyPlans.rutina
+  const rutinaBtn = rutinaActiva
     ? `<button class="qbtn qbtn-main" onclick="showWeeklyPlan('rutina')">${verRutina}</button>`
     : `<button class="qbtn qbtn-main" onclick="sendQuick('${qRutina}')">${qRutina}</button>`;
 
@@ -7710,7 +7836,49 @@ async function renderPerfil() {
   renderPerfilHero(stats);
   renderPerfilTransform(fotos, cierres);
   renderPerfilStats(stats);
+  renderPerfilPlan();
   renderPerfilAnalisis(cierres);
+}
+
+function renderPerfilPlan() {
+  const container = document.getElementById('perfil-plan-grid');
+  if (!container) return;
+  const isEs = lang === 'es';
+  const buildItem = (plan, tipo) => {
+    const label = tipo === 'rutina' ? (isEs?'💪 Rutina':'💪 Routine') : (isEs?'🥗 Dieta':'🥗 Diet');
+    if (!plan || !plan.contenido) {
+      return `<div class="perfil-plan-item perfil-plan-empty">
+        <div class="perfil-plan-label">${label}</div>
+        <div class="perfil-plan-status-text">${isEs?'Pedísela al coach desde el chat':'Ask your coach in the chat'}</div>
+      </div>`;
+    }
+    const statusBadge = plan.closed
+      ? `<span class="plan-badge plan-badge-closed">${isEs?'CERRADA':'CLOSED'}</span>`
+      : `<span class="plan-badge plan-badge-active">${isEs?'ACTIVA':'ACTIVE'}</span>`;
+    const fechaTxt = plan.fecha_entrega ? `${isEs?'Entregada el':'Delivered on'} ${plan.fecha_entrega}` : '';
+    const viewLabel = isEs ? 'VER COMPLETA →' : 'VIEW FULL →';
+    return `<div class="perfil-plan-item">
+      <div class="perfil-plan-head">
+        <div class="perfil-plan-label">${label}</div>
+        ${statusBadge}
+      </div>
+      ${fechaTxt ? `<div class="perfil-plan-date">${fechaTxt}</div>` : ''}
+      <button class="perfil-plan-view-btn" onclick="goToPlanDetail('${tipo}')">${viewLabel}</button>
+    </div>`;
+  };
+  container.innerHTML = buildItem(weeklyPlans.rutina, 'rutina') + buildItem(weeklyPlans.dieta, 'dieta');
+}
+
+function goToPlanDetail(tipo) {
+  showDashboard();
+  setTimeout(() => {
+    const card = document.getElementById('plan-semanal-card');
+    if (card) {
+      card.classList.remove('plan-collapsed');
+      switchPlanTab(tipo);
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 200);
 }
 
 function showDashboard() {
@@ -7902,13 +8070,21 @@ function renderPlanSemanalCard() {
     if (!plan || !plan.contenido) {
       const label = tipo === 'rutina' ? 'rutina' : 'dieta';
       const cta   = tipo === 'rutina' ? '💪 Rutina de la semana' : '🥗 Dieta de la semana';
-      return `<div class="plan-empty">No hay ${label} entregada esta semana.<br><small>Pedísela a CoachAI con el botón "${cta}" en el chat.</small></div>`;
+      return `<div class="plan-empty">Todavía no pediste tu ${label}.<br><small>Pedísela a CoachAI con el botón "${cta}" en el chat.</small></div>`;
     }
     const fechaTxt = plan.fecha_entrega ? `Entregada el ${plan.fecha_entrega}` : '';
+    const statusBadge = plan.closed
+      ? `<span class="plan-badge plan-badge-closed">CERRADA</span>`
+      : `<span class="plan-badge plan-badge-active">ACTIVA</span>`;
+    const closedHint = plan.closed
+      ? `<div class="plan-closed-hint">Esta ${tipo} ya fue cerrada con tu análisis semanal. Pedí una nueva al coach cuando quieras.</div>`
+      : '';
     return `<div class="plan-meta">
-        <span>📅 ${plan.semana_iso || getISOWeekKey()}</span>
+        ${statusBadge}
         ${fechaTxt ? `<span>${fechaTxt}</span>` : ''}
+        <span>📅 ${plan.semana_iso || ''}</span>
       </div>
+      ${closedHint}
       <div class="plan-text">${formatResponse(plan.contenido)}</div>`;
   };
 
@@ -7921,17 +8097,20 @@ function renderPlanSemanalCard() {
   if (rutinaText) {
     if (weeklyPlans.rutina?.contenido) {
       const dias = currentUser?.dias_entreno?.length || '—';
-      rutinaText.textContent = `Rutina entregada · ${dias} días/semana`;
+      const status = weeklyPlans.rutina.closed ? '· Cerrada — pedí una nueva' : '· Activa';
+      rutinaText.textContent = `Rutina · ${dias} días/semana ${status}`;
     } else {
-      rutinaText.textContent = 'Sin rutina esta semana';
+      rutinaText.textContent = 'Sin rutina — pedísela al coach';
     }
   }
   if (dietaText) {
     if (weeklyPlans.dieta?.contenido) {
       const comidas = currentUser?.comidas_dia || null;
-      dietaText.textContent = comidas ? `Dieta entregada · ${comidas} comidas/día` : 'Dieta entregada';
+      const base = comidas ? `Dieta · ${comidas} comidas/día` : 'Dieta';
+      const status = weeklyPlans.dieta.closed ? '· Cerrada — pedí una nueva' : '· Activa';
+      dietaText.textContent = `${base} ${status}`;
     } else {
-      dietaText.textContent = 'Sin dieta esta semana';
+      dietaText.textContent = 'Sin dieta — pedísela al coach';
     }
   }
 }
