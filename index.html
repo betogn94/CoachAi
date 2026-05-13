@@ -1606,6 +1606,9 @@ footer {
   color: var(--muted);
   border: 1px solid rgba(255,255,255,0.08);
 }
+.admin-planes-empty { cursor: default; opacity: 0.75; }
+.admin-planes-empty .admin-planes-header { padding-right: 14px; }
+.admin-planes-empty .admin-planes-meta { font-style: italic; }
 .admin-planes-meta { font-size: 11px; color: var(--muted); flex: 1; }
 .admin-planes-chevron { color: var(--muted); font-size: 10px; transition: transform 0.2s; flex-shrink: 0; }
 .admin-planes-block.open .admin-planes-chevron { transform: rotate(180deg); }
@@ -8801,54 +8804,65 @@ function adminBuildTransformacionHTML(fotos, cierres) {
 }
 
 function adminBuildPlanesHTML(planes, cierres) {
-  adminDetailPlanes = planes;
   const escHtml = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-  // Identify the latest plan of each tipo, then check if a cierre exists after it
+  // Show ONLY the latest plan of each tipo — admin needs to know current state at a glance
   const sortedByDate = [...planes].sort((a, b) => {
     const aDate = new Date(a.fecha_entrega || a.updated_at || 0);
     const bDate = new Date(b.fecha_entrega || b.updated_at || 0);
     return bDate - aDate; // newest first
   });
-  const latestByTipo = {};
-  sortedByDate.forEach(p => { if (!latestByTipo[p.tipo]) latestByTipo[p.tipo] = p; });
+  const latestRutina = sortedByDate.find(p => p.tipo === 'rutina') || null;
+  const latestDieta  = sortedByDate.find(p => p.tipo === 'dieta')  || null;
+  const visiblePlans = [latestRutina, latestDieta].filter(Boolean);
+  adminDetailPlanes = visiblePlans;
+
   const lastCierre = (cierres || [])
     .filter(c => c.created_at)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
 
   const computeStatus = (plan) => {
-    const isLatest = latestByTipo[plan.tipo] === plan;
-    if (!isLatest) {
-      return { label: 'HISTÓRICA', cls: 'admin-plan-badge-history' };
-    }
     if (lastCierre && new Date(lastCierre.created_at) > new Date(plan.fecha_entrega || plan.updated_at || 0)) {
       return { label: 'CERRADA', cls: 'admin-plan-badge-closed' };
     }
     return { label: 'ACTIVA', cls: 'admin-plan-badge-active' };
   };
 
-  const inner = planes.length === 0
-    ? `<div style="padding:10px 0;font-size:13px;color:var(--muted)">Aún no se entregaron planes semanales a este alumno.</div>`
-    : planes.map((p, i) => {
-        const tipoLabel = p.tipo === 'dieta' ? '🥗 DIETA' : '💪 RUTINA';
-        const status = computeStatus(p);
-        return `
-          <div class="admin-planes-block" onclick="this.classList.toggle('open')">
-            <div class="admin-planes-header">
-              <span class="admin-planes-tipo">${tipoLabel}</span>
-              <span class="admin-plan-badge ${status.cls}">${status.label}</span>
-              <span class="admin-planes-meta">Semana ${p.semana_iso} · ${p.fecha_entrega}</span>
-              <button class="btn-admin-plan-edit" onclick="event.stopPropagation();adminEditPlan(${i})">✏️ Editar</button>
-              <span class="admin-planes-chevron">▼</span>
-            </div>
-            <div class="admin-planes-body">
-              <div class="admin-planes-text">${escHtml(p.contenido)}</div>
-            </div>
-          </div>`;
-      }).join('');
+  const buildBlock = (plan, tipo, idx) => {
+    const tipoLabel = tipo === 'dieta' ? '🥗 DIETA' : '💪 RUTINA';
+    if (!plan) {
+      return `
+        <div class="admin-planes-block admin-planes-empty">
+          <div class="admin-planes-header">
+            <span class="admin-planes-tipo">${tipoLabel}</span>
+            <span class="admin-plan-badge admin-plan-badge-history">SIN PEDIR</span>
+            <span class="admin-planes-meta">El alumno todavía no pidió su ${tipo}</span>
+          </div>
+        </div>`;
+    }
+    const status = computeStatus(plan);
+    return `
+      <div class="admin-planes-block" onclick="this.classList.toggle('open')">
+        <div class="admin-planes-header">
+          <span class="admin-planes-tipo">${tipoLabel}</span>
+          <span class="admin-plan-badge ${status.cls}">${status.label}</span>
+          <span class="admin-planes-meta">Semana ${plan.semana_iso} · ${plan.fecha_entrega}</span>
+          <button class="btn-admin-plan-edit" onclick="event.stopPropagation();adminEditPlan(${idx})">✏️ Editar</button>
+          <span class="admin-planes-chevron">▼</span>
+        </div>
+        <div class="admin-planes-body">
+          <div class="admin-planes-text">${escHtml(plan.contenido)}</div>
+        </div>
+      </div>`;
+  };
+
+  const inner = (latestRutina || latestDieta)
+    ? buildBlock(latestRutina, 'rutina', latestRutina ? visiblePlans.indexOf(latestRutina) : -1) +
+      buildBlock(latestDieta,  'dieta',  latestDieta  ? visiblePlans.indexOf(latestDieta)  : -1)
+    : `<div style="padding:10px 0;font-size:13px;color:var(--muted)">Aún no se entregaron planes semanales a este alumno.</div>`;
 
   return `<div class="admin-profile-card coach-card" style="margin-bottom:16px">
-    <div class="admin-section-subtitle">PLANES SEMANALES COACH AI</div>
+    <div class="admin-section-subtitle">PLANIFICACIÓN ACTUAL DEL ALUMNO</div>
     <div style="margin-top:10px">${inner}</div>
   </div>`;
 }
