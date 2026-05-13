@@ -1582,6 +1582,30 @@ footer {
   user-select: none;
 }
 .admin-planes-tipo { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--accent-bright); flex-shrink: 0; }
+.admin-plan-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1.2px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.admin-plan-badge-active {
+  background: rgba(46,207,181,0.14);
+  color: var(--accent3);
+  border: 1px solid rgba(46,207,181,0.32);
+}
+.admin-plan-badge-closed {
+  background: rgba(255,180,90,0.10);
+  color: #ffb95c;
+  border: 1px solid rgba(255,180,90,0.28);
+}
+.admin-plan-badge-history {
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+  border: 1px solid rgba(255,255,255,0.08);
+}
 .admin-planes-meta { font-size: 11px; color: var(--muted); flex: 1; }
 .admin-planes-chevron { color: var(--muted); font-size: 10px; transition: transform 0.2s; flex-shrink: 0; }
 .admin-planes-block.open .admin-planes-chevron { transform: rotate(180deg); }
@@ -8704,7 +8728,7 @@ function adminBuildDetailHTML(user, diario, cierres, fotos, planes = []) {
     </div>`;
 
   const transformHTML = adminBuildTransformacionHTML(fotos, cierres);
-  const planesHTML  = adminBuildPlanesHTML(planes);
+  const planesHTML  = adminBuildPlanesHTML(planes, cierres);
   const semanasHTML = adminBuildSemanasHTML(user, diario, cierres, fotos);
   return actionBar + profileHTML + transformHTML + planesHTML + semanasHTML;
 }
@@ -8754,18 +8778,43 @@ function adminBuildTransformacionHTML(fotos, cierres) {
   </div>`;
 }
 
-function adminBuildPlanesHTML(planes) {
+function adminBuildPlanesHTML(planes, cierres) {
   adminDetailPlanes = planes;
   const escHtml = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  // Identify the latest plan of each tipo, then check if a cierre exists after it
+  const sortedByDate = [...planes].sort((a, b) => {
+    const aDate = new Date(a.fecha_entrega || a.updated_at || 0);
+    const bDate = new Date(b.fecha_entrega || b.updated_at || 0);
+    return bDate - aDate; // newest first
+  });
+  const latestByTipo = {};
+  sortedByDate.forEach(p => { if (!latestByTipo[p.tipo]) latestByTipo[p.tipo] = p; });
+  const lastCierre = (cierres || [])
+    .filter(c => c.created_at)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+
+  const computeStatus = (plan) => {
+    const isLatest = latestByTipo[plan.tipo] === plan;
+    if (!isLatest) {
+      return { label: 'HISTÓRICA', cls: 'admin-plan-badge-history' };
+    }
+    if (lastCierre && new Date(lastCierre.created_at) > new Date(plan.fecha_entrega || plan.updated_at || 0)) {
+      return { label: 'CERRADA', cls: 'admin-plan-badge-closed' };
+    }
+    return { label: 'ACTIVA', cls: 'admin-plan-badge-active' };
+  };
 
   const inner = planes.length === 0
     ? `<div style="padding:10px 0;font-size:13px;color:var(--muted)">Aún no se entregaron planes semanales a este alumno.</div>`
     : planes.map((p, i) => {
         const tipoLabel = p.tipo === 'dieta' ? '🥗 DIETA' : '💪 RUTINA';
+        const status = computeStatus(p);
         return `
           <div class="admin-planes-block" onclick="this.classList.toggle('open')">
             <div class="admin-planes-header">
               <span class="admin-planes-tipo">${tipoLabel}</span>
+              <span class="admin-plan-badge ${status.cls}">${status.label}</span>
               <span class="admin-planes-meta">Semana ${p.semana_iso} · ${p.fecha_entrega}</span>
               <button class="btn-admin-plan-edit" onclick="event.stopPropagation();adminEditPlan(${i})">✏️ Editar</button>
               <span class="admin-planes-chevron">▼</span>
