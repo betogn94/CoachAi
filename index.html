@@ -5641,15 +5641,34 @@ async function saveWeeklyPlan(tipo, contenido) {
 }
 
 // Detects whether a user message is asking for the weekly diet or routine.
-// Returns 'dieta' | 'rutina' | null. Used to mark the next AI reply
-// as a plan delivery so we can persist it.
+// Returns 'dieta' | 'rutina' | null based on user intent.
+// Used to mark the next AI reply as a plan delivery hint.
 function detectPlanRequest(userMessage) {
   if (!userMessage || typeof userMessage !== 'string') return null;
   const lower = userMessage.toLowerCase();
-  const dietaRx = /(dieta\s+(de\s+la\s+)?semana|dieta\s+semanal|plan\s+(semanal\s+)?de\s+comidas|plan\s+(de\s+)?alimentaci[oó]n|weekly\s+diet|meal\s+plan|7[\-\s]day\s+(meal|diet))/i;
-  const rutinaRx = /(rutina\s+(de\s+la\s+)?semana|rutina\s+semanal|plan\s+(semanal\s+)?de\s+entrenamiento|plan\s+(de\s+)?entreno|weekly\s+(routine|workout|training)|workout\s+plan|training\s+plan)/i;
+  // Broader patterns — catches both formal ("Dieta de la semana") and natural language ("pasame la dieta")
+  const dietaRx = /(dieta|plan\s+(de\s+)?(comidas|alimentaci[oó]n|nutrici[oó]n|nutricional)|weekly\s+diet|meal\s+plan|nutritional\s+plan)/i;
+  const rutinaRx = /(rutina|plan\s+(de\s+)?(entrenamiento|entreno|ejercicios?)|weekly\s+(routine|workout|training)|workout\s+plan|training\s+plan)/i;
   if (dietaRx.test(lower)) return 'dieta';
   if (rutinaRx.test(lower)) return 'rutina';
+  return null;
+}
+
+// Detects whether an AI reply is a full plan delivery by looking at its content.
+// This is the source-of-truth check — overrides user-message detection if they disagree.
+function detectPlanInReply(reply) {
+  if (!reply || typeof reply !== 'string') return null;
+  // Dieta markers: nutritional plan headings with kcal/macros
+  if (/plan\s+nutricional|kcal\/d[ií]a|target:.{0,20}kcal|P:\s*\d+g\s*C:\s*\d+g|desayuno|almuerzo|merienda|cena/i.test(reply)) {
+    // Confirm with at least 3 day mentions to avoid false positives on short replies
+    const dayHits = (reply.match(/\b(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi) || []).length;
+    if (dayHits >= 3) return 'dieta';
+  }
+  // Rutina markers: workout structure
+  if (/rutina\s+semanal|series\s*[×x]\s*\d|reps|descanso:|upper\s+(a|b)|lower\s+(a|b)|press\s+(de\s+banca|militar)|sentadilla|peso\s+muerto/i.test(reply)) {
+    const dayHits = (reply.match(/\b(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi) || []).length;
+    if (dayHits >= 3) return 'rutina';
+  }
   return null;
 }
 
@@ -6803,23 +6822,26 @@ async function sendToAI(userMessage, isFirst = false) {
     todayConversation.push({ role: 'assistant', content: reply });
     saveChatToSupabase(chatMessages, todayConversation).catch(console.error);
 
-    // If the user asked for a weekly plan and the assistant produced a substantial
-    // response, persist it as the plan for this ISO week. Length guard avoids
-    // saving short clarifying replies as a "plan".
-    if (pendingPlanDelivery && reply && reply.length > 400) {
-      const tipo = pendingPlanDelivery;
-      pendingPlanDelivery = null;
-      const saved = await saveWeeklyPlan(tipo, reply);
-      weeklyPlans[tipo] = saved || {
-        tipo,
-        contenido: reply,
-        fecha_entrega: getTodayKey(),
-        semana_iso: getISOWeekKey()
-      };
-      refreshQuickButtons();
+    // Determine the actual plan type from the REPLY content (source of truth).
+    // Falls back to pendingPlanDelivery hint from user message if reply isn't clear.
+    if (reply && reply.length > 400) {
+      const tipoFromReply = detectPlanInReply(reply);
+      const tipo = tipoFromReply || pendingPlanDelivery;
+      if (tipo && (!weeklyPlans[tipo] || weeklyPlans[tipo].closed || tipoFromReply)) {
+        // Only persist if it's a fresh plan OR the reply explicitly contains plan content
+        // (tipoFromReply truthy means the AI actually delivered a plan, not just a casual mention)
+        pendingPlanDelivery = null;
+        const saved = await saveWeeklyPlan(tipo, reply);
+        weeklyPlans[tipo] = saved || {
+          tipo,
+          contenido: reply,
+          fecha_entrega: getTodayKey(),
+          semana_iso: getISOWeekKey()
+        };
+        refreshQuickButtons();
+      }
     } else if (pendingPlanDelivery && reply && reply.length <= 400) {
       // Reply was likely a clarifying question, not a plan — leave the flag for the next turn.
-      // Keep flag if it still looks like the user is mid-flow asking for the plan.
     }
   } catch (err) {
     console.error('[CoachAI] sendToAI error:', err?.message || err);
