@@ -3032,9 +3032,9 @@ footer {
   background: var(--surface);
   border: 1.5px solid rgba(124,106,255,0.28);
   border-radius: 20px;
-  padding: 36px 32px;
+  padding: 22px 20px;
   width: 100%;
-  max-width: 400px;
+  max-width: 320px;
   text-align: center;
   margin-bottom: 16px;
   box-shadow:
@@ -3056,9 +3056,9 @@ footer {
 
 /* Brand icon image — square version (full circle visible) */
 .landing-login-icon {
-  width: 100px;
-  height: 100px;
-  margin: 0 auto 22px;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 14px;
   position: relative;
   animation: landingIconPulse 3s ease-in-out infinite;
 }
@@ -3067,6 +3067,8 @@ footer {
   height: 100%;
   display: block;
   mix-blend-mode: lighten;
+  /* Optical centering — tiny nudge right to counter visual weight of violet (left) side */
+  transform: translateX(1px);
 }
 @keyframes landingIconPulse {
   0%, 100% { filter: drop-shadow(0 0 16px rgba(124,106,255,0.32)) drop-shadow(0 0 28px rgba(46,207,181,0.16)); }
@@ -3275,16 +3277,16 @@ footer {
 .email-login-sub { font-size: 13px; color: var(--muted); margin-bottom: 28px; line-height: 1.5; }
 .email-login-input {
   width: 100%; background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 10px; padding: 13px 16px; color: var(--text);
-  font-family: 'DM Sans', sans-serif; font-size: 15px; outline: none;
-  transition: all 0.2s; margin-bottom: 10px; text-align: center;
+  border-radius: 10px; padding: 11px 14px; color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none;
+  transition: all 0.2s; margin-bottom: 9px; text-align: center;
 }
 .email-login-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,106,255,0.1); }
 .btn-email-login {
-  width: 100%; padding: 14px;
+  width: 100%; padding: 12px;
   background: linear-gradient(135deg, var(--accent), var(--accent3));
   border: none; border-radius: 10px; color: white;
-  font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px;
+  font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 2px;
   cursor: pointer; transition: all 0.2s;
 }
 .btn-email-login:hover { transform: translateY(-1px); }
@@ -3317,10 +3319,9 @@ footer {
 /* --- LANDING PAGE --- */
 @media (max-width: 640px) {
   .landing-wrapper        { padding: 24px 20px; }
-  .landing-logo           { font-size: 38px; }
-  .landing-tagline        { font-size: 13px; margin-bottom: 20px; }
-  .landing-login-card     { padding: 24px 20px; }
-  .landing-login-icon     { width: 78px; height: 78px; margin-bottom: 16px; }
+  .landing-tagline        { font-size: 13px; margin-bottom: 18px; }
+  .landing-login-card     { padding: 22px 20px; max-width: 320px; }
+  .landing-login-icon     { width: 64px; height: 64px; margin-bottom: 14px; }
 }
 
 /* --- EMAIL LOGIN & ADMIN LOGIN MODAL --- */
