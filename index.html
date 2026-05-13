@@ -553,8 +553,7 @@ textarea { resize: vertical; min-height: 80px; }
 }
 
 .cpb-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
-.cpb-value { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent-bright); font-weight: 500; display: inline-flex; align-items: center; gap: 5px; }
-.cpb-svg { width: 13px; height: 13px; display: inline-block; flex-shrink: 0; filter: drop-shadow(0 0 4px rgba(124,106,255,0.35)); }
+.cpb-value { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent-bright); font-weight: 500; }
 
 .chat-messages {
   /* Bounded scroll area — messages stack from bottom (newest near input) */
@@ -6478,16 +6477,8 @@ async function launchCoach() {
   const altura = document.getElementById('f-altura').value;
   const _p = parseFloat(peso), _a = parseFloat(altura);
   const imc = (_p > 0 && _a > 0) ? (_p / ((_a / 100) ** 2)).toFixed(1) : 'N/A';
-  // Brand SVG icons replacing emojis in the chat profile bar
-  const iconFire = '<svg class="cpb-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.6 3.4-2.8 5-2.8 9 0 3.3 2.5 6 5.8 6s5.8-2.7 5.8-6c0-3-1.2-5-2.4-6.6-.5 2.5-1.9 3-2.6 1.5-.9-3-2.1-5-3.8-3.9z"/></svg>';
-  const iconBicep = '<svg class="cpb-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9h2v6H3V9zm15 0h2v6h-2V9zM6 8h2v8H6V8zm10 0h2v8h-2V8zm-7-1h2v10H9V7zm4 0h2v10h-2V7zm-4 4h6v2H9v-2z"/></svg>';
-  const iconBalance = '<svg class="cpb-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a1 1 0 011 1v.3l4.4.9a1 1 0 01.7 1.3l-2.6 7a3 3 0 11-5.8 0l-2.6-7A1 1 0 016.6 5.3L11 4.3V4a1 1 0 011-1zm0 16h5v2H7v-2h5v-6.5h.6c.4 0 .7-.3.7-.7L13 8h-2v3.8c0 .4.3.7.7.7H12V19z"/></svg>';
-  const iconSeed = '<svg class="cpb-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c-4 0-6-2.5-6-6 0-2 1-4 2.5-5C9.5 12 11 14 12 16.5 13 14 14.5 12 15.5 11 17 12 18 14 18 16c0 3.5-2 6-6 6zm0-13c-.5-3-3-5-6-5 0 3 2 5.5 6 5z"/></svg>';
-  const iconBolt = '<svg class="cpb-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 2L4 14h7l-1.5 8L20 9h-7.5L13.5 2z"/></svg>';
-  const iconCrown = '<svg class="cpb-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M5 17l-1.5-9 4.5 3L12 4l4 7 4.5-3L19 17H5zm0 2h14v2H5v-2z"/></svg>';
-
-  const objLabel = { definir: lang==='es'?`${iconFire}Definir`:`${iconFire}Cut`, volumen: lang==='es'?`${iconBicep}Volumen`:`${iconBicep}Bulk`, mantenimiento: lang==='es'?`${iconBalance}Mantener`:`${iconBalance}Maintain` };
-  const nivLabel = { principiante: lang==='es'?`${iconSeed}Principiante`:`${iconSeed}Beginner`, intermedio: lang==='es'?`${iconBolt}Intermedio`:`${iconBolt}Intermediate`, avanzado: lang==='es'?`${iconCrown}Avanzado`:`${iconCrown}Advanced` };
+  const objLabel = { definir: lang==='es'?'🔥 Definir':'🔥 Cut', volumen: lang==='es'?'💪 Volumen':'💪 Bulk', mantenimiento: lang==='es'?'⚖️ Mantenimiento':'⚖️ Maintain' };
+  const nivLabel = { principiante: lang==='es'?'🌱 Principiante':'🌱 Beginner', intermedio: lang==='es'?'⚡ Intermedio':'⚡ Intermediate', avanzado: lang==='es'?'🔱 Avanzado':'🔱 Advanced' };
 
   document.getElementById('chat-profile-bar').innerHTML = [
     { l: lang==='es'?'Usuario':'User', v: nombre },
