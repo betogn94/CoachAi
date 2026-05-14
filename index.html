@@ -50,11 +50,12 @@ body::after {
   transition: background 0.5s ease;
 }
 
-/* Onboarding ambient: athletic photo behind everything + dark overlay + brand orbs.
-   The body::after is already position:fixed so it stays in the viewport while scrolling,
-   so we use background-attachment:scroll (the default) to avoid iOS Safari quirks
-   with `fixed` attachment on the actual background-image. */
-body:has(.form-wrapper[style*="block"])::after {
+/* Shared ambient backdrop: athletic photo + dark overlay + brand orbs.
+   Applied to onboarding (.form-wrapper) and to the main app sections
+   (Mi Día, Progreso, Perfil) for a unified aesthetic. The body::after is
+   already position:fixed so it stays in the viewport while scrolling.
+   `background-attachment:scroll` (default) avoids iOS Safari quirks. */
+body:has(:is(.form-wrapper, #diario-wrapper, #dashboard-wrapper, #perfil-wrapper)[style*="block"])::after {
   top: 0; left: 0; width: 100%; height: 100%;
   background:
     radial-gradient(ellipse 55% 45% at 18% 12%, rgba(124,106,255,0.20) 0%, transparent 60%),
