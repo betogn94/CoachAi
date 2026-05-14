@@ -5706,8 +5706,16 @@ async function loginOrRegister(email, nombre) {
   return { isNew: true, user: newUser };
 }
 
+// Format a Date as YYYY-MM-DD using the USER'S LOCAL timezone (not UTC).
+// Critical: `new Date().toISOString().slice(0,10)` returns the UTC date, which
+// silently misnames the row for any user not in UTC. In AR (UTC-3), logs at
+// 21:00 local already roll to "tomorrow" in UTC and clobber the next day's row.
+function formatLocalDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 function getTodayKey() {
-  return new Date().toISOString().slice(0, 10);
+  return formatLocalDate(new Date());
 }
 
 async function saveProfileToSupabase(data) {
@@ -5841,11 +5849,13 @@ async function saveDiarioToSupabase(data) {
 
 async function loadTodayDiario() {
   if (!sbClient || !currentUser) return null;
+  // `.maybeSingle()` returns `{data:null, error:null}` cleanly when the row
+  // doesn't exist — `.single()` would log a PGRST116 error every visit.
   const { data } = await sbClient.from('progreso_diario')
     .select('*')
     .eq('usuario_id', currentUser.id)
     .eq('fecha', getTodayKey())
-    .single();
+    .maybeSingle();
   return data;
 }
 
@@ -5856,7 +5866,7 @@ async function loadRecentDiario(days = 90) {
   const { data } = await sbClient.from('progreso_diario')
     .select('fecha,desayuno,almuerzo,merienda,cena,calorias_consumidas,proteinas_g,carbos_g,grasas_g,entreno,ejercicios_realizados,notas_entreno')
     .eq('usuario_id', currentUser.id)
-    .gte('fecha', from.toISOString().slice(0, 10))
+    .gte('fecha', formatLocalDate(from))
     .order('fecha', { ascending: true });
   return data || [];
 }
@@ -5867,7 +5877,7 @@ async function loadRecentChatHistory(days = 7) {
   for (let i = 1; i <= days; i++) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    dates.push(d.toISOString().slice(0, 10));
+    dates.push(formatLocalDate(d));
   }
   const { data } = await sbClient
     .from('historial_chat')
@@ -5894,20 +5904,23 @@ function buildHistorySummary() {
 // EMAIL LOGIN
 // ============================
 async function handleEmailLogin() {
-  // iOS fix: lock the body BEFORE keyboard starts dismissing so it can't scroll the page.
-  // position:fixed + top:0 freezes the scroll position at 0 regardless of keyboard movement.
   if (document.activeElement) document.activeElement.blur();
-  document.body.style.position = 'fixed';
-  document.body.style.top = '0';
-  document.body.style.width = '100%';
   const nombre = document.getElementById('el-nombre').value.trim();
   const email = document.getElementById('el-email').value.trim().toLowerCase();
   const btn = document.getElementById('el-btn');
   const loading = document.getElementById('el-loading');
   const error = document.getElementById('el-error');
 
+  // Validate BEFORE locking the body — early-return from validation must not leave
+  // the page in a `position:fixed` state (iOS users get a frozen scroll otherwise).
   if (!nombre) { error.textContent = 'Por favor ingresá tu nombre'; return; }
   if (!email || !email.includes('@')) { error.textContent = 'Por favor ingresá un email válido'; return; }
+
+  // iOS fix: lock the body BEFORE keyboard starts dismissing so it can't scroll the page.
+  // position:fixed + top:0 freezes the scroll position at 0 regardless of keyboard movement.
+  document.body.style.position = 'fixed';
+  document.body.style.top = '0';
+  document.body.style.width = '100%';
 
   btn.disabled = true;
   loading.style.display = 'block';
@@ -5940,7 +5953,10 @@ async function handleEmailLogin() {
       if (p.nivel) selections.nivel = p.nivel;
       if (p.dias_entreno) selectedDias = p.dias_entreno;
 
-      if (p.objetivo && p.nivel) {
+      // Full-profile gate — every field the system prompt and IMC calculation
+      // reads must be present. A partial profile sends the user into a chat with
+      // an empty name greeting and IMC=Infinity.
+      if (p.objetivo && p.nivel && p.peso && p.altura && p.edad && p.sexo) {
         await launchCoach();
       } else {
         document.getElementById('hero-section').style.display = 'block';
@@ -7354,12 +7370,16 @@ function renderFotos(fotos) {
     </div>
   `).join('');
 
-  if (fotos.length >= 2) {
-    const inicial = fotos.find(f => f.tipo === 'inicio') || fotos[0];
+  const inicial = pickBaselinePhoto(fotos);
+  if (inicial && fotos.length >= 2) {
     const reciente = fotos[fotos.length - 1];
-    comparacion.style.display = 'block';
-    document.getElementById('foto-comp-inicial').src = inicial.url_foto;
-    document.getElementById('foto-comp-reciente').src = reciente.url_foto;
+    if (reciente.url_foto === inicial.url_foto) {
+      comparacion.style.display = 'none';
+    } else {
+      comparacion.style.display = 'block';
+      document.getElementById('foto-comp-inicial').src = inicial.url_foto;
+      document.getElementById('foto-comp-reciente').src = reciente.url_foto;
+    }
   } else {
     comparacion.style.display = 'none';
   }
@@ -7394,7 +7414,7 @@ function getWeekRange(createdAt, weekNum) {
   wStart.setDate(start.getDate() + (weekNum - 1) * 7);
   const wEnd = new Date(wStart);
   wEnd.setDate(wStart.getDate() + 6);
-  return { start: wStart.toISOString().slice(0, 10), end: wEnd.toISOString().slice(0, 10) };
+  return { start: formatLocalDate(wStart), end: formatLocalDate(wEnd) };
 }
 
 function formatDateShort(dateStr) {
@@ -8151,12 +8171,13 @@ async function renderDashboard() {
 }
 
 function getISOWeekRange(date = new Date()) {
-  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-  const day = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() - day + 1);
-  const start = d.toISOString().slice(0, 10);
-  d.setUTCDate(d.getUTCDate() + 6);
-  const end = d.toISOString().slice(0, 10);
+  // Local-time ISO week (Mon-Sun) — consistent with how `fecha` columns are stored
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() - day + 1);
+  const start = formatLocalDate(d);
+  d.setDate(d.getDate() + 6);
+  const end = formatLocalDate(d);
   return { start, end };
 }
 
@@ -8247,7 +8268,7 @@ async function renderAdherencia() {
   for (let i = 0; i < 7; i++) {
     const d = new Date(range.start + 'T12:00:00');
     d.setDate(d.getDate() + i);
-    days.push(d.toISOString().slice(0, 10));
+    days.push(formatLocalDate(d));
   }
 
   const kcalValues  = days.map(d => kcalMap[d] || 0);
@@ -8360,12 +8381,12 @@ function switchPlanTab(tipo) {
 
 function calcStreak(trainedDays) {
   if (!trainedDays.length) return 0;
-  const today = new Date().toISOString().slice(0,10);
+  const today = getTodayKey();
   const sorted = [...new Set(trainedDays)].sort().reverse();
   let streak = 0;
-  let current = new Date(today);
+  let current = new Date(today + 'T12:00:00');
   for (let i = 0; i < 365; i++) {
-    const dateStr = current.toISOString().slice(0,10);
+    const dateStr = formatLocalDate(current);
     if (sorted.includes(dateStr)) {
       streak++;
       current.setDate(current.getDate() - 1);
@@ -8452,7 +8473,7 @@ function logWeight() {
     alert('Por favor ingresá un peso válido.');
     return;
   }
-  const today = new Date().toISOString().slice(0,10);
+  const today = getTodayKey();
   const progress = loadProgress();
   // Replace if already logged today
   const idx = progress.weights.findIndex(w => w.date === today);
@@ -8493,12 +8514,13 @@ function renderStreakGrid(trainedDays) {
   for (let i = 29; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
-    days.push(d.toISOString().slice(0,10));
+    days.push(formatLocalDate(d));
   }
   const dayNames = ['D','L','M','X','J','V','S'];
+  const todayKey = formatLocalDate(today);
   grid.innerHTML = days.map(date => {
     const trained = trainedDays.includes(date);
-    const isToday = date === today.toISOString().slice(0,10);
+    const isToday = date === todayKey;
     const dayName = dayNames[new Date(date + 'T12:00:00').getDay()];
     const dayNum = date.slice(8);
     return `<div class="streak-day ${trained ? 'trained' : ''} ${isToday ? 'today' : ''}" title="${date}">
@@ -8510,7 +8532,7 @@ function renderStreakGrid(trainedDays) {
 }
 
 function markTrained() {
-  const today = new Date().toISOString().slice(0,10);
+  const today = getTodayKey();
   const progress = loadProgress();
   if (!progress.trainedDays.includes(today)) {
     progress.trainedDays.push(today);
@@ -8750,7 +8772,7 @@ async function loadAdminDashboard() {
 
     const since = new Date();
     since.setDate(since.getDate() - 7);
-    const sinceStr = since.toISOString().slice(0, 10);
+    const sinceStr = formatLocalDate(since);
 
     const { data: entries, error: eErr } = await sbClient
       .from('progreso_diario')
