@@ -8690,24 +8690,92 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // ============================
 // LANDING & ADMIN ACCESS
+//
+// Client-side admin gate. No default password ships in the bundle anymore.
+// First-time access prompts the user to define their own password, which is
+// stored as a SHA-256 hash with random per-install salt. Failed attempts are
+// rate-limited (3 within 5 min → 5 min lockout) to make brute-force tedious.
+//
+// NOTE: This is hardening for a single-trainer local install. The underlying
+// data access still relies on Supabase RLS — anyone with the anon key can
+// read/write protected rows if RLS isn't tight. For multi-tenant production
+// move admin behind Supabase Auth with an `is_admin` JWT claim.
 // ============================
-const LS_ADMIN = 'coachai_admin_v1';
-const DEFAULT_PASSWORD = 'admin123';
+const LS_ADMIN = 'coachai_admin_v2';
+const LS_ADMIN_LEGACY = 'coachai_admin_v1';
+const LS_ADMIN_LOCKOUT = 'coachai_admin_lockout';
+const ADMIN_MAX_ATTEMPTS = 3;
+const ADMIN_LOCKOUT_MS = 5 * 60 * 1000;
+const ADMIN_MIN_PASSWORD_LEN = 6;
 
-function getAdminPassword() {
-  try {
-    const raw = localStorage.getItem(LS_ADMIN);
-    return raw ? JSON.parse(raw).password : DEFAULT_PASSWORD;
-  } catch(e) { return DEFAULT_PASSWORD; }
+async function _sha256(text) {
+  const buf = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-function changeAdminPassword() {
+function _loadAdminStore() {
+  try { return JSON.parse(localStorage.getItem(LS_ADMIN)) || null; }
+  catch(e) { return null; }
+}
+
+function hasAdminPassword() { return !!_loadAdminStore(); }
+
+async function setAdminPassword(newPass) {
+  if (!newPass || newPass.length < ADMIN_MIN_PASSWORD_LEN) {
+    throw new Error(lang === 'es'
+      ? `La contraseña debe tener al menos ${ADMIN_MIN_PASSWORD_LEN} caracteres.`
+      : `Password must be at least ${ADMIN_MIN_PASSWORD_LEN} characters.`);
+  }
+  const salt = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+    .map(b => b.toString(16).padStart(2, '0')).join('');
+  const hash = await _sha256(salt + newPass);
+  localStorage.setItem(LS_ADMIN, JSON.stringify({ salt, hash, v: 2 }));
+  // Clear legacy plaintext entry if it survived from older builds
+  localStorage.removeItem(LS_ADMIN_LEGACY);
+}
+
+async function _verifyAdminPassword(input) {
+  const store = _loadAdminStore();
+  if (!store) return false;
+  const candidate = await _sha256(store.salt + input);
+  return candidate === store.hash;
+}
+
+function _adminLockoutMinutesRemaining() {
+  try {
+    const lo = JSON.parse(localStorage.getItem(LS_ADMIN_LOCKOUT) || 'null');
+    if (!lo || !lo.until) return 0;
+    if (Date.now() >= lo.until) { localStorage.removeItem(LS_ADMIN_LOCKOUT); return 0; }
+    return Math.ceil((lo.until - Date.now()) / 60000);
+  } catch(e) { return 0; }
+}
+
+function _recordAdminFailedAttempt() {
+  let attempts = 0;
+  try {
+    const lo = JSON.parse(localStorage.getItem(LS_ADMIN_LOCKOUT) || 'null');
+    attempts = (lo && lo.attempts) || 0;
+  } catch(e) {}
+  attempts++;
+  if (attempts >= ADMIN_MAX_ATTEMPTS) {
+    localStorage.setItem(LS_ADMIN_LOCKOUT, JSON.stringify({ until: Date.now() + ADMIN_LOCKOUT_MS, attempts: 0 }));
+    return ADMIN_MAX_ATTEMPTS;
+  }
+  localStorage.setItem(LS_ADMIN_LOCKOUT, JSON.stringify({ attempts, until: 0 }));
+  return attempts;
+}
+
+function _clearAdminFailedAttempts() { localStorage.removeItem(LS_ADMIN_LOCKOUT); }
+
+async function changeAdminPassword() {
   const newPass = document.getElementById('new-password').value.trim();
-  if (!newPass || newPass.length < 4) {
-    alert(lang === 'es' ? 'La contraseña debe tener al menos 4 caracteres.' : 'Password must be at least 4 characters.');
+  try {
+    await setAdminPassword(newPass);
+  } catch(e) {
+    alert(e.message);
     return;
   }
-  localStorage.setItem(LS_ADMIN, JSON.stringify({ password: newPass }));
   document.getElementById('new-password').value = '';
   const btn = document.getElementById('change-pass-btn');
   btn.textContent = '✅';
@@ -8718,6 +8786,22 @@ function showAdminLogin() {
   document.getElementById('admin-modal').classList.add('visible');
   document.getElementById('admin-password-input').value = '';
   document.getElementById('modal-error').textContent = '';
+  const setup = !hasAdminPassword();
+  const titleEl = document.getElementById('modal-title');
+  const subEl = document.getElementById('modal-sub');
+  const btnEl = document.getElementById('modal-enter-btn');
+  const hintEl = document.getElementById('modal-hint');
+  if (setup) {
+    if (titleEl) titleEl.textContent = lang === 'es' ? '🆕 CONFIGURAR ADMIN' : '🆕 SET UP ADMIN';
+    if (subEl)   subEl.textContent   = lang === 'es' ? `Definí tu contraseña (mín. ${ADMIN_MIN_PASSWORD_LEN} caracteres)` : `Choose your password (min ${ADMIN_MIN_PASSWORD_LEN} characters)`;
+    if (btnEl)   btnEl.textContent   = lang === 'es' ? 'CREAR' : 'CREATE';
+    if (hintEl)  hintEl.textContent  = lang === 'es' ? 'Esta contraseña queda guardada solo en este dispositivo.' : 'This password is stored only on this device.';
+  } else {
+    if (titleEl) titleEl.textContent = lang === 'es' ? '⚙️ ACCESO ADMIN' : '⚙️ ADMIN ACCESS';
+    if (subEl)   subEl.textContent   = lang === 'es' ? 'Ingresá la contraseña de administrador' : 'Enter the administrator password';
+    if (btnEl)   btnEl.textContent   = lang === 'es' ? 'INGRESAR' : 'ENTER';
+    if (hintEl)  hintEl.textContent  = '';
+  }
   setTimeout(() => document.getElementById('admin-password-input').focus(), 100);
 }
 
@@ -8725,14 +8809,49 @@ function closeAdminModal() {
   document.getElementById('admin-modal').classList.remove('visible');
 }
 
-function checkAdminPassword() {
+async function checkAdminPassword() {
   const input = document.getElementById('admin-password-input').value;
-  const correct = getAdminPassword();
-  if (input === correct) {
+  const errEl = document.getElementById('modal-error');
+
+  const lockMin = _adminLockoutMinutesRemaining();
+  if (lockMin > 0) {
+    errEl.textContent = lang === 'es'
+      ? `🔒 Demasiados intentos. Esperá ${lockMin} min.`
+      : `🔒 Too many attempts. Wait ${lockMin} min.`;
+    return;
+  }
+
+  // First-time setup path — the modal already told the user this is setup
+  if (!hasAdminPassword()) {
+    try {
+      await setAdminPassword(input);
+    } catch(e) {
+      errEl.textContent = e.message;
+      return;
+    }
+    _clearAdminFailedAttempts();
+    closeAdminModal();
+    enterAsAdmin();
+    return;
+  }
+
+  const ok = await _verifyAdminPassword(input);
+  if (ok) {
+    _clearAdminFailedAttempts();
     closeAdminModal();
     enterAsAdmin();
   } else {
-    document.getElementById('modal-error').textContent = lang === 'es' ? '❌ Contraseña incorrecta' : '❌ Incorrect password';
+    const attempts = _recordAdminFailedAttempt();
+    const remaining = Math.max(0, ADMIN_MAX_ATTEMPTS - attempts);
+    if (remaining === 0) {
+      errEl.textContent = lang === 'es'
+        ? `🔒 Bloqueado por 5 minutos.`
+        : `🔒 Locked for 5 minutes.`;
+    } else {
+      errEl.textContent = lang === 'es'
+        ? `❌ Incorrecto (${remaining} intento${remaining !== 1 ? 's' : ''} restante${remaining !== 1 ? 's' : ''})`
+        : `❌ Incorrect (${remaining} attempt${remaining !== 1 ? 's' : ''} left)`;
+    }
     document.getElementById('admin-password-input').value = '';
     document.getElementById('admin-password-input').focus();
   }
@@ -9442,7 +9561,7 @@ window.addEventListener('DOMContentLoaded', () => {
     <div class="modal-error" id="modal-error"></div>
     <button class="btn-modal-enter" onclick="checkAdminPassword()" id="modal-enter-btn">INGRESAR</button>
     <button class="btn-modal-cancel" onclick="closeAdminModal()" id="modal-cancel-btn">Cancelar</button>
-    <div class="modal-hint" id="modal-hint">Contraseña predeterminada: <strong>admin123</strong></div>
+    <div class="modal-hint" id="modal-hint"></div>
   </div>
 </div>
 
