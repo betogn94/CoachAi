@@ -5624,6 +5624,14 @@ QUE SÍ SE VE</div>
     <button class="btn-back-chat" onclick="showHome()" id="diario-back-btn">← Inicio</button>
   </div>
 
+  <!-- Banner shown when the user has no active plan to register against -->
+  <div id="diario-no-plan-banner" style="display:none; margin-bottom:16px; padding:14px 18px; background:linear-gradient(135deg,rgba(124,106,255,0.12),rgba(46,207,181,0.06)); border:1px solid rgba(124,106,255,0.25); border-radius:12px;">
+    <div style="font-size:13px; line-height:1.5; color:var(--text);" id="diario-no-plan-text">
+      💡 <strong>Aún no tenés un plan activo</strong> — pedile al coach una rutina o dieta para tener una referencia contra qué comparar tu día.
+    </div>
+    <button onclick="showChat()" style="margin-top:10px; background:transparent; border:1px solid var(--accent); color:var(--accent-bright); padding:6px 14px; border-radius:6px; cursor:pointer; font-size:11px; letter-spacing:1.5px; font-family:'JetBrains Mono', monospace;" id="diario-no-plan-cta">→ IR AL CHAT</button>
+  </div>
+
   <!-- ALIMENTACIÓN -->
   <div class="chart-card coach-card" style="margin-bottom:16px">
     <div class="chart-card-header">
@@ -7143,7 +7151,7 @@ async function showDiario() {
   document.getElementById('diario-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
   document.getElementById('diario-date-display').textContent = new Date().toLocaleDateString(lang === 'es' ? 'es-AR' : 'en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
 
-  // Always reset form to empty state
+  // Reset to empty state first
   ['d-desayuno','d-almuerzo','d-merienda','d-cena','d-ejercicios'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('macros-estimados').style.display = 'none';
   document.getElementById('macros-estimando').style.display = 'none';
@@ -7152,16 +7160,46 @@ async function showDiario() {
   document.getElementById('chip-no').classList.remove('selected');
   document.getElementById('ejercicios-section').style.display = 'block';
 
-  // Si ya guardó hoy, bloquear el botón
+  // Empty-state banner: if the user has no active plan (or both are closed),
+  // prompt them to ask the coach. Doesn't block — they can still log their day.
+  const noActivePlan = !(weeklyPlans.dieta && !weeklyPlans.dieta.closed) &&
+                       !(weeklyPlans.rutina && !weeklyPlans.rutina.closed);
+  const banner = document.getElementById('diario-no-plan-banner');
+  if (banner) {
+    banner.style.display = noActivePlan ? 'block' : 'none';
+    if (noActivePlan) {
+      document.getElementById('diario-no-plan-text').innerHTML = lang === 'es'
+        ? '💡 <strong>Aún no tenés un plan activo</strong> — pedile al coach una rutina o dieta para tener una referencia contra qué comparar tu día.'
+        : '💡 <strong>You don\'t have an active plan yet</strong> — ask your coach for a routine or diet so your day has something to compare against.';
+      document.getElementById('diario-no-plan-cta').textContent = lang === 'es' ? '→ IR AL CHAT' : '→ GO TO CHAT';
+    }
+  }
+
+  // If a row already exists for today, pre-fill so the user can edit it.
+  // Previously we hard-locked the button, trapping users who tapped Save by mistake.
   const btn = document.getElementById('btn-save-diario');
   const today = await loadTodayDiario();
   if (today) {
-    btn.textContent = lang === 'es' ? '✅ Ya registraste tu día de hoy' : '✅ Already logged today';
-    btn.disabled = true;
+    document.getElementById('d-desayuno').value = today.desayuno || '';
+    document.getElementById('d-almuerzo').value = today.almuerzo || '';
+    document.getElementById('d-merienda').value = today.merienda || '';
+    document.getElementById('d-cena').value = today.cena || '';
+    document.getElementById('d-ejercicios').value = today.ejercicios_realizados || '';
+    if (today.entreno === true)  setEntrenó(true);
+    else if (today.entreno === false) setEntrenó(false);
+    if (today.calorias_consumidas || today.proteinas_g) {
+      showMacrosEstimados({
+        calorias_consumidas: today.calorias_consumidas,
+        proteinas_g: today.proteinas_g,
+        carbos_g: today.carbos_g,
+        grasas_g: today.grasas_g,
+      });
+    }
+    btn.textContent = lang === 'es' ? '✏️ ACTUALIZAR MI DÍA' : '✏️ UPDATE MY DAY';
   } else {
-    btn.textContent = '💾 GUARDAR MI DÍA';
-    btn.disabled = false;
+    btn.textContent = lang === 'es' ? '💾 GUARDAR MI DÍA' : '💾 SAVE MY DAY';
   }
+  btn.disabled = false;
 }
 
 function showMacrosEstimados(macros) {
@@ -7196,55 +7234,73 @@ async function estimateMacros(desayuno, almuerzo, merienda, cena) {
   } catch { return null; }
 }
 
+// In-flight guard. Without this, a double-tap before the button disables can
+// fire saveDiario twice — two AI macro calls billed, possible duplicate writes.
+let savingDiario = false;
+
 async function saveDiario() {
+  if (savingDiario) return;
+
   const desayuno = document.getElementById('d-desayuno').value.trim();
   const almuerzo = document.getElementById('d-almuerzo').value.trim();
   const merienda = document.getElementById('d-merienda').value.trim();
   const cena = document.getElementById('d-cena').value.trim();
+  const ejercicios = document.getElementById('d-ejercicios').value.trim();
 
+  // Reject completely empty submissions. The upsert would otherwise write a
+  // null row and the lock-button branch (deprecated by editing flow now,
+  // but defense-in-depth) would trap the user with nothing to display.
+  const hasAnyMeal = desayuno || almuerzo || merienda || cena;
+  const hasTrainingInfo = entrenóHoy !== null || ejercicios;
+  if (!hasAnyMeal && !hasTrainingInfo) {
+    alert(lang === 'es'
+      ? 'Cargá al menos una comida o marcá si entrenaste hoy.'
+      : 'Add at least one meal or mark if you trained today.');
+    return;
+  }
+
+  savingDiario = true;
   const btn = document.getElementById('btn-save-diario');
+  const originalLabel = btn.textContent;
   btn.textContent = '⏳ Estimando macros...';
   btn.disabled = true;
   document.getElementById('macros-estimando').style.display = 'block';
   document.getElementById('macros-estimados').style.display = 'none';
 
-  // Estimate macros with AI
-  const macros = await estimateMacros(desayuno, almuerzo, merienda, cena).catch(() => null);
-  document.getElementById('macros-estimando').style.display = 'none';
-
-  const data = {
-    desayuno, almuerzo, merienda, cena,
-    calorias_consumidas: macros?.kcal || null,
-    proteinas_g: macros?.proteina || null,
-    carbos_g: macros?.carbos || null,
-    grasas_g: macros?.grasa || null,
-    entreno: entrenóHoy,
-    ejercicios_realizados: document.getElementById('d-ejercicios').value.trim(),
-    notas_entreno: '',
-  };
-
-  btn.textContent = '⏳ Guardando...';
-
   try {
+    // Estimate macros with AI (silent fallback if it fails)
+    const macros = await estimateMacros(desayuno, almuerzo, merienda, cena).catch(() => null);
+    document.getElementById('macros-estimando').style.display = 'none';
+
+    const data = {
+      desayuno, almuerzo, merienda, cena,
+      calorias_consumidas: macros?.kcal || null,
+      proteinas_g: macros?.proteina || null,
+      carbos_g: macros?.carbos || null,
+      grasas_g: macros?.grasa || null,
+      entreno: entrenóHoy,
+      ejercicios_realizados: ejercicios,
+      notas_entreno: '',
+    };
+
+    btn.textContent = '⏳ Guardando...';
+
     await saveDiarioToSupabase(data);
     if (entrenóHoy) saveTrainedDayToSupabase().catch(console.error);
     recentDiario = await loadRecentDiario();
     btn.textContent = '✅ DÍA GUARDADO';
-    // Clear fields
-    ['d-desayuno','d-almuerzo','d-merienda','d-cena','d-ejercicios'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('macros-estimados').style.display = 'none';
-    entrenóHoy = null;
-    document.getElementById('chip-si').classList.remove('selected');
-    document.getElementById('chip-no').classList.remove('selected');
     setTimeout(() => {
-      btn.textContent = '💾 GUARDAR MI DÍA';
+      btn.textContent = originalLabel;
       btn.disabled = false;
       showChat();
     }, 1500);
   } catch(e) {
     btn.textContent = '❌ Error al guardar';
     btn.disabled = false;
+    document.getElementById('macros-estimando').style.display = 'none';
     console.error(e);
+  } finally {
+    savingDiario = false;
   }
 }
 
