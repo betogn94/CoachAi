@@ -5698,7 +5698,12 @@ let currentUser = null;
 
 async function loginOrRegister(email, nombre) {
   if (!sbClient) initSupabase();
-  const { data: existing } = await sbClient.from('usuarios').select('*').eq('email', email).single();
+  // `.maybeSingle()` returns `{data:null, error:null}` when 0 rows match;
+  // `.single()` would throw PGRST116 and we'd silently fall through to INSERT,
+  // creating duplicate rows on real DB errors (RLS misconfig, transient 5xx).
+  const { data: existing, error: selErr } = await sbClient
+    .from('usuarios').select('*').eq('email', email).maybeSingle();
+  if (selErr) throw selErr;
   if (existing) { currentUser = existing; return { isNew: false, user: existing }; }
   const { data: newUser, error } = await sbClient.from('usuarios').insert([{ email, nombre }]).select().single();
   if (error) throw error;
@@ -5928,6 +5933,9 @@ async function handleEmailLogin() {
 
   try {
     if (!sbClient) initSupabase();
+    // Wipe any state from a previous session BEFORE the new user's data lands.
+    // Prevents User-A's chat/plans/diario from leaking into User-B's view.
+    resetAppState();
     const result = await loginOrRegister(email, nombre);
     // Release iOS body-lock now that the auth round-trip is done
     document.body.style.position = '';
@@ -6038,13 +6046,12 @@ function loadProfile() {
   } catch(e) { return null; }
 }
 
-function resetProfile() {
-  localStorage.removeItem(LS_KEY);
-  document.getElementById('welcome-back').style.display = 'none';
-  document.getElementById('hero-section').style.display = 'block';
-  document.querySelector('.form-wrapper').style.display = 'block';
-  document.querySelector('.progress-bar-container').style.display = 'block';
-  document.getElementById('chat-wrapper').style.display = 'none';
+// Clear ALL per-user in-memory state plus the rendered chat DOM. Called when
+// switching users (login of a different account) or when "Nuevo perfil" is hit.
+// Important: leaving any of these populated when a different user logs in shows
+// User-A's chat messages, plans and diario to User-B until they refresh.
+function resetAppState() {
+  currentUser = null;
   conversationHistory = [];
   chatMessages = [];
   todayConversation = [];
@@ -6057,6 +6064,24 @@ function resetProfile() {
   selectedDias = [];
   selectedComidas = '';
   selections = { objetivo: '', nivel: '' };
+  cierresSemanales = [];
+  fotosProgreso = [];
+  const chatBox = document.getElementById('chat-messages');
+  if (chatBox) chatBox.innerHTML = '';
+  // Wipe form fields so a new user doesn't see prior values pre-filled
+  ['f-nombre','f-edad','f-sexo','f-peso','f-altura','f-actividad','f-duracion',
+   'f-lugar','f-nodislike','f-cuello','f-cintura-form','f-cadera-form']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+}
+
+function resetProfile() {
+  localStorage.removeItem(LS_KEY);
+  document.getElementById('welcome-back').style.display = 'none';
+  document.getElementById('hero-section').style.display = 'block';
+  document.querySelector('.form-wrapper').style.display = 'block';
+  document.querySelector('.progress-bar-container').style.display = 'block';
+  document.getElementById('chat-wrapper').style.display = 'none';
+  resetAppState();
 }
 
 function restoreFormFromProfile(p) {
@@ -6374,6 +6399,23 @@ function validateStep(step) {
     const a = document.getElementById('f-altura').value;
     if (!n || !e || !s || !p || !a) {
       alert(lang === 'es' ? 'Por favor completá todos los campos obligatorios.' : 'Please fill in all required fields.');
+      return false;
+    }
+    // Numeric ranges — truthiness alone passes "0" and negatives. Stored as-is
+    // these poison the IMC calc (Infinity / NaN) and the AI system prompt.
+    const edadN = parseInt(e, 10);
+    const pesoN = parseFloat(p);
+    const alturaN = parseFloat(a);
+    if (!(edadN >= 14 && edadN <= 100)) {
+      alert(lang === 'es' ? 'La edad debe estar entre 14 y 100 años.' : 'Age must be between 14 and 100.');
+      return false;
+    }
+    if (!(pesoN >= 30 && pesoN <= 300)) {
+      alert(lang === 'es' ? 'El peso debe estar entre 30 y 300 kg.' : 'Weight must be between 30 and 300 kg.');
+      return false;
+    }
+    if (!(alturaN >= 100 && alturaN <= 230)) {
+      alert(lang === 'es' ? 'La altura debe estar entre 100 y 230 cm.' : 'Height must be between 100 and 230 cm.');
       return false;
     }
   }
