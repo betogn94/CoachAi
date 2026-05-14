@@ -3005,6 +3005,45 @@ footer {
   font-size: 13px; line-height: 1.65;
   color: var(--text); white-space: pre-wrap; display: none;
 }
+/* Side-by-side compare in cierre modal */
+.cierre-foto-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 6px 0 4px;
+}
+.cierre-foto-col { display: flex; flex-direction: column; gap: 6px; }
+.cierre-foto-caption {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+}
+.cierre-foto-slot {
+  aspect-ratio: 3/4;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface2);
+  border: 1px dashed var(--border);
+  position: relative;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-size: 12px; color: var(--muted);
+  text-align: center; padding: 8px;
+  transition: all 0.2s;
+}
+.cierre-foto-slot img {
+  width: 100%; height: 100%; object-fit: cover;
+  position: absolute; inset: 0; display: block;
+}
+.cierre-foto-slot.is-upload { cursor: pointer; }
+.cierre-foto-slot.is-upload:hover { border-color: var(--accent3); background: rgba(46,207,181,0.06); }
+.cierre-foto-slot input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 2; }
+.cierre-foto-slot .cierre-foto-icon { font-size: 24px; margin-bottom: 4px; }
+.cierre-foto-slot .cierre-foto-hint { font-size: 11px; line-height: 1.35; }
+.cierre-foto-slot .cierre-foto-hint strong { color: var(--accent3); }
+
 .btn-generar-analisis {
   width: 100%; padding: 13px;
   background: linear-gradient(135deg, var(--accent), var(--accent3));
@@ -5476,16 +5515,28 @@ QUE SÍ SE VE</div>
     <div class="cierre-sub" id="cierre-sub">Resumen de tu semana</div>
     <div class="cierre-stats-grid" id="cierre-stats-grid"></div>
 
-    <div style="font-size:13px;color:var(--muted);margin-bottom:10px;text-align:center">
-      📸 Subí tu foto de esta semana para la comparativa
+    <div style="font-size:13px;color:var(--muted);margin-bottom:10px;text-align:center" id="cierre-foto-prompt">
+      📸 Compará tu evolución
     </div>
-    <div class="foto-upload-area" style="margin-bottom:4px">
-      <input type="file" accept="image/*" id="cierre-foto-input" onchange="previewCierreFoto(event)">
-      <div id="cierre-foto-placeholder">
-        <div class="foto-upload-icon">📷</div>
-        <div class="foto-upload-label">Foto de frente de esta semana<br><strong>Opcional pero recomendada</strong></div>
+    <div class="cierre-foto-compare">
+      <div class="cierre-foto-col">
+        <div class="cierre-foto-caption" id="cierre-foto-caption-inicial">PUNTO DE INICIO</div>
+        <div class="cierre-foto-slot" id="cierre-foto-inicial-slot">
+          <div class="cierre-foto-icon">📷</div>
+          <div class="cierre-foto-hint" id="cierre-foto-inicial-empty">Sin foto inicial</div>
+        </div>
       </div>
-      <img class="foto-preview" id="cierre-foto-preview" src="" alt="preview">
+      <div class="cierre-foto-col">
+        <div class="cierre-foto-caption" id="cierre-foto-caption-actual">ESTA SEMANA</div>
+        <div class="cierre-foto-slot is-upload" id="cierre-foto-upload-slot">
+          <input type="file" accept="image/*" id="cierre-foto-input" onchange="previewCierreFoto(event)">
+          <div id="cierre-foto-placeholder">
+            <div class="cierre-foto-icon">📷</div>
+            <div class="cierre-foto-hint" id="cierre-foto-upload-hint">Subí tu foto<br><strong>Opcional</strong></div>
+          </div>
+          <img id="cierre-foto-preview" src="" alt="preview" style="display:none">
+        </div>
+      </div>
     </div>
 
     <button class="btn-generar-analisis" id="btn-generar-analisis" onclick="ejecutarCierreSemana()">
@@ -7382,7 +7433,7 @@ async function renderSemanas() {
   ]);
   cierresSemanales = cierres;
 
-  const fotoInicial = fotos.find(f => f.tipo === 'inicio') || fotos[0] || null;
+  const fotoInicial = pickBaselinePhoto(fotos);
 
   const weeks = [];
   for (let w = currentWeek; w >= 1; w--) weeks.push(w);
@@ -7506,12 +7557,34 @@ function openCierreSemana(weekNum) {
   document.getElementById('cierre-analisis-result').style.display = 'none';
   document.getElementById('cierre-analisis-result').textContent = '';
   document.getElementById('cierre-foto-preview').style.display = 'none';
+  document.getElementById('cierre-foto-preview').src = '';
   document.getElementById('cierre-foto-placeholder').style.display = 'block';
   document.getElementById('cierre-foto-input').value = '';
   document.getElementById('btn-generar-analisis').disabled = false;
   document.getElementById('btn-generar-analisis').textContent = lang === 'es' ? '✨ Generar análisis de mi semana' : '✨ Generate my week analysis';
 
+  // Reset & async-fill the baseline ("punto de inicio") slot
+  const inicialSlot = document.getElementById('cierre-foto-inicial-slot');
+  inicialSlot.innerHTML = `<div class="cierre-foto-icon">📷</div><div class="cierre-foto-hint">${lang==='es'?'Sin foto inicial':'No initial photo'}</div>`;
+  loadFotosProgreso().then(fotos => {
+    const baseline = pickBaselinePhoto(fotos);
+    if (baseline) {
+      inicialSlot.innerHTML = `<img src="${baseline.url_foto}" alt="Foto inicial">`;
+    }
+  }).catch(err => console.error('Could not load baseline photo for cierre:', err));
+
   document.getElementById('cierre-overlay').classList.add('open');
+}
+
+// Pick the user's baseline photo: prefer explicit 'inicio', otherwise the oldest
+// non-'semana' photo. Returns null if no suitable baseline exists (e.g. the
+// only photos are weekly closures — those should never be used as baseline
+// because that produces a duplicate side-by-side render).
+function pickBaselinePhoto(fotos) {
+  if (!fotos || fotos.length === 0) return null;
+  return fotos.find(f => f.tipo === 'inicio')
+      || fotos.find(f => f.tipo !== 'semana')
+      || null;
 }
 
 function closeCierrePanel() {
@@ -7550,11 +7623,12 @@ async function ejecutarCierreSemana() {
     console.error('Photo upload failed, continuing without:', e);
   }
 
-  // Load initial photo for visual comparison (fallback to earliest if untagged)
+  // Load initial photo for visual comparison. Never use a 'semana' photo as
+  // baseline — that would compare a closure photo against itself.
   let fotoInicialUrl = null;
   try {
     const fotos = await loadFotosProgreso();
-    const inicial = fotos.find(f => f.tipo === 'inicio') || fotos[0] || null;
+    const inicial = pickBaselinePhoto(fotos);
     fotoInicialUrl = inicial?.url_foto || null;
   } catch(e) {
     console.error('Could not load initial photo, continuing without comparison:', e);
@@ -8985,7 +9059,7 @@ function adminBuildPlanesHTML(planes, cierres) {
 function adminBuildSemanasHTML(user, diario, cierres, fotos) {
   const createdAt = user.created_at || new Date().toISOString();
   const currentWeek = getWeekNum(createdAt);
-  const fotoInicial = fotos.find(f => f.tipo === 'inicio') || fotos[0] || null;
+  const fotoInicial = pickBaselinePhoto(fotos);
 
   if (currentWeek < 1) return '<div style="padding:20px;color:var(--muted)">Sin semanas registradas.</div>';
 
