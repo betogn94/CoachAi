@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>CoachAI — Manual de producto y diseño</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #070714;
+  --surface: #111122;
+  --surface2: #1a1a2e;
+  --border: rgba(124,106,255,0.18);
+  --text: #f0f0fa;
+  --muted: #8a8aa0;
+  --accent: #7c6aff;
+  --accent-bright: #b4a7ff;
+  --accent2: #5b9fff;
+  --accent3: #2ecfb5;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11pt;
+  line-height: 1.55;
+}
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 18mm 16mm;
+  page-break-after: always;
+  position: relative;
+  background:
+    radial-gradient(ellipse 55% 45% at 18% 8%, rgba(124,106,255,0.16) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 82% 92%, rgba(46,207,181,0.12) 0%, transparent 60%),
+    linear-gradient(180deg, #070714 0%, #0a0a1a 100%);
+  overflow: hidden;
+}
+.page:last-child { page-break-after: avoid; }
+
+.page-footer {
+  position: absolute;
+  bottom: 8mm;
+  left: 16mm;
+  right: 16mm;
+  display: flex;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8pt;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+
+/* ===== TYPOGRAPHY ===== */
+h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 48pt;
+  letter-spacing: 4px;
+  line-height: 1;
+  margin-bottom: 6mm;
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent2) 50%, var(--accent3) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26pt;
+  letter-spacing: 3px;
+  color: var(--accent-bright);
+  margin-bottom: 4mm;
+  display: flex;
+  align-items: baseline;
+  gap: 6mm;
+}
+h2 .num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14pt;
+  letter-spacing: 2px;
+  color: var(--accent3);
+  opacity: 0.7;
+}
+
+h3 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16pt;
+  letter-spacing: 2px;
+  color: var(--text);
+  margin: 6mm 0 2mm;
+}
+h4 {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: 11pt;
+  color: var(--accent-bright);
+  letter-spacing: 0.5px;
+  margin: 4mm 0 1.5mm;
+}
+
+p { margin-bottom: 3mm; color: #d8d8e8; }
+.muted { color: var(--muted); }
+.lead { font-size: 12pt; line-height: 1.65; color: #e4e4f0; }
+.tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8pt;
+  letter-spacing: 1.5px;
+  color: var(--accent3);
+  text-transform: uppercase;
+}
+
+ul { margin: 2mm 0 4mm; padding-left: 5mm; }
+li { margin-bottom: 1.5mm; color: #d8d8e8; }
+li::marker { color: var(--accent2); }
+strong { color: var(--accent-bright); font-weight: 700; }
+
+/* ===== COVER ===== */
+.cover {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+.cover-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 80pt;
+  letter-spacing: 10px;
+  background: linear-gradient(135deg, #b4a7ff 0%, #5b9fff 50%, #2ecfb5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 6mm;
+  filter: drop-shadow(0 0 30px rgba(124,106,255,0.3));
+}
+.cover-tagline {
+  font-size: 14pt;
+  color: var(--muted);
+  letter-spacing: 1.5px;
+  margin-bottom: 18mm;
+}
+.cover-subtitle {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22pt;
+  letter-spacing: 3px;
+  color: var(--text);
+  margin-bottom: 4mm;
+}
+.cover-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9pt;
+  letter-spacing: 2px;
+  color: var(--muted);
+  margin-top: 30mm;
+}
+
+/* ===== CARDS ===== */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 6mm 6mm;
+  margin-bottom: 4mm;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+}
+.card.glow {
+  border-color: rgba(124,106,255,0.32);
+  box-shadow: 0 4px 24px rgba(124,106,255,0.10), inset 0 1px 0 rgba(124,106,255,0.25);
+}
+.card-icon-row {
+  display: flex; align-items: center; gap: 4mm;
+  margin-bottom: 3mm;
+}
+.card-icon {
+  width: 11mm; height: 11mm;
+  border-radius: 9px;
+  background: linear-gradient(135deg, rgba(124,106,255,0.22), rgba(46,207,181,0.10));
+  border: 1px solid rgba(124,106,255,0.28);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent-bright);
+  flex-shrink: 0;
+}
+.card-icon svg { width: 6mm; height: 6mm; }
+
+/* ===== TWO COLUMN ===== */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+.cols-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4mm; }
+
+/* ===== COLOR SWATCHES ===== */
+.swatch-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4mm; margin: 4mm 0; }
+.swatch {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 4mm;
+  display: flex;
+  gap: 4mm;
+  align-items: center;
+}
+.swatch-chip {
+  width: 18mm; height: 18mm;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.swatch-info { flex: 1; }
+.swatch-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13pt;
+  letter-spacing: 2px;
+}
+.swatch-hex {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9pt;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+.swatch-why { font-size: 9pt; color: #c8c8d8; margin-top: 1.5mm; line-height: 1.4; }
+
+/* ===== FONT SAMPLES ===== */
+.font-sample {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 5mm 6mm;
+  margin-bottom: 3mm;
+}
+.font-sample .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8pt;
+  letter-spacing: 1.5px;
+  color: var(--accent3);
+  margin-bottom: 2mm;
+}
+.font-sample .demo-bebas {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32pt;
+  letter-spacing: 4px;
+  line-height: 1;
+  color: var(--accent-bright);
+}
+.font-sample .demo-dm {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13pt;
+  color: var(--text);
+}
+.font-sample .demo-jb {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11pt;
+  letter-spacing: 1.5px;
+  color: var(--accent2);
+}
+.font-why { font-size: 9pt; color: var(--muted); margin-top: 2mm; line-height: 1.5; }
+
+/* ===== PHONE MOCKUP ===== */
+.phone {
+  width: 70mm;
+  background: var(--surface);
+  border: 1.5px solid rgba(124,106,255,0.32);
+  border-radius: 16px;
+  padding: 5mm 4mm;
+  font-size: 7.5pt;
+  line-height: 1.4;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(124,106,255,0.3);
+  position: relative;
+  overflow: hidden;
+}
+.phone-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 3mm;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 3mm;
+}
+.phone-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 11pt;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #b4a7ff, #2ecfb5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.phone-hamburger {
+  width: 6mm; height: 6mm;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  gap: 1mm;
+}
+.phone-hamburger span { width: 3mm; height: 0.4mm; background: var(--text); }
+
+.phone-section-card {
+  border: 1px solid rgba(124,106,255,0.25);
+  border-radius: 8px;
+  padding: 2.5mm;
+  margin-bottom: 2mm;
+  background: rgba(17,17,34,0.6);
+}
+.phone-section-header {
+  display: flex; align-items: baseline; gap: 2mm;
+  margin-bottom: 1.5mm;
+}
+.phone-section-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14pt;
+  background: linear-gradient(135deg, #b4a7ff, #2ecfb5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 1.5px;
+}
+.phone-section-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 8pt;
+  letter-spacing: 1.5px;
+  color: var(--text);
+}
+.phone-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1.5mm 2mm;
+  font-size: 7pt;
+  color: var(--muted);
+  margin-bottom: 1mm;
+}
+.phone-input.filled { color: var(--text); }
+.phone-btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  color: #fff;
+  border-radius: 6px;
+  padding: 2mm;
+  text-align: center;
+  font-weight: 700;
+  font-size: 8pt;
+  letter-spacing: 1px;
+  margin-top: 2mm;
+}
+.phone-chip-row { display: flex; gap: 1.5mm; flex-wrap: wrap; margin: 1.5mm 0; }
+.phone-chip {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.8mm 2mm;
+  font-size: 6.5pt;
+  color: var(--muted);
+}
+.phone-chip.active {
+  background: linear-gradient(135deg, rgba(124,106,255,0.30), rgba(46,207,181,0.15));
+  border-color: var(--accent);
+  color: var(--accent-bright);
+}
+
+.phone-progress-bar {
+  display: flex; align-items: center;
+  gap: 1.5mm;
+  margin-bottom: 3mm;
+  padding: 0 2mm;
+}
+.phone-ps {
+  width: 4mm; height: 4mm;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  flex-shrink: 0;
+}
+.phone-ps.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  border-color: var(--accent3);
+}
+.phone-ps.done {
+  background: var(--accent3);
+  border-color: var(--accent3);
+}
+.phone-ps-line {
+  flex: 1; height: 0.4mm;
+  background: var(--border);
+}
+
+.phone-stat-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1.5mm;
+  margin: 2mm 0;
+}
+.phone-stat {
+  background: var(--surface2);
+  border-radius: 5px;
+  padding: 2mm;
+  text-align: center;
+}
+.phone-stat-val {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14pt;
+  color: var(--accent3);
+  line-height: 1;
+}
+.phone-stat-label {
+  font-size: 6pt;
+  color: var(--muted);
+  margin-top: 0.5mm;
+  letter-spacing: 0.5px;
+}
+
+.phone-chat-msg {
+  border-radius: 8px;
+  padding: 2mm 2.5mm;
+  margin-bottom: 1.5mm;
+  max-width: 80%;
+  font-size: 7pt;
+  line-height: 1.4;
+}
+.phone-chat-msg.user {
+  background: var(--surface2);
+  margin-left: auto;
+  color: var(--text);
+}
+.phone-chat-msg.ai {
+  background: linear-gradient(135deg, rgba(124,106,255,0.15), rgba(46,207,181,0.08));
+  border: 1px solid rgba(124,106,255,0.20);
+  color: var(--text);
+}
+
+.phone-foto-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 2mm; margin: 2mm 0;
+}
+.phone-foto-slot {
+  aspect-ratio: 3/4;
+  border: 1px dashed var(--border);
+  border-radius: 5px;
+  background: var(--surface2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 6pt;
+  color: var(--muted);
+}
+.phone-foto-slot.filled {
+  background: linear-gradient(135deg, rgba(124,106,255,0.4), rgba(46,207,181,0.3));
+  border-style: solid;
+}
+.phone-foto-caption {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 5.5pt;
+  letter-spacing: 1px;
+  color: var(--muted);
+  text-align: center;
+  margin-bottom: 1mm;
+}
+
+.phone-admin-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 2mm; margin: 2mm 0;
+}
+.phone-admin-stat {
+  background: var(--surface2);
+  border-top: 2px solid var(--accent);
+  border-radius: 5px;
+  padding: 2.5mm;
+  text-align: center;
+}
+.phone-admin-stat.verde { border-top-color: #00c896; }
+.phone-admin-stat.amarillo { border-top-color: #ffd700; }
+.phone-admin-stat.rojo { border-top-color: #ff4757; }
+.phone-admin-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16pt;
+  line-height: 1;
+  color: var(--text);
+}
+.phone-admin-label {
+  font-size: 6pt;
+  color: var(--muted);
+  letter-spacing: 0.8px;
+  margin-top: 0.5mm;
+}
+.phone-admin-sub {
+  font-size: 5.5pt;
+  color: var(--muted);
+  margin-top: 0.5mm;
+}
+
+.phone-row {
+  display: flex; gap: 4mm; align-items: flex-start;
+}
+.phone-narration {
+  flex: 1;
+}
+
+/* page break helpers */
+.no-break { page-break-inside: avoid; }
+
+/* divider */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  margin: 6mm 0;
+}
+
+/* index */
+.toc { list-style: none; padding: 0; }
+.toc li {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dashed var(--border);
+  padding: 3mm 0;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12pt;
+}
+.toc li::marker { content: none; }
+.toc .num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10pt;
+  color: var(--accent3);
+}
+.toc .pg { color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 10pt; }
+
+</style>
+</head>
+<body>
+
+<!-- ============================================ COVER ============================================ -->
+<section class="page cover">
+  <div class="cover-logo">COACHAI</div>
+  <div class="cover-tagline">Tu entrenador personal con inteligencia artificial</div>
+  <div class="cover-subtitle">MANUAL DE PRODUCTO Y SISTEMA DE DISEÑO</div>
+  <div class="muted" style="font-size:11pt; max-width: 130mm;">
+    Documento que describe el objetivo, las funcionalidades, el sistema de diseño y el recorrido completo de la aplicación, tanto desde la perspectiva del usuario final como del coach administrador.
+  </div>
+  <div class="cover-meta">
+    VERSIÓN 1.0 · MAYO 2026 · POWERED BY ANTHROPIC CLAUDE
+  </div>
+</section>
+
+<!-- ============================================ ÍNDICE ============================================ -->
+<section class="page">
+  <h1>ÍNDICE</h1>
+  <ol class="toc">
+    <li><span><span class="num">01</span> &nbsp; Visión general y objetivos</span> <span class="pg">03</span></li>
+    <li><span><span class="num">02</span> &nbsp; Sistema de diseño — paleta de colores</span> <span class="pg">04</span></li>
+    <li><span><span class="num">03</span> &nbsp; Sistema de diseño — tipografía</span> <span class="pg">05</span></li>
+    <li><span><span class="num">04</span> &nbsp; Arquitectura de la aplicación</span> <span class="pg">06</span></li>
+    <li><span><span class="num">05</span> &nbsp; Landing & login</span> <span class="pg">07</span></li>
+    <li><span><span class="num">06</span> &nbsp; Onboarding del usuario nuevo</span> <span class="pg">08</span></li>
+    <li><span><span class="num">07</span> &nbsp; Home & chat con CoachAI</span> <span class="pg">10</span></li>
+    <li><span><span class="num">08</span> &nbsp; Mi Día — registro diario</span> <span class="pg">11</span></li>
+    <li><span><span class="num">09</span> &nbsp; Progreso & cierre semanal</span> <span class="pg">12</span></li>
+    <li><span><span class="num">10</span> &nbsp; Perfil del usuario</span> <span class="pg">14</span></li>
+    <li><span><span class="num">11</span> &nbsp; Panel del entrenador (admin)</span> <span class="pg">15</span></li>
+    <li><span><span class="num">12</span> &nbsp; Stack técnico y dependencias</span> <span class="pg">16</span></li>
+  </ol>
+  <div class="page-footer"><span>COACHAI · MANUAL</span><span>02</span></div>
+</section>
+
+<!-- ============================================ 01 — VISIÓN ============================================ -->
+<section class="page">
+  <h2><span class="num">01</span> VISIÓN GENERAL Y OBJETIVOS</h2>
+
+  <p class="lead">
+    CoachAI es una aplicación web que pone un entrenador personal de bolsillo en manos de cualquier persona que quiera transformar su físico de forma sostenible, y que al mismo tiempo le da a los coaches profesionales una herramienta para escalar su trabajo sin perder la cercanía con cada alumno.
+  </p>
+
+  <div class="divider"></div>
+
+  <h3>OBJETIVO PARA EL USUARIO</h3>
+  <p>
+    El usuario llega buscando una respuesta concreta a una pregunta simple: <strong>¿qué hago hoy?</strong> CoachAI elimina la fricción de planificar comidas, decidir entrenamientos y registrar el progreso. La aplicación genera planes semanales de rutina y dieta adaptados a sus datos, su objetivo y su nivel, y mantiene un diálogo constante a través del chat para ajustar lo necesario.
+  </p>
+  <ul>
+    <li><strong>Claridad diaria</strong> — sabe qué comer y qué entrenar cada día, sin tener que pensarlo.</li>
+    <li><strong>Adherencia visible</strong> — su progreso semanal se ve reflejado en estadísticas, gráficos y comparativa visual con fotos.</li>
+    <li><strong>Feedback honesto</strong> — al cerrar cada semana recibe un análisis personalizado, motivador pero basado en datos reales.</li>
+    <li><strong>Conversación, no formularios</strong> — todo cambio de plan se pide hablando con CoachAI, como con un entrenador humano.</li>
+  </ul>
+
+  <h3>OBJETIVO PARA EL COACH</h3>
+  <p>
+    El coach administra una cartera de alumnos sin perder el detalle. El panel entrenador resume el estado de adherencia, separa a los alumnos por color de prioridad (comprometidos, adherencia media, inactivos) y permite ver el detalle completo de cada uno: planes activos, registros diarios, fotos de progreso y los análisis semanales generados.
+  </p>
+  <ul>
+    <li><strong>Vista de cartera</strong> — cuántos alumnos están comprometidos, cuántos necesitan un empujón, cuántos están inactivos.</li>
+    <li><strong>Diagnóstico individual</strong> — al entrar al perfil de un alumno, el coach ve su historial completo de semanas y las decisiones que la IA tomó por él.</li>
+    <li><strong>Trazabilidad de planes</strong> — cada rutina y dieta queda registrada con su estado (ACTIVA, CERRADA, HISTÓRICA) y la conversación que la originó.</li>
+    <li><strong>Escala sin perder cercanía</strong> — el coach interviene solo donde es necesario, mientras la IA mantiene el día a día.</li>
+  </ul>
+
+  <div class="page-footer"><span>COACHAI · VISIÓN</span><span>03</span></div>
+</section>
+
+<!-- ============================================ 02 — COLORES ============================================ -->
+<section class="page">
+  <h2><span class="num">02</span> SISTEMA DE DISEÑO · PALETA</h2>
+
+  <p class="lead">
+    La paleta nace de una decisión deliberada: <strong>energía nocturna</strong>. CoachAI se usa al final del día, cuando el usuario abre el celular para registrar lo que comió, ver qué le toca mañana o cerrar la semana. Un fondo claro fatigaría la vista. La paleta oscura con acentos vibrantes da seriedad de producto profesional sin perder energía.
+  </p>
+
+  <div class="swatch-grid">
+    <div class="swatch">
+      <div class="swatch-chip" style="background:#070714"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">FONDO BASE</div>
+        <div class="swatch-hex">#070714</div>
+        <div class="swatch-why">Casi negro con tinte azul-violeta. Da reposo visual y hace que los acentos de marca exploten al contrastarse.</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-chip" style="background:#111122"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">SURFACE</div>
+        <div class="swatch-hex">#111122</div>
+        <div class="swatch-why">Fondo de cards, modales y zonas elevadas. Un escalón sobre el fondo, sin ser un gris frío.</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-chip" style="background:#7c6aff"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">ACENTO · VIOLETA</div>
+        <div class="swatch-hex">#7c6aff</div>
+        <div class="swatch-why">Color principal del brand. Se asocia con la inteligencia, la creatividad y lo digital. Aparece en botones, bordes activos y glows.</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-chip" style="background:#b4a7ff"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">ACENTO · BRIGHT</div>
+        <div class="swatch-hex">#b4a7ff</div>
+        <div class="swatch-why">Variante luminosa del violeta. Se usa en títulos importantes y subtítulos clickables. Mantiene legibilidad sobre fondo oscuro.</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-chip" style="background:#5b9fff"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">ACENTO · AZUL</div>
+        <div class="swatch-hex">#5b9fff</div>
+        <div class="swatch-why">Color de transición en los gradientes. Conecta el violeta con el cyan y suma la connotación de "confianza" del azul tradicional.</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-chip" style="background:#2ecfb5"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">ACENTO · CYAN</div>
+        <div class="swatch-hex">#2ecfb5</div>
+        <div class="swatch-why">El "éxito" y la "acción" del producto. Aparece en valores numéricos importantes, en estados positivos y en los CTAs cerrando los gradientes.</div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="margin-top:8mm">EL GRADIENTE MARCA</h3>
+  <div style="height:14mm; border-radius:10px; background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%); margin: 3mm 0;"></div>
+  <p>
+    Violeta → azul → cyan no es decoración: es la historia del producto en sí misma. Empieza en lo cognitivo (inteligencia artificial), pasa por la confianza (azul) y termina en el resultado (cyan). Aparece en el logo, en el botón INGRESAR, en el botón de generar análisis y en cada elemento donde queremos comunicar "esto es lo importante".
+  </p>
+
+  <div class="page-footer"><span>COACHAI · COLORES</span><span>04</span></div>
+</section>
+
+<!-- ============================================ 03 — TIPOGRAFÍA ============================================ -->
+<section class="page">
+  <h2><span class="num">03</span> SISTEMA DE DISEÑO · TIPOGRAFÍA</h2>
+
+  <p class="lead">
+    Tres tipografías, cada una con un rol claro. La regla es: una sola fuente para títulos, una sola para texto, una sola para datos y etiquetas. Sin mezclas innecesarias.
+  </p>
+
+  <div class="font-sample">
+    <div class="label">DISPLAY · TÍTULOS Y HEROS</div>
+    <div class="demo-bebas">BEBAS NEUE — CIERRE DE SEMANA</div>
+    <div class="font-why">
+      Una sans condensada, con personalidad atlética y editorial. La elegimos porque transmite urgencia y energía sin gritar. Se usa en TODOS los títulos de sección, los pasos del onboarding y los CTAs grandes. Las mayúsculas con tracking generoso (2-4px) la hacen sentir como rotulación de gimnasio profesional, no como app genérica.
+    </div>
+  </div>
+
+  <div class="font-sample">
+    <div class="label">TEXTO CORRIDO · UI Y COPY</div>
+    <div class="demo-dm">DM Sans — texto del cuerpo, instrucciones, descripciones, etiquetas de inputs y todo lo que requiera leerse cómodo.</div>
+    <div class="font-why">
+      Sans humanista, neutra y altamente legible en pantalla a cualquier tamaño. Carga rápido, soporta varios pesos y se ve bien tanto en celular como en monitor. Es la fuente que el usuario "no nota" — su trabajo es desaparecer y dejar pasar la información.
+    </div>
+  </div>
+
+  <div class="font-sample">
+    <div class="label">MONO · DATOS, TAGS Y ETIQUETAS TÉCNICAS</div>
+    <div class="demo-jb">JetBrains Mono — RUTINA · DIETA · ADHERENCIA 87%</div>
+    <div class="font-why">
+      Monoespaciada moderna. Aparece en chips, tags, datos numéricos secundarios, labels técnicos y el footer del documento. Aporta la sensación de "métrica" y "código" que refuerza la promesa de producto basado en datos, no en intuición.
+    </div>
+  </div>
+
+  <div class="page-footer"><span>COACHAI · TIPOGRAFÍA</span><span>05</span></div>
+</section>
+
+<!-- ============================================ 04 — ARQUITECTURA ============================================ -->
+<section class="page">
+  <h2><span class="num">04</span> ARQUITECTURA DE LA APLICACIÓN</h2>
+
+  <p class="lead">
+    CoachAI está construida como una single-page-app que se mueve entre <strong>siete pantallas-wrapper</strong> mutuamente excluyentes. No hay router tradicional con URLs por sección; cada pantalla se muestra y se oculta vía JavaScript, lo que da transiciones instantáneas sin recarga.
+  </p>
+
+  <h3>FLUJO PRINCIPAL</h3>
+  <div class="card">
+    <div style="font-family:'JetBrains Mono', monospace; font-size:9pt; line-height:1.9; color: var(--text);">
+      <span style="color:#b4a7ff">LANDING</span> → <span style="color:#b4a7ff">ONBOARDING</span> (5 pasos) → <span style="color:#b4a7ff">HOME / CHAT</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+      <span style="color:#2ecfb5">MI DÍA</span> &nbsp;&nbsp;<span style="color:#2ecfb5">PROGRESO</span> &nbsp;&nbsp;<span style="color:#2ecfb5">PERFIL</span><br><br>
+      <span style="color:#8a8aa0">/admin</span> → <span style="color:#b4a7ff">PANEL ENTRENADOR</span>
+    </div>
+  </div>
+
+  <h3>PERSISTENCIA</h3>
+  <p>
+    Los datos viven en <strong>Supabase</strong> (Postgres + Storage). Las tablas principales son:
+  </p>
+  <ul>
+    <li><strong>usuarios</strong> — perfil, edad, sexo, peso, altura, objetivo, días de entrenamiento, equipamiento.</li>
+    <li><strong>planes_semanales</strong> — rutinas y dietas generadas, con estado activo/cerrado.</li>
+    <li><strong>diario_alimenticio</strong> — registros diarios de comidas, entrenos y peso.</li>
+    <li><strong>cierres_semanales</strong> — análisis de IA, foto de la semana y stats agregadas.</li>
+    <li><strong>fotos_progreso</strong> — fotos clasificadas por tipo (inicio, progreso, semana).</li>
+    <li><strong>historial_chat</strong> — toda la conversación con CoachAI, fuente de verdad de qué se pidió.</li>
+  </ul>
+
+  <h3>INTELIGENCIA</h3>
+  <p>
+    El motor conversacional usa el <strong>API de Anthropic Claude</strong>. Cada mensaje del usuario se envía con un system prompt que incluye sus datos, sus planes activos y el historial reciente. La IA puede generar planes nuevos, responder dudas, hacer análisis semanales y comparar fotos antes/después.
+  </p>
+
+  <div class="page-footer"><span>COACHAI · ARQUITECTURA</span><span>06</span></div>
+</section>
+
+<!-- ============================================ 05 — LANDING ============================================ -->
+<section class="page">
+  <h2><span class="num">05</span> LANDING & LOGIN</h2>
+
+  <div class="phone-row">
+    <div class="phone">
+      <div style="text-align:center; margin: 4mm 0 3mm">
+        <div style="font-family:'Bebas Neue'; font-size:18pt; letter-spacing:5px; background: linear-gradient(135deg,#b4a7ff,#5b9fff,#2ecfb5); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">COACHAI</div>
+        <div style="font-size:7pt; color: var(--muted); margin-top: 1mm; letter-spacing: 0.5px">Tu entrenador personal con<br>inteligencia artificial</div>
+      </div>
+      <div class="phone-section-card" style="padding: 4mm 3mm">
+        <div style="display:flex; justify-content:center; margin-bottom: 3mm">
+          <div style="width:11mm; height:11mm; border-radius:50%; border: 1.5px solid var(--accent); display:flex; align-items:center; justify-content:center; color: var(--accent-bright); font-size: 9pt;">⚙</div>
+        </div>
+        <div class="phone-input">Tu nombre</div>
+        <div class="phone-input">tu@email.com</div>
+        <div class="phone-btn-primary">INGRESAR →</div>
+      </div>
+      <div style="text-align:center; font-size: 6.5pt; color: var(--muted); margin-top: 3mm">⚙ Acceso administrador</div>
+    </div>
+
+    <div class="phone-narration">
+      <h3 style="margin-top:0">UNA SOLA PUERTA</h3>
+      <p>
+        El landing es la única forma de entrar. No hay registro y login separados: con el <strong>nombre y el email</strong>, el sistema reconoce si el usuario ya existe (y lo manda directo al home) o si es nuevo (y lo manda al onboarding).
+      </p>
+      <h4>POR QUÉ EL DISEÑO ES MINIMAL</h4>
+      <p>
+        El producto pelea contra la fricción. Cuanto menos haya que pensar para entrar, mayor la conversión. Por eso el formulario tiene solo dos campos, el botón ocupa todo el ancho del card y el fondo es una foto de gimnasio con un overlay de marca, que recuerda inmediatamente para qué se descargó la app.
+      </p>
+      <h4>ACCESO ADMINISTRADOR</h4>
+      <p>
+        Debajo del card, un link discreto lleva al panel del coach. Está intencionalmente sin protagonismo: el 99% de los usuarios nunca lo va a tocar, pero el coach lo encuentra al primer barrido.
+      </p>
+    </div>
+  </div>
+
+  <div class="page-footer"><span>COACHAI · LANDING</span><span>07</span></div>
+</section>
+
+<!-- ============================================ 06 — ONBOARDING ============================================ -->
+<section class="page">
+  <h2><span class="num">06</span> ONBOARDING — USUARIO NUEVO</h2>
+
+  <p class="lead">
+    El onboarding consta de <strong>cinco pasos</strong> y nunca pasa de una pantalla. Una barra superior con cinco círculos comunica el avance. Cada paso pide lo mínimo indispensable para que la IA pueda generar un plan útil.
+  </p>
+
+  <div class="phone-row no-break">
+    <div class="phone">
+      <div class="phone-header">
+        <div class="phone-logo">COACHAI</div>
+        <div class="phone-hamburger" style="opacity:0.3"><span></span><span></span><span></span></div>
+      </div>
+      <div class="phone-progress-bar">
+        <div class="phone-ps done"></div>
+        <div class="phone-ps-line"></div>
+        <div class="phone-ps done"></div>
+        <div class="phone-ps-line"></div>
+        <div class="phone-ps active"></div>
+        <div class="phone-ps-line"></div>
+        <div class="phone-ps"></div>
+        <div class="phone-ps-line"></div>
+        <div class="phone-ps"></div>
+      </div>
+      <div class="phone-section-card">
+        <div class="phone-section-header">
+          <div class="phone-section-num">03</div>
+          <div class="phone-section-title">OBJETIVO PRINCIPAL</div>
+        </div>
+        <div class="phone-chip-row">
+          <div class="phone-chip">Bajar grasa</div>
+          <div class="phone-chip active">Ganar músculo</div>
+          <div class="phone-chip">Mantener</div>
+          <div class="phone-chip">Recomp.</div>
+        </div>
+        <div style="font-size:6.5pt; color: var(--muted); margin: 2mm 0;">¿Cuánto tiempo podés dedicar?</div>
+        <div class="phone-chip-row">
+          <div class="phone-chip">2 días</div>
+          <div class="phone-chip">3 días</div>
+          <div class="phone-chip active">4 días</div>
+          <div class="phone-chip">5+</div>
+        </div>
+      </div>
+      <div class="phone-btn-primary">SIGUIENTE →</div>
+    </div>
+
+    <div class="phone-narration">
+      <h3 style="margin-top:0">LOS 5 PASOS</h3>
+      <ul>
+        <li><strong>01 · DATOS BÁSICOS</strong> — nombre, email, edad, sexo, altura, peso. Lo mínimo demográfico.</li>
+        <li><strong>02 · COMPOSICIÓN ACTUAL</strong> — peso actual, cintura, nivel de actividad fuera del entrenamiento.</li>
+        <li><strong>03 · OBJETIVO Y DISPONIBILIDAD</strong> — bajar grasa, ganar músculo, recomp o mantener. Días de la semana disponibles.</li>
+        <li><strong>04 · EQUIPAMIENTO Y RESTRICCIONES</strong> — gimnasio, casa, peso libre, máquinas. Alergias, intolerancias y preferencias de comida.</li>
+        <li><strong>05 · FOTO INICIAL (OPCIONAL)</strong> — punto de partida visual para las comparativas semanales.</li>
+      </ul>
+
+      <h4>POR QUÉ EL HEADER QUEDA DESHABILITADO</h4>
+      <p>
+        Durante el onboarding, el logo y el menú hamburguesa se desactivan. Esto evita que un toque accidental saque al usuario del flujo y lo lleve a una pantalla vacía. Es una decisión chica pero corrige una de las primeras frustraciones detectadas en QA real.
+      </p>
+
+      <h4>FONDO COHERENTE</h4>
+      <p>
+        El onboarding usa el mismo fondo abstracto de gimnasio que el resto de las secciones autenticadas. Esto crea continuidad: el usuario "ya está adentro" desde el primer paso.
+      </p>
+    </div>
+  </div>
+
+  <div class="page-footer"><span>COACHAI · ONBOARDING</span><span>08</span></div>
+</section>
+
+<!-- ============================================ 06b — ONBOARDING DETALLES ============================================ -->
+<section class="page">
+  <h2><span class="num">06</span> ONBOARDING · DETALLES</h2>
+
+  <h3>QUÉ HACE LA IA CON ESTOS DATOS</h3>
+  <p>
+    Apenas el usuario termina el paso 5, los datos quedan persistidos en la tabla <strong>usuarios</strong> y la aplicación abre el chat con un mensaje de bienvenida. A partir de ese punto, cuando el usuario pide su primera rutina o dieta, el system prompt enviado a Claude incluye:
+  </p>
+  <ul>
+    <li>Edad, sexo, altura y peso actual para calcular requerimientos calóricos y proteicos.</li>
+    <li>Objetivo declarado para definir el déficit, superávit o mantenimiento.</li>
+    <li>Días disponibles para distribuir los entrenamientos.</li>
+    <li>Equipamiento para no recetar ejercicios imposibles.</li>
+    <li>Alergias e intolerancias para excluir ingredientes.</li>
+  </ul>
+
+  <h3>VALIDACIONES Y TRAMPAS COMUNES</h3>
+  <ul>
+    <li><strong>Edad</strong> se restringe entre 14 y 80 años — la app no atiende a menores ni propone planes que requieran supervisión médica especializada.</li>
+    <li><strong>Peso y altura</strong> aceptan solo valores plausibles para evitar planes generados a partir de errores de tipeo.</li>
+    <li><strong>El paso 5 es opcional</strong> — el usuario que no quiera subir foto puede saltearlo. Si nunca sube una baseline, la comparativa visual semanal queda oculta hasta que lo haga.</li>
+  </ul>
+
+  <h3>FONDO Y DESARROLLO VISUAL</h3>
+  <p>
+    Cada sección del onboarding muestra el número grande en gradiente violeta-cyan en una esquina, sin iconos al lado. Probamos versiones con iconos y resultó saturado: el número solo, en Bebas Neue, con suficiente espacio, lee como "Capítulo 03". Decisión deliberada después de iteración.
+  </p>
+
+  <h3>POSIBILIDAD DE EDITAR DESPUÉS</h3>
+  <p>
+    Todo lo que el usuario completa en el onboarding puede editarse luego desde la sección <em>Perfil → Editar datos del perfil</em>. La aplicación nunca obliga a "volver a empezar" — los datos se ajustan en sitio y los planes siguientes los respetan.
+  </p>
+
+  <div class="page-footer"><span>COACHAI · ONBOARDING</span><span>09</span></div>
+</section>
+
+<!-- ============================================ 07 — HOME / CHAT ============================================ -->
+<section class="page">
+  <h2><span class="num">07</span> HOME & CHAT CON COACHAI</h2>
+
+  <div class="phone-row">
+    <div class="phone">
+      <div class="phone-header">
+        <div class="phone-logo">COACHAI</div>
+        <div class="phone-hamburger"><span></span><span></span><span></span></div>
+      </div>
+      <div style="font-size:7pt; color:var(--muted); margin-bottom:2mm">Bienvenido de vuelta, <strong style="color:var(--accent-bright)">Beto</strong></div>
+      <div class="phone-chat-msg ai">¡Hola Beto! ¿Cómo estás hoy? ¿Querés que repasemos el plan o necesitás cambiar algo?</div>
+      <div class="phone-chat-msg user">Quiero la rutina de la semana</div>
+      <div class="phone-chat-msg ai">Dale, te armo una rutina de 4 días, push/pull/legs/upper. Empezamos lunes…</div>
+      <div style="display:flex; gap:1.5mm; margin-top: 3mm">
+        <div class="phone-input" style="flex:1; margin:0">Escribí tu mensaje…</div>
+        <div style="width:7mm; height:7mm; border-radius:50%; background: linear-gradient(135deg, var(--accent), var(--accent3)); display:flex; align-items:center; justify-content:center; color:#fff; font-size:8pt;">→</div>
+      </div>
+    </div>
+
+    <div class="phone-narration">
+      <h3 style="margin-top:0">EL CORAZÓN DEL PRODUCTO</h3>
+      <p>
+        El chat es donde sucede todo. El usuario habla en lenguaje natural — "armame la rutina de esta semana", "me re engordé este fin de semana, qué hago el lunes", "cambiame la cena del jueves porque no tengo pollo" — y la IA responde, con la posibilidad de generar planes completos cuando hace falta.
+      </p>
+      <h4>DISTINCIÓN ENTRE PLAN ACTIVO Y CERRADO</h4>
+      <p>
+        El system prompt enseña a la IA a respetar el ciclo del plan: una rutina o dieta se considera <strong>activa</strong> mientras el usuario no haga el cierre semanal. Si pide cambios menores, se ajusta sobre la misma. Solo cuando el usuario explícitamente cierra la semana o pide un plan nuevo se genera otro.
+      </p>
+      <h4>HISTORIAL COMPLETO</h4>
+      <p>
+        Toda conversación queda guardada en <code>historial_chat</code>. Al volver a entrar, el usuario ve los últimos mensajes y la IA tiene acceso al contexto sin reintroducciones.
+      </p>
+    </div>
+  </div>
+
+  <div class="page-footer"><span>COACHAI · CHAT</span><span>10</span></div>
+</section>
+
+<!-- ============================================ 08 — MI DÍA ============================================ -->
+<section class="page">
+  <h2><span class="num">08</span> MI DÍA — REGISTRO DIARIO</h2>
+
+  <div class="phone-row">
+    <div class="phone">
+      <div class="phone-header">
+        <div class="phone-logo">COACHAI</div>
+        <div class="phone-hamburger"><span></span><span></span><span></span></div>
+      </div>
+      <div style="font-family:'Bebas Neue'; font-size:13pt; letter-spacing:2px; color:var(--accent-bright); margin-bottom:1mm;">📅 MI DÍA</div>
+      <div style="font-size:6.5pt; color:var(--muted); margin-bottom: 2mm">Miércoles 14 de mayo</div>
+
+      <div class="phone-section-card">
+        <div style="font-family:'Bebas Neue'; font-size:9pt; letter-spacing:1.5px; color: var(--accent-bright); margin-bottom: 2mm">🍽️ ALIMENTACIÓN DE HOY</div>
+        <div style="font-size:6.5pt; line-height:1.5; color: var(--text);">
+          <strong style="color:var(--accent3)">Desayuno</strong> — Avena con frutos rojos, café<br>
+          <strong style="color:var(--accent3)">Almuerzo</strong> — Pollo a la plancha con quinoa<br>
+          <strong style="color:var(--accent3)">Merienda</strong> — Yogurt + nueces<br>
+          <strong style="color:var(--accent3)">Cena</strong> — Salmón al horno con verduras
+        </div>
+      </div>
+
+      <div class="phone-section-card">
+        <div style="font-family:'Bebas Neue'; font-size:9pt; letter-spacing:1.5px; color: var(--accent-bright); margin-bottom: 2mm">💪 ENTRENAMIENTO DE HOY</div>
+        <div style="font-size:6.5pt; line-height:1.5; color: var(--text);">
+          <strong>Push day</strong> — Press banca, press militar, fondos, extensiones de tríceps. ~50 min.
+        </div>
+      </div>
+
+      <div class="phone-btn-primary">REGISTRAR EL DÍA</div>
+    </div>
+
+    <div class="phone-narration">
+      <h3 style="margin-top:0">EL FOCO DEL "AHORA"</h3>
+      <p>
+        Mi Día responde a la pregunta del usuario al abrir la app: <strong>"¿qué me toca hoy?"</strong> La fecha grande arriba, abajo la comida y debajo el entrenamiento, sacados del plan activo.
+      </p>
+      <h4>REGISTRAR EL DÍA</h4>
+      <p>
+        El usuario marca qué comió realmente, si entrenó, si pesó, si tomó descanso. Esta información alimenta el cálculo de adherencia y los análisis semanales.
+      </p>
+      <h4>SIN HISTORIAL EN ESTA VISTA</h4>
+      <p>
+        Mi Día es deliberadamente del día actual. El historial vive en <em>Progreso</em>. Esto evita la trampa de scrollear pasado y entretiene al usuario en lo que tiene que hacer hoy.
+      </p>
+    </div>
+  </div>
+
+  <div class="page-footer"><span>COACHAI · MI DÍA</span><span>11</span></div>
+</section>
+
+<!-- ============================================ 09 — PROGRESO ============================================ -->
+<section class="page">
+  <h2><span class="num">09</span> PROGRESO & CIERRE SEMANAL</h2>
+
+  <p class="lead">
+    Progreso es donde el usuario ve la película completa. Tres bloques: la planificación activa, el resumen de adherencia y el seguimiento semana a semana.
+  </p>
+
+  <div class="phone-row">
+    <div class="phone">
+      <div style="font-family:'Bebas Neue'; font-size:13pt; letter-spacing:2px; color:var(--accent-bright); margin-bottom:3mm">📊 MI PROGRESO</div>
+
+      <div class="phone-section-card">
+        <div style="display:flex; align-items:center; gap:2mm; margin-bottom: 2mm">
+          <div style="width:6mm; height:6mm; border-radius:3px; background: linear-gradient(135deg, rgba(124,106,255,0.22), rgba(46,207,181,0.10)); border: 0.4mm solid rgba(124,106,255,0.28); display:flex; align-items:center; justify-content:center; color: var(--accent-bright); font-size: 5pt">📋</div>
+          <div style="font-family:'Bebas Neue'; font-size:9pt; letter-spacing:1.5px; color: var(--accent-bright);">MI PLANIFICACIÓN</div>
+        </div>
+        <div style="font-size: 6.5pt;">
+          <span style="background: linear-gradient(135deg, rgba(124,106,255,0.30), rgba(46,207,181,0.15)); border: 1px solid var(--accent); border-radius: 3px; padding: 0.5mm 1.5mm; color: var(--accent-bright); font-family:'JetBrains Mono'">RUTINA</span>
+          &nbsp;<span style="color: var(--muted)">Push/Pull/Legs · activa</span>
+        </div>
+        <div style="font-size: 6.5pt; margin-top: 1mm">
+          <span style="background: linear-gradient(135deg, rgba(46,207,181,0.30), rgba(124,106,255,0.15)); border: 1px solid var(--accent3); border-radius: 3px; padding: 0.5mm 1.5mm; color: var(--accent3); font-family:'JetBrains Mono'">DIETA</span>
+          &nbsp;<span style="color: var(--muted)">2200 kcal · activa</span>
+        </div>
+      </div>
+
+      <div class="phone-section-card">
+        <div style="display:flex; align-items:center; gap:2mm; margin-bottom: 2mm">
+          <div style="width:6mm; height:6mm; border-radius:3px; background: linear-gradient(135deg, rgba(124,106,255,0.22), rgba(46,207,181,0.10)); border: 0.4mm solid rgba(124,106,255,0.28); display:flex; align-items:center; justify-content:center; color: var(--accent-bright); font-size: 5pt">📊</div>
+          <div style="font-family:'Bebas Neue'; font-size:9pt; letter-spacing:1.5px; color: var(--accent-bright);">RESUMEN DE ADHERENCIA</div>
+        </div>
+        <div class="phone-stat-grid">
+          <div class="phone-stat">
+            <div class="phone-stat-val">5</div>
+            <div class="phone-stat-label">DÍAS ENTRENADOS</div>
+          </div>
+          <div class="phone-stat">
+            <div class="phone-stat-val">87%</div>
+            <div class="phone-stat-label">ADHERENCIA</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone-section-card">
+        <div style="display:flex; align-items:center; gap:2mm; margin-bottom: 2mm">
+          <div style="width:6mm; height:6mm; border-radius:3px; background: linear-gradient(135deg, rgba(124,106,255,0.22), rgba(46,207,181,0.10)); border: 0.4mm solid rgba(124,106,255,0.28); display:flex; align-items:center; justify-content:center; color: var(--accent-bright); font-size: 5pt">📅</div>
+          <div style="font-family:'Bebas Neue'; font-size:9pt; letter-spacing:1.5px; color: var(--accent-bright);">SEGUIMIENTO SEMANAL</div>
+        </div>
+        <div style="font-size:6.5pt;">
+          <div style="background: var(--surface2); border-radius:3px; padding:1.5mm; margin-bottom: 1mm">SEMANA 3 · 8 may – 14 may <span style="color: var(--accent3); float:right">EN CURSO</span></div>
+          <div style="background: var(--surface2); border-radius:3px; padding:1.5mm; margin-bottom: 1mm; color: var(--muted)">SEMANA 2 · 1 may – 7 may <span style="float:right">✓ Cerrada</span></div>
+          <div style="background: var(--surface2); border-radius:3px; padding:1.5mm; color: var(--muted)">SEMANA 1 · 24 abr – 30 abr <span style="float:right">✓ Cerrada</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phone-narration">
+      <h3 style="margin-top:0">3 BLOQUES, 1 HISTORIA</h3>
+      <p><strong>MI PLANIFICACIÓN</strong> — qué planes tiene activos. Dos chips: RUTINA y DIETA. Cada uno con su estado y desplegable para ver el detalle.</p>
+      <p><strong>RESUMEN DE ADHERENCIA</strong> — un resumen numérico de la semana en curso: días entrenados, calorías, proteína y adherencia general.</p>
+      <p><strong>SEGUIMIENTO SEMANAL</strong> — la línea temporal completa, desde la semana 1 del usuario. La semana actual aparece desplegada con un botón "Cerrar semana"; las anteriores quedan colapsadas pero se pueden expandir para ver su análisis y la comparativa visual.</p>
+
+      <h4>EL BOTÓN CIERRE</h4>
+      <p>
+        Cuando el usuario presiona <em>Cerrar semana y ver mi análisis</em>, se abre un modal con sus stats, dos slots de foto (baseline + actual) y el botón para generar el análisis con IA.
+      </p>
+    </div>
+  </div>
+
+  <div class="page-footer"><span>COACHAI · PROGRESO</span><span>12</span></div>
+</section>
+
+<!-- ============================================ 09b — CIERRE ============================================ -->
+<section class="page">
+  <h2><span class="num">09</span> CIERRE DE SEMANA · MODAL</h2>
+
+  <div class="phone-row">
+    <div class="phone">
+      <div style="font-family:'Bebas Neue'; font-size:13pt; letter-spacing:2px; color:var(--text); margin-bottom: 1mm">🏁 CIERRE DE SEMANA</div>
+      <div style="font-size:6pt; color:var(--muted); margin-bottom: 3mm">Semana 3 · 8 may al 14 may</div>
+
+      <div class="phone-stat-grid" style="margin-bottom: 3mm">
+        <div class="phone-stat">
+          <div class="phone-stat-val">5</div>
+          <div class="phone-stat-label">DÍAS ENTRENADOS</div>
+        </div>
+        <div class="phone-stat">
+          <div class="phone-stat-val">2100</div>
+          <div class="phone-stat-label">KCAL PROM./DÍA</div>
+        </div>
+        <div class="phone-stat">
+          <div class="phone-stat-val">142g</div>
+          <div class="phone-stat-label">PROTEÍNA PROM.</div>
+        </div>
+        <div class="phone-stat">
+          <div class="phone-stat-val">6/7</div>
+          <div class="phone-stat-label">DÍAS REGISTRADOS</div>
+        </div>
+      </div>
+
+      <div style="text-align:center; font-size: 7pt; color:var(--muted); margin-bottom: 2mm">📸 Compará tu evolución</div>
+      <div class="phone-foto-grid">
+        <div>
+          <div class="phone-foto-caption">PUNTO DE INICIO</div>
+          <div class="phone-foto-slot filled"></div>
+        </div>
+        <div>
+          <div class="phone-foto-caption">ESTA SEMANA</div>
+          <div class="phone-foto-slot">📷<br>Subí tu foto</div>
+        </div>
+      </div>
+
+      <div class="phone-btn-primary">✨ GENERAR ANÁLISIS</div>
+    </div>
+
+    <div class="phone-narration">
+      <h3 style="margin-top:0">EL RITUAL SEMANAL</h3>
+      <p>
+        El cierre es el momento en que el usuario hace introspección. El modal muestra primero los <strong>números fríos</strong> (entrenó, comió, registró), después la <strong>comparativa visual</strong> (foto inicial vs foto de la semana) y finalmente entrega el <strong>análisis de la IA</strong>.
+      </p>
+
+      <h4>BASELINE INTELIGENTE</h4>
+      <p>
+        El slot izquierdo siempre carga la foto baseline real del usuario, nunca una foto semanal. La función <code>pickBaselinePhoto</code> prefiere fotos marcadas como "inicio", y si no hay, toma la más antigua que NO sea de cierre semanal — evita el bug clásico de comparar la foto de cierre contra sí misma.
+      </p>
+
+      <h4>ANÁLISIS HONESTO</h4>
+      <p>
+        La IA recibe los stats numéricos como fuente primaria y las dos fotos como contexto visual. Genera 3-4 párrafos en tono cercano, con foco en lo que funcionó y lo que hay que ajustar para la próxima semana. No diagnostica ni estima porcentaje de grasa corporal.
+      </p>
+
+      <h4>QUÉ PASA DESPUÉS</h4>
+      <p>
+        Al cerrar la semana, los planes activos quedan marcados como <strong>CERRADOS</strong>. La siguiente vez que el usuario pida una rutina o dieta, la IA genera planes nuevos para el ciclo siguiente.
+      </p>
+    </div>
+  </div>
+
+  <div class="page-footer"><span>COACHAI · CIERRE</span><span>13</span></div>
+</section>
+
+<!-- ============================================ 10 — PERFIL ============================================ -->
+<section class="page">
+  <h2><span class="num">10</span> PERFIL DEL USUARIO</h2>
+
+  <p class="lead">
+    Perfil es el resumen estable de quién es y cómo le va al usuario. Cuatro cards verticales con la misma estética de iconos brand que el resto de la app.
+  </p>
+
+  <div class="phone-row">
+    <div class="phone">
+      <div style="font-family:'Bebas Neue'; font-size:13pt; letter-spacing:2px; color:var(--accent-bright); margin-bottom: 1mm">👤 PERFIL</div>
+      <div style="font-size: 7pt; color: var(--muted); margin-bottom: 3mm">Beto · 31 años · Buenos Aires</div>
+
+      <div class="phone-section-card">
+        <div style="display:flex; align-items:center; gap:2mm">
+          <div style="width:6mm; height:6mm; border-radius:3px; background: linear-gradient(135deg, rgba(124,106,255,0.22), rgba(46,207,181,0.10)); border: 0.4mm solid rgba(124,106,255,0.28); display:flex; align-items:center; justify-content:center; color: var(--accent-bright); font-size: 5pt">📸</div>
+          <div style="font-family:'Bebas Neue'; font-size:9pt; letter-spacing:1.5px;">TRANSFORMACIÓN VISUAL</div>
+        </div>
+        <div class="phone-foto-grid" style="margin-top: 2mm">
+          <div class="phone-foto-slot filled"></div>
+          <div class="phone-foto-slot filled" style="opacity: 0.85"></div>
+        </div>
+      </div>
+
+      <div class="phone-section-card">
+        <div style="display:flex; align-items:center; gap:2mm; margin-bottom: 2mm">
+          <div style="width:6mm; height:6mm; border-radius:3px; background: linear-gradient(135deg, rgba(124,106,255,0.22), rgba(46,207,181,0.10)); border: 0.4mm solid rgba(124,106,255,0.28); display:flex; align-items:center; justify-content:center; color: var(--accent-bright); font-size: 5pt">📈</div>
+          <div style="font-family:'Bebas Neue'; font-size:9pt; letter-spacing:1.5px;">TU CAMINO</div>
+        </div>
+        <div class="phone-stat-grid">
+          <div class="phone-stat"><div class="phone-stat-val">-4kg</div><div class="phone-stat-label">CAMBIO TOTAL</div></div>
+          <div class="phone-stat"><div class="phone-stat-val">14</div><div class="phone-stat-label">SEMANAS ACTIVO</div></div>
+        </div>
+      </div>
+
+      <div class="phone-section-card">
+        <div style="display:flex; align-items:center; gap:2mm; margin-bottom: 2mm">
+          <div style="width:6mm; height:6mm; border-radius:3px; background: linear-gradient(135deg, rgba(124,106,255,0.22), rgba(46,207,181,0.10)); border: 0.4mm solid rgba(124,106,255,0.28); display:flex; align-items:center; justify-content:center; color: var(--accent-bright); font-size: 5pt">📋</div>
+          <div style="font-family:'Bebas Neue'; font-size:9pt; letter-spacing:1.5px;">MI PLAN ACTUAL</div>
+        </div>
+        <div style="font-size: 6.5pt; color:var(--muted)">Push/Pull/Legs 4 días + dieta 2200kcal</div>
+      </div>
+
+      <div class="phone-section-card">
+        <div style="display:flex; align-items:center; gap:2mm; margin-bottom: 2mm">
+          <div style="width:6mm; height:6mm; border-radius:3px; background: linear-gradient(135deg, rgba(124,106,255,0.22), rgba(46,207,181,0.10)); border: 0.4mm solid rgba(124,106,255,0.28); display:flex; align-items:center; justify-content:center; color: var(--accent-bright); font-size: 5pt">💡</div>
+          <div style="font-family:'Bebas Neue'; font-size:9pt; letter-spacing:1.5px;">ÚLTIMO ANÁLISIS</div>
+        </div>
+        <div style="font-size: 6pt; color: var(--muted); line-height:1.4">"Excelente semana, Beto. La adherencia al entrenamiento fue impecable y la dieta…"</div>
+      </div>
+    </div>
+
+    <div class="phone-narration">
+      <h3 style="margin-top:0">CUATRO CARDS, UNA HISTORIA</h3>
+      <p><strong>TRANSFORMACIÓN VISUAL</strong> — la foto baseline + la última foto subida. Comparativa de pantalla completa al tocarla.</p>
+      <p><strong>TU CAMINO</strong> — números agregados desde el día 1: cambio de peso total, semanas activas, adherencia global.</p>
+      <p><strong>MI PLAN ACTUAL</strong> — la rutina y dieta vigentes, con shortcut para ver el detalle.</p>
+      <p><strong>ÚLTIMO ANÁLISIS</strong> — preview del análisis más reciente generado por la IA, con opción de ver completo.</p>
+
+      <h4>EDITAR DATOS DEL PERFIL</h4>
+      <p>
+        Al final de la sección, un botón sutil permite reabrir el formulario del onboarding y modificar cualquier dato. Los cambios impactan los planes futuros, no los pasados.
+      </p>
+    </div>
+  </div>
+
+  <div class="page-footer"><span>COACHAI · PERFIL</span><span>14</span></div>
+</section>
+
+<!-- ============================================ 11 — ADMIN ============================================ -->
+<section class="page">
+  <h2><span class="num">11</span> PANEL DEL ENTRENADOR</h2>
+
+  <p class="lead">
+    El panel admin se accede desde el link discreto bajo el formulario de landing y requiere contraseña. Está pensado para uso del coach o equipo profesional que gestiona la cartera de alumnos.
+  </p>
+
+  <div class="phone-row">
+    <div class="phone">
+      <div style="font-family:'Bebas Neue'; font-size:13pt; letter-spacing:2px; color:var(--accent-bright); margin-bottom:3mm">PANEL ENTRENADOR</div>
+
+      <div class="phone-admin-grid">
+        <div class="phone-admin-stat">
+          <div class="phone-admin-num">42</div>
+          <div class="phone-admin-label">TOTAL ALUMNOS</div>
+        </div>
+        <div class="phone-admin-stat verde">
+          <div class="phone-admin-num">18</div>
+          <div class="phone-admin-label">COMPROMETIDOS</div>
+          <div class="phone-admin-sub">4+ días/sem</div>
+        </div>
+        <div class="phone-admin-stat amarillo">
+          <div class="phone-admin-num">16</div>
+          <div class="phone-admin-label">ADHERENCIA MEDIA</div>
+          <div class="phone-admin-sub">2–3 días/sem</div>
+        </div>
+        <div class="phone-admin-stat rojo">
+          <div class="phone-admin-num">8</div>
+          <div class="phone-admin-label">INACTIVOS</div>
+          <div class="phone-admin-sub">0–1 días/sem</div>
+        </div>
+      </div>
+
+      <div style="font-family:'Bebas Neue'; font-size:8pt; letter-spacing:1.5px; margin: 3mm 0 1.5mm">ALUMNOS</div>
+      <div style="font-size: 6.5pt;">
+        <div style="background: var(--surface2); border-left: 1.5mm solid #00c896; border-radius: 3px; padding: 1.5mm 2mm; margin-bottom: 1mm; display:flex; justify-content:space-between"><span>Beto González</span><span style="color: var(--muted)">5d · 87%</span></div>
+        <div style="background: var(--surface2); border-left: 1.5mm solid #ffd700; border-radius: 3px; padding: 1.5mm 2mm; margin-bottom: 1mm; display:flex; justify-content:space-between"><span>Lucía Pérez</span><span style="color: var(--muted)">2d · 45%</span></div>
+        <div style="background: var(--surface2); border-left: 1.5mm solid #ff4757; border-radius: 3px; padding: 1.5mm 2mm; display:flex; justify-content:space-between"><span>Martín Rojas</span><span style="color: var(--muted)">0d · 12%</span></div>
+      </div>
+    </div>
+
+    <div class="phone-narration">
+      <h3 style="margin-top:0">SEMÁFORO DE ADHERENCIA</h3>
+      <p>
+        Las tarjetas de stats agrupan a los alumnos por color: verde (comprometidos), amarillo (adherencia media), rojo (inactivos). Tocar cada tarjeta filtra la lista a ese segmento. El coach va directo a quienes necesitan intervención.
+      </p>
+
+      <h4>DETALLE INDIVIDUAL</h4>
+      <p>
+        Al entrar al perfil de un alumno, el coach ve:
+      </p>
+      <ul>
+        <li>Datos demográficos y objetivo declarado.</li>
+        <li>Plan activo de rutina y dieta, con la conversación que los generó.</li>
+        <li>Historial de planes con badge ACTIVA/CERRADA/HISTÓRICA.</li>
+        <li>Registros diarios y fotos de progreso.</li>
+        <li>Análisis semanales completos.</li>
+      </ul>
+
+      <h4>SIN INTERVENCIÓN INVASIVA</h4>
+      <p>
+        El coach observa, no edita. La decisión deliberada es que la IA mantenga la coherencia del producto. Si un coach quiere cambiar algo, lo hace conversando con el alumno y dejando que la IA registre el cambio — así se preserva el historial y no se desencaja la lógica.
+      </p>
+    </div>
+  </div>
+
+  <div class="page-footer"><span>COACHAI · ADMIN</span><span>15</span></div>
+</section>
+
+<!-- ============================================ 12 — STACK ============================================ -->
+<section class="page">
+  <h2><span class="num">12</span> STACK TÉCNICO Y DEPENDENCIAS</h2>
+
+  <div class="cols">
+    <div>
+      <h3>FRONTEND</h3>
+      <ul>
+        <li><strong>HTML/CSS/JS vanilla</strong> — un solo archivo <code>index.html</code> con todos los wrappers y la lógica.</li>
+        <li><strong>Google Fonts</strong> — Bebas Neue, DM Sans, JetBrains Mono.</li>
+        <li><strong>Sin framework</strong> — la simplicidad del producto no justifica React ni similares. Cero build step, cero dependencias en runtime.</li>
+      </ul>
+
+      <h3>BACKEND</h3>
+      <ul>
+        <li><strong>Supabase</strong> — Postgres para datos relacionales, Storage para imágenes.</li>
+        <li><strong>Edge Functions</strong> — endpoint para invocar Claude desde el navegador sin exponer la API key.</li>
+        <li><strong>Row Level Security</strong> — cada usuario ve solo sus datos. El admin tiene política aparte.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>IA</h3>
+      <ul>
+        <li><strong>Anthropic Claude</strong> — modelo principal para el chat conversacional y la generación de planes.</li>
+        <li><strong>Análisis multimodal</strong> — la IA recibe fotos junto con datos para los análisis semanales.</li>
+        <li><strong>System prompts versionados</strong> — diferentes para el chat regular y para el análisis de cierre.</li>
+      </ul>
+
+      <h3>DEPLOY</h3>
+      <ul>
+        <li><strong>Vercel</strong> — hosting estático del frontend con deploys automáticos desde main.</li>
+        <li><strong>Branch-based workflow</strong> — todo va directo a main para iteración rápida.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <h3>FILOSOFÍA DEL CÓDIGO</h3>
+  <p>
+    El producto está construido con una decisión deliberada de <strong>simplicidad radical</strong>. No hay separación en componentes ni bundlers ni step de build. Todo vive en <code>index.html</code> porque eso mantiene el ciclo de iteración a segundos: editar, guardar, refrescar.
+  </p>
+  <p>
+    Esto tiene un costo (no escala como una app de producción a millones de usuarios sin refactorizar), pero el beneficio en velocidad de desarrollo en la fase actual del producto supera ampliamente esa deuda. Cuando crezca, se separa.
+  </p>
+
+  <div class="page-footer"><span>COACHAI · STACK</span><span>16</span></div>
+</section>
+
+<!-- ============================================ FIN ============================================ -->
+<section class="page" style="display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
+  <div style="font-family:'Bebas Neue'; font-size: 60pt; letter-spacing: 8px; background: linear-gradient(135deg, #b4a7ff, #5b9fff, #2ecfb5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 6mm;">FIN</div>
+  <div style="font-size: 12pt; color: var(--muted); max-width: 130mm; line-height: 1.7;">
+    Este documento describe el estado de CoachAI a mayo de 2026. El producto sigue evolucionando — cualquier nueva sección, ajuste de paleta o cambio de flujo debería reflejarse en una versión actualizada de este manual.
+  </div>
+  <div style="font-family:'JetBrains Mono', monospace; font-size: 9pt; color: var(--muted); letter-spacing: 2px; margin-top: 30mm;">
+    POWERED BY ANTHROPIC CLAUDE · VERSIÓN 1.0
+  </div>
+</section>
+
+</body>
+</html>
