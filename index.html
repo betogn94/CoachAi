@@ -55,7 +55,7 @@ body::after {
    (Mi Día, Progreso, Perfil) for a unified aesthetic. The body::after is
    already position:fixed so it stays in the viewport while scrolling.
    `background-attachment:scroll` (default) avoids iOS Safari quirks. */
-body:has(:is(.form-wrapper, #diario-wrapper, #dashboard-wrapper, #perfil-wrapper)[style*="block"])::after {
+body:has(:is(.form-wrapper, #diario-wrapper, #dashboard-wrapper, #perfil-wrapper, #wl-wrapper)[style*="block"])::after {
   top: 0; left: 0; width: 100%; height: 100%;
   background:
     radial-gradient(ellipse 55% 45% at 18% 12%, rgba(124,106,255,0.20) 0%, transparent 60%),
