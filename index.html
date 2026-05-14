@@ -88,6 +88,15 @@ header {
   align-items: center;
   height: 38px;
 }
+
+/* During onboarding, disable navigation from header — user must complete the form first */
+body:has(.form-wrapper[style*="block"]) .logo {
+  pointer-events: none;
+  cursor: default;
+}
+body:has(.form-wrapper[style*="block"]) #hamburger-btn {
+  display: none !important;
+}
 .logo img {
   height: 100%;
   width: auto;
