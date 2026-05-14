@@ -47,6 +47,23 @@ body::after {
               radial-gradient(ellipse at 80% 80%, rgba(46,207,181,0.03) 0%, transparent 50%);
   pointer-events: none;
   z-index: 0;
+  transition: background 0.5s ease;
+}
+
+/* Onboarding ambient: athletic photo behind everything + dark overlay + brand orbs.
+   The body::after is already position:fixed so it stays in the viewport while scrolling,
+   so we use background-attachment:scroll (the default) to avoid iOS Safari quirks
+   with `fixed` attachment on the actual background-image. */
+body:has(.form-wrapper[style*="block"])::after {
+  top: 0; left: 0; width: 100%; height: 100%;
+  background:
+    radial-gradient(ellipse 55% 45% at 18% 12%, rgba(124,106,255,0.20) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 82% 80%, rgba(46,207,181,0.14) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(7,7,20,0.85) 0%, rgba(7,7,20,0.92) 60%, rgba(7,7,20,0.97) 100%),
+    url('https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=900&q=85');
+  background-size: cover;
+  background-position: center 30%;
+  background-repeat: no-repeat;
 }
 
 body > * { position: relative; z-index: 1; }
@@ -154,25 +171,31 @@ header {
 .progress-step.done::after { background: var(--accent3); }
 
 .ps-icon {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: var(--surface2);
   border: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  color: var(--muted);
   transition: all 0.3s;
 }
+.ps-icon svg { width: 15px; height: 15px; display: block; }
 
 .progress-step.active .ps-icon {
   background: linear-gradient(135deg, var(--accent), var(--accent3));
   border-color: transparent;
-  box-shadow: 0 0 14px rgba(124,106,255,0.22);
+  box-shadow: 0 0 14px rgba(124,106,255,0.28), 0 0 22px rgba(46,207,181,0.14);
+  color: #fff;
 }
 
-.progress-step.done .ps-icon { background: var(--accent3); border-color: transparent; }
+.progress-step.done .ps-icon {
+  background: var(--accent3);
+  border-color: transparent;
+  color: var(--bg);
+}
 
 .ps-label {
   font-size: 10px;
@@ -251,15 +274,30 @@ h1 {
   padding: 0 36px;
 }
 
-/* SECTION CARD */
+/* SECTION CARD — solid surface to stand out from the background image */
 .section-card {
+  position: relative;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1.5px solid rgba(124,106,255,0.22);
   border-radius: 20px;
-  overflow: hidden;
   margin-bottom: 16px;
   display: none;
+  overflow: hidden;
   animation: slideIn 0.4s ease;
+  box-shadow:
+    0 8px 40px rgba(0,0,0,0.55),
+    0 0 0 1px rgba(124,106,255,0.06),
+    0 0 24px rgba(124,106,255,0.10),
+    inset 0 2px 0 rgba(124,106,255,0.45);
+}
+.section-card > * { position: relative; z-index: 2; }
+@property --card-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes cardHalo {
+  to { --card-angle: 360deg; }
 }
 
 .section-card.visible { display: block; }
@@ -274,8 +312,17 @@ h1 {
   align-items: center;
   gap: 14px;
   padding: 22px 28px;
-  border-bottom: 1px solid var(--border);
-  background: rgba(124,106,255,0.03);
+  position: relative;
+  background:
+    linear-gradient(135deg, rgba(124,106,255,0.10) 0%, rgba(91,159,255,0.05) 50%, rgba(46,207,181,0.07) 100%);
+}
+/* Gradient brand divider between header and form body */
+.section-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(124,106,255,0.42) 25%, rgba(91,159,255,0.38) 50%, rgba(46,207,181,0.38) 75%, transparent 100%);
 }
 
 .section-icon {
@@ -287,8 +334,25 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
   flex-shrink: 0;
+  color: var(--accent-bright);
+}
+.section-icon svg { width: 22px; height: 22px; display: block; }
+
+/* Step number — mirrors the "Cómo Funciona" pattern on Home */
+.section-number {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px;
+  line-height: 1;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, var(--accent-bright) 0%, #5b9fff 50%, var(--accent3) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 14px rgba(124,106,255,0.24));
+  flex-shrink: 0;
+  letter-spacing: 6px;
+  padding-right: 6px;
 }
 
 .section-info {}
@@ -4442,11 +4506,26 @@ footer {
 <!-- PROGRESS -->
 <div class="progress-bar-container">
   <div class="progress-steps">
-    <div class="progress-step active" id="ps1"><div class="ps-icon">👤</div><div class="ps-label" data-es="Perfil" data-en="Profile">Perfil</div></div>
-    <div class="progress-step" id="ps2"><div class="ps-icon">🎯</div><div class="ps-label" data-es="Objetivo" data-en="Goal">Objetivo</div></div>
-    <div class="progress-step" id="ps3"><div class="ps-icon">💪</div><div class="ps-label" data-es="Entreno" data-en="Training">Entreno</div></div>
-    <div class="progress-step" id="ps4"><div class="ps-icon">🥗</div><div class="ps-label" data-es="Nutrición" data-en="Nutrition">Nutrición</div></div>
-    <div class="progress-step" id="ps5"><div class="ps-icon">✅</div><div class="ps-label" data-es="Listo" data-en="Ready">Listo</div></div>
+    <div class="progress-step active" id="ps1">
+      <div class="ps-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 19.5c0-3.59 2.91-6.5 6.5-6.5s6.5 2.91 6.5 6.5"/></svg></div>
+      <div class="ps-label" data-es="Perfil" data-en="Profile">Perfil</div>
+    </div>
+    <div class="progress-step" id="ps2">
+      <div class="ps-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg></div>
+      <div class="ps-label" data-es="Objetivo" data-en="Goal">Objetivo</div>
+    </div>
+    <div class="progress-step" id="ps3">
+      <div class="ps-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6.5" x2="9" y2="17.5"/><line x1="15" y1="6.5" x2="15" y2="17.5"/><line x1="9" y1="12" x2="15" y2="12"/><rect x="5" y="9" width="2.2" height="6" rx="0.5" fill="currentColor"/><rect x="16.8" y="9" width="2.2" height="6" rx="0.5" fill="currentColor"/></svg></div>
+      <div class="ps-label" data-es="Entreno" data-en="Training">Entreno</div>
+    </div>
+    <div class="progress-step" id="ps4">
+      <div class="ps-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v6.5c0 1 .5 1.5 1.5 1.5s1.5-.5 1.5-1.5V3"/><line x1="8.5" y1="11" x2="8.5" y2="21"/><path d="M16 3c-1.5 0-2.5 1.5-2.5 4v4h2.5v10"/></svg></div>
+      <div class="ps-label" data-es="Nutrición" data-en="Nutrition">Nutrición</div>
+    </div>
+    <div class="progress-step" id="ps5">
+      <div class="ps-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 13 9 17 19 7"/></svg></div>
+      <div class="ps-label" data-es="Listo" data-en="Ready">Listo</div>
+    </div>
   </div>
 </div>
 
@@ -4893,7 +4972,7 @@ QUE SÍ SE VE</div>
   <!-- PASO 1: PERFIL FÍSICO -->
   <div class="section-card visible" id="step1">
     <div class="section-header">
-      <div class="section-icon">👤</div>
+      <div class="section-number">01</div>
       <div class="section-info">
         <div class="section-title" data-es="PERFIL FÍSICO" data-en="PHYSICAL PROFILE">PERFIL FÍSICO</div>
         <div class="section-desc" data-es="Datos básicos para calcular tus métricas" data-en="Basic data to calculate your metrics">Datos básicos para calcular tus métricas</div>
@@ -4907,7 +4986,7 @@ QUE SÍ SE VE</div>
         </div>
         <div class="form-group">
           <label data-es="Edad" data-en="Age">Edad</label>
-          <input type="number" id="f-edad" placeholder="31" min="14" max="80">
+          <input type="number" id="f-edad" placeholder="Ej: 28 años" min="14" max="80">
         </div>
         <div class="form-group">
           <label data-es="Sexo" data-en="Sex">Sexo</label>
@@ -4919,11 +4998,11 @@ QUE SÍ SE VE</div>
         </div>
         <div class="form-group">
           <label data-es="Peso actual (kg)" data-en="Current weight (kg)">Peso actual (kg)</label>
-          <input type="number" id="f-peso" placeholder="78" min="30" max="250">
+          <input type="number" id="f-peso" placeholder="Ej: 75 kg" min="30" max="250">
         </div>
         <div class="form-group">
           <label data-es="Altura (cm)" data-en="Height (cm)">Altura (cm)</label>
-          <input type="number" id="f-altura" placeholder="178" min="140" max="220">
+          <input type="number" id="f-altura" placeholder="Ej: 175 cm" min="140" max="220">
         </div>
       </div>
 
@@ -4933,15 +5012,15 @@ QUE SÍ SE VE</div>
         <div class="form-grid" style="margin-top:8px">
           <div class="form-group">
             <label data-es="Cuello (cm)" data-en="Neck (cm)">Cuello (cm)</label>
-            <input type="number" id="f-cuello" placeholder="38" min="20" max="60">
+            <input type="number" id="f-cuello" placeholder="Ej: 38 cm" min="20" max="60">
           </div>
           <div class="form-group">
             <label data-es="Cintura (cm)" data-en="Waist (cm)">Cintura (cm)</label>
-            <input type="number" id="f-cintura-form" placeholder="85" min="40" max="200">
+            <input type="number" id="f-cintura-form" placeholder="Ej: 85 cm" min="40" max="200">
           </div>
           <div class="form-group">
             <label data-es="Cadera (cm) — solo mujeres" data-en="Hips (cm) — women only">Cadera (cm) — solo mujeres</label>
-            <input type="number" id="f-cadera-form" placeholder="95" min="40" max="200">
+            <input type="number" id="f-cadera-form" placeholder="Ej: 95 cm" min="40" max="200">
           </div>
         </div>
       </div>
@@ -4976,7 +5055,7 @@ QUE SÍ SE VE</div>
   <!-- PASO 2: NIVEL -->
   <div class="section-card" id="step2">
     <div class="section-header">
-      <div class="section-icon">🎯</div>
+      <div class="section-number">02</div>
       <div class="section-info">
         <div class="section-title" data-es="NIVEL DE ENTRENAMIENTO" data-en="TRAINING LEVEL">NIVEL DE ENTRENAMIENTO</div>
         <div class="section-desc" data-es="¿Cuál es tu experiencia y actividad diaria?" data-en="What's your experience and daily activity?">¿Cuál es tu experiencia y actividad diaria?</div>
@@ -5025,7 +5104,7 @@ QUE SÍ SE VE</div>
   <!-- PASO 3: ENTRENAMIENTO -->
   <div class="section-card" id="step3">
     <div class="section-header">
-      <div class="section-icon">💪</div>
+      <div class="section-number">03</div>
       <div class="section-info">
         <div class="section-title" data-es="PLAN DE ENTRENAMIENTO" data-en="TRAINING PLAN">PLAN DE ENTRENAMIENTO</div>
         <div class="section-desc" data-es="Días, tiempo y lugar donde vas a entrenar" data-en="Days, time and place where you'll train">Días, tiempo y lugar donde vas a entrenar</div>
@@ -5093,7 +5172,7 @@ QUE SÍ SE VE</div>
   <!-- PASO 4: NUTRICIÓN -->
   <div class="section-card" id="step4">
     <div class="section-header">
-      <div class="section-icon">🥗</div>
+      <div class="section-number">04</div>
       <div class="section-info">
         <div class="section-title" data-es="NUTRICIÓN Y ALIMENTACIÓN" data-en="NUTRITION & DIET">NUTRICIÓN Y ALIMENTACIÓN</div>
         <div class="section-desc" data-es="Para armar tu plan nutricional personalizado" data-en="To build your personalized nutrition plan">Para armar tu plan nutricional personalizado</div>
@@ -5149,7 +5228,7 @@ QUE SÍ SE VE</div>
   <!-- PASO 5: RESUMEN -->
   <div class="section-card" id="step5">
     <div class="section-header">
-      <div class="section-icon">✅</div>
+      <div class="section-number">05</div>
       <div class="section-info">
         <div class="section-title" data-es="RESUMEN DE TU PERFIL" data-en="YOUR PROFILE SUMMARY">RESUMEN DE TU PERFIL</div>
         <div class="section-desc" data-es="Confirmá tus datos antes de arrancar" data-en="Confirm your data before starting">Confirmá tus datos antes de arrancar</div>
@@ -5760,6 +5839,10 @@ async function handleEmailLogin() {
   try {
     if (!sbClient) initSupabase();
     const result = await loginOrRegister(email, nombre);
+    // Release iOS body-lock now that the auth round-trip is done
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
     document.getElementById('landing-wrapper').style.display = 'none';
     document.getElementById('main-header').style.display = 'flex';
 
@@ -5789,6 +5872,10 @@ async function handleEmailLogin() {
       }
     }
   } catch(err) {
+    // Release body-lock so the user can interact again
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
     error.textContent = 'Error de conexión. Intentá de nuevo.';
     console.error(err);
   }
