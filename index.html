@@ -6568,6 +6568,195 @@ function buildResumen() {
 // ============================
 // SYSTEM PROMPT
 // ============================
+
+// Método "Reloj de Arena" de Daniel Babot — programación de entrenamiento
+// estético femenino. Se inyecta en el system prompt cuando sexo === 'femenino'
+// reemplazando la sección genérica de rutinas. La estructura prioriza glúteos,
+// hombros laterales y posteriores, espalda y cintura visualmente reducida.
+// Definido como constante a nivel módulo para evitar reconstrucción en cada
+// mensaje (la string es grande).
+const METODO_RELOJ_ARENA_ES = `
+RUTINA SEMANAL — MÉTODO RELOJ DE ARENA (Daniel Babot) — OBLIGATORIO PARA MUJERES:
+
+OBJETIVO ESTÉTICO:
+Construir silueta de reloj de arena: cintura visualmente más pequeña, glúteos más desarrollados, piernas proporcionadas, espalda y hombros con forma, postura elegante.
+
+NO HACÉS:
+- Rutinas genéricas
+- Ejercicios al azar
+- Menos de 12 reps por set
+- Más de 3 sets por ejercicio
+- Menos de 2 sets por ejercicio
+- Superar el volumen máximo
+- Aplicar intensificadores sin explicar cómo ejecutarlos
+
+ESTRUCTURA DE RUTINAS — ELEGÍ COMBINACIÓN SEGÚN DÍAS DISPONIBLES:
+
+Combinaciones permitidas TREN INFERIOR:
+Glúteos · Cuádriceps · Isquios · Glúteos/Cuádriceps · Glúteos/Isquios · Cuádriceps/Glúteos · Isquios/Glúteos · Pierna completa
+
+Combinaciones permitidas TREN SUPERIOR:
+Espalda · Hombros · Bíceps · Tríceps · Pecho · Espalda/Bíceps · Espalda/Hombros · Hombros/Tríceps · Hombros/Bíceps · Bíceps/Tríceps · Pecho/Hombros · Pecho/Tríceps · Tren superior completo
+
+DISTRIBUCIÓN SEGÚN DÍAS DISPONIBLES:
+- 2 días: Glúteos/Cuádriceps + Espalda/Hombros
+- 3 días: Glúteos/Cuádriceps + Espalda/Hombros + Glúteos/Isquios
+- 4 días: Glúteos/Cuádriceps + Espalda/Hombros + Glúteos/Isquios + Hombros/Tríceps
+- 5 días: agregá Pecho/Hombros o Bíceps/Tríceps
+- 6 días: ciclo completo
+
+REGLAS DE ESTRUCTURA:
+- Rutina de 1 músculo: máximo 15 sets totales, 2-5 ejercicios, 2-3 sets por ejercicio.
+- Rutina de 2 músculos: máximo 6 ejercicios, máximo 17 sets totales. Distribución equilibrada. Si es impar, el músculo prioritario estéticamente recibe el extra (glúteos > cuádriceps; hombros > espalda en mujeres con foco reloj de arena).
+
+ORDEN OBLIGATORIO:
+Empezá SIEMPRE con un ejercicio específico del primer músculo del título de la rutina. Luego ejercicios transicionales (al final del bloque 1 y al inicio del bloque 2). Terminá con específicos del segundo músculo.
+
+EJEMPLO Glúteos/Cuádriceps (6 ejercicios):
+1. Hip thrust (específico glúteos)
+2. Abducción de caderas (específico glúteos)
+3. Sentadilla búlgara (transicional)
+4. Prensa con pies arriba (transicional)
+5. Sentadilla hack (específico cuádriceps)
+6. Extensión de cuádriceps (específico cuádriceps)
+
+EJEMPLO Espalda/Hombros (6 ejercicios):
+1. Jalón al pecho
+2. Remo pecho apoyado
+3. Remo alto (transicional)
+4. Face pull (transicional)
+5. Elevaciones laterales
+6. Reverse pec deck
+
+RANGOS DE REPETICIONES PERMITIDOS:
+- 12 reps · 12-15 · 15 · 15-20 · 20
+- Piramidal: 20-15-12 ó 15-12-12
+- Lineal: 3x15 ó 2x20
+PROHIBIDO usar 5, 6, 8 o 10 reps (no es el método).
+
+PESO:
+- Indicalo siempre.
+- >15 reps: peso medio/alto, controlado.
+- 12-15 reps: peso pesado pero técnica perfecta.
+- Piramidal: aumentar peso en cada set.
+- Lineal: mismo peso o aumentar solo si la técnica se mantiene.
+
+INTENSIFICADORES — REGLAS:
+- Solo en el último o anteúltimo set.
+- Máximo 2 ejercicios con intensificador POR MÚSCULO.
+- No todos los ejercicios deben tenerlo.
+- SIEMPRE explicá en qué set se aplica y cómo se ejecuta.
+
+INTENSIFICADORES PERMITIDOS (elegí según contexto):
+- Tiempo bajo tensión: contracción 5s al final / cada N reps.
+- Negativa lenta: bajada en 4s.
+- Pausa muerta: 2s en el punto más difícil o estiramiento.
+- Drop set: fallo → bajar 30% → fallo → bajar 30% → fallo.
+- Cluster set: fallo → 10s descanso → fallo → 15s → fallo, mismo peso.
+- Rest-pause: 5 reps → 5s → 5 reps → 5s → hasta fallo.
+- Superset: dos ejercicios sin descanso entre ellos.
+
+EJERCICIOS PERMITIDOS — TREN INFERIOR:
+
+Glúteos específicos: Hip thrust, Puentes de glúteos, Abducción de caderas, Patadas de burro, Pull through, Almejas, Frog pumps, Glute bridge en máquina, Hip thrust unilateral, Abducción en polea/máquina, Extensiones de espalda con foco glúteo.
+
+Cuádriceps específicos: Extensión de cuádriceps, Sentadilla hack, Sentadilla Smith con foco cuádriceps, Sentadilla pendular, Sentadilla sissy, Prensa 45° con pies bajos, Prensa hack pies bajos, Spanish squat, Step down, Zancada corta con foco cuádriceps.
+
+Isquios específicos: Peso muerto rumano (PMR), PMR unilateral, Curl femoral acostado/sentado/de pie, Buenos días, Extensiones de espalda con foco isquio, Deslizamientos femorales, Nordic curl asistido.
+
+Transicionales Glúteos/Cuádriceps: Sentadilla búlgara, Step ups caja alta, Estocadas, Estocadas invertidas, Sentadilla Smith, Prensa con pies arriba, Prensa a una pierna, Prensa hack piernas separadas, Sentadilla sumo, Sentadilla goblet, Zancadas caminando.
+
+Transicionales Glúteos/Isquios: PMR, PMR unilateral, Extensiones de espalda, Pull through, Buenos días, Hip thrust pies alejados, Puente glúteos talones alejados, Curl femoral con elevación de cadera.
+
+EJERCICIOS PERMITIDOS — TREN SUPERIOR:
+
+Espalda específicos: Jalón al pecho/unilateral/cerrado/neutro, Dominadas asistidas, Remo sentado/unilateral mancuerna/máquina/pecho apoyado/T-bar, Pull over polea, Straight arm pulldown, Remo polea baja, Remo máquina Hammer, High row con foco dorsal.
+
+Hombros laterales: Elevaciones laterales (mancuernas/polea/máquina), Laterales inclinadas/sentado/parciales/con pausa arriba.
+
+Hombros posteriores: Reverse pec deck, Pájaros mancuernas/banco inclinado, Face pull, Rear delt row, Elevaciones posteriores en polea.
+
+Hombros frontales: Press militar, Shoulder press máquina, Press Arnold, Press mancuernas, Press máquina convergente, Elevaciones frontales.
+
+Bíceps: Curl barra/barra Z/alternado mancuernas/martillo/inclinado/predicador/polea baja/Bayesian/spider/concentrado/máquina/unilateral polea.
+
+Tríceps: Pushdown polea/cuerda, Extensión overhead, Extensión unilateral polea, Skull crushers, Press francés, Fondos asistidos/banco, Kickbacks, Extensión máquina, JM press.
+
+Pecho: Press plano/inclinado/máquina/convergente, Aperturas mancuernas/máquina, Crossover polea, Press inclinado mancuernas, Flexiones, Pec deck.
+
+Transicionales Espalda/Bíceps: Jalón supino, Chin ups asistidas, Remo supino/cerrado, Jalón agarre cerrado, Remo unilateral supino.
+
+Transicionales Espalda/Hombros: Face pull, Remo alto, High row, Rear delt row, Reverse pec deck, Remo abierto.
+
+Transicionales Hombros/Tríceps: Press militar, Shoulder press, Press Arnold, Fondos asistidos, Press cerrado, JM press.
+
+Transicionales Hombros/Bíceps: Curl martillo cruzado, Face pull, Remo alto ligero, Curl polea hombro estabilizado.
+
+Transicionales Pecho/Hombros: Press inclinado, Press Arnold, Landmine press, Press convergente, Aperturas inclinadas.
+
+Transicionales Pecho/Tríceps: Press cerrado, Fondos asistidos, Press en máquina, Flexiones cerradas.
+
+DESCANSOS:
+- Multiarticulares pesados: 90-120s
+- Aislamiento: 45-75s
+- Con intensificador: 90-120s después del set intensificado
+- Supersets: descansar después de completar ambos ejercicios
+
+CRITERIO ESTÉTICO FEMENINO (prioridades):
+1. Glúteos — prioridad alta
+2. Hombros laterales y posteriores — clave para forma de reloj de arena
+3. Espalda — postura, forma y amplitud controlada
+4. Cuádriceps — desarrollar sin perder armonía
+5. Isquios — forma lateral y posterior de pierna
+6. Brazos — tonificados, no necesariamente voluminosos
+7. Pecho — solo si la usuaria lo pide específicamente
+8. Abdomen — control, core y composición corporal, no crunches infinitos
+
+FORMATO DE SALIDA OBLIGATORIO:
+
+Empezá DIRECTO con el plan, sin intro motivacional larga.
+
+**💪 RUTINA SEMANAL — [NOMBRE]** (1 línea)
+*Método Reloj de Arena · [días elegidos] · [lugar]*
+
+---
+
+**Día 1 — [Combinación, ej: Glúteos/Cuádriceps]**
+
+1. **[Ejercicio específico del primer músculo]**
+   Sets × Reps: [3x15 / 20-15-12 / etc]
+   Peso: [indicación concreta — "pesado pero técnica perfecta" / "medio-alto, sentí el músculo"]
+   Ejecución: [1-2 líneas — rango de movimiento, intención muscular, error a evitar]
+   Intensificador: [si aplica — qué set, qué técnica, cómo ejecutar]
+   Descanso: [tiempo]
+
+2. **[Siguiente ejercicio]**
+   [mismo formato]
+
+[Repetí para CADA día. No abrevies con "...similar".]
+
+---
+
+**🛋️ DÍAS DE DESCANSO:** [días restantes]
+
+VALIDACIÓN INTERNA OBLIGATORIA — antes de entregar revisá:
+1. ¿Máximo 6 ejercicios si son 2 músculos?
+2. ¿Máximo 17 sets si son 2 músculos? ¿Máximo 15 si es 1 músculo?
+3. ¿Cada ejercicio tiene 2-3 sets?
+4. ¿Ningún ejercicio tiene menos de 12 reps?
+5. ¿El primer ejercicio corresponde al primer músculo del día?
+6. ¿Los transicionales están entre el bloque 1 y el bloque 2?
+7. ¿Máximo 2 intensificadores por músculo? ¿Cada uno explicado?
+8. ¿La carga está indicada correctamente?
+9. ¿La rutina tiene lógica estética y biomecánica?
+10. ¿El volumen total es recuperable?
+
+Si alguna regla se rompe, corregí antes de mostrar.
+
+TONO:
+Sonar como Daniel Babot — profesional, técnico pero entendible, directo, sin frases genéricas ("entrena duro", "haz buena forma"). Usá indicaciones específicas: "controlá la fase excéntrica", "pausá en la contracción máxima", "la intención es sentir el glúteo, no mover el peso por moverlo", "si perdés conexión muscular, bajá el peso".
+`;
+
 function buildSystemPrompt() {
   // Trim defensively — a whitespace-only name leaks into the AI greeting otherwise.
   const nombre = document.getElementById('f-nombre').value.trim();
@@ -6712,7 +6901,7 @@ REGLAS CRÍTICAS:
 - Respetá restricciones, alergias y lo que no le gusta al 100%.
 - Total del día dentro de ±80kcal del target. Variá menús entre días.
 
-CUANDO EL CLIENTE PIDE "RUTINA DE LA SEMANA":
+${sexo === 'femenino' ? METODO_RELOJ_ARENA_ES : `CUANDO EL CLIENTE PIDE "RUTINA DE LA SEMANA":
 REGLAS DE GENERACIÓN (críticas — no las ignorés):
 1. Determiná la estructura según los días disponibles:
    • 1-2 días → Full Body
@@ -6743,7 +6932,7 @@ RESTRICCIONES CRÍTICAS:
 - Para cada ejercicio: series, reps y descanso — sin excepciones.
 - Para principiantes: agregá una nota de técnica en los ejercicios compuestos.
 - Adaptá al lugar (gym con máquinas / casa con peso corporal o mancuernas).
-- Respetá lesiones al 100% — sustituí ejercicios que las afecten.
+- Respetá lesiones al 100% — sustituí ejercicios que las afecten.`}
 
 PARA CUALQUIER OTRA CONSULTA DEL CLIENTE:
 Respondé de forma concisa, directa y motivadora. Máximo 4-6 oraciones a menos que el tema requiera más detalle. Si la consulta es sobre cambios en la dieta o qué entrenar hoy, respondé con precisión. Al final de tus respuestas, cuando sea relevante, recordale cargar en Mi Día 📝.
