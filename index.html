@@ -5543,6 +5543,14 @@ QUE SÍ SE VE</div>
       ✨ Generar análisis de mi semana
     </button>
 
+    <!-- Shown when the analysis generated successfully but cierres_semanales
+         upsert failed. Lets the user retry persistence without re-billing
+         Claude (the analysis text is cached in-memory). -->
+    <div id="cierre-retry-banner" style="display:none; margin-top:12px; padding:12px 14px; background:rgba(255,71,87,0.10); border:1px solid rgba(255,71,87,0.35); border-radius:10px; font-size:13px; line-height:1.5;">
+      <span id="cierre-retry-text">⚠ Análisis generado pero no se pudo guardar. Tocá para reintentar.</span>
+      <button onclick="retryCierreSave()" style="display:block; margin-top:8px; background:transparent; border:1px solid #ff4757; color:#ff4757; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:11px; letter-spacing:1.5px; font-family:'JetBrains Mono', monospace;" id="cierre-retry-btn">🔁 REINTENTAR GUARDADO</button>
+    </div>
+
     <div class="cierre-analisis-result" id="cierre-analisis-result"></div>
 
     <button class="btn-cierre-back" id="btn-cierre-back" onclick="closeCierrePanel()">← Volver al progreso</button>
@@ -7557,9 +7565,18 @@ function getWeekNum(createdAt) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const diff = Math.floor((today - start) / 86400000);
-  return Math.floor(diff / 7) + 1;
+  // Clamp to at least 1: if `created_at` is in the future (clock skew or a
+  // manual DB edit), `diff` is negative and we'd produce week 0 or negative,
+  // which makes renderSemanas show an empty state for an existing user.
+  if (diff < 0) {
+    console.warn('[CoachAI] created_at is in the future, clamping to week 1');
+  }
+  return Math.max(1, Math.floor(diff / 7) + 1);
 }
 
+// Returns the YYYY-MM-DD range for a given weekNum, in local time. `setDate`
+// preserves the wall clock across DST boundaries, so wStart/wEnd stay at
+// local midnight even when the week crosses a DST shift.
 function getWeekRange(createdAt, weekNum) {
   const start = new Date(createdAt.slice(0, 10) + 'T00:00:00');
   const wStart = new Date(start);
@@ -7728,6 +7745,11 @@ function openCierreSemana(weekNum) {
 
   document.getElementById('cierre-analisis-result').style.display = 'none';
   document.getElementById('cierre-analisis-result').textContent = '';
+  // Hide any leftover retry banner from a previous failed save (don't carry
+  // it into a fresh week-closure attempt).
+  const retryBanner = document.getElementById('cierre-retry-banner');
+  if (retryBanner) retryBanner.style.display = 'none';
+  lastCierrePending = null;
   const cierrePreview = document.getElementById('cierre-foto-preview');
   cierrePreview.style.display = 'none';
   if (cierrePreview.dataset.objUrl) {
@@ -7783,62 +7805,78 @@ function previewCierreFoto(event) {
   document.getElementById('cierre-foto-placeholder').style.display = 'none';
 }
 
+// Module-level in-flight guard. Without this, a fast double-tap (or repeated
+// taps while the button is mid-disable) fires multiple Claude vision calls —
+// expensive and quietly redundant. Set true at entry, false in finally.
+let cierreInflight = false;
+
+// Cache of the last-generated analysis so the retry banner can re-attempt the
+// upsert without re-billing Claude. Keyed by `${userId}:${weekNum}`.
+let lastCierrePending = null;
+
 async function ejecutarCierreSemana() {
+  if (cierreInflight) return;
+  cierreInflight = true;
+
   const btn = document.getElementById('btn-generar-analisis');
   const result = document.getElementById('cierre-analisis-result');
+  const retryBanner = document.getElementById('cierre-retry-banner');
   btn.disabled = true;
   btn.textContent = lang === 'es' ? 'Analizando...' : 'Analyzing...';
+  if (retryBanner) retryBanner.style.display = 'none';
 
-  const createdAt = currentUser.created_at || new Date().toISOString();
-  const range = getWeekRange(createdAt, cierreActualWeekNum);
-  const stats = computeWeekStats(recentDiario, range);
-  const nombre = document.getElementById('f-nombre').value;
-  const objetivo = selections.objetivo || '';
-
-  // Upload photo if provided (failure here doesn't block analysis)
-  let fotoUrl = null;
   try {
-    const fotoInput = document.getElementById('cierre-foto-input');
-    if (fotoInput.files[0]) {
-      fotoUrl = await uploadFoto(fotoInput.files[0], 'semana');
+    const createdAt = currentUser.created_at || new Date().toISOString();
+    const range = getWeekRange(createdAt, cierreActualWeekNum);
+    const stats = computeWeekStats(recentDiario, range);
+    const nombre = document.getElementById('f-nombre').value;
+    const objetivo = selections.objetivo || '';
+
+    // Upload photo if provided (failure here doesn't block analysis)
+    let fotoUrl = null;
+    try {
+      const fotoInput = document.getElementById('cierre-foto-input');
+      if (fotoInput.files[0]) {
+        fotoUrl = await uploadFoto(fotoInput.files[0], 'semana');
+      }
+    } catch(e) {
+      console.error('Photo upload failed, continuing without:', e);
     }
-  } catch(e) {
-    console.error('Photo upload failed, continuing without:', e);
-  }
 
-  // Load initial photo for visual comparison. Never use a 'semana' photo as
-  // baseline — that would compare a closure photo against itself.
-  let fotoInicialUrl = null;
-  try {
-    const fotos = await loadFotosProgreso();
-    const inicial = pickBaselinePhoto(fotos);
-    fotoInicialUrl = inicial?.url_foto || null;
-  } catch(e) {
-    console.error('Could not load initial photo, continuing without comparison:', e);
-  }
+    // Load initial photo for visual comparison. Never use a 'semana' photo as
+    // baseline — that would compare a closure photo against itself.
+    let fotoInicialUrl = null;
+    try {
+      const fotos = await loadFotosProgreso();
+      const inicial = pickBaselinePhoto(fotos);
+      fotoInicialUrl = inicial?.url_foto || null;
+    } catch(e) {
+      console.error('Could not load initial photo, continuing without comparison:', e);
+    }
 
-  // Generate AI analysis — this is the only step that determines success/error UI
-  let analisis = null;
-  try {
-    analisis = await generateWeeklyAnalysis(nombre, cierreActualWeekNum, stats, objetivo, lang, fotoUrl, fotoInicialUrl);
-  } catch(e) {
-    console.error('Weekly analysis generation failed:', e);
-  }
+    // Generate AI analysis — this is the only step that determines success/error UI
+    let analisis = null;
+    try {
+      analisis = await generateWeeklyAnalysis(nombre, cierreActualWeekNum, stats, objetivo, lang, fotoUrl, fotoInicialUrl);
+    } catch(e) {
+      console.error('Weekly analysis generation failed:', e);
+    }
 
-  if (!analisis) {
-    btn.disabled = false;
-    btn.textContent = lang === 'es' ? 'Error — intentá de nuevo' : 'Error — try again';
-    return;
-  }
+    if (!analisis) {
+      btn.disabled = false;
+      btn.textContent = lang === 'es' ? 'Error — intentá de nuevo' : 'Error — try again';
+      return;
+    }
 
-  // SUCCESS — show analysis. Subsequent persistence/refresh failures must not flip UI to error.
-  result.textContent = analisis;
-  result.style.display = 'block';
-  btn.textContent = lang === 'es' ? '✓ Análisis guardado' : '✓ Analysis saved';
+    // SUCCESS — show analysis. Subsequent persistence/refresh failures must not flip UI to error.
+    result.textContent = analisis;
+    result.style.display = 'block';
+    btn.textContent = lang === 'es' ? '✓ Análisis guardado' : '✓ Analysis saved';
 
-  try {
+    // Cache for retry path BEFORE attempting the upsert. If the upsert throws,
+    // retryCierreSave() reuses these values without re-calling Claude.
     const statsJson = { trained: stats.trained, avgCal: stats.avgCal, avgProt: stats.avgProt, totalLogs: stats.totalLogs };
-    await sbClient.from('cierres_semanales').upsert([{
+    lastCierrePending = {
       usuario_id: currentUser.id,
       semana_num: cierreActualWeekNum,
       fecha_inicio: range.start,
@@ -7846,10 +7884,48 @@ async function ejecutarCierreSemana() {
       foto_url: fotoUrl,
       analisis,
       stats: statsJson
-    }], { onConflict: 'usuario_id,semana_num' });
+    };
+
+    try {
+      await sbClient.from('cierres_semanales').upsert([lastCierrePending], { onConflict: 'usuario_id,semana_num' });
+      lastCierrePending = null; // success — clear cache
+      await renderSemanas();
+    } catch(e) {
+      console.error('Post-analysis save/refresh failed (analysis still shown):', e);
+      btn.textContent = lang === 'es' ? '⚠ Análisis no guardado' : '⚠ Analysis not saved';
+      if (retryBanner) {
+        document.getElementById('cierre-retry-text').textContent = lang === 'es'
+          ? '⚠ Análisis generado pero no se pudo guardar en la base. Tocá para reintentar.'
+          : '⚠ Analysis generated but could not be saved. Tap to retry.';
+        document.getElementById('cierre-retry-btn').textContent = lang === 'es' ? '🔁 REINTENTAR GUARDADO' : '🔁 RETRY SAVE';
+        retryBanner.style.display = 'block';
+      }
+    }
+  } finally {
+    cierreInflight = false;
+  }
+}
+
+async function retryCierreSave() {
+  if (!lastCierrePending) return;
+  const btn = document.getElementById('cierre-retry-btn');
+  const retryBanner = document.getElementById('cierre-retry-banner');
+  const generarBtn = document.getElementById('btn-generar-analisis');
+  btn.disabled = true;
+  btn.textContent = lang === 'es' ? 'Guardando...' : 'Saving...';
+  try {
+    await sbClient.from('cierres_semanales').upsert([lastCierrePending], { onConflict: 'usuario_id,semana_num' });
+    lastCierrePending = null;
+    if (retryBanner) retryBanner.style.display = 'none';
+    if (generarBtn) generarBtn.textContent = lang === 'es' ? '✓ Análisis guardado' : '✓ Analysis saved';
     await renderSemanas();
   } catch(e) {
-    console.error('Post-analysis save/refresh failed (analysis still shown):', e);
+    console.error('Retry save failed:', e);
+    btn.disabled = false;
+    btn.textContent = lang === 'es' ? '🔁 REINTENTAR' : '🔁 RETRY';
+    document.getElementById('cierre-retry-text').textContent = lang === 'es'
+      ? '⚠ Sigue sin guardar. Probá refrescar la página y volver a entrar.'
+      : '⚠ Still failing. Try refreshing the page and re-entering.';
   }
 }
 
