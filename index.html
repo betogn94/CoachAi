@@ -7690,6 +7690,9 @@ async function renderSemanas() {
         <div class="semana-analisis">
           <div class="semana-analisis-title">📊 ${lang==='es'?'ANÁLISIS DE LA SEMANA':'WEEK ANALYSIS'}</div>
           ${cierre.analisis}
+          <button onclick="regenerarAnalisisSemana(${w})" id="btn-regen-${w}" style="margin-top:12px; background:transparent; border:1px solid rgba(124,106,255,0.4); color:var(--accent-bright); padding:6px 12px; border-radius:6px; cursor:pointer; font-size:10px; letter-spacing:1.5px; font-family:'JetBrains Mono', monospace;">
+            🔁 ${lang==='es'?'REGENERAR ANÁLISIS':'REGENERATE ANALYSIS'}
+          </button>
         </div>`;
     }
 
@@ -7921,6 +7924,54 @@ async function ejecutarCierreSemana() {
     }
   } finally {
     cierreInflight = false;
+  }
+}
+
+// Re-runs generateWeeklyAnalysis for an already-closed week and overwrites the
+// row. Useful when the user uploaded a different baseline/current photo after
+// the original cierre and wants the AI to consider them. Confirms before
+// burning a fresh Claude vision call.
+async function regenerarAnalisisSemana(weekNum) {
+  const ok = confirm(lang === 'es'
+    ? '¿Generar un nuevo análisis para esta semana? (consume una llamada a la IA)'
+    : 'Generate a new analysis for this week? (uses one AI call)');
+  if (!ok) return;
+
+  const btn = document.getElementById(`btn-regen-${weekNum}`);
+  if (btn) { btn.disabled = true; btn.textContent = lang === 'es' ? '⏳ REGENERANDO...' : '⏳ REGENERATING...'; }
+
+  try {
+    const cierre = cierresSemanales.find(c => c.semana_num === weekNum);
+    if (!cierre) throw new Error('Cierre no encontrado');
+
+    const createdAt = currentUser.created_at || new Date().toISOString();
+    const range = getWeekRange(createdAt, weekNum);
+    const stats = computeWeekStats(recentDiario, range);
+    const nombre = document.getElementById('f-nombre').value.trim();
+    const objetivo = selections.objetivo || '';
+
+    // Pick fresh baseline + current photos (user may have replaced them)
+    const fotos = await loadFotosProgreso();
+    const baseline = pickBaselinePhoto(fotos);
+    const fotoInicialUrl = baseline?.url_foto || null;
+    const fotoUrl = cierre.foto_url || null;
+
+    const analisis = await generateWeeklyAnalysis(nombre, weekNum, stats, objetivo, lang, fotoUrl, fotoInicialUrl);
+    if (!analisis) throw new Error('La IA no devolvió respuesta');
+
+    await sbClient.from('cierres_semanales').upsert([{
+      usuario_id: currentUser.id,
+      semana_num: weekNum,
+      fecha_inicio: range.start,
+      fecha_fin: range.end,
+      foto_url: fotoUrl,
+      analisis,
+      stats: { trained: stats.trained, avgCal: stats.avgCal, avgProt: stats.avgProt, totalLogs: stats.totalLogs }
+    }], { onConflict: 'usuario_id,semana_num' });
+    await renderSemanas();
+  } catch(e) {
+    console.error('Regenerar análisis falló:', e);
+    if (btn) { btn.disabled = false; btn.textContent = lang === 'es' ? '⚠ ERROR — REINTENTAR' : '⚠ ERROR — RETRY'; }
   }
 }
 
@@ -9165,11 +9216,18 @@ async function loadAdminDashboard() {
         lastLogMap[e.usuario_id] = e.fecha;
     });
 
+    const sevenDaysAgo = Date.now() - 7 * 86400000;
     adminAllUsers = (users || []).map(u => {
       const days = daysMap[u.id]?.size || 0;
+      // "Nuevo": registered within the last 7 days AND no logs yet. Distinguished
+      // from "lapsed inactive" so the coach doesn't chase a brand-new user who
+      // hasn't had time to register their first day.
+      const createdAtMs = u.created_at ? new Date(u.created_at).getTime() : 0;
+      const isNew = days === 0 && createdAtMs > sevenDaysAgo;
       return { ...u,
         _days7: days,
         _status: days >= 4 ? 'verde' : days >= 2 ? 'amarillo' : 'rojo',
+        _isNew: isNew,
         _lastLog: lastLogMap[u.id] || null
       };
     });
@@ -9217,7 +9275,14 @@ function adminFilterStudents(status) {
     list.innerHTML = '<div style="padding:20px;color:var(--muted);text-align:center">Sin alumnos en este grupo.</div>';
   } else {
     list.innerHTML = filtered.map(u => {
-      const statusLabel = { verde: 'Verde ✓', amarillo: 'Amarillo ●', rojo: 'Rojo ✗' }[u._status];
+      // "Recién registrado" overrides "Rojo ✗" — a 0-log user who joined this
+      // week is not the same as a lapsed inactive one.
+      const statusLabel = u._isNew
+        ? '🆕 Recién registrado'
+        : { verde: 'Verde ✓', amarillo: 'Amarillo ●', rojo: 'Rojo ✗' }[u._status];
+      const lastLogLine = u._isNew
+        ? 'Aún no registró ningún día'
+        : `Último registro: ${adminDaysSince(u._lastLog)}`;
       return `
         <div class="admin-student-card coach-card">
           <div class="admin-student-dot ${u._status}"></div>
@@ -9225,7 +9290,7 @@ function adminFilterStudents(status) {
             <div class="admin-student-name">${u.nombre || u.email}</div>
             <div class="admin-student-meta">Objetivo: ${u.objetivo || '—'} · ${statusLabel} · ${u._days7} días esta semana</div>
           </div>
-          <div class="admin-student-last">Último registro: ${adminDaysSince(u._lastLog)}</div>
+          <div class="admin-student-last">${lastLogLine}</div>
           <button class="btn-ver-progreso" onclick="showAdminStudentDetail('${u.id}')">VER PROGRESO</button>
         </div>`;
     }).join('');
@@ -9391,29 +9456,39 @@ function adminBuildTransformacionHTML(fotos, cierres) {
 function adminBuildPlanesHTML(planes, cierres) {
   const escHtml = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-  // Show ONLY the latest plan of each tipo — admin needs to know current state at a glance
+  // Sort newest first; pick latest of each tipo for the "current" view.
   const sortedByDate = [...planes].sort((a, b) => {
     const aDate = new Date(a.fecha_entrega || a.updated_at || 0);
     const bDate = new Date(b.fecha_entrega || b.updated_at || 0);
-    return bDate - aDate; // newest first
+    return bDate - aDate;
   });
   const latestRutina = sortedByDate.find(p => p.tipo === 'rutina') || null;
   const latestDieta  = sortedByDate.find(p => p.tipo === 'dieta')  || null;
-  const visiblePlans = [latestRutina, latestDieta].filter(Boolean);
-  adminDetailPlanes = visiblePlans;
+  // History: every other plan, in date-desc order (older deliveries).
+  const olderPlans = sortedByDate.filter(p => p !== latestRutina && p !== latestDieta);
+  // adminDetailPlanes is the lookup array used by adminEditPlan.
+  // Include the older plans so they're editable too.
+  adminDetailPlanes = [latestRutina, latestDieta, ...olderPlans].filter(Boolean);
 
   const lastCierre = (cierres || [])
     .filter(c => c.created_at)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
 
-  const computeStatus = (plan) => {
-    if (lastCierre && new Date(lastCierre.created_at) > new Date(plan.fecha_entrega || plan.updated_at || 0)) {
+  // Use the same semantic rule as loadCurrentWeekPlans: a plan is closed iff a
+  // cierre's week-end is on or after the plan's delivery date.
+  const cierreEnds = (cierres || []).map(c => (c.fecha_fin || '').slice(0, 10)).filter(Boolean).sort();
+  const maxCierreEnd = cierreEnds.length ? cierreEnds[cierreEnds.length - 1] : null;
+
+  const computeStatus = (plan, isHistory = false) => {
+    if (isHistory) return { label: 'HISTÓRICA', cls: 'admin-plan-badge-history' };
+    const planDate = (plan.fecha_entrega || '').slice(0, 10);
+    if (maxCierreEnd && planDate && maxCierreEnd >= planDate) {
       return { label: 'CERRADA', cls: 'admin-plan-badge-closed' };
     }
     return { label: 'ACTIVA', cls: 'admin-plan-badge-active' };
   };
 
-  const buildBlock = (plan, tipo, idx) => {
+  const buildBlock = (plan, tipo, idx, isHistory = false) => {
     const tipoLabel = tipo === 'dieta' ? '🥗 DIETA' : '💪 RUTINA';
     if (!plan) {
       return `
@@ -9425,7 +9500,7 @@ function adminBuildPlanesHTML(planes, cierres) {
           </div>
         </div>`;
     }
-    const status = computeStatus(plan);
+    const status = computeStatus(plan, isHistory);
     return `
       <div class="admin-planes-block" onclick="this.classList.toggle('open')">
         <div class="admin-planes-header">
@@ -9441,14 +9516,27 @@ function adminBuildPlanesHTML(planes, cierres) {
       </div>`;
   };
 
-  const inner = (latestRutina || latestDieta)
-    ? buildBlock(latestRutina, 'rutina', latestRutina ? visiblePlans.indexOf(latestRutina) : -1) +
-      buildBlock(latestDieta,  'dieta',  latestDieta  ? visiblePlans.indexOf(latestDieta)  : -1)
+  const currentSection = (latestRutina || latestDieta)
+    ? buildBlock(latestRutina, 'rutina', latestRutina ? adminDetailPlanes.indexOf(latestRutina) : -1) +
+      buildBlock(latestDieta,  'dieta',  latestDieta  ? adminDetailPlanes.indexOf(latestDieta)  : -1)
     : `<div style="padding:10px 0;font-size:13px;color:var(--muted)">Aún no se entregaron planes semanales a este alumno.</div>`;
+
+  // History section: collapsed by default. Coach can expand to read past deliveries.
+  const historyHtml = olderPlans.length
+    ? `<details style="margin-top:14px;">
+         <summary style="cursor:pointer;font-size:11px;letter-spacing:1.5px;color:var(--muted);font-family:'JetBrains Mono', monospace;padding:8px 0;">
+           📜 HISTORIAL (${olderPlans.length} ${olderPlans.length === 1 ? 'plan anterior' : 'planes anteriores'})
+         </summary>
+         <div style="margin-top:8px;">
+           ${olderPlans.map(p => buildBlock(p, p.tipo, adminDetailPlanes.indexOf(p), true)).join('')}
+         </div>
+       </details>`
+    : '';
 
   return `<div class="admin-profile-card coach-card" style="margin-bottom:16px">
     <div class="admin-section-subtitle">PLANIFICACIÓN ACTUAL DEL ALUMNO</div>
-    <div style="margin-top:10px">${inner}</div>
+    <div style="margin-top:10px">${currentSection}</div>
+    ${historyHtml}
   </div>`;
 }
 
