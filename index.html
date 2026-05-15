@@ -7366,7 +7366,32 @@ function saveProgress(data) {
 // ============================
 let fotosProgreso = [];
 
-async function compressImage(file, maxWidth = 900, quality = 0.82) {
+// Throws on non-image MIME or oversized files. Cheap to call from any upload
+// path. Without this guard, HEIC/RAW/video files silently broke compressImage,
+// which then hung the Promise forever and the UI stuck on "Subiendo foto...".
+const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+function validateImageFile(file) {
+  if (!file) throw new Error(lang === 'es' ? 'No seleccionaste ningún archivo.' : 'No file selected.');
+  if (!file.type || !file.type.startsWith('image/')) {
+    throw new Error(lang === 'es' ? 'El archivo no es una imagen.' : 'File is not an image.');
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    throw new Error(lang === 'es' ? 'La imagen pesa más de 15 MB. Probá con una más liviana.' : 'Image is over 15 MB. Use a lighter one.');
+  }
+}
+
+// Replace the previous URL stored on `preview.dataset.objUrl` (if any) before
+// assigning a new one. Without this, every reselection leaks the previous
+// object URL — on iOS Safari with full-resolution photos this is a fast path
+// to a renderer-memory crash.
+function setPreviewSrc(preview, file) {
+  if (preview.dataset.objUrl) URL.revokeObjectURL(preview.dataset.objUrl);
+  const url = URL.createObjectURL(file);
+  preview.dataset.objUrl = url;
+  preview.src = url;
+}
+
+async function compressImage(file, maxWidth = 1400, quality = 0.88) {
   return new Promise(resolve => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -7379,6 +7404,12 @@ async function compressImage(file, maxWidth = 900, quality = 0.82) {
       URL.revokeObjectURL(url);
       canvas.toBlob(blob => resolve(blob), 'image/jpeg', quality);
     };
+    // Without onerror, a corrupted/unsupported image leaves the Promise pending
+    // forever — the upload UI gets stuck on "Subiendo foto..." with no recovery.
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    };
     img.src = url;
   });
 }
@@ -7386,24 +7417,39 @@ async function compressImage(file, maxWidth = 900, quality = 0.82) {
 function previewFotoInicial(event) {
   const file = event.target.files[0];
   if (!file) return;
+  try { validateImageFile(file); }
+  catch (e) {
+    event.target.value = '';
+    document.getElementById('foto-status').textContent = '⚠ ' + e.message;
+    return;
+  }
   const preview = document.getElementById('foto-inicial-preview');
   const placeholder = document.getElementById('foto-upload-placeholder');
-  preview.src = URL.createObjectURL(file);
+  setPreviewSrc(preview, file);
   preview.style.display = 'block';
   placeholder.style.display = 'none';
-  document.getElementById('foto-status').textContent = '✓ Foto lista para subir al comenzar';
+  document.getElementById('foto-status').textContent = lang === 'es' ? '✓ Foto lista para subir al comenzar' : '✓ Photo ready to upload';
 }
 
 async function uploadFoto(file, tipo = 'progreso') {
   if (!sbClient || !currentUser) return null;
+  validateImageFile(file);
   const blob = await compressImage(file);
+  if (!blob) throw new Error(lang === 'es' ? 'No pudimos procesar la imagen. Probá con otra.' : 'Could not process the image. Try another.');
   const fecha = getTodayKey();
-  const path = `${currentUser.id}/${fecha}-${Date.now()}.jpg`;
+  // Append a random suffix so two uploads in the same millisecond don't collide
+  // on the storage path (upsert:false would 409 the second one).
+  const rand = (crypto.randomUUID?.() || Math.random().toString(36)).slice(0, 8);
+  const path = `${currentUser.id}/${fecha}-${Date.now()}-${rand}.jpg`;
   const { error: upErr } = await sbClient.storage.from('progress-photos').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
   if (upErr) throw upErr;
   const { data: { publicUrl } } = sbClient.storage.from('progress-photos').getPublicUrl(path);
   const { error: dbErr } = await sbClient.from('fotos_progreso').insert([{ usuario_id: currentUser.id, fecha, url_foto: publicUrl, tipo }]);
-  if (dbErr) throw dbErr;
+  if (dbErr) {
+    // Roll back the storage blob so we don't accumulate orphans on DB failure.
+    sbClient.storage.from('progress-photos').remove([path]).catch(() => {});
+    throw dbErr;
+  }
   return publicUrl;
 }
 
@@ -7412,12 +7458,14 @@ async function uploadFotoInicial() {
   const status = document.getElementById('foto-status');
   if (!input?.files[0]) return;
   try {
-    status.textContent = 'Subiendo foto...';
+    status.textContent = lang === 'es' ? 'Subiendo foto...' : 'Uploading photo...';
     await uploadFoto(input.files[0], 'inicio');
-    status.textContent = '✓ Foto inicial guardada';
+    status.textContent = lang === 'es' ? '✓ Foto inicial guardada' : '✓ Initial photo saved';
+    // Clear the input so re-picking the same file fires `change` again.
+    input.value = '';
   } catch(e) {
     console.error(e);
-    status.textContent = 'Error al subir la foto';
+    status.textContent = '⚠ ' + (e.message || (lang === 'es' ? 'Error al subir la foto' : 'Upload failed'));
   }
 }
 
@@ -7426,13 +7474,14 @@ async function subirFotoDesdeDash(event) {
   if (!file) return;
   const status = document.getElementById('dash-foto-status');
   try {
-    status.textContent = 'Subiendo foto...';
+    status.textContent = lang === 'es' ? 'Subiendo foto...' : 'Uploading photo...';
     await uploadFoto(file, 'progreso');
-    status.textContent = '✓ Foto guardada';
+    status.textContent = lang === 'es' ? '✓ Foto guardada' : '✓ Photo saved';
+    event.target.value = '';
     await loadAndRenderFotos();
   } catch(e) {
     console.error(e);
-    status.textContent = 'Error al subir la foto';
+    status.textContent = '⚠ ' + (e.message || (lang === 'es' ? 'Error al subir la foto' : 'Upload failed'));
   }
 }
 
@@ -7674,8 +7723,13 @@ function openCierreSemana(weekNum) {
 
   document.getElementById('cierre-analisis-result').style.display = 'none';
   document.getElementById('cierre-analisis-result').textContent = '';
-  document.getElementById('cierre-foto-preview').style.display = 'none';
-  document.getElementById('cierre-foto-preview').src = '';
+  const cierrePreview = document.getElementById('cierre-foto-preview');
+  cierrePreview.style.display = 'none';
+  if (cierrePreview.dataset.objUrl) {
+    URL.revokeObjectURL(cierrePreview.dataset.objUrl);
+    delete cierrePreview.dataset.objUrl;
+  }
+  cierrePreview.src = '';
   document.getElementById('cierre-foto-placeholder').style.display = 'block';
   document.getElementById('cierre-foto-input').value = '';
   document.getElementById('btn-generar-analisis').disabled = false;
@@ -7712,8 +7766,14 @@ function closeCierrePanel() {
 function previewCierreFoto(event) {
   const file = event.target.files[0];
   if (!file) return;
+  try { validateImageFile(file); }
+  catch (e) {
+    event.target.value = '';
+    alert('⚠ ' + e.message);
+    return;
+  }
   const preview = document.getElementById('cierre-foto-preview');
-  preview.src = URL.createObjectURL(file);
+  setPreviewSrc(preview, file);
   preview.style.display = 'block';
   document.getElementById('cierre-foto-placeholder').style.display = 'none';
 }
