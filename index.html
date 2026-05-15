@@ -3096,7 +3096,25 @@ footer {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
 }
+/* Brand-styled icon container next to the Mi Día title — same aesthetic as
+   .chart-card-icon but scaled up to match the 32px title. */
+.diario-title-icon {
+  width: 44px; height: 44px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, rgba(124,106,255,0.25), rgba(46,207,181,0.12));
+  border: 1px solid rgba(124,106,255,0.32);
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  color: var(--accent-bright);
+  flex-shrink: 0;
+  /* Override the parent's gradient-text fill so the icon stays solid */
+  -webkit-text-fill-color: initial;
+}
+.diario-title-icon svg { width: 24px; height: 24px; display: block; }
 
 .diario-date {
   font-family: 'JetBrains Mono', monospace;
@@ -5654,7 +5672,7 @@ QUE SÍ SE VE</div>
 <div class="diario-wrapper" id="diario-wrapper">
   <div class="diario-header">
     <div>
-      <div class="diario-title" id="diario-title-text">📝 MI DÍA</div>
+      <div class="diario-title" id="diario-title-text"><span class="diario-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></span><span>MI DÍA</span></div>
       <div class="diario-date-nav" style="display:flex; align-items:center; gap:8px; margin-top:4px; flex-wrap:wrap;">
         <button onclick="navDiarioDay(-1)" id="diario-nav-prev" title="Día anterior" aria-label="Día anterior" style="background:transparent; border:1px solid var(--border); color:var(--muted); width:36px; height:36px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:18px; padding:0;">‹</button>
         <div class="diario-date" id="diario-date-display" style="margin:0;"></div>
