@@ -630,8 +630,12 @@ textarea { resize: vertical; min-height: 80px; }
 .cpb-value { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent-bright); font-weight: 500; }
 
 .chat-messages {
-  /* Bounded scroll area — messages stack from bottom (newest near input) */
+  /* Bounded scroll area — messages stack from bottom (newest near input).
+     `dvh` (dynamic viewport height) excludes the iOS Safari URL bar/toolbar,
+     unlike `vh` which includes it — without this, recent messages were
+     hidden under the toolbar on mobile. Old browsers fall back to vh. */
   height: calc(100vh - 280px);
+  height: calc(100dvh - 280px);
   overflow-y: auto;
   padding: 20px 4px;
   display: flex;
@@ -3646,7 +3650,7 @@ footer {
 
 /* --- CHAT --- */
 @media (max-width: 640px) {
-  .chat-messages  { padding: 14px 4px; gap: 12px; height: calc(100vh - 260px); }
+  .chat-messages  { padding: 14px 4px; gap: 12px; height: calc(100vh - 260px); height: calc(100dvh - 260px); }
   .msg-bubble     { max-width: 85%; padding: 10px 14px; }
   .chat-input-row { padding: 12px 20px 14px; gap: 8px; }
   .quick-btns     { padding: 12px 20px 6px; gap: 8px; }
@@ -3676,6 +3680,30 @@ footer {
 @media (max-width: 640px) {
   .cierre-overlay { padding: 16px; }
   .cierre-card    { padding: 20px 16px; border-radius: 14px; }
+}
+
+/* --- iOS auto-zoom fix ---
+   Safari on iOS force-zooms inputs whose computed font-size is <16px.
+   The viewport ends up off-center after blur and the user has to manually
+   re-zoom. Apple does not allow disabling this; the only fix is to make
+   every focusable input/textarea read at >=16px on small screens. */
+@media (max-width: 640px) {
+  .email-login-input,
+  .modal-input,
+  .weight-input-row input,
+  .medida-input,
+  .wl-input,
+  .change-pass-row input,
+  .admin-modal-field input,
+  .admin-modal-field select,
+  .admin-modal-field textarea,
+  .admin-settings-footer input[type="password"],
+  .diario-textarea,
+  .form-wrapper input,
+  .form-wrapper select,
+  .form-wrapper textarea {
+    font-size: 16px;
+  }
 }
 
 /* --- MI DÍA (diario) --- */
@@ -9105,21 +9133,46 @@ function selectColor(el) {
   updatePreview();
 }
 
-function handleLogoUpload(e) {
+async function handleLogoUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    wlLogoDataUrl = ev.target.result;
-    document.getElementById('logo-preview-img').src = wlLogoDataUrl;
-    document.getElementById('logo-preview-img').style.display = 'block';
-    document.getElementById('upload-icon').style.display = 'none';
-    // Update preview
-    document.getElementById('preview-logo-img').src = wlLogoDataUrl;
-    document.getElementById('preview-logo-img').style.display = 'block';
-    document.getElementById('preview-logo-emoji').style.display = 'none';
-  };
-  reader.readAsDataURL(file);
+  // Validate type + size first. Without this a 5MB iPhone photo got encoded
+  // straight to a ~7MB base64 data URL, blew through the 5MB localStorage
+  // quota, and the subsequent setItem() silently failed — coach saw "✅
+  // APLICADO" but the logo vanished on reload.
+  try {
+    validateImageFile(file);
+  } catch (err) {
+    alert('⚠ ' + err.message);
+    e.target.value = '';
+    return;
+  }
+  // Compress to ~400px wide. Logos display at <120px so this is plenty.
+  let dataUrl;
+  try {
+    const blob = await compressImage(file, 400, 0.85);
+    if (!blob) throw new Error('compress returned null');
+    dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = ev => resolve(ev.target.result);
+      reader.onerror = () => reject(new Error('FileReader error'));
+      reader.readAsDataURL(blob);
+    });
+  } catch (err) {
+    console.error('Logo processing failed:', err);
+    alert(lang === 'es'
+      ? '⚠ No pudimos procesar el logo. Probá con otra imagen.'
+      : '⚠ Could not process the logo. Try another image.');
+    e.target.value = '';
+    return;
+  }
+  wlLogoDataUrl = dataUrl;
+  document.getElementById('logo-preview-img').src = wlLogoDataUrl;
+  document.getElementById('logo-preview-img').style.display = 'block';
+  document.getElementById('upload-icon').style.display = 'none';
+  document.getElementById('preview-logo-img').src = wlLogoDataUrl;
+  document.getElementById('preview-logo-img').style.display = 'block';
+  document.getElementById('preview-logo-emoji').style.display = 'none';
 }
 
 function updatePreview() {
@@ -9140,7 +9193,18 @@ function applyWhiteLabel() {
     logo: wlLogoDataUrl,
     savedAt: new Date().toISOString()
   };
-  localStorage.setItem(LS_WL, JSON.stringify(wl));
+  // Wrap in try/catch — even with the logo compression above, a coach who
+  // had a huge prior logo could still trip QuotaExceededError. Surface a
+  // real error instead of silently losing the configuration.
+  try {
+    localStorage.setItem(LS_WL, JSON.stringify(wl));
+  } catch (err) {
+    console.error('Whitelabel save failed:', err);
+    alert(lang === 'es'
+      ? '⚠ No pudimos guardar la configuración. El logo puede ser muy grande — probá con una imagen más chica.'
+      : '⚠ Could not save the configuration. The logo may be too large — try a smaller image.');
+    return;
+  }
   applyWhiteLabelToApp(wl);
 
   const btn = document.querySelector('.btn-apply-wl');
