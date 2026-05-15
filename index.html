@@ -7051,17 +7051,25 @@ async function sendToAI(userMessage, isFirst = false) {
   sendBtn.disabled = true;
   showTyping();
 
+  // Capture the user id at function entry. If a session switch happens during
+  // the await (User A logs out, User B logs in), we abort writes after the
+  // fetch instead of leaking A's reply into B's chat/history.
+  const uidAtStart = currentUser?.id;
+
   // Push the user's turn (or the synthetic opener for the very first session)
-  // BEFORE the fetch. Pushing AFTER the await could race a second send firing
-  // during the typing indicator and break Anthropic's required user/assistant
-  // alternation on the next turn.
+  // BEFORE the fetch. We track whether we pushed so the error path can pop()
+  // the unanswered user turn — otherwise conversationHistory ends with a
+  // user turn and the next send violates Anthropic's strict alternation.
+  let pushedUserTurn = false;
   if (isFirst) {
     const opener = lang === 'es' ? '¡Hola! Empezamos.' : 'Hello! Let\'s start.';
     conversationHistory.push({ role: 'user', content: opener });
     todayConversation.push({ role: 'user', content: opener });
+    pushedUserTurn = true;
   } else if (userMessage) {
     conversationHistory.push({ role: 'user', content: userMessage });
     todayConversation.push({ role: 'user', content: userMessage });
+    pushedUserTurn = true;
 
     // Mark the next assistant reply as a plan delivery if the user asked for one
     // and we don't already have that plan stored for the current ISO week.
@@ -7090,10 +7098,20 @@ async function sendToAI(userMessage, isFirst = false) {
     const data = await response.json();
     const reply = data.content?.[0]?.text;
     if (!reply) throw new Error('Empty response from API');
+
+    // Session-switch guard: if the user changed during the fetch, don't write
+    // A's reply into B's view/history. Treat as a soft abort.
+    if (currentUser?.id !== uidAtStart) {
+      console.warn('[CoachAI] session switched mid-flight; discarding reply');
+      removeTyping();
+      sendBtn.disabled = false;
+      return;
+    }
     removeTyping();
     addMessage(formatResponse(reply), 'coach');
     conversationHistory.push({ role: 'assistant', content: reply });
     todayConversation.push({ role: 'assistant', content: reply });
+    pushedUserTurn = false; // assistant turn balanced the user turn — alternation OK
     saveChatToSupabase(chatMessages, todayConversation).catch(console.error);
 
     // Determine the actual plan type to save. User intent (pendingPlanDelivery)
@@ -7129,6 +7147,13 @@ async function sendToAI(userMessage, isFirst = false) {
     console.error('[CoachAI] sendToAI error:', err?.message || err);
     removeTyping();
     addMessage(lang === 'es' ? '❌ Error de conexión. Intentá de nuevo.' : '❌ Connection error. Please try again.', 'coach');
+    // CRITICAL: pop the unanswered user turn so conversationHistory doesn't
+    // end with role:user. Two consecutive user turns violate Anthropic's
+    // alternation requirement and every subsequent message returns 400.
+    if (pushedUserTurn) {
+      conversationHistory.pop();
+      todayConversation.pop();
+    }
   }
 
   sendBtn.disabled = false;
@@ -7339,6 +7364,11 @@ function navDiarioDay(offset) {
 
 async function saveDiario() {
   if (savingDiario) return;
+  // Capture who's logged in NOW. If the session switches during the macros
+  // AI call (User A → User B), we bail before writing — otherwise A's meal
+  // text would land in B's progreso_diario row.
+  const uidAtStart = currentUser?.id;
+  if (!uidAtStart) return;
 
   const desayuno = document.getElementById('d-desayuno').value.trim();
   const almuerzo = document.getElementById('d-almuerzo').value.trim();
@@ -7391,6 +7421,15 @@ async function saveDiario() {
       ejercicios_realizados: ejercicios,
       notas_entreno: '',
     };
+
+    // Session-switch guard: bail if the logged-in user changed during the
+    // macros AI await. Without this, A's meal text could land in B's row.
+    if (currentUser?.id !== uidAtStart) {
+      console.warn('[CoachAI] saveDiario aborted — session switched mid-flight');
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+      return;
+    }
 
     btn.textContent = '⏳ Guardando...';
 
@@ -7446,7 +7485,12 @@ function renderDiarioHistory(logs) {
 
 function buildDiarioSummary() {
   if (!recentDiario || recentDiario.length === 0) return '';
-  return recentDiario.map(day => {
+  // Cap at the last 7 days. The comment in buildSystemPrompt promises this
+  // but the underlying loadRecentDiario(90) fetches 3 months; without this
+  // slice, every chat message ships 90 days of meals/training to Claude —
+  // tens of KB extra per request, risks hitting the 200K token cap, and
+  // costs proportionally more.
+  return recentDiario.slice(-7).map(day => {
     const comidas = [
       day.desayuno ? `Desayuno: ${day.desayuno}` : '',
       day.almuerzo ? `Almuerzo: ${day.almuerzo}` : '',
@@ -7551,6 +7595,11 @@ function previewFotoInicial(event) {
 
 async function uploadFoto(file, tipo = 'progreso') {
   if (!sbClient || !currentUser) return null;
+  // Lock the user id at call time. compressImage + storage upload can take
+  // seconds; without this, a session switch mid-upload would land User A's
+  // blob in User B's `fotos_progreso` row (path goes to A's folder, DB row
+  // reads currentUser.id = B).
+  const uid = currentUser.id;
   validateImageFile(file);
   const blob = await compressImage(file);
   if (!blob) throw new Error(lang === 'es' ? 'No pudimos procesar la imagen. Probá con otra.' : 'Could not process the image. Try another.');
@@ -7558,11 +7607,11 @@ async function uploadFoto(file, tipo = 'progreso') {
   // Append a random suffix so two uploads in the same millisecond don't collide
   // on the storage path (upsert:false would 409 the second one).
   const rand = (crypto.randomUUID?.() || Math.random().toString(36)).slice(0, 8);
-  const path = `${currentUser.id}/${fecha}-${Date.now()}-${rand}.jpg`;
+  const path = `${uid}/${fecha}-${Date.now()}-${rand}.jpg`;
   const { error: upErr } = await sbClient.storage.from('progress-photos').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
   if (upErr) throw upErr;
   const { data: { publicUrl } } = sbClient.storage.from('progress-photos').getPublicUrl(path);
-  const { error: dbErr } = await sbClient.from('fotos_progreso').insert([{ usuario_id: currentUser.id, fecha, url_foto: publicUrl, tipo }]);
+  const { error: dbErr } = await sbClient.from('fotos_progreso').insert([{ usuario_id: uid, fecha, url_foto: publicUrl, tipo }]);
   if (dbErr) {
     // Roll back the storage blob so we don't accumulate orphans on DB failure.
     sbClient.storage.from('progress-photos').remove([path]).catch(() => {});
