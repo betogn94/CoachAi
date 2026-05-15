@@ -5627,7 +5627,11 @@ QUE SÍ SE VE</div>
   <div class="diario-header">
     <div>
       <div class="diario-title" id="diario-title-text">📝 MI DÍA</div>
-      <div class="diario-date" id="diario-date-display"></div>
+      <div class="diario-date-nav" style="display:flex; align-items:center; gap:8px; margin-top:2px;">
+        <button onclick="navDiarioDay(-1)" id="diario-nav-prev" title="Día anterior" style="background:transparent; border:1px solid var(--border); color:var(--muted); width:24px; height:24px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px; padding:0;">‹</button>
+        <div class="diario-date" id="diario-date-display" style="margin:0;"></div>
+        <button onclick="navDiarioDay(1)" id="diario-nav-next" title="Día siguiente" style="background:transparent; border:1px solid var(--border); color:var(--muted); width:24px; height:24px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px; padding:0;">›</button>
+      </div>
     </div>
     <button class="btn-back-chat" onclick="showHome()" id="diario-back-btn">← Inicio</button>
   </div>
@@ -5671,6 +5675,11 @@ QUE SÍ SE VE</div>
       <div class="macro-est-badge">🫒 <strong id="m-fat">—</strong>g grasa</div>
     </div>
     <div id="macros-estimando" style="display:none;padding:12px 22px;font-size:12px;color:var(--muted)">⏳ Estimando macros con IA...</div>
+    <!-- Shown when estimateMacros returned null. Previously, a failed macros call
+         silently saved a row with all-null kcal/protein and the user had no idea. -->
+    <div id="macros-failed" style="display:none;margin:0 22px 12px;padding:10px 14px;font-size:12px;color:rgba(255,196,0,0.95);background:rgba(255,196,0,0.08);border-left:3px solid rgba(255,196,0,0.5);border-radius:8px;line-height:1.5;">
+      ⚠ No pudimos estimar los macros automáticamente. Las comidas se guardaron igual — los valores de kcal/proteína quedan vacíos para este día.
+    </div>
   </div>
 
   <!-- ENTRENAMIENTO -->
@@ -5877,22 +5886,22 @@ function detectPlanInReply(reply) {
   return null;
 }
 
-async function saveDiarioToSupabase(data) {
+async function saveDiarioToSupabase(data, fecha = getTodayKey()) {
   if (!sbClient || !currentUser) return;
   await sbClient.from('progreso_diario').upsert(
-    { usuario_id: currentUser.id, fecha: getTodayKey(), ...data },
+    { usuario_id: currentUser.id, fecha, ...data },
     { onConflict: 'usuario_id,fecha' }
   );
 }
 
-async function loadTodayDiario() {
+async function loadTodayDiario(fecha = getTodayKey()) {
   if (!sbClient || !currentUser) return null;
   // `.maybeSingle()` returns `{data:null, error:null}` cleanly when the row
   // doesn't exist — `.single()` would log a PGRST116 error every visit.
   const { data } = await sbClient.from('progreso_diario')
     .select('*')
     .eq('usuario_id', currentUser.id)
-    .eq('fecha', getTodayKey())
+    .eq('fecha', fecha)
     .maybeSingle();
   return data;
 }
@@ -7180,12 +7189,39 @@ async function showDiario() {
   hideAllSections();
   document.getElementById('diario-wrapper').style.display = 'block';
   document.getElementById('diario-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  document.getElementById('diario-date-display').textContent = new Date().toLocaleDateString(lang === 'es' ? 'es-AR' : 'en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  // Show date being viewed (default = today). The viewedDiarioDate state is set
+  // by navDiarioDay; null means today.
+  const targetDate = viewedDiarioDate || getTodayKey();
+  const isToday = targetDate === getTodayKey();
+  const dateObj = new Date(targetDate + 'T12:00:00');
+  document.getElementById('diario-date-display').textContent =
+    (isToday ? '' : (lang === 'es' ? '⏪ ' : '⏪ ')) +
+    dateObj.toLocaleDateString(lang === 'es' ? 'es-AR' : 'en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  // Disable next-day button when we're already on today
+  const nextBtn = document.getElementById('diario-nav-next');
+  if (nextBtn) {
+    nextBtn.disabled = isToday;
+    nextBtn.style.opacity = isToday ? '0.35' : '1';
+    nextBtn.style.cursor = isToday ? 'not-allowed' : 'pointer';
+  }
+  // Disable prev-day button at the back edge of history
+  const prevBtn = document.getElementById('diario-nav-prev');
+  if (prevBtn) {
+    const lowerBound = new Date(getTodayKey() + 'T12:00:00');
+    lowerBound.setDate(lowerBound.getDate() - MAX_DIARIO_HISTORY_DAYS);
+    const atFloor = targetDate <= formatLocalDate(lowerBound);
+    prevBtn.disabled = atFloor;
+    prevBtn.style.opacity = atFloor ? '0.35' : '1';
+    prevBtn.style.cursor = atFloor ? 'not-allowed' : 'pointer';
+  }
 
   // Reset to empty state first
   ['d-desayuno','d-almuerzo','d-merienda','d-cena','d-ejercicios'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('macros-estimados').style.display = 'none';
   document.getElementById('macros-estimando').style.display = 'none';
+  const macrosFailed = document.getElementById('macros-failed');
+  if (macrosFailed) macrosFailed.style.display = 'none';
   entrenóHoy = null;
   document.getElementById('chip-si').classList.remove('selected');
   document.getElementById('chip-no').classList.remove('selected');
@@ -7206,29 +7242,30 @@ async function showDiario() {
     }
   }
 
-  // If a row already exists for today, pre-fill so the user can edit it.
-  // Previously we hard-locked the button, trapping users who tapped Save by mistake.
+  // If a row already exists for the viewed date, pre-fill so the user can edit it.
   const btn = document.getElementById('btn-save-diario');
-  const today = await loadTodayDiario();
-  if (today) {
-    document.getElementById('d-desayuno').value = today.desayuno || '';
-    document.getElementById('d-almuerzo').value = today.almuerzo || '';
-    document.getElementById('d-merienda').value = today.merienda || '';
-    document.getElementById('d-cena').value = today.cena || '';
-    document.getElementById('d-ejercicios').value = today.ejercicios_realizados || '';
-    if (today.entreno === true)  setEntrenó(true);
-    else if (today.entreno === false) setEntrenó(false);
-    if (today.calorias_consumidas || today.proteinas_g) {
+  const existing = await loadTodayDiario(targetDate);
+  if (existing) {
+    document.getElementById('d-desayuno').value = existing.desayuno || '';
+    document.getElementById('d-almuerzo').value = existing.almuerzo || '';
+    document.getElementById('d-merienda').value = existing.merienda || '';
+    document.getElementById('d-cena').value = existing.cena || '';
+    document.getElementById('d-ejercicios').value = existing.ejercicios_realizados || '';
+    if (existing.entreno === true)  setEntrenó(true);
+    else if (existing.entreno === false) setEntrenó(false);
+    if (existing.calorias_consumidas || existing.proteinas_g) {
       showMacrosEstimados({
-        calorias_consumidas: today.calorias_consumidas,
-        proteinas_g: today.proteinas_g,
-        carbos_g: today.carbos_g,
-        grasas_g: today.grasas_g,
+        calorias_consumidas: existing.calorias_consumidas,
+        proteinas_g: existing.proteinas_g,
+        carbos_g: existing.carbos_g,
+        grasas_g: existing.grasas_g,
       });
     }
     btn.textContent = lang === 'es' ? '✏️ ACTUALIZAR MI DÍA' : '✏️ UPDATE MY DAY';
   } else {
-    btn.textContent = lang === 'es' ? '💾 GUARDAR MI DÍA' : '💾 SAVE MY DAY';
+    btn.textContent = isToday
+      ? (lang === 'es' ? '💾 GUARDAR MI DÍA' : '💾 SAVE MY DAY')
+      : (lang === 'es' ? '💾 GUARDAR ESTE DÍA' : '💾 SAVE THIS DAY');
   }
   btn.disabled = false;
 }
@@ -7269,6 +7306,28 @@ async function estimateMacros(desayuno, almuerzo, merienda, cena) {
 // fire saveDiario twice — two AI macro calls billed, possible duplicate writes.
 let savingDiario = false;
 
+// Date currently being viewed/edited in Mi Día. Null means today; non-null
+// values are YYYY-MM-DD strings. Bounded between user's account creation date
+// and today (no future, no pre-account history).
+let viewedDiarioDate = null;
+const MAX_DIARIO_HISTORY_DAYS = 7;
+
+function navDiarioDay(offset) {
+  const today = getTodayKey();
+  const cur = viewedDiarioDate || today;
+  const d = new Date(cur + 'T12:00:00');
+  d.setDate(d.getDate() + offset);
+  const next = formatLocalDate(d);
+  // Don't navigate past today
+  if (next > today) return;
+  // Don't go further back than MAX_DIARIO_HISTORY_DAYS
+  const lowerBound = new Date(today + 'T12:00:00');
+  lowerBound.setDate(lowerBound.getDate() - MAX_DIARIO_HISTORY_DAYS);
+  if (next < formatLocalDate(lowerBound)) return;
+  viewedDiarioDate = next === today ? null : next;
+  showDiario();
+}
+
 async function saveDiario() {
   if (savingDiario) return;
 
@@ -7299,9 +7358,19 @@ async function saveDiario() {
   document.getElementById('macros-estimados').style.display = 'none';
 
   try {
-    // Estimate macros with AI (silent fallback if it fails)
-    const macros = await estimateMacros(desayuno, almuerzo, merienda, cena).catch(() => null);
+    // Estimate macros with AI. Null result means the call failed or returned
+    // unparseable JSON — surface a soft warning instead of silently saving
+    // a row with all-null macros (previous behavior left the user wondering
+    // why their kcal/protein never appeared).
+    const macros = hasAnyMeal
+      ? await estimateMacros(desayuno, almuerzo, merienda, cena).catch(() => null)
+      : null;
     document.getElementById('macros-estimando').style.display = 'none';
+    const macrosFailed = document.getElementById('macros-failed');
+    if (macrosFailed) {
+      const shouldWarn = hasAnyMeal && !macros;
+      macrosFailed.style.display = shouldWarn ? 'block' : 'none';
+    }
 
     const data = {
       desayuno, almuerzo, merienda, cena,
@@ -7316,14 +7385,19 @@ async function saveDiario() {
 
     btn.textContent = '⏳ Guardando...';
 
-    await saveDiarioToSupabase(data);
+    // Save against the date the user is viewing — defaults to today, but allows
+    // editing yesterday/this week's entries via the prev/next chevrons.
+    const targetDate = viewedDiarioDate || getTodayKey();
+    await saveDiarioToSupabase(data, targetDate);
     if (entrenóHoy) saveTrainedDayToSupabase().catch(console.error);
     recentDiario = await loadRecentDiario();
     btn.textContent = '✅ DÍA GUARDADO';
     setTimeout(() => {
       btn.textContent = originalLabel;
       btn.disabled = false;
-      showChat();
+      // Only auto-redirect to chat when the user saved TODAY. If they're editing
+      // a past day, keep them in the viewer so they can navigate or close.
+      if (!viewedDiarioDate) showChat();
     }, 1500);
   } catch(e) {
     btn.textContent = '❌ Error al guardar';
@@ -8084,6 +8158,13 @@ Use the real numbers, be specific.${photoInstructions}`;
 // HOME SCREEN
 // ============================
 function showHome() {
+  // JS fallback for the CSS :has() guard at the top of the file. On Safari <15.4
+  // and similar older browsers without :has(), the rule that disables the logo
+  // click during onboarding doesn't apply. This check enforces the same
+  // protection regardless of browser: if the onboarding form is visible, the
+  // user shouldn't be able to escape to Home as a stale-cache "Beto" or empty user.
+  const form = document.querySelector('.form-wrapper');
+  if (form && form.style.display === 'block') return;
   hideAllSections();
   const wrapper = document.getElementById('home-wrapper');
   wrapper.style.display = 'block';
