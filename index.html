@@ -5627,10 +5627,11 @@ QUE SÍ SE VE</div>
   <div class="diario-header">
     <div>
       <div class="diario-title" id="diario-title-text">📝 MI DÍA</div>
-      <div class="diario-date-nav" style="display:flex; align-items:center; gap:8px; margin-top:2px;">
-        <button onclick="navDiarioDay(-1)" id="diario-nav-prev" title="Día anterior" style="background:transparent; border:1px solid var(--border); color:var(--muted); width:24px; height:24px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px; padding:0;">‹</button>
+      <div class="diario-date-nav" style="display:flex; align-items:center; gap:8px; margin-top:4px; flex-wrap:wrap;">
+        <button onclick="navDiarioDay(-1)" id="diario-nav-prev" title="Día anterior" aria-label="Día anterior" style="background:transparent; border:1px solid var(--border); color:var(--muted); width:36px; height:36px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:18px; padding:0;">‹</button>
         <div class="diario-date" id="diario-date-display" style="margin:0;"></div>
-        <button onclick="navDiarioDay(1)" id="diario-nav-next" title="Día siguiente" style="background:transparent; border:1px solid var(--border); color:var(--muted); width:24px; height:24px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px; padding:0;">›</button>
+        <button onclick="navDiarioDay(1)" id="diario-nav-next" title="Día siguiente" aria-label="Día siguiente" style="background:transparent; border:1px solid var(--border); color:var(--muted); width:36px; height:36px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:18px; padding:0;">›</button>
+        <button onclick="navDiarioToToday()" id="diario-nav-today" title="Volver a hoy" style="display:none; background:transparent; border:1px solid var(--accent); color:var(--accent-bright); height:36px; padding:0 12px; border-radius:8px; cursor:pointer; font-size:11px; letter-spacing:1px; font-family:'JetBrains Mono', monospace;">→ HOY</button>
       </div>
     </div>
     <button class="btn-back-chat" onclick="showHome()" id="diario-back-btn">← Inicio</button>
@@ -6108,6 +6109,13 @@ function resetAppState() {
   selections = { objetivo: '', nivel: '' };
   cierresSemanales = [];
   fotosProgreso = [];
+  // Reset session-scoped UI state too. Otherwise the next user lands on the
+  // previous user's "yesterday" view in Mi Día, or hits a permanently-disabled
+  // cierre button because cierreInflight from the previous session is still set.
+  viewedDiarioDate = null;
+  savingDiario = false;
+  cierreInflight = false;
+  lastCierrePending = null;
   const chatBox = document.getElementById('chat-messages');
   if (chatBox) chatBox.innerHTML = '';
   // Wipe form fields so a new user doesn't see prior values pre-filled
@@ -7249,6 +7257,10 @@ async function showDiario() {
     prevBtn.style.opacity = atFloor ? '0.35' : '1';
     prevBtn.style.cursor = atFloor ? 'not-allowed' : 'pointer';
   }
+  // Show "→ HOY" only when the user is viewing a past day. Gives an explicit
+  // way back instead of forcing them to chevron-forward one day at a time.
+  const todayBtn = document.getElementById('diario-nav-today');
+  if (todayBtn) todayBtn.style.display = isToday ? 'none' : 'inline-flex';
 
   // Reset to empty state first
   ['d-desayuno','d-almuerzo','d-merienda','d-cena','d-ejercicios'].forEach(id => document.getElementById(id).value = '');
@@ -7359,6 +7371,14 @@ function navDiarioDay(offset) {
   lowerBound.setDate(lowerBound.getDate() - MAX_DIARIO_HISTORY_DAYS);
   if (next < formatLocalDate(lowerBound)) return;
   viewedDiarioDate = next === today ? null : next;
+  showDiario();
+}
+
+// Jump back to today from any past date. Surfaced as a "→ HOY" button so the
+// user has an explicit, visible way out of past-day editing — previously the
+// only way back was to chevron-next day by day.
+function navDiarioToToday() {
+  viewedDiarioDate = null;
   showDiario();
 }
 
@@ -7919,8 +7939,17 @@ function openCierreSemana(weekNum) {
   cierrePreview.src = '';
   document.getElementById('cierre-foto-placeholder').style.display = 'block';
   document.getElementById('cierre-foto-input').value = '';
-  document.getElementById('btn-generar-analisis').disabled = false;
-  document.getElementById('btn-generar-analisis').textContent = lang === 'es' ? '✨ Generar análisis de mi semana' : '✨ Generate my week analysis';
+  // If there's an analysis still running (user closed the modal mid-flight
+  // and reopened), reflect that in the button instead of leaving it idle —
+  // otherwise a tap silently no-ops because cierreInflight is still true.
+  const generarBtn = document.getElementById('btn-generar-analisis');
+  if (cierreInflight) {
+    generarBtn.disabled = true;
+    generarBtn.textContent = lang === 'es' ? '⏳ Análisis en curso...' : '⏳ Analysis in progress...';
+  } else {
+    generarBtn.disabled = false;
+    generarBtn.textContent = lang === 'es' ? '✨ Generar análisis de mi semana' : '✨ Generate my week analysis';
+  }
 
   // Reset & async-fill the baseline ("punto de inicio") slot
   const inicialSlot = document.getElementById('cierre-foto-inicial-slot');
@@ -7947,6 +7976,13 @@ function pickBaselinePhoto(fotos) {
 }
 
 function closeCierrePanel() {
+  // Revoke the cierre photo preview's object URL so we don't leak it when the
+  // user picks a photo, closes the modal without uploading, and never returns.
+  const preview = document.getElementById('cierre-foto-preview');
+  if (preview?.dataset.objUrl) {
+    URL.revokeObjectURL(preview.dataset.objUrl);
+    delete preview.dataset.objUrl;
+  }
   document.getElementById('cierre-overlay').classList.remove('open');
 }
 
