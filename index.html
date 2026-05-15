@@ -5531,8 +5531,8 @@ QUE SÍ SE VE</div>
 </div>
 
 <!-- LIGHTBOX -->
-<div class="foto-lightbox" id="foto-lightbox" onclick="closeLightbox()">
-  <button class="foto-lightbox-close" onclick="closeLightbox()">✕</button>
+<div class="foto-lightbox" id="foto-lightbox" onclick="closeLightbox()" role="dialog" aria-label="Foto en grande">
+  <button class="foto-lightbox-close" onclick="closeLightbox()" aria-label="Cerrar foto">✕</button>
   <img id="lightbox-img" src="" alt="">
 </div>
 
@@ -7756,6 +7756,14 @@ function closeLightbox() {
   document.getElementById('foto-lightbox').classList.remove('open');
 }
 
+// Global Escape-key handler: close the lightbox if open. Standard keyboard UX —
+// users expect Esc to dismiss overlays without hunting for the close button.
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const lightbox = document.getElementById('foto-lightbox');
+  if (lightbox?.classList.contains('open')) closeLightbox();
+});
+
 // ============================
 // SEMANAS DE PROGRESO
 // ============================
@@ -8134,11 +8142,71 @@ async function ejecutarCierreSemana() {
 // row. Useful when the user uploaded a different baseline/current photo after
 // the original cierre and wants the AI to consider them. Confirms before
 // burning a fresh Claude vision call.
+// Client-side rate limit on weekly analysis regeneration. Each call is one
+// Claude vision request (~5-10¢). Without this, an attacker who got past
+// the confirm() (or a scripted abuser) could fire the function in a loop
+// from devtools and drain the API budget within minutes.
+// SECURITY NOTE: this is client-side and bypassable — proper protection
+// requires server-side rate-limiting via an edge function. This is a
+// best-effort budget protector for the common case.
+const REGEN_MIN_GAP_MS = 60 * 1000;       // 60s between regenerations of the same week
+const REGEN_DAILY_CAP_PER_USER = 5;        // max 5 regenerations/day per user
+function checkRegenRateLimit(userId, weekNum) {
+  const key = 'coachai_regen_history';
+  let store = {};
+  try { store = JSON.parse(localStorage.getItem(key) || '{}'); } catch(e) {}
+  const userStore = store[userId] || { perWeek: {}, daily: [] };
+  // Cleanup daily entries older than 24h
+  const now = Date.now();
+  userStore.daily = (userStore.daily || []).filter(ts => now - ts < 86400000);
+  if (userStore.daily.length >= REGEN_DAILY_CAP_PER_USER) {
+    return { ok: false, reason: 'daily' };
+  }
+  const lastForWeek = userStore.perWeek?.[weekNum] || 0;
+  if (now - lastForWeek < REGEN_MIN_GAP_MS) {
+    const waitSec = Math.ceil((REGEN_MIN_GAP_MS - (now - lastForWeek)) / 1000);
+    return { ok: false, reason: 'cooldown', waitSec };
+  }
+  return { ok: true };
+}
+function recordRegenAttempt(userId, weekNum) {
+  const key = 'coachai_regen_history';
+  let store = {};
+  try { store = JSON.parse(localStorage.getItem(key) || '{}'); } catch(e) {}
+  const userStore = store[userId] || { perWeek: {}, daily: [] };
+  userStore.perWeek = userStore.perWeek || {};
+  userStore.perWeek[weekNum] = Date.now();
+  userStore.daily = (userStore.daily || []).filter(ts => Date.now() - ts < 86400000);
+  userStore.daily.push(Date.now());
+  store[userId] = userStore;
+  try { localStorage.setItem(key, JSON.stringify(store)); } catch(e) {}
+}
+
 async function regenerarAnalisisSemana(weekNum) {
+  if (!currentUser) return;
+
+  // Rate-limit check BEFORE confirm — fail fast if user is over their cap.
+  const limit = checkRegenRateLimit(currentUser.id, weekNum);
+  if (!limit.ok) {
+    if (limit.reason === 'daily') {
+      alert(lang === 'es'
+        ? `⏳ Llegaste al máximo de ${REGEN_DAILY_CAP_PER_USER} regeneraciones por día. Probá mañana.`
+        : `⏳ You've hit the daily cap of ${REGEN_DAILY_CAP_PER_USER} regenerations. Try again tomorrow.`);
+    } else {
+      alert(lang === 'es'
+        ? `⏳ Esperá ${limit.waitSec}s antes de regenerar esta semana de vuelta.`
+        : `⏳ Wait ${limit.waitSec}s before regenerating this week again.`);
+    }
+    return;
+  }
+
   const ok = confirm(lang === 'es'
     ? '¿Generar un nuevo análisis para esta semana? (consume una llamada a la IA)'
     : 'Generate a new analysis for this week? (uses one AI call)');
   if (!ok) return;
+
+  const uidAtStart = currentUser.id;
+  recordRegenAttempt(uidAtStart, weekNum);
 
   const btn = document.getElementById(`btn-regen-${weekNum}`);
   if (btn) { btn.disabled = true; btn.textContent = lang === 'es' ? '⏳ REGENERANDO...' : '⏳ REGENERATING...'; }
@@ -8162,8 +8230,14 @@ async function regenerarAnalisisSemana(weekNum) {
     const analisis = await generateWeeklyAnalysis(nombre, weekNum, stats, objetivo, lang, fotoUrl, fotoInicialUrl);
     if (!analisis) throw new Error('La IA no devolvió respuesta');
 
+    // Session-switch guard
+    if (currentUser?.id !== uidAtStart) {
+      console.warn('[CoachAI] regen aborted — session switched mid-flight');
+      return;
+    }
+
     await sbClient.from('cierres_semanales').upsert([{
-      usuario_id: currentUser.id,
+      usuario_id: uidAtStart,
       semana_num: weekNum,
       fecha_inicio: range.start,
       fecha_fin: range.end,
@@ -10051,6 +10125,26 @@ async function adminDeleteStudent() {
     'progreso_peso','progreso_medidas','cargas_ejercicios'
   ];
   try {
+    // Remove all of this user's photo blobs from storage BEFORE deleting the
+    // DB rows. Otherwise the bucket accumulates orphan files indefinitely —
+    // GDPR/right-to-be-forgotten violation, and the storage bill grows.
+    // Wrapped in its own try/catch — a storage failure should NOT block the
+    // DB cleanup (privacy of the row data takes priority).
+    try {
+      const { data: files, error: listErr } = await sbClient.storage
+        .from('progress-photos').list(uid);
+      if (listErr) {
+        console.warn('Photo cleanup: storage list failed, continuing with DB delete:', listErr);
+      } else if (files && files.length > 0) {
+        const paths = files.map(f => `${uid}/${f.name}`);
+        const { error: rmErr } = await sbClient.storage
+          .from('progress-photos').remove(paths);
+        if (rmErr) console.warn('Photo cleanup: storage remove failed:', rmErr);
+      }
+    } catch (storageErr) {
+      console.warn('Photo cleanup error (non-blocking):', storageErr);
+    }
+
     for (const t of childTables) {
       const { error } = await sbClient.from(t).delete().eq('usuario_id', uid);
       if (error) throw new Error(`Error en ${t}: ${error.message}`);
