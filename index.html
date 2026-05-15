@@ -7007,7 +7007,15 @@ async function sendToAI(userMessage, isFirst = false) {
   sendBtn.disabled = true;
   showTyping();
 
-  if (userMessage) {
+  // Push the user's turn (or the synthetic opener for the very first session)
+  // BEFORE the fetch. Pushing AFTER the await could race a second send firing
+  // during the typing indicator and break Anthropic's required user/assistant
+  // alternation on the next turn.
+  if (isFirst) {
+    const opener = lang === 'es' ? '¡Hola! Empezamos.' : 'Hello! Let\'s start.';
+    conversationHistory.push({ role: 'user', content: opener });
+    todayConversation.push({ role: 'user', content: opener });
+  } else if (userMessage) {
     conversationHistory.push({ role: 'user', content: userMessage });
     todayConversation.push({ role: 'user', content: userMessage });
 
@@ -7021,16 +7029,12 @@ async function sendToAI(userMessage, isFirst = false) {
   }
 
   try {
-    const messages = isFirst
-      ? [{ role: 'user', content: lang === 'es' ? '¡Hola! Empezamos.' : 'Hello! Let\'s start.' }]
-      : conversationHistory;
-
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         system: buildSystemPrompt(),
-        messages
+        messages: conversationHistory
       })
     });
 
@@ -7044,25 +7048,26 @@ async function sendToAI(userMessage, isFirst = false) {
     if (!reply) throw new Error('Empty response from API');
     removeTyping();
     addMessage(formatResponse(reply), 'coach');
-    // When isFirst, also push the synthetic user opener so conversationHistory
-    // always starts with role:'user' and alternates correctly for Anthropic.
-    if (isFirst) {
-      const opener = lang === 'es' ? '¡Hola! Empezamos.' : 'Hello! Let\'s start.';
-      conversationHistory.push({ role: 'user', content: opener });
-      todayConversation.push({ role: 'user', content: opener });
-    }
     conversationHistory.push({ role: 'assistant', content: reply });
     todayConversation.push({ role: 'assistant', content: reply });
     saveChatToSupabase(chatMessages, todayConversation).catch(console.error);
 
-    // Determine the actual plan type from the REPLY content (source of truth).
-    // Falls back to pendingPlanDelivery hint from user message if reply isn't clear.
+    // Determine the actual plan type to save. User intent (pendingPlanDelivery)
+    // wins over keyword detection on the reply: detectPlanInReply can false-
+    // positive on a routine reply that mentions "desayuno" in pre-workout
+    // timing advice, which would clobber the dieta slot with workout content.
     if (reply && reply.length > 400) {
       const tipoFromReply = detectPlanInReply(reply);
-      const tipo = tipoFromReply || pendingPlanDelivery;
+      const tipo = pendingPlanDelivery || tipoFromReply;
+
+      if (pendingPlanDelivery && tipoFromReply && pendingPlanDelivery !== tipoFromReply) {
+        console.warn('[CoachAI] plan-type mismatch — user asked', pendingPlanDelivery,
+                     ', reply scan says', tipoFromReply, '. Trusting user intent.');
+      }
+
       if (tipo && (!weeklyPlans[tipo] || weeklyPlans[tipo].closed || tipoFromReply)) {
-        // Only persist if it's a fresh plan OR the reply explicitly contains plan content
-        // (tipoFromReply truthy means the AI actually delivered a plan, not just a casual mention)
+        // Only persist if it's a fresh slot OR the reply explicitly contains plan
+        // content (tipoFromReply truthy means the AI actually delivered a plan).
         pendingPlanDelivery = null;
         const saved = await saveWeeklyPlan(tipo, reply);
         weeklyPlans[tipo] = saved || {
