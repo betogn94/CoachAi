@@ -7001,7 +7001,11 @@ function addMessage(content, type, skipTrack = false) {
   const container = document.getElementById('chat-messages');
   const div = document.createElement('div');
   div.className = `msg ${type}`;
-  div.innerHTML = `<div class="msg-avatar">${type === 'coach' ? '🤖' : '👤'}</div><div class="msg-bubble">${content}</div>`;
+  // User content is raw text — must be escaped to prevent XSS via what the user
+  // types in chat. Coach content already went through formatResponse() which
+  // escapes input before applying markdown, so it's safe to insert as HTML.
+  const safeContent = type === 'user' ? _esc(content) : content;
+  div.innerHTML = `<div class="msg-avatar">${type === 'coach' ? '🤖' : '👤'}</div><div class="msg-bubble">${safeContent}</div>`;
   container.appendChild(div);
   if (type === 'coach') {
     div.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -7027,7 +7031,12 @@ function removeTyping() {
 }
 
 function formatResponse(text) {
-  return text
+  // CRITICAL: escape HTML chars FIRST so the AI cannot smuggle <script> or
+  // <img onerror> into the chat output. Markdown transforms below only emit
+  // our own safe tags (<strong>, <em>, <li>, <br>, <ul>) — `$1` is now
+  // guaranteed to be plain text without raw `<`/`>`/`"`.
+  return String(text || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/^### (.+)$/gm, '<strong style="display:block;margin-top:10px;color:var(--accent-bright)">$1</strong>')
@@ -7416,6 +7425,10 @@ function renderDiarioHistory(logs) {
     return;
   }
   container.innerHTML = logs.map(day => {
+    // _esc all user-typed fields. Otherwise an alumno typing
+    // `<img src=x onerror=...>` into a meal field would execute when this
+    // history list renders — both in their own session and in the coach's
+    // admin view (which renders the same row via adminBuildSemanasHTML).
     const comidas = [day.desayuno, day.almuerzo, day.merienda, day.cena].filter(Boolean);
     const comidasText = comidas.length ? comidas.join(' · ') : (lang==='es'?'Sin comidas registradas':'No meals logged');
     const entrenoText = day.entreno === true
@@ -7423,10 +7436,10 @@ function renderDiarioHistory(logs) {
       : day.entreno === false ? (lang==='es'?'❌ No entrenó':'❌ Rest day') : '—';
     const macros = day.calorias_consumidas ? `${day.calorias_consumidas} kcal · ${day.proteinas_g||'?'}g prot` : '';
     return `<div class="log-day-card">
-      <div class="log-day-date">${day.fecha}</div>
-      <div class="log-day-row">🍽️ <strong>${lang==='es'?'Comidas':'Meals'}:</strong> ${comidasText.slice(0,120)}${comidasText.length>120?'...':''}</div>
-      <div class="log-day-row">💪 <strong>${lang==='es'?'Entreno':'Training'}:</strong> ${entrenoText.slice(0,100)}</div>
-      ${macros ? `<div class="log-day-row">📊 ${macros}</div>` : ''}
+      <div class="log-day-date">${_esc(day.fecha)}</div>
+      <div class="log-day-row">🍽️ <strong>${lang==='es'?'Comidas':'Meals'}:</strong> ${_esc(comidasText.slice(0,120))}${comidasText.length>120?'...':''}</div>
+      <div class="log-day-row">💪 <strong>${lang==='es'?'Entreno':'Training'}:</strong> ${_esc(entrenoText.slice(0,100))}</div>
+      ${macros ? `<div class="log-day-row">📊 ${_esc(macros)}</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -7758,29 +7771,32 @@ async function renderSemanas() {
         </div>`;
     }
 
-    // AI analysis
+    // AI analysis — `cierre.analisis` is AI-generated text. Even though Claude
+    // is unlikely to emit raw HTML, prompt-injection from user inputs (name,
+    // comidas) could coerce it. Render through formatResponse which escapes
+    // first and then applies the same markdown-lite treatment as chat replies.
     if (cierre?.analisis) {
       bodyHtml += `
         <div class="semana-analisis">
           <div class="semana-analisis-title">📊 ${lang==='es'?'ANÁLISIS DE LA SEMANA':'WEEK ANALYSIS'}</div>
-          ${cierre.analisis}
+          ${formatResponse(cierre.analisis)}
           <button onclick="regenerarAnalisisSemana(${w})" id="btn-regen-${w}" style="margin-top:12px; background:transparent; border:1px solid rgba(124,106,255,0.4); color:var(--accent-bright); padding:6px 12px; border-radius:6px; cursor:pointer; font-size:10px; letter-spacing:1.5px; font-family:'JetBrains Mono', monospace;">
             🔁 ${lang==='es'?'REGENERAR ANÁLISIS':'REGENERATE ANALYSIS'}
           </button>
         </div>`;
     }
 
-    // Daily logs for this week
+    // Daily logs for this week — escape every user-typed string
     if (stats.wLogs.length > 0) {
       bodyHtml += `<div class="semana-logs">`;
       bodyHtml += stats.wLogs.map(l => {
         const comidas = [l.desayuno, l.almuerzo, l.merienda, l.cena].filter(Boolean).join(' · ');
         const entreno = l.entreno === true ? `💪 ${l.ejercicios_realizados || (lang==='es'?'Entrenó':'Trained')}` : l.entreno === false ? (lang==='es'?'❌ Descanso':'❌ Rest') : '';
         return `<div class="semana-log-item">
-          <div class="semana-log-date">${formatDateShort(l.fecha)}</div>
-          ${comidas ? `<div>${comidas.slice(0, 80)}${comidas.length > 80 ? '...' : ''}</div>` : ''}
-          ${entreno ? `<div>${entreno}</div>` : ''}
-          ${l.calorias_consumidas ? `<div>📊 ${l.calorias_consumidas} kcal</div>` : ''}
+          <div class="semana-log-date">${_esc(formatDateShort(l.fecha))}</div>
+          ${comidas ? `<div>${_esc(comidas.slice(0, 80))}${comidas.length > 80 ? '...' : ''}</div>` : ''}
+          ${entreno ? `<div>${_esc(entreno)}</div>` : ''}
+          ${l.calorias_consumidas ? `<div>📊 ${_esc(String(l.calorias_consumidas))} kcal</div>` : ''}
         </div>`;
       }).join('');
       bodyHtml += `</div>`;
@@ -9368,11 +9384,11 @@ function adminFilterStudents(status) {
         <div class="admin-student-card coach-card">
           <div class="admin-student-dot ${u._status}"></div>
           <div class="admin-student-info">
-            <div class="admin-student-name">${u.nombre || u.email}</div>
-            <div class="admin-student-meta">Objetivo: ${u.objetivo || '—'} · ${statusLabel} · ${u._days7} días esta semana</div>
+            <div class="admin-student-name">${_esc(u.nombre || u.email)}</div>
+            <div class="admin-student-meta">Objetivo: ${_esc(u.objetivo || '—')} · ${statusLabel} · ${u._days7} días esta semana</div>
           </div>
-          <div class="admin-student-last">${lastLogLine}</div>
-          <button class="btn-ver-progreso" onclick="showAdminStudentDetail('${u.id}')">VER PROGRESO</button>
+          <div class="admin-student-last">${_esc(lastLogLine)}</div>
+          <button class="btn-ver-progreso" onclick="showAdminStudentDetail('${_escAttr(u.id)}')">VER PROGRESO</button>
         </div>`;
     }).join('');
   }
@@ -9440,45 +9456,48 @@ function adminBuildDetailHTML(user, diario, cierres, fotos, planes = []) {
       <button class="btn-admin-danger" onclick="adminConfirmDelete()">🗑 Eliminar alumno</button>
     </div>`;
 
+  // Every user.* field is potentially attacker-controlled (typed in onboarding).
+  // Escape via _esc before interpolating — otherwise a malicious student's
+  // name field can XSS the coach when they open this panel.
   const profileHTML = `
     <div class="admin-profile-card coach-card">
       <div class="admin-section-subtitle">PERFIL DEL ALUMNO</div>
       <div class="admin-profile-grid">
         <div class="admin-profile-field">
           <span class="admin-profile-field-label">Nombre</span>
-          <span class="admin-profile-field-value">${user.nombre || '—'}</span>
+          <span class="admin-profile-field-value">${_esc(user.nombre || '—')}</span>
         </div>
         <div class="admin-profile-field">
           <span class="admin-profile-field-label">Email</span>
-          <span class="admin-profile-field-value" style="font-size:12px">${user.email || '—'}</span>
+          <span class="admin-profile-field-value" style="font-size:12px">${_esc(user.email || '—')}</span>
         </div>
         <div class="admin-profile-field">
           <span class="admin-profile-field-label">Objetivo</span>
-          <span class="admin-profile-field-value">${user.objetivo || '—'}</span>
+          <span class="admin-profile-field-value">${_esc(user.objetivo || '—')}</span>
         </div>
         <div class="admin-profile-field">
           <span class="admin-profile-field-label">Nivel</span>
-          <span class="admin-profile-field-value">${user.nivel || '—'}</span>
+          <span class="admin-profile-field-value">${_esc(user.nivel || '—')}</span>
         </div>
         <div class="admin-profile-field">
           <span class="admin-profile-field-label">Edad</span>
-          <span class="admin-profile-field-value">${user.edad ? user.edad + ' años' : '—'}</span>
+          <span class="admin-profile-field-value">${user.edad ? _esc(user.edad + ' años') : '—'}</span>
         </div>
         <div class="admin-profile-field">
           <span class="admin-profile-field-label">Peso inicial</span>
-          <span class="admin-profile-field-value">${user.peso ? user.peso + ' kg' : '—'}</span>
+          <span class="admin-profile-field-value">${user.peso ? _esc(user.peso + ' kg') : '—'}</span>
         </div>
         <div class="admin-profile-field">
           <span class="admin-profile-field-label">Altura</span>
-          <span class="admin-profile-field-value">${user.altura ? user.altura + ' cm' : '—'}</span>
+          <span class="admin-profile-field-value">${user.altura ? _esc(user.altura + ' cm') : '—'}</span>
         </div>
         <div class="admin-profile-field">
           <span class="admin-profile-field-label">Días entreno</span>
-          <span class="admin-profile-field-value">${diasStr}</span>
+          <span class="admin-profile-field-value">${_esc(diasStr)}</span>
         </div>
         <div class="admin-profile-field">
           <span class="admin-profile-field-label">Activo desde</span>
-          <span class="admin-profile-field-value">${formatDateShort((user.created_at || '').slice(0, 10))}</span>
+          <span class="admin-profile-field-value">${_esc(formatDateShort((user.created_at || '').slice(0, 10)))}</span>
         </div>
       </div>
     </div>`;
@@ -9666,24 +9685,27 @@ function adminBuildSemanasHTML(user, diario, cierres, fotos) {
     }
 
     if (cierre?.analisis) {
+      // Coach sees this in admin — escape via formatResponse (escape + markdown).
       bodyHtml += `
         <div class="semana-analisis">
           <div class="semana-analisis-title">📊 ANÁLISIS DE LA SEMANA</div>
-          ${cierre.analisis}
+          ${formatResponse(cierre.analisis)}
         </div>`;
     }
 
     if (stats.wLogs.length > 0) {
+      // Escape every user-typed value — admin viewing a malicious student's
+      // logs would otherwise execute the payload in the coach's session.
       bodyHtml += `<div class="semana-logs">` + stats.wLogs.map(l => {
         const comidas = [l.desayuno, l.almuerzo, l.merienda, l.cena].filter(Boolean).join(' · ');
         const entreno = l.entreno === true
           ? `💪 ${l.ejercicios_realizados || 'Entrenó'}`
           : l.entreno === false ? '❌ Descanso' : '';
         return `<div class="semana-log-item">
-          <div class="semana-log-date">${formatDateShort(l.fecha)}</div>
-          ${comidas ? `<div>${comidas.slice(0, 80)}${comidas.length > 80 ? '...' : ''}</div>` : ''}
-          ${entreno ? `<div>${entreno}</div>` : ''}
-          ${l.calorias_consumidas ? `<div>📊 ${l.calorias_consumidas} kcal</div>` : ''}
+          <div class="semana-log-date">${_esc(formatDateShort(l.fecha))}</div>
+          ${comidas ? `<div>${_esc(comidas.slice(0, 80))}${comidas.length > 80 ? '...' : ''}</div>` : ''}
+          ${entreno ? `<div>${_esc(entreno)}</div>` : ''}
+          ${l.calorias_consumidas ? `<div>📊 ${_esc(String(l.calorias_consumidas))} kcal</div>` : ''}
         </div>`;
       }).join('') + `</div>`;
     } else {
