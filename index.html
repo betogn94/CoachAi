@@ -5793,19 +5793,26 @@ async function loadCurrentWeekPlans() {
       .eq('usuario_id', currentUser.id)
       .order('updated_at', { ascending: false }),
     sbClient.from('cierres_semanales')
-      .select('created_at')
+      .select('fecha_fin')
       .eq('usuario_id', currentUser.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
   ]);
-  const lastCierreAt = cierres && cierres[0] ? new Date(cierres[0].created_at) : null;
+  // Latest week-end that has been closed. Compared to each plan's fecha_entrega
+  // (the date the plan was delivered for) to determine closed-ness semantically,
+  // not by wall-clock timestamp comparison. The old code used max(cierre.created_at)
+  // vs plan.updated_at — that incorrectly marked a current-week plan as closed
+  // when a user retroactively closed an OLDER week (the cierre's created_at would
+  // be "now", which is later than the active plan's updated_at).
+  const cierreEnds = (cierres || []).map(c => (c.fecha_fin || '').slice(0, 10)).filter(Boolean).sort();
+  const maxCierreEnd = cierreEnds.length ? cierreEnds[cierreEnds.length - 1] : null;
   const result = { dieta: null, rutina: null };
   (plans || []).forEach(p => {
-    // For each type, keep only the most recent (already sorted DESC)
+    // For each type, keep only the most recent (already sorted DESC by updated_at)
     if (!result[p.tipo]) {
-      const planAt = new Date(p.updated_at);
-      // If a closure was registered AFTER this plan was delivered, the plan is "closed"
-      const closed = lastCierreAt && lastCierreAt > planAt;
+      const planDate = (p.fecha_entrega || '').slice(0, 10);
+      // Plan is closed iff a cierre exists whose week-end is on or after the plan
+      // delivery date. A retroactive closure of an older week ends earlier than
+      // the current plan's date → correctly stays "active".
+      const closed = !!(maxCierreEnd && planDate && maxCierreEnd >= planDate);
       result[p.tipo] = { ...p, closed };
     }
   });
@@ -5844,18 +5851,28 @@ function detectPlanRequest(userMessage) {
 
 // Detects whether an AI reply is a full plan delivery by looking at its content.
 // This is the source-of-truth check — overrides user-message detection if they disagree.
+// Counts UNIQUE day-of-week mentions in a reply (full names + common abbreviations).
+// Why normalize FIRST: JS `\b` is ASCII-only, so `\b(mié)\b` doesn't match "Mié:"
+// because the boundary check fails on the non-ASCII "é". Stripping accents up
+// front lets us use a plain `\b` regex against ASCII-only day names.
+// Uniqueness matters: "El mar de plata, el mar atlántico, el mar caribe" matches
+// "mar" 3× by raw count but only 1× by unique → no false-positive plan detection.
+const DAY_REGEX = /\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo|monday|tuesday|wednesday|thursday|friday|saturday|sunday|lun|mar|mie|jue|vie|sab|dom|mon|tue|wed|thu|fri|sat|sun)\b/g;
+function countUniqueDays(text) {
+  const stripped = text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const matches = stripped.match(DAY_REGEX) || [];
+  return new Set(matches).size;
+}
+
 function detectPlanInReply(reply) {
   if (!reply || typeof reply !== 'string') return null;
   // Dieta markers: nutritional plan headings with kcal/macros
   if (/plan\s+nutricional|kcal\/d[ií]a|target:.{0,20}kcal|P:\s*\d+g\s*C:\s*\d+g|desayuno|almuerzo|merienda|cena/i.test(reply)) {
-    // Confirm with at least 3 day mentions to avoid false positives on short replies
-    const dayHits = (reply.match(/\b(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi) || []).length;
-    if (dayHits >= 3) return 'dieta';
+    if (countUniqueDays(reply) >= 3) return 'dieta';
   }
   // Rutina markers: workout structure
   if (/rutina\s+semanal|series\s*[×x]\s*\d|reps|descanso:|upper\s+(a|b)|lower\s+(a|b)|press\s+(de\s+banca|militar)|sentadilla|peso\s+muerto/i.test(reply)) {
-    const dayHits = (reply.match(/\b(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi) || []).length;
-    if (dayHits >= 3) return 'rutina';
+    if (countUniqueDays(reply) >= 3) return 'rutina';
   }
   return null;
 }
@@ -6031,7 +6048,7 @@ const LS_KEY = 'coachai_profile_v1';
 
 function saveProfile() {
   const data = {
-    nombre: document.getElementById('f-nombre').value,
+    nombre: document.getElementById('f-nombre').value.trim(),
     cuello: document.getElementById('f-cuello')?.value || '',
     cinturaForm: document.getElementById('f-cintura-form')?.value || '',
     caderaForm: document.getElementById('f-cadera-form')?.value || '',
@@ -6507,7 +6524,8 @@ function buildResumen() {
 // SYSTEM PROMPT
 // ============================
 function buildSystemPrompt() {
-  const nombre = document.getElementById('f-nombre').value;
+  // Trim defensively — a whitespace-only name leaks into the AI greeting otherwise.
+  const nombre = document.getElementById('f-nombre').value.trim();
   const edad = document.getElementById('f-edad').value;
   const sexo = document.getElementById('f-sexo').value;
   const peso = document.getElementById('f-peso').value;
@@ -6851,7 +6869,7 @@ async function launchCoach() {
   saveProfile();
   if (currentUser && sbClient) {
     const profileData = {
-      nombre: document.getElementById('f-nombre').value,
+      nombre: document.getElementById('f-nombre').value.trim(),
       edad: parseInt(document.getElementById('f-edad').value) || null,
       sexo: document.getElementById('f-sexo').value,
       peso: parseFloat(document.getElementById('f-peso').value) || null,
