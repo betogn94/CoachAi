@@ -3120,6 +3120,65 @@ footer {
 .btn-cerrar-semana:hover { opacity: 0.88; }
 
 /* Cierre overlay */
+/* ===== BETA FEEDBACK ===== */
+#feedback-fab {
+  position: fixed; right: 16px; bottom: 18px; z-index: 1400;
+  display: flex; align-items: center; gap: 7px;
+  padding: 10px 16px; border-radius: 100px;
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  color: #fff; border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  box-shadow: 0 6px 20px rgba(124,106,255,0.35);
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+#feedback-fab:hover { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(124,106,255,0.45); }
+#feedback-fab svg { width: 16px; height: 16px; }
+.feedback-overlay {
+  position: fixed; inset: 0; z-index: 1600;
+  background: rgba(7,7,20,0.78); backdrop-filter: blur(4px);
+  display: none; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.feedback-overlay.open { display: flex; }
+.feedback-card {
+  background: var(--surface); border-radius: 18px;
+  padding: 22px 22px 20px; width: 100%; max-width: 440px;
+}
+.feedback-title {
+  font-family: 'Bebas Neue', sans-serif; font-size: 22px;
+  letter-spacing: 1.5px; color: var(--accent-bright); margin-bottom: 6px;
+}
+.feedback-sub { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-bottom: 14px; }
+.feedback-textarea {
+  width: 100%; min-height: 120px; resize: vertical;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px; color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none;
+  transition: border-color 0.2s;
+}
+.feedback-textarea:focus { border-color: var(--accent); }
+.feedback-actions { display: flex; gap: 10px; margin-top: 14px; }
+.feedback-cancel {
+  flex: 1; background: transparent; border: 1px solid var(--border);
+  color: var(--muted); border-radius: 10px; padding: 11px; cursor: pointer;
+  font-size: 13px; font-family: 'DM Sans', sans-serif;
+}
+.feedback-send {
+  flex: 2; background: linear-gradient(135deg, var(--accent), var(--accent3));
+  border: none; color: #fff; border-radius: 10px; padding: 11px; cursor: pointer;
+  font-size: 13px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+  transition: opacity 0.2s;
+}
+.feedback-send:disabled { opacity: 0.5; cursor: not-allowed; }
+.feedback-done {
+  display: none; margin-top: 12px; text-align: center;
+  font-size: 13px; color: var(--accent3); font-weight: 600;
+}
+@media (max-width: 640px) {
+  #feedback-fab { padding: 10px 14px; font-size: 12px; bottom: 16px; right: 14px; }
+  .feedback-textarea { font-size: 16px; }
+}
+
 .cierre-overlay {
   position: fixed; inset: 0; z-index: 1500;
   background: var(--bg); display: none;
@@ -5764,6 +5823,24 @@ QUE SÍ SE VE</div>
   <div id="entreno-days"></div>
 </div>
 
+<!-- BETA FEEDBACK — floating button + modal -->
+<button id="feedback-fab" onclick="openFeedback()" aria-label="Enviar feedback" style="display:none">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 0 1-.9-3.8A8.38 8.38 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5z"></path></svg>
+  <span>Feedback</span>
+</button>
+<div class="feedback-overlay" id="feedback-overlay" onclick="if(event.target===this)closeFeedback()">
+  <div class="feedback-card coach-card">
+    <div class="feedback-title">💬 Tu feedback</div>
+    <div class="feedback-sub">Estamos en beta. Contanos qué te gustó, qué te trabó o qué le falta — nos sirve muchísimo.</div>
+    <textarea id="feedback-text" class="feedback-textarea" placeholder="Escribí lo que quieras… bugs, ideas, lo que sea." maxlength="2000"></textarea>
+    <div class="feedback-actions">
+      <button class="feedback-cancel" onclick="closeFeedback()">Cancelar</button>
+      <button class="feedback-send" id="feedback-send-btn" onclick="submitFeedback()">Enviar</button>
+    </div>
+    <div class="feedback-done" id="feedback-done">¡Gracias! 🙌 Recibimos tu mensaje.</div>
+  </div>
+</div>
+
 <!-- LIGHTBOX -->
 <div class="foto-lightbox" id="foto-lightbox" onclick="closeLightbox()" role="dialog" aria-label="Foto en grande">
   <button class="foto-lightbox-close" onclick="closeLightbox()" aria-label="Cerrar foto">✕</button>
@@ -6003,6 +6080,9 @@ function trackEvent(evento, meta) {
   const uid = currentUser.id;
   if (evento === 'section_view') {
     const sec = meta && meta.section;
+    // Feedback FAB visible on app sections, hidden on chat (input overlap)
+    const fab = document.getElementById('feedback-fab');
+    if (fab) fab.style.display = (sec && sec !== 'chat') ? 'flex' : 'none';
     if (_lastTrackedSection === sec) return;
     _lastTrackedSection = sec;
   }
@@ -6027,6 +6107,42 @@ async function trackBetaActivity(isNewSession) {
     await sbClient.from('usuarios').update(patch).eq('id', uid);
     if (isNewSession) trackEvent('session_start', null);
   } catch (e) { console.warn('trackBetaActivity failed:', e); }
+}
+
+// ---- In-app feedback ----
+function openFeedback() {
+  document.getElementById('feedback-text').value = '';
+  document.getElementById('feedback-done').style.display = 'none';
+  const btn = document.getElementById('feedback-send-btn');
+  btn.disabled = false; btn.textContent = 'Enviar';
+  document.getElementById('feedback-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('feedback-text').focus(), 80);
+}
+function closeFeedback() {
+  document.getElementById('feedback-overlay').classList.remove('open');
+}
+async function submitFeedback() {
+  const ta = document.getElementById('feedback-text');
+  const msg = ta.value.trim();
+  if (!msg) { ta.focus(); return; }
+  const btn = document.getElementById('feedback-send-btn');
+  btn.disabled = true; btn.textContent = 'Enviando…';
+  try {
+    if (!sbClient) initSupabase();
+    const { error } = await sbClient.from('feedback').insert([{
+      usuario_id: currentUser ? currentUser.id : null,
+      nombre: currentUser ? (currentUser.nombre || null) : null,
+      mensaje: msg
+    }]);
+    if (error) throw error;
+    trackEvent('feedback_sent', null);
+    document.getElementById('feedback-done').style.display = 'block';
+    ta.value = '';
+    setTimeout(closeFeedback, 1400);
+  } catch (e) {
+    console.error('Feedback send failed:', e);
+    btn.disabled = false; btn.textContent = 'Reintentar';
+  }
 }
 
 // Format a Date as YYYY-MM-DD using the USER'S LOCAL timezone (not UTC).
@@ -6425,6 +6541,8 @@ function resetAppState() {
   cierreInflight = false;
   lastCierrePending = null;
   _lastTrackedSection = null;
+  const fab = document.getElementById('feedback-fab');
+  if (fab) fab.style.display = 'none';
   const chatBox = document.getElementById('chat-messages');
   if (chatBox) chatBox.innerHTML = '';
   // Wipe form fields so a new user doesn't see prior values pre-filled
@@ -10983,6 +11101,8 @@ function enterAsAdmin() {
 
 function goToLanding() {
   hideAllSections();
+  const fab = document.getElementById('feedback-fab');
+  if (fab) fab.style.display = 'none';
   document.getElementById('main-header').style.display = 'none';
   document.getElementById('landing-wrapper').style.display = 'flex';
 }
