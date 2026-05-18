@@ -5991,6 +5991,44 @@ async function loginOrRegister(email, nombre) {
   return { isNew: true, user: newUser };
 }
 
+// ============================
+// BETA ANALYTICS (lightweight, fire-and-forget — never blocks UX)
+// ============================
+let _lastTrackedSection = null;
+
+// Log a single event into beta_eventos. Section views are de-duplicated so
+// we don't spam the table when a user bounces between sections.
+function trackEvent(evento, meta) {
+  if (!sbClient || !currentUser) return;
+  const uid = currentUser.id;
+  if (evento === 'section_view') {
+    const sec = meta && meta.section;
+    if (_lastTrackedSection === sec) return;
+    _lastTrackedSection = sec;
+  }
+  try {
+    sbClient.from('beta_eventos')
+      .insert([{ usuario_id: uid, evento, meta: meta || null }])
+      .then(({ error }) => { if (error) console.warn('beta_eventos insert failed:', error); });
+  } catch (e) { /* analytics must never break the app */ }
+}
+
+// Refresh last_active (always) and bump session_count (only on a new entry).
+// Called once per app entry from handleEmailLogin.
+async function trackBetaActivity(isNewSession) {
+  if (!sbClient || !currentUser) return;
+  const uid = currentUser.id;
+  try {
+    const patch = { last_active: new Date().toISOString() };
+    if (isNewSession) {
+      patch.session_count = (currentUser.session_count || 0) + 1;
+      currentUser.session_count = patch.session_count;
+    }
+    await sbClient.from('usuarios').update(patch).eq('id', uid);
+    if (isNewSession) trackEvent('session_start', null);
+  } catch (e) { console.warn('trackBetaActivity failed:', e); }
+}
+
 // Format a Date as YYYY-MM-DD using the USER'S LOCAL timezone (not UTC).
 // Critical: `new Date().toISOString().slice(0,10)` returns the UTC date, which
 // silently misnames the row for any user not in UTC. In AR (UTC-3), logs at
@@ -6250,6 +6288,10 @@ async function handleEmailLogin() {
       return;
     }
 
+    // Beta analytics: bump session_count + last_active, log session_start.
+    // Fire-and-forget — does not block the login flow.
+    trackBetaActivity(true);
+
     document.getElementById('landing-wrapper').style.display = 'none';
     document.getElementById('main-header').style.display = 'flex';
 
@@ -6382,6 +6424,7 @@ function resetAppState() {
   savingDiario = false;
   cierreInflight = false;
   lastCierrePending = null;
+  _lastTrackedSection = null;
   const chatBox = document.getElementById('chat-messages');
   if (chatBox) chatBox.innerHTML = '';
   // Wipe form fields so a new user doesn't see prior values pre-filled
@@ -7685,6 +7728,7 @@ function setEntrenó(val) {
 
 async function showDiario() {
   setActiveNav('nav-diario');
+  trackEvent('section_view', { section: 'alimentacion' });
   hideAllSections();
   document.getElementById('diario-wrapper').style.display = 'block';
   document.getElementById('diario-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -8786,6 +8830,7 @@ function showHome() {
   // user shouldn't be able to escape to Home as a stale-cache "Beto" or empty user.
   const form = document.querySelector('.form-wrapper');
   if (form && form.style.display === 'block') return;
+  trackEvent('section_view', { section: 'home' });
   hideAllSections();
   const wrapper = document.getElementById('home-wrapper');
   wrapper.style.display = 'block';
@@ -8899,6 +8944,7 @@ function hideAllSections() {
 // PERFIL (premium identity hub)
 // ============================
 function showPerfil() {
+  trackEvent('section_view', { section: 'perfil' });
   hideAllSections();
   const wrapper = document.getElementById('perfil-wrapper');
   wrapper.style.display = 'block';
@@ -9148,6 +9194,7 @@ function goToPlanDetail(tipo) {
 }
 
 function showDashboard() {
+  trackEvent('section_view', { section: 'progreso' });
   hideAllSections();
   document.getElementById('dashboard-wrapper').style.display = 'block';
   document.getElementById('dashboard-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -9330,6 +9377,7 @@ async function mirrorTrainedDay(dateStr, add, stateAfter) {
 function exKey(dayIdx, exIdx) { return `d${dayIdx}e${exIdx}`; }
 
 async function showMiEntreno() {
+  trackEvent('section_view', { section: 'entreno' });
   hideAllSections();
   const w = document.getElementById('mi-entreno-wrapper');
   w.style.display = 'block';
@@ -9494,6 +9542,7 @@ function onEntrenoWeight(dayIdx, exIdx, value) {
 }
 
 function showChat() {
+  trackEvent('section_view', { section: 'chat' });
   hideAllSections();
   document.getElementById('chat-wrapper').style.display = 'block';
   // Instant scroll to top of page — avoids partial-scroll appearance on entry
