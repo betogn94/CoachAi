@@ -6170,10 +6170,38 @@ async function loginOrRegister(email, nombre) {
     return { notInvited: true };
   }
 
+  // Closed-beta capacity cap. Existing users already returned above, so this
+  // only gates the creation of NEW accounts.
+  const { count, error: cntErr } = await sbClient
+    .from('usuarios').select('id', { count: 'exact', head: true });
+  if (!cntErr && typeof count === 'number' && count >= BETA_MAX_USERS) {
+    return { betaFull: true };
+  }
+
   const { data: newUser, error } = await sbClient.from('usuarios').insert([{ email, nombre }]).select().single();
   if (error) throw error;
   currentUser = newUser;
   return { isNew: true, user: newUser };
+}
+
+// ---- Persistent login helpers ----
+function clearSession() {
+  try { localStorage.removeItem(LS_SESSION); } catch (e) {}
+}
+function loadSession() {
+  try { return JSON.parse(localStorage.getItem(LS_SESSION) || 'null'); } catch (e) { return null; }
+}
+// On boot: if we remembered a login, pre-fill and resume automatically so the
+// user never re-types credentials. If they were wiped/un-invited/beta-full,
+// handleEmailLogin shows the proper message and we clear the stale session.
+async function tryAutoLogin() {
+  const s = loadSession();
+  if (!s || !s.email) return;
+  const elN = document.getElementById('el-nombre');
+  const elE = document.getElementById('el-email');
+  if (elN) elN.value = s.nombre || '';
+  if (elE) elE.value = s.email || '';
+  await handleEmailLogin();
 }
 
 // ============================
@@ -6509,8 +6537,26 @@ async function handleEmailLogin() {
       error.style.lineHeight = '1.5';
       btn.disabled = false;
       loading.style.display = 'none';
+      clearSession();
       return;
     }
+
+    // Beta capacity reached — invited but the 10 slots are full.
+    if (result.betaFull) {
+      error.innerHTML = '⏳ <strong>La beta está completa.</strong><br>' +
+        'Llegamos al cupo máximo de testers. Te avisamos apenas se libere un lugar.';
+      error.style.lineHeight = '1.5';
+      btn.disabled = false;
+      loading.style.display = 'none';
+      clearSession();
+      return;
+    }
+
+    // Persistent login — remember this user so the next visit auto-resumes
+    // (no re-typing name/email). Cleared only on explicit logout / nuevo perfil.
+    try {
+      localStorage.setItem(LS_SESSION, JSON.stringify({ email, nombre }));
+    } catch (e) { /* non-fatal */ }
 
     // Beta analytics: bump session_count + last_active, log session_start.
     // Fire-and-forget — does not block the login flow.
@@ -6587,6 +6633,12 @@ let entrenóHoy = null;
 // LOCAL STORAGE
 // ============================
 const LS_KEY = 'coachai_profile_v1';
+// Persistent login: after a user logs in once, we remember {email,nombre}
+// and auto-resume on next visit so they never re-type credentials.
+const LS_SESSION = 'coachai_session_v1';
+// Closed-beta capacity. New-account creation is blocked once this many
+// usuarios rows exist (existing users are unaffected).
+const BETA_MAX_USERS = 10;
 
 function saveProfile() {
   const data = {
@@ -6661,6 +6713,7 @@ function resetAppState() {
 
 function resetProfile() {
   localStorage.removeItem(LS_KEY);
+  clearSession();
   document.getElementById('welcome-back').style.display = 'none';
   document.getElementById('hero-section').style.display = 'block';
   document.querySelector('.form-wrapper').style.display = 'block';
@@ -11393,6 +11446,8 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('welcome-back').style.display = 'none';
   // Init Supabase early so it's ready when user clicks Ingresar
   initSupabase();
+  // Persistent login: if this device logged in before, resume automatically.
+  tryAutoLogin().catch(console.error);
 });
 
 </script>
