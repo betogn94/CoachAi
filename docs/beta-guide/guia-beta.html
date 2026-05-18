@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>CoachAI — Guía de la Beta Cerrada</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#070714; --surface:#111122; --surface2:#1a1a2e;
+  --border:rgba(124,106,255,0.18); --text:#f0f0fa; --muted:#8a8aa0;
+  --accent:#7c6aff; --accent-bright:#b4a7ff; --accent2:#5b9fff; --accent3:#2ecfb5;
+}
+* { box-sizing:border-box; margin:0; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+html, body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; font-size:11pt; line-height:1.6; }
+@page { size:A4; margin:0; }
+.page {
+  width:210mm; min-height:297mm; padding:17mm 16mm; page-break-after:always; position:relative;
+  background:
+    radial-gradient(ellipse 55% 45% at 18% 8%, rgba(124,106,255,0.16) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 82% 92%, rgba(46,207,181,0.12) 0%, transparent 60%),
+    linear-gradient(180deg,#070714 0%,#0a0a1a 100%);
+  overflow:hidden;
+}
+.page:last-child { page-break-after:avoid; }
+.foot { position:absolute; bottom:8mm; left:16mm; right:16mm; display:flex; justify-content:space-between;
+  font-family:'JetBrains Mono',monospace; font-size:8pt; letter-spacing:1px; color:var(--muted); }
+h1 { font-family:'Bebas Neue',sans-serif; font-size:44pt; letter-spacing:3px; line-height:1; margin-bottom:5mm;
+  background:linear-gradient(135deg,var(--accent-bright) 0%,var(--accent2) 50%,var(--accent3) 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+h2 { font-family:'Bebas Neue',sans-serif; font-size:24pt; letter-spacing:2px; color:var(--accent-bright);
+  margin-bottom:5mm; display:flex; align-items:baseline; gap:5mm; }
+h2 .num { font-family:'JetBrains Mono',monospace; font-size:13pt; color:var(--accent3); opacity:.75; }
+h3 { font-family:'Bebas Neue',sans-serif; font-size:15pt; letter-spacing:1.5px; color:var(--text); margin:6mm 0 2mm; }
+p { margin-bottom:3mm; color:#d8d8e8; }
+strong { color:var(--accent-bright); font-weight:700; }
+.lead { font-size:12pt; color:#e6e6f2; line-height:1.7; }
+.muted { color:var(--muted); }
+ul,ol { margin:2mm 0 4mm; padding-left:6mm; }
+li { margin-bottom:2mm; color:#d8d8e8; }
+li::marker { color:var(--accent2); }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:14px;
+  padding:6mm; margin-bottom:4mm; box-shadow:0 4px 18px rgba(0,0,0,.25); }
+.card.glow { border-color:rgba(124,106,255,.32); box-shadow:0 4px 24px rgba(124,106,255,.10), inset 0 2px 0 rgba(124,106,255,.4); }
+.step { display:flex; gap:5mm; margin-bottom:5mm; align-items:flex-start; }
+.step-num { font-family:'Bebas Neue',sans-serif; font-size:24pt; line-height:1; flex-shrink:0; width:14mm;
+  background:linear-gradient(135deg,var(--accent-bright),var(--accent3));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.step-body { flex:1; }
+.step-title { font-weight:700; color:var(--text); font-size:12pt; margin-bottom:1mm; }
+.tag { font-family:'JetBrains Mono',monospace; font-size:8pt; letter-spacing:1.5px; color:var(--accent3); text-transform:uppercase; }
+.cover { display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; }
+.cover-logo { font-family:'Bebas Neue',sans-serif; font-size:74pt; letter-spacing:9px; margin-bottom:5mm;
+  background:linear-gradient(135deg,#b4a7ff 0%,#5b9fff 50%,#2ecfb5 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  filter:drop-shadow(0 0 28px rgba(124,106,255,.3)); }
+.cover-sub { font-family:'Bebas Neue',sans-serif; font-size:22pt; letter-spacing:3px; color:var(--text); margin-bottom:4mm; }
+.cover-tag { font-size:13pt; color:var(--muted); letter-spacing:1px; margin-bottom:16mm; }
+.cover-meta { font-family:'JetBrains Mono',monospace; font-size:9pt; letter-spacing:2px; color:var(--muted); margin-top:26mm; }
+.callout { background:linear-gradient(135deg,rgba(124,106,255,.12),rgba(46,207,181,.07));
+  border:1px solid rgba(124,106,255,.28); border-radius:12px; padding:5mm 6mm; margin:4mm 0; }
+.callout .tag { display:block; margin-bottom:2mm; }
+.msgbox { background:#0c0c1c; border:1px dashed rgba(124,106,255,.35); border-radius:12px;
+  padding:6mm; margin:3mm 0; font-size:10.5pt; line-height:1.7; color:#e4e4f2; white-space:pre-wrap; }
+.faq-q { font-weight:700; color:var(--accent-bright); margin:5mm 0 1mm; font-size:11.5pt; }
+.faq-a { color:#d2d2e2; }
+.pill { display:inline-block; font-family:'JetBrains Mono',monospace; font-size:8.5pt; letter-spacing:1px;
+  padding:1.5mm 3mm; border-radius:100px; background:rgba(124,106,255,.14); color:var(--accent-bright); }
+.divider { height:1px; background:linear-gradient(90deg,transparent,var(--accent),transparent); margin:6mm 0; }
+.two { display:grid; grid-template-columns:1fr 1fr; gap:5mm; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<section class="page cover">
+  <div class="cover-logo">COACHAI</div>
+  <div class="cover-sub">GUÍA DE LA BETA CERRADA</div>
+  <div class="cover-tag">Cómo la manejamos nosotros y cómo se la explicamos a los usuarios</div>
+  <div class="muted" style="max-width:130mm; font-size:11pt;">
+    Documento interno para vos y tu socio. Todo lo que necesitan saber para invitar testers,
+    monitorear el uso y recopilar feedback durante la beta — explicado simple, sin tecnicismos.
+  </div>
+  <div class="cover-meta">USO INTERNO · MAYO 2026 · COACHAI</div>
+</section>
+
+<!-- 01 — QUÉ ES -->
+<section class="page">
+  <h2><span class="num">01</span> QUÉ ES ESTA BETA</h2>
+  <p class="lead">
+    Una <strong>prueba controlada</strong> con un grupo chico de gente elegida por ustedes.
+    El objetivo no es vender todavía — es <strong>aprender</strong>: ver si la app engancha,
+    si la usan seguido, qué les traba y qué les falta, antes de abrirla al público.
+  </p>
+
+  <div class="divider"></div>
+
+  <h3>LAS 3 REGLAS DE ORO DE ESTA BETA</h3>
+  <div class="card glow">
+    <p style="margin:0"><strong>1. Cerrada.</strong> Solo entra quien ustedes invitan. Nadie más puede crear cuenta.</p>
+  </div>
+  <div class="card glow">
+    <p style="margin:0"><strong>2. Limitada.</strong> Máximo <span class="pill">10 cupos</span>. Cuando se llenan, no entra nadie más hasta que liberen un lugar.</p>
+  </div>
+  <div class="card glow">
+    <p style="margin:0"><strong>3. Sin fricción.</strong> El tester entra UNA sola vez. Después la app lo recuerda y entra solo.</p>
+  </div>
+
+  <div class="callout">
+    <span class="tag">La idea en una frase</span>
+    Elegimos a 10 personas de confianza, las dejamos usar la app una o dos semanas,
+    miramos cómo la usan y qué nos dicen, y con esos datos decidimos si está lista para el siguiente paso.
+  </div>
+
+  <div class="foot"><span>COACHAI · GUÍA BETA</span><span>02</span></div>
+</section>
+
+<!-- 02 — CÓMO INVITAR -->
+<section class="page">
+  <h2><span class="num">02</span> CÓMO INVITAR A UN USUARIO</h2>
+  <p class="lead">Esto lo hacen ustedes desde el <strong>panel de administrador</strong>. Toma 20 segundos por persona.</p>
+
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <div class="step-title">Entrá al panel admin</div>
+      <p style="margin:0">En la pantalla de inicio, abajo, tocá <strong>⚙️ Acceso administrador</strong> e ingresá la contraseña de admin.</p>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <div class="step-title">Abrí "Gestión de Beta"</div>
+      <p style="margin:0">Dentro del panel vas a ver una tarjeta <strong>🧪 GESTIÓN DE BETA</strong>. Tocala para abrirla.</p>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <div class="step-title">Cargá al invitado</div>
+      <p style="margin:0">En la pestaña <strong>Invitados</strong>: escribí el <strong>nombre</strong> y el <strong>email</strong> de la persona, y tocá <strong>+ Invitar</strong>. Listo, ya quedó habilitada.</p>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <div class="step-title">Pasale el link</div>
+      <p style="margin:0">Mandale a esa persona el link de la app. Con que entre con <strong>ese mismo email</strong>, ya tiene acceso.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <span class="tag">Importante</span>
+    El email que cargás tiene que ser <strong>exactamente el mismo</strong> que la persona va a usar para entrar.
+    Si lo escribe distinto (otra cuenta de mail), no va a poder entrar. Confirmáselo cuando le pases el link.
+  </div>
+
+  <h3>PARA SACAR A ALGUIEN</h3>
+  <p>En la misma lista, cada persona tiene un botón <strong>Quitar</strong>. Eso le saca el permiso para registrarse de nuevo. <span class="muted">(Si ya tenía cuenta, su cuenta y sus datos NO se borran — solo no podría volver a registrarse desde cero.)</span></p>
+
+  <div class="foot"><span>COACHAI · GUÍA BETA</span><span>03</span></div>
+</section>
+
+<!-- 03 — CÓMO ENTRA EL USUARIO -->
+<section class="page">
+  <h2><span class="num">03</span> CÓMO ENTRA EL USUARIO</h2>
+  <p class="lead">Esto es lo que le explican <strong>a la persona</strong>. Es bien simple — esa es la idea.</p>
+
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <div class="step-title">Abre el link</div>
+      <p style="margin:0">Desde el celular (recomendado) o la computadora. No hay que descargar nada.</p>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <div class="step-title">Pone su nombre y su email</div>
+      <p style="margin:0">El <strong>mismo email</strong> que ustedes cargaron como invitado. Toca <strong>INGRESAR</strong>.</p>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <div class="step-title">Completa su perfil (una vez)</div>
+      <p style="margin:0">Edad, peso, objetivo, días de entrenamiento, etc. Son 5 pasos cortos. Esto la app lo necesita para armarle planes a medida.</p>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <div class="step-title">Empieza a usarla</div>
+      <p style="margin:0">Le pide al coach IA su rutina y su dieta por el chat, registra sus comidas en <strong>Mi Alimentación</strong>, marca sus entrenos en <strong>Mi Entreno</strong>, y mira su progreso.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <span class="tag">El punto clave para explicarle</span>
+    "Entrás <strong>una sola vez</strong>. De ahí en adelante, cada vez que abras el link
+    la app te reconoce y entrás directo — no tenés que volver a poner nada."
+  </div>
+
+  <div class="foot"><span>COACHAI · GUÍA BETA</span><span>04</span></div>
+</section>
+
+<!-- 04 — LOGIN QUE SE RECUERDA + CUPOS -->
+<section class="page">
+  <h2><span class="num">04</span> LOGIN QUE SE RECUERDA · CUPOS</h2>
+
+  <h3>EL LOGIN SE RECUERDA SOLO</h3>
+  <p>
+    Apenas el usuario entra la primera vez, <strong>el dispositivo lo recuerda</strong>. Las visitas siguientes
+    entra directo a la app, sin escribir nada. Esto baja muchísimo la fricción — es clave para que en una beta
+    la gente realmente vuelva.
+  </p>
+  <ul>
+    <li>Funciona por dispositivo: si entra del celu, queda recordado en el celu.</li>
+    <li>Si toca <strong>"Nuevo perfil"</strong>, la app se olvida y vuelve a pedir los datos (sirve si presta el celular o quiere empezar de cero).</li>
+    <li>Si lo sacaron de la beta o se llenó el cupo, la próxima vez la app le avisa con un mensaje claro.</li>
+  </ul>
+
+  <div class="divider"></div>
+
+  <h3>LOS 10 CUPOS</h3>
+  <p>
+    La beta tiene un tope de <span class="pill">10 cuentas</span> en total. Es a propósito: mantiene el grupo
+    chico y manejable para poder darle atención y leer todo el feedback.
+  </p>
+  <div class="two">
+    <div class="card">
+      <p style="margin:0"><strong>Mientras haya lugar</strong><br><span class="muted">Los invitados entran normal y crean su cuenta.</span></p>
+    </div>
+    <div class="card">
+      <p style="margin:0"><strong>Cuando se llena</strong><br><span class="muted">Un invitado nuevo ve "La beta está completa" y no se crea la cuenta.</span></p>
+    </div>
+  </div>
+  <p>
+    Pueden ver cuántos cupos quedan en el panel: <strong>Gestión de Beta → Métricas</strong>.
+    Si quieren sumar a alguien y está lleno, sacan a un inactivo con <strong>Quitar</strong> y se libera el lugar.
+  </p>
+
+  <div class="foot"><span>COACHAI · GUÍA BETA</span><span>05</span></div>
+</section>
+
+<!-- 05 — QUÉ MIRAN USTEDES -->
+<section class="page">
+  <h2><span class="num">05</span> QUÉ MIRAN DURANTE LA BETA</h2>
+  <p class="lead">Todo desde <strong>Panel admin → Gestión de Beta</strong>. Tres pestañas:</p>
+
+  <div class="card glow">
+    <h3 style="margin-top:0">📋 Invitados</h3>
+    <p style="margin:0">La lista de toda la gente invitada con su estado:</p>
+    <ul style="margin-bottom:0">
+      <li><strong>INVITADO</strong> — lo cargaron pero todavía no entró.</li>
+      <li><strong>ACTIVO</strong> — tiene cuenta y la usó en los últimos 7 días.</li>
+      <li><strong>INACTIVO</strong> — tiene cuenta pero hace más de 7 días que no entra.</li>
+    </ul>
+  </div>
+
+  <div class="card glow">
+    <h3 style="margin-top:0">📊 Métricas</h3>
+    <p style="margin:0">El pulso de la beta en números: invitados totales, cuántos activaron cuenta (y el %),
+    activos últimos 7 días, cuántos nunca entraron, sesiones promedio y feedback recibido.</p>
+  </div>
+
+  <div class="card glow">
+    <h3 style="margin-top:0">💬 Feedback</h3>
+    <p style="margin:0">Todo lo que los usuarios escriben desde el botón de feedback dentro de la app,
+    con quién lo mandó y cuándo. Ordenado del más nuevo al más viejo.</p>
+  </div>
+
+  <div class="callout">
+    <span class="tag">El botón de feedback</span>
+    Dentro de la app, los usuarios ven una pastilla <strong>💬 Feedback</strong> abajo a la derecha.
+    Cualquier comentario que dejen ahí les llega a ustedes al panel. Pídanles que lo usen sin filtro:
+    bugs, ideas, lo que sea. <strong>Eso es oro.</strong>
+  </div>
+
+  <div class="foot"><span>COACHAI · GUÍA BETA</span><span>06</span></div>
+</section>
+
+<!-- 06 — MENSAJE PARA EL USUARIO -->
+<section class="page">
+  <h2><span class="num">06</span> MENSAJE LISTO PARA EL USUARIO</h2>
+  <p class="lead">Copien y peguen esto cuando inviten a alguien (ajusten el link y el saludo):</p>
+
+  <div class="msgbox">¡Hola [Nombre]! 👋
+
+Te queremos sumar a la beta privada de <b>CoachAI</b>, nuestro entrenador personal con inteligencia artificial. Sos de un grupo chico y elegido — tu opinión nos importa muchísimo.
+
+🔗 Link: [PEGAR LINK ACÁ]
+
+Cómo entrar:
+1. Abrí el link (mejor desde el celular).
+2. Poné tu nombre y este email: <b>[EMAIL EXACTO QUE CARGARON]</b>
+3. Completá tu perfil (5 pasos cortos, una sola vez).
+4. Pedile al coach tu rutina y tu dieta por el chat y ¡a usarla!
+
+Importante:
+• Entrás UNA sola vez — después la app te reconoce y entrás directo.
+• Usá el email tal cual te lo pasamos, sino no vas a poder entrar.
+• Hay un botón 💬 Feedback adentro de la app: usalo para contarnos TODO lo que veas (bugs, ideas, lo que no te cierre). No te guardes nada.
+
+Gracias por ser parte 🙌</div>
+
+  <div class="callout">
+    <span class="tag">Tip</span>
+    Mándenlo personalizado, uno por uno. En una beta, que la invitación se sienta personal
+    hace que la gente realmente entre y se comprometa a darte feedback.
+  </div>
+
+  <div class="foot"><span>COACHAI · GUÍA BETA</span><span>07</span></div>
+</section>
+
+<!-- 07 — FAQ -->
+<section class="page">
+  <h2><span class="num">07</span> PREGUNTAS FRECUENTES</h2>
+
+  <div class="faq-q">¿El usuario tiene que poner contraseña?</div>
+  <div class="faq-a">No. Solo nombre + email. Sin contraseñas que olvidar = menos fricción. El control de quién entra lo dan ustedes con la lista de invitados.</div>
+
+  <div class="faq-q">Si alguien que no invitamos intenta entrar, ¿qué pasa?</div>
+  <div class="faq-a">Ve un mensaje "CoachAI está en beta cerrada — acceso solo por invitación" y no se crea ninguna cuenta. Imposible colarse.</div>
+
+  <div class="faq-q">¿Qué pasa si el usuario cambia de celular o navegador?</div>
+  <div class="faq-a">Vuelve a entrar con su nombre y el mismo email. La app lo reconoce y recupera todos sus datos (sus planes, su progreso, todo sigue ahí).</div>
+
+  <div class="faq-q">¿Puedo sacar a alguien y meter a otro?</div>
+  <div class="faq-a">Sí. "Quitar" libera el lugar y podés invitar a otro. Si la persona que sacaste ya tenía cuenta, sus datos no se borran.</div>
+
+  <div class="faq-q">¿Los usuarios se ven entre ellos?</div>
+  <div class="faq-a">No. Cada uno ve solo lo suyo. El panel con la vista de todos es solo de ustedes (admin).</div>
+
+  <div class="faq-q">¿Cuánto debería durar la beta?</div>
+  <div class="faq-a">Recomendado: 2 a 4 semanas. Suficiente para ver si la gente vuelve semana a semana (retención), que es la señal más importante.</div>
+
+  <div class="faq-q">¿Y si encontramos un bug grave?</div>
+  <div class="faq-a">Se corrige y se vuelve a deployar — los usuarios no tienen que hacer nada, la próxima vez que entren ya está la versión corregida.</div>
+
+  <div class="foot"><span>COACHAI · GUÍA BETA</span><span>08</span></div>
+</section>
+
+<!-- 08 — AL CERRAR -->
+<section class="page">
+  <h2><span class="num">08</span> AL CERRAR LA BETA</h2>
+  <p class="lead">Cuando decidan que terminó (2-4 semanas), se hace el <strong>análisis final</strong> para decidir el próximo paso.</p>
+
+  <h3>QUÉ SE ANALIZA</h3>
+  <ul>
+    <li><strong>Activación:</strong> de los invitados, cuántos realmente entraron y completaron el perfil.</li>
+    <li><strong>Retención:</strong> cuántos siguen activos semana 1, 2, 3, 4 (la métrica más importante).</li>
+    <li><strong>Adherencia:</strong> entrenos completados, comidas registradas, cierres semanales hechos.</li>
+    <li><strong>Engagement:</strong> sesiones promedio, secciones más y menos usadas.</li>
+    <li><strong>Dónde se caen:</strong> en qué punto la gente abandona (onboarding, primera semana...).</li>
+    <li><strong>Feedback:</strong> síntesis de todo lo que dijeron los testers.</li>
+  </ul>
+
+  <div class="callout">
+    <span class="tag">El entregable</span>
+    Un <strong>informe en PDF con gráficos</strong> (mismo estilo que este documento) y una
+    <strong>recomendación clara</strong>: si el producto está listo para abrirse al público
+    o qué hay que corregir antes de dar el siguiente paso.
+  </div>
+
+  <div class="divider"></div>
+
+  <h3>EN RESUMEN, EL CICLO COMPLETO</h3>
+  <ol>
+    <li>Ustedes invitan (hasta 10) desde el panel.</li>
+    <li>Le pasan el link + el mensaje a cada uno.</li>
+    <li>La gente entra una vez y usa la app.</li>
+    <li>Ustedes miran métricas y feedback en vivo.</li>
+    <li>A las 2-4 semanas: análisis final + decisión go / ajustar.</li>
+  </ol>
+
+  <div class="foot"><span>COACHAI · GUÍA BETA</span><span>09</span></div>
+</section>
+
+<!-- CIERRE -->
+<section class="page cover">
+  <div style="font-family:'Bebas Neue',sans-serif; font-size:50pt; letter-spacing:6px; margin-bottom:5mm;
+    background:linear-gradient(135deg,#b4a7ff,#5b9fff,#2ecfb5); -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent; background-clip:text;">A INVITAR 🚀</div>
+  <div class="muted" style="max-width:130mm; font-size:12pt; line-height:1.7;">
+    Tienen todo lo necesario para correr la beta de forma controlada, sin fricción para el usuario
+    y midiendo lo que importa. La decisión de seguir o ajustar la van a tomar con
+    <strong style="color:var(--accent-bright)">datos reales</strong>, no con intuición.
+  </div>
+  <div class="cover-meta" style="margin-top:24mm;">COACHAI · BETA CERRADA · 10 CUPOS</div>
+</section>
+
+</body>
+</html>
