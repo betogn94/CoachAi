@@ -5974,7 +5974,17 @@ async function loginOrRegister(email, nombre) {
   const { data: existing, error: selErr } = await sbClient
     .from('usuarios').select('*').eq('email', email).maybeSingle();
   if (selErr) throw selErr;
+  // Existing users always pass — they're already in. The allowlist gate only
+  // applies to NEW signups so we never lock out anyone who already onboarded.
   if (existing) { currentUser = existing; return { isNew: false, user: existing }; }
+
+  // Closed beta: a brand-new email must be on the invite allowlist.
+  const { data: invite } = await sbClient
+    .from('beta_invitados').select('email').eq('email', email).maybeSingle();
+  if (!invite) {
+    return { notInvited: true };
+  }
+
   const { data: newUser, error } = await sbClient.from('usuarios').insert([{ email, nombre }]).select().single();
   if (error) throw error;
   currentUser = newUser;
@@ -6228,6 +6238,18 @@ async function handleEmailLogin() {
     document.body.style.position = '';
     document.body.style.top = '';
     document.body.style.width = '';
+
+    // Closed beta gate: a new email that isn't on the invite allowlist
+    // stays on the landing with a clear, friendly message (no account created).
+    if (result.notInvited) {
+      error.innerHTML = '🔒 <strong>CoachAI está en beta cerrada.</strong><br>' +
+        'El acceso es solo por invitación. Si querés sumarte, escribinos y te agregamos.';
+      error.style.lineHeight = '1.5';
+      btn.disabled = false;
+      loading.style.display = 'none';
+      return;
+    }
+
     document.getElementById('landing-wrapper').style.display = 'none';
     document.getElementById('main-header').style.display = 'flex';
 
