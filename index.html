@@ -2924,7 +2924,25 @@ footer {
   font-family: 'JetBrains Mono', monospace; letter-spacing: 0.5px;
 }
 
-/* Day card reuses .semana-card; these add the entreno-specific bits */
+/* Day card reuses .semana-card; these add the entreno-specific bits.
+   Premium violet detail to match the "TU SEMANA" coach-card above:
+   subtle border + violet top inset + depth shadow. */
+.entreno-day {
+  background: var(--surface2);
+  border: 1px solid rgba(124,106,255,0.18);
+  box-shadow:
+    0 4px 24px rgba(0,0,0,0.4),
+    0 0 0 1px rgba(124,106,255,0.05),
+    inset 0 2px 0 var(--accent);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.entreno-day:hover {
+  border-color: rgba(124,106,255,0.30);
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.45),
+    0 0 16px rgba(124,106,255,0.08),
+    inset 0 2px 0 var(--accent-bright);
+}
 .entreno-day .semana-header { gap: 12px; }
 .entreno-day-info { flex: 1; min-width: 0; }
 .entreno-day-name {
@@ -4714,7 +4732,7 @@ footer {
       <div class="nav-item-icon"><div class="nav-item-icon-inner">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16"/><path d="M9 3v4"/><path d="M15 3v4"/><circle cx="12" cy="14.5" r="1.4" fill="currentColor"/></svg>
       </div></div>
-      <div><div class="nav-item-label">Mi Día</div></div>
+      <div><div class="nav-item-label">Mi Alimentación</div></div>
     </div>
     <div class="nav-item" id="nav-entreno" onclick="showMiEntreno(); closeNav()">
       <div class="nav-item-icon"><div class="nav-item-icon-inner">
@@ -5100,8 +5118,8 @@ QUE SÍ SE VE</div>
           </svg>
         </div>
         <div class="home-card-body">
-          <div class="home-card-title">MI DÍA</div>
-          <div class="home-card-desc">Registrá comidas y entrenamientos.</div>
+          <div class="home-card-title">MI ALIMENTACIÓN</div>
+          <div class="home-card-desc">Registrá tus comidas del día.</div>
         </div>
       </div>
 
@@ -5866,7 +5884,7 @@ QUE SÍ SE VE</div>
 <div class="diario-wrapper" id="diario-wrapper">
   <div class="diario-header">
     <div>
-      <div class="diario-title" id="diario-title-text"><span class="diario-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></span><span>MI DÍA</span></div>
+      <div class="diario-title" id="diario-title-text"><span class="diario-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h0a2 2 0 0 0 2-2V2"></path><line x1="5" y1="11" x2="5" y2="22"></line><path d="M21 15V2a5 3 0 0 0-5 3v7c0 1.1.9 2 2 2h3z"></path><line x1="18" y1="15" x2="18" y2="22"></line></svg></span><span>MI ALIMENTACIÓN</span></div>
       <div class="diario-date-nav" style="display:flex; align-items:center; gap:8px; margin-top:4px; flex-wrap:wrap;">
         <button onclick="navDiarioDay(-1)" id="diario-nav-prev" title="Día anterior" aria-label="Día anterior" style="background:transparent; border:1px solid var(--border); color:var(--muted); width:36px; height:36px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:18px; padding:0;">‹</button>
         <div class="diario-date" id="diario-date-display" style="margin:0;"></div>
@@ -5880,7 +5898,7 @@ QUE SÍ SE VE</div>
   <!-- Banner shown when the user has no active plan to register against -->
   <div id="diario-no-plan-banner" style="display:none; margin-bottom:16px; padding:14px 18px; background:linear-gradient(135deg,rgba(124,106,255,0.12),rgba(46,207,181,0.06)); border:1px solid rgba(124,106,255,0.25); border-radius:12px;">
     <div style="font-size:13px; line-height:1.5; color:var(--text);" id="diario-no-plan-text">
-      💡 <strong>Aún no tenés un plan activo</strong> — pedile al coach una rutina o dieta para tener una referencia contra qué comparar tu día.
+      💡 <strong>Aún no tenés una dieta activa</strong> — pedile al coach tu plan de alimentación de la semana para tener una referencia contra qué comparar lo que comés.
     </div>
     <button onclick="showChat()" style="margin-top:10px; background:transparent; border:1px solid var(--accent); color:var(--accent-bright); padding:6px 14px; border-radius:6px; cursor:pointer; font-size:11px; letter-spacing:1.5px; font-family:'JetBrains Mono', monospace;" id="diario-no-plan-cta">→ IR AL CHAT</button>
   </div>
@@ -5921,25 +5939,7 @@ QUE SÍ SE VE</div>
     <div id="macros-failed" style="display:none;margin:0 22px 12px;padding:10px 14px;font-size:12px;color:rgba(255,196,0,0.95);background:rgba(255,196,0,0.08);border-left:3px solid rgba(255,196,0,0.5);border-radius:8px;line-height:1.5;">
       ⚠ No pudimos estimar los macros automáticamente. Las comidas se guardaron igual — los valores de kcal/proteína quedan vacíos para este día.
     </div>
-  </div>
-
-  <!-- ENTRENAMIENTO -->
-  <div class="chart-card coach-card" style="margin-bottom:16px">
-    <div class="chart-card-header">
-      <div class="chart-card-title" id="diario-train-title"><span class="chart-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"></path><path d="M21 21l-1-1"></path><path d="M3 3l1 1"></path><path d="M18 22l4-4"></path><path d="M2 6l4-4"></path><path d="M3 10l7-7"></path><path d="M14 21l7-7"></path></svg></span><span>ENTRENAMIENTO DE HOY</span></div>
-    </div>
-    <div class="entreno-toggle">
-      <span class="entreno-toggle-label" id="d-label-entreno">¿Entrenaste hoy?</span>
-      <div class="entreno-chips">
-        <div class="entreno-chip si" id="chip-si" onclick="setEntrenó(true)">✅ Sí</div>
-        <div class="entreno-chip no" id="chip-no" onclick="setEntrenó(false)">❌ No</div>
-      </div>
-    </div>
-    <div class="ejercicios-section" id="ejercicios-section">
-      <label id="d-label-ejercicios">¿Qué entrenaste?</label>
-      <textarea class="diario-textarea" id="d-ejercicios" style="min-height:90px" placeholder="Ej: Espalda y bíceps intensidad moderada, cardio 30 min&#10;Ej: Push day — pecho, hombros, tríceps, 1 hora&#10;Ej: Legs — sentadilla, prensa, extensiones, alta intensidad"></textarea>
-    </div>
-    <button class="btn-save-diario" id="btn-save-diario" onclick="saveDiario()">💾 GUARDAR MI DÍA</button>
+    <button class="btn-save-diario" id="btn-save-diario" onclick="saveDiario()" style="margin:4px 22px 20px;width:calc(100% - 44px)">💾 GUARDAR MI ALIMENTACIÓN</button>
   </div>
 </div>
 
@@ -7693,28 +7693,25 @@ async function showDiario() {
   const todayBtn = document.getElementById('diario-nav-today');
   if (todayBtn) todayBtn.style.display = isToday ? 'none' : 'inline-flex';
 
-  // Reset to empty state first
-  ['d-desayuno','d-almuerzo','d-merienda','d-cena','d-ejercicios'].forEach(id => document.getElementById(id).value = '');
+  // Reset meal fields to empty (training was moved to Mi Entreno)
+  ['d-desayuno','d-almuerzo','d-merienda','d-cena'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
   document.getElementById('macros-estimados').style.display = 'none';
   document.getElementById('macros-estimando').style.display = 'none';
   const macrosFailed = document.getElementById('macros-failed');
   if (macrosFailed) macrosFailed.style.display = 'none';
-  entrenóHoy = null;
-  document.getElementById('chip-si').classList.remove('selected');
-  document.getElementById('chip-no').classList.remove('selected');
-  document.getElementById('ejercicios-section').style.display = 'block';
 
-  // Empty-state banner: if the user has no active plan (or both are closed),
-  // prompt them to ask the coach. Doesn't block — they can still log their day.
-  const noActivePlan = !(weeklyPlans.dieta && !weeklyPlans.dieta.closed) &&
-                       !(weeklyPlans.rutina && !weeklyPlans.rutina.closed);
+  // Empty-state banner: if the user has no active diet plan, prompt them to
+  // ask the coach. Doesn't block — they can still log what they ate.
+  const noActiveDieta = !(weeklyPlans.dieta && !weeklyPlans.dieta.closed);
   const banner = document.getElementById('diario-no-plan-banner');
   if (banner) {
-    banner.style.display = noActivePlan ? 'block' : 'none';
-    if (noActivePlan) {
+    banner.style.display = noActiveDieta ? 'block' : 'none';
+    if (noActiveDieta) {
       document.getElementById('diario-no-plan-text').innerHTML = lang === 'es'
-        ? '💡 <strong>Aún no tenés un plan activo</strong> — pedile al coach una rutina o dieta para tener una referencia contra qué comparar tu día.'
-        : '💡 <strong>You don\'t have an active plan yet</strong> — ask your coach for a routine or diet so your day has something to compare against.';
+        ? '💡 <strong>Aún no tenés una dieta activa</strong> — pedile al coach tu plan de alimentación de la semana para tener una referencia contra qué comparar lo que comés.'
+        : '💡 <strong>You don\'t have an active diet yet</strong> — ask your coach for your weekly meal plan so you have a reference to compare against.';
       document.getElementById('diario-no-plan-cta').textContent = lang === 'es' ? '→ IR AL CHAT' : '→ GO TO CHAT';
     }
   }
@@ -7727,9 +7724,6 @@ async function showDiario() {
     document.getElementById('d-almuerzo').value = existing.almuerzo || '';
     document.getElementById('d-merienda').value = existing.merienda || '';
     document.getElementById('d-cena').value = existing.cena || '';
-    document.getElementById('d-ejercicios').value = existing.ejercicios_realizados || '';
-    if (existing.entreno === true)  setEntrenó(true);
-    else if (existing.entreno === false) setEntrenó(false);
     if (existing.calorias_consumidas || existing.proteinas_g) {
       showMacrosEstimados({
         calorias_consumidas: existing.calorias_consumidas,
@@ -7738,10 +7732,10 @@ async function showDiario() {
         grasas_g: existing.grasas_g,
       });
     }
-    btn.textContent = lang === 'es' ? '✏️ ACTUALIZAR MI DÍA' : '✏️ UPDATE MY DAY';
+    btn.textContent = lang === 'es' ? '✏️ ACTUALIZAR MI ALIMENTACIÓN' : '✏️ UPDATE MY MEALS';
   } else {
     btn.textContent = isToday
-      ? (lang === 'es' ? '💾 GUARDAR MI DÍA' : '💾 SAVE MY DAY')
+      ? (lang === 'es' ? '💾 GUARDAR MI ALIMENTACIÓN' : '💾 SAVE MY MEALS')
       : (lang === 'es' ? '💾 GUARDAR ESTE DÍA' : '💾 SAVE THIS DAY');
   }
   btn.disabled = false;
@@ -7825,17 +7819,14 @@ async function saveDiario() {
   const almuerzo = document.getElementById('d-almuerzo').value.trim();
   const merienda = document.getElementById('d-merienda').value.trim();
   const cena = document.getElementById('d-cena').value.trim();
-  const ejercicios = document.getElementById('d-ejercicios').value.trim();
 
-  // Reject completely empty submissions. The upsert would otherwise write a
-  // null row and the lock-button branch (deprecated by editing flow now,
-  // but defense-in-depth) would trap the user with nothing to display.
+  // Reject empty submissions. Training moved to Mi Entreno — this section is
+  // food only, so require at least one meal.
   const hasAnyMeal = desayuno || almuerzo || merienda || cena;
-  const hasTrainingInfo = entrenóHoy !== null || ejercicios;
-  if (!hasAnyMeal && !hasTrainingInfo) {
+  if (!hasAnyMeal) {
     alert(lang === 'es'
-      ? 'Cargá al menos una comida o marcá si entrenaste hoy.'
-      : 'Add at least one meal or mark if you trained today.');
+      ? 'Cargá al menos una comida para guardar.'
+      : 'Add at least one meal to save.');
     return;
   }
 
@@ -7862,15 +7853,14 @@ async function saveDiario() {
       macrosFailed.style.display = shouldWarn ? 'block' : 'none';
     }
 
+    // Food-only payload. Training fields (entreno / ejercicios_realizados)
+    // are no longer set here — that lives in Mi Entreno now.
     const data = {
       desayuno, almuerzo, merienda, cena,
       calorias_consumidas: macros?.kcal || null,
       proteinas_g: macros?.proteina || null,
       carbos_g: macros?.carbos || null,
       grasas_g: macros?.grasa || null,
-      entreno: entrenóHoy,
-      ejercicios_realizados: ejercicios,
-      notas_entreno: '',
     };
 
     // Session-switch guard: bail if the logged-in user changed during the
@@ -7888,9 +7878,8 @@ async function saveDiario() {
     // editing yesterday/this week's entries via the prev/next chevrons.
     const targetDate = viewedDiarioDate || getTodayKey();
     await saveDiarioToSupabase(data, targetDate);
-    if (entrenóHoy) saveTrainedDayToSupabase().catch(console.error);
     recentDiario = await loadRecentDiario();
-    btn.textContent = '✅ DÍA GUARDADO';
+    btn.textContent = '✅ GUARDADO';
     setTimeout(() => {
       btn.textContent = originalLabel;
       btn.disabled = false;
@@ -9213,9 +9202,12 @@ function parseRutinaContenido(text) {
   return days;
 }
 
-// ---- Persistence (localStorage, keyed per user + ISO week) ----
-// Shape kept intentionally clean so a future Supabase sync is a drop-in:
-//   { [userId]: { [semana_iso]: { completed:{dayIdx:true}, weights:{exKey:"80kg"} } } }
+// ---- Persistence ----
+// localStorage = instant local cache. Supabase `entreno_semanal` = durable
+// source of truth (per user + ISO week, jsonb estado). Shape:
+//   estado = { completed:{ dayIdx: "YYYY-MM-DD" }, weights:{ exKey: "80kg" } }
+// `completed[idx]` stores the DATE the day was marked done — that date is
+// mirrored into `dias_entrenados` so the Progreso training ring reflects it.
 const LS_ENTRENO = 'coachai_entreno_v1';
 function entrenoWeekKey() {
   return (weeklyPlans.rutina && weeklyPlans.rutina.semana_iso) ||
@@ -9228,25 +9220,96 @@ function getEntrenoWeekState() {
   if (!currentUser) return { completed: {}, weights: {} };
   const all = loadEntrenoAll();
   const wk = entrenoWeekKey();
-  return (all[currentUser.id] && all[currentUser.id][wk]) || { completed: {}, weights: {} };
+  const s = (all[currentUser.id] && all[currentUser.id][wk]) || { completed: {}, weights: {} };
+  if (!s.completed) s.completed = {};
+  if (!s.weights) s.weights = {};
+  return s;
 }
-function saveEntrenoWeekState(state) {
+function writeEntrenoLocal(state) {
   if (!currentUser) return;
   const all = loadEntrenoAll();
   const wk = entrenoWeekKey();
   all[currentUser.id] = all[currentUser.id] || {};
   all[currentUser.id][wk] = state;
   try { localStorage.setItem(LS_ENTRENO, JSON.stringify(all)); }
-  catch (e) { console.error('Entreno save failed:', e); }
+  catch (e) { console.error('Entreno local save failed:', e); }
+}
+
+let _entrenoSyncTimer = null;
+// Persist to localStorage immediately (instant UI) + debounced upsert to
+// Supabase so the coach sees it cross-device and it survives a cache wipe.
+function saveEntrenoWeekState(state) {
+  if (!currentUser) return;
+  writeEntrenoLocal(state);
+  const uid = currentUser.id;
+  const wk = entrenoWeekKey();
+  clearTimeout(_entrenoSyncTimer);
+  _entrenoSyncTimer = setTimeout(() => {
+    if (!sbClient || !currentUser || currentUser.id !== uid) return;
+    sbClient.from('entreno_semanal').upsert([{
+      usuario_id: uid, semana_iso: wk, estado: state, updated_at: new Date().toISOString()
+    }], { onConflict: 'usuario_id,semana_iso' }).then(({ error }) => {
+      if (error) console.warn('Entreno Supabase sync failed (kept in localStorage):', error);
+    });
+  }, 800);
+}
+
+// Pull the durable week state from Supabase and hydrate localStorage. Called
+// on section open so a fresh device / cleared cache still shows progress.
+async function hydrateEntrenoFromSupabase() {
+  if (!sbClient || !currentUser) return;
+  const uid = currentUser.id;
+  const wk = entrenoWeekKey();
+  try {
+    const { data, error } = await sbClient.from('entreno_semanal')
+      .select('estado').eq('usuario_id', uid).eq('semana_iso', wk).maybeSingle();
+    if (error || !data || !data.estado) return;
+    if (!currentUser || currentUser.id !== uid) return; // session switched mid-fetch
+    const remote = data.estado;
+    remote.completed = remote.completed || {};
+    remote.weights = remote.weights || {};
+    writeEntrenoLocal(remote);
+  } catch (e) {
+    console.warn('Entreno hydrate failed, using localStorage:', e);
+  }
+}
+
+// Mirror a completed (non-rest) training day into `dias_entrenados` for the
+// given date so the existing Progreso adherence ring/streak reflects it.
+// `dias_entrenados` is now effectively Mi-Entreno-owned (Mi Día no longer
+// writes training there). On uncomplete we remove the date only if no other
+// completed day in the same week shares it.
+async function mirrorTrainedDay(dateStr, add, stateAfter) {
+  if (!sbClient || !currentUser || !dateStr) return;
+  const uid = currentUser.id;
+  try {
+    if (add) {
+      const { data: existing } = await sbClient.from('dias_entrenados')
+        .select('id').eq('usuario_id', uid).eq('fecha', dateStr).limit(1);
+      if (!existing || !existing.length) {
+        await sbClient.from('dias_entrenados').insert([{ usuario_id: uid, fecha: dateStr }]);
+      }
+    } else {
+      const stillUsed = Object.values((stateAfter && stateAfter.completed) || {}).includes(dateStr);
+      if (!stillUsed) {
+        await sbClient.from('dias_entrenados').delete()
+          .eq('usuario_id', uid).eq('fecha', dateStr);
+      }
+    }
+  } catch (e) {
+    console.warn('dias_entrenados mirror failed:', e);
+  }
 }
 
 function exKey(dayIdx, exIdx) { return `d${dayIdx}e${exIdx}`; }
 
-function showMiEntreno() {
+async function showMiEntreno() {
   hideAllSections();
   const w = document.getElementById('mi-entreno-wrapper');
   w.style.display = 'block';
   w.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  renderMiEntreno();                 // instant paint from localStorage cache
+  await hydrateEntrenoFromSupabase(); // then refresh from durable source
   renderMiEntreno();
   setActiveNav('nav-entreno');
 }
@@ -9355,16 +9418,35 @@ function toggleEntrenoDay(i) {
 }
 
 function toggleEntrenoDone(i) {
+  const rutina = weeklyPlans.rutina;
+  const days = (rutina && rutina.contenido) ? parseRutinaContenido(rutina.contenido) : [];
+  const isRestDay = !!(days[i] && days[i].isRest);
+
   const state = getEntrenoWeekState();
-  state.completed[i] = !state.completed[i];
+  const prevDate = state.completed[i];        // date string if it was done, else undefined
+  const wasDone = !!prevDate;
+  if (wasDone) {
+    delete state.completed[i];
+  } else {
+    // Store the date it was marked done (used to mirror dias_entrenados)
+    state.completed[i] = getTodayKey();
+  }
   saveEntrenoWeekState(state);
+
+  const isDone = !!state.completed[i];
   const card = document.getElementById('entreno-day-' + i);
   const check = document.getElementById('entreno-check-' + i);
-  if (check) check.classList.toggle('done', !!state.completed[i]);
-  if (card) card.classList.toggle('completed', !!state.completed[i]);
-  // Refresh the summary bar
-  const rutina = weeklyPlans.rutina;
-  if (rutina && rutina.contenido) updateEntrenoSummary(parseRutinaContenido(rutina.contenido));
+  if (check) check.classList.toggle('done', isDone);
+  if (card) card.classList.toggle('completed', isDone);
+
+  // Mirror to dias_entrenados so the Progreso training ring reflects it.
+  // Rest days count for adherence in Mi Entreno but are NOT "trained days".
+  if (!isRestDay) {
+    const dateStr = isDone ? state.completed[i] : prevDate;
+    mirrorTrainedDay(dateStr, isDone, state);
+  }
+
+  if (days.length) updateEntrenoSummary(days);
 }
 
 let _entrenoWeightTimers = {};
