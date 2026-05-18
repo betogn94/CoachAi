@@ -2305,6 +2305,81 @@ footer {
   flex-wrap: wrap;
   gap: 8px;
 }
+/* ===== BETA ADMIN PANEL ===== */
+.beta-tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+.beta-tab {
+  flex: 1; padding: 8px 10px; border-radius: 8px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); cursor: pointer; font-size: 12px;
+  font-family: 'DM Sans', sans-serif; transition: all 0.18s;
+}
+.beta-tab.active {
+  background: linear-gradient(135deg, rgba(124,106,255,0.25), rgba(46,207,181,0.12));
+  border-color: var(--accent); color: var(--accent-bright); font-weight: 600;
+}
+.beta-invite-form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.beta-inv-input {
+  flex: 1; min-width: 120px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 9px 12px; color: var(--text); font-size: 13px; outline: none;
+}
+.beta-inv-input:focus { border-color: var(--accent); }
+.beta-inv-add {
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  border: none; color: #fff; border-radius: 8px; padding: 9px 16px;
+  cursor: pointer; font-size: 13px; font-weight: 700; white-space: nowrap;
+}
+.beta-inv-msg { font-size: 12px; margin: 4px 0 12px; min-height: 16px; }
+.beta-inv-msg.ok { color: var(--accent3); }
+.beta-inv-msg.err { color: #ff6b6b; }
+.beta-inv-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 12px; border-radius: 10px; background: var(--surface2);
+  border: 1px solid var(--border); margin-bottom: 8px;
+}
+.beta-inv-row-info { flex: 1; min-width: 0; }
+.beta-inv-row-name { font-size: 13px; color: var(--text); font-weight: 600; }
+.beta-inv-row-email { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+.beta-inv-badge {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  padding: 3px 9px; border-radius: 100px; white-space: nowrap;
+}
+.beta-inv-badge.activo { background: rgba(46,207,181,0.14); color: var(--accent3); }
+.beta-inv-badge.invitado { background: rgba(124,106,255,0.15); color: var(--accent-bright); }
+.beta-inv-badge.inactivo { background: rgba(255,107,107,0.14); color: #ff6b6b; }
+.beta-inv-revoke {
+  background: transparent; border: 1px solid var(--border); color: var(--muted);
+  border-radius: 7px; padding: 5px 9px; cursor: pointer; font-size: 11px; flex-shrink: 0;
+}
+.beta-inv-revoke:hover { border-color: #ff6b6b; color: #ff6b6b; }
+.beta-metricas-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.beta-metric {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px 16px;
+}
+.beta-metric-num {
+  font-family: 'Bebas Neue', sans-serif; font-size: 28px;
+  line-height: 1; color: var(--accent-bright);
+}
+.beta-metric-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.beta-fb-item {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent); border-radius: 10px;
+  padding: 12px 14px; margin-bottom: 10px;
+}
+.beta-fb-meta {
+  font-size: 11px; color: var(--muted);
+  font-family: 'JetBrains Mono', monospace; margin-bottom: 5px;
+}
+.beta-fb-msg { font-size: 13px; color: var(--text); line-height: 1.55; white-space: pre-wrap; }
+.beta-empty { font-size: 13px; color: var(--muted); text-align: center; padding: 24px; }
+@media (max-width: 640px) {
+  .beta-inv-input { font-size: 16px; }
+  .beta-metricas-grid { grid-template-columns: 1fr 1fr; }
+}
+
 .admin-section-title {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 22px;
@@ -5930,6 +6005,39 @@ QUE SÍ SE VE</div>
         <div class="admin-stat-num" id="stat-rojo">–</div>
         <div class="admin-stat-label">INACTIVOS</div>
         <div class="admin-stat-sub">0–1 días / semana</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== BETA MANAGEMENT ===== -->
+  <div id="beta-admin-card" class="chart-card coach-card" style="display:none; margin-bottom:16px">
+    <div class="chart-card-header" onclick="toggleBetaPanel()" style="cursor:pointer">
+      <div class="chart-card-title"><span class="chart-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6M10 2v6.5L5 18a2 2 0 0 0 1.8 3h10.4A2 2 0 0 0 19 18l-5-9.5V2"></path></svg></span><span>GESTIÓN DE BETA</span></div>
+      <button class="plan-toggle-btn" id="beta-toggle-btn">Abrir ▼</button>
+    </div>
+    <div id="beta-admin-body" style="display:none; padding:14px 18px 18px">
+      <div class="beta-tabs">
+        <button class="beta-tab active" id="beta-tab-btn-invitados" onclick="betaTab('invitados')">Invitados</button>
+        <button class="beta-tab" id="beta-tab-btn-metricas" onclick="betaTab('metricas')">Métricas</button>
+        <button class="beta-tab" id="beta-tab-btn-feedback" onclick="betaTab('feedback')">Feedback</button>
+      </div>
+
+      <div id="beta-pane-invitados" class="beta-pane">
+        <div class="beta-invite-form">
+          <input id="beta-inv-nombre" class="beta-inv-input" placeholder="Nombre" maxlength="60">
+          <input id="beta-inv-email" class="beta-inv-input" placeholder="email@ejemplo.com" maxlength="120" inputmode="email">
+          <button class="beta-inv-add" onclick="betaAddInvitado()">+ Invitar</button>
+        </div>
+        <div id="beta-inv-msg" class="beta-inv-msg"></div>
+        <div id="beta-invitados-list"></div>
+      </div>
+
+      <div id="beta-pane-metricas" class="beta-pane" style="display:none">
+        <div id="beta-metricas-grid" class="beta-metricas-grid"></div>
+      </div>
+
+      <div id="beta-pane-feedback" class="beta-pane" style="display:none">
+        <div id="beta-feedback-list"></div>
       </div>
     </div>
   </div>
@@ -10484,10 +10592,156 @@ async function loadAdminDashboard() {
 
     loading.style.display = 'none';
     statsSection.style.display = 'block';
+    document.getElementById('beta-admin-card').style.display = 'block';
+    loadBetaPanel().catch(console.error);
   } catch(e) {
     console.error('[Admin dashboard]', e);
     if (loading) loading.textContent = `Error: ${e.message || 'No se pudo cargar. Revisá la consola (F12).'}`;
   }
+}
+
+// ============================
+// BETA ADMIN PANEL
+// ============================
+let _betaData = { invitados: [], usuarios: [], feedback: [] };
+let _betaPanelOpen = false;
+
+function toggleBetaPanel() {
+  _betaPanelOpen = !_betaPanelOpen;
+  document.getElementById('beta-admin-body').style.display = _betaPanelOpen ? 'block' : 'none';
+  document.getElementById('beta-toggle-btn').textContent = _betaPanelOpen ? 'Cerrar ▲' : 'Abrir ▼';
+}
+
+function betaTab(name) {
+  ['invitados','metricas','feedback'].forEach(t => {
+    document.getElementById('beta-pane-' + t).style.display = (t === name) ? 'block' : 'none';
+    document.getElementById('beta-tab-btn-' + t).classList.toggle('active', t === name);
+  });
+  if (name === 'metricas') renderBetaMetricas();
+  if (name === 'feedback') renderBetaFeedback();
+}
+
+async function loadBetaPanel() {
+  if (!sbClient) return;
+  const [inv, usr, fb] = await Promise.all([
+    sbClient.from('beta_invitados').select('email,nombre,invitado_por,created_at').order('created_at', { ascending: false }),
+    sbClient.from('usuarios').select('email,nombre,last_active,session_count,created_at'),
+    sbClient.from('feedback').select('nombre,mensaje,created_at').order('created_at', { ascending: false }).limit(100)
+  ]);
+  _betaData.invitados = inv.data || [];
+  _betaData.usuarios = usr.data || [];
+  _betaData.feedback = fb.data || [];
+  renderBetaInvitados();
+}
+
+function _betaUserByEmail(email) {
+  return _betaData.usuarios.find(u => (u.email || '').toLowerCase() === (email || '').toLowerCase());
+}
+
+function renderBetaInvitados() {
+  const el = document.getElementById('beta-invitados-list');
+  if (!el) return;
+  if (!_betaData.invitados.length) {
+    el.innerHTML = '<div class="beta-empty">Todavía no invitaste a nadie. Agregá el primer beta tester arriba.</div>';
+    return;
+  }
+  const sevenAgo = Date.now() - 7 * 86400000;
+  el.innerHTML = _betaData.invitados.map(inv => {
+    const u = _betaUserByEmail(inv.email);
+    let badge, cls;
+    if (!u) { badge = 'INVITADO'; cls = 'invitado'; }
+    else if (u.last_active && new Date(u.last_active).getTime() > sevenAgo) { badge = 'ACTIVO'; cls = 'activo'; }
+    else { badge = 'INACTIVO'; cls = 'inactivo'; }
+    const nm = _esc(inv.nombre || (u && u.nombre) || '—');
+    const em = _esc(inv.email);
+    return `<div class="beta-inv-row">
+      <div class="beta-inv-row-info">
+        <div class="beta-inv-row-name">${nm}</div>
+        <div class="beta-inv-row-email">${em}</div>
+      </div>
+      <span class="beta-inv-badge ${cls}">${badge}</span>
+      <button class="beta-inv-revoke" onclick="betaRevokeInvitado('${_escAttr(inv.email)}')">Quitar</button>
+    </div>`;
+  }).join('');
+}
+
+async function betaAddInvitado() {
+  const nombre = document.getElementById('beta-inv-nombre').value.trim();
+  const email = document.getElementById('beta-inv-email').value.trim().toLowerCase();
+  const msg = document.getElementById('beta-inv-msg');
+  msg.className = 'beta-inv-msg';
+  if (!email || !email.includes('@')) { msg.textContent = 'Ingresá un email válido.'; msg.classList.add('err'); return; }
+  try {
+    const { error } = await sbClient.from('beta_invitados')
+      .insert([{ email, nombre: nombre || null, invitado_por: 'admin' }]);
+    if (error) {
+      msg.textContent = error.code === '23505' ? 'Ese email ya estaba invitado.' : 'No se pudo invitar: ' + error.message;
+      msg.classList.add('err');
+      return;
+    }
+    msg.textContent = `✓ ${email} invitado.`;
+    msg.classList.add('ok');
+    document.getElementById('beta-inv-nombre').value = '';
+    document.getElementById('beta-inv-email').value = '';
+    await loadBetaPanel();
+  } catch (e) {
+    msg.textContent = 'Error de conexión.'; msg.classList.add('err');
+  }
+}
+
+async function betaRevokeInvitado(email) {
+  if (!confirm(`¿Quitar la invitación de ${email}? No podrá registrarse (si ya tiene cuenta, su cuenta no se borra).`)) return;
+  try {
+    const { error } = await sbClient.from('beta_invitados').delete().eq('email', email);
+    if (error) throw error;
+    await loadBetaPanel();
+  } catch (e) {
+    alert('No se pudo quitar: ' + (e.message || e));
+  }
+}
+
+function renderBetaMetricas() {
+  const el = document.getElementById('beta-metricas-grid');
+  if (!el) return;
+  const totalInv = _betaData.invitados.length;
+  const invEmails = new Set(_betaData.invitados.map(i => (i.email || '').toLowerCase()));
+  // Activados = invitado que ya tiene cuenta en usuarios
+  const activados = _betaData.usuarios.filter(u => invEmails.has((u.email || '').toLowerCase()));
+  const nActivados = activados.length;
+  const sevenAgo = Date.now() - 7 * 86400000;
+  const activos7d = activados.filter(u => u.last_active && new Date(u.last_active).getTime() > sevenAgo).length;
+  const nuncaEntraron = totalInv - nActivados;
+  const avgSesiones = nActivados
+    ? (activados.reduce((s, u) => s + (u.session_count || 0), 0) / nActivados).toFixed(1)
+    : '0';
+  const tasaAct = totalInv ? Math.round((nActivados / totalInv) * 100) : 0;
+  const cards = [
+    [totalInv, 'Invitados totales'],
+    [`${nActivados} · ${tasaAct}%`, 'Activaron cuenta'],
+    [activos7d, 'Activos últimos 7 días'],
+    [nuncaEntraron, 'Nunca entraron'],
+    [avgSesiones, 'Sesiones promedio'],
+    [_betaData.feedback.length, 'Feedback recibido'],
+  ];
+  el.innerHTML = cards.map(([n, l]) =>
+    `<div class="beta-metric"><div class="beta-metric-num">${_esc(String(n))}</div><div class="beta-metric-label">${l}</div></div>`
+  ).join('');
+}
+
+function renderBetaFeedback() {
+  const el = document.getElementById('beta-feedback-list');
+  if (!el) return;
+  if (!_betaData.feedback.length) {
+    el.innerHTML = '<div class="beta-empty">Todavía no llegó feedback. Aparecerá acá apenas un tester lo envíe.</div>';
+    return;
+  }
+  el.innerHTML = _betaData.feedback.map(f => {
+    const fecha = f.created_at ? new Date(f.created_at).toLocaleString(lang === 'es' ? 'es-AR' : 'en-US', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '';
+    return `<div class="beta-fb-item">
+      <div class="beta-fb-meta">${_esc(f.nombre || 'Anónimo')} · ${_esc(fecha)}</div>
+      <div class="beta-fb-msg">${_esc(f.mensaje || '')}</div>
+    </div>`;
+  }).join('');
 }
 
 function adminDaysSince(dateStr) {
