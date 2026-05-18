@@ -55,7 +55,7 @@ body::after {
    (Mi Día, Progreso, Perfil) for a unified aesthetic. The body::after is
    already position:fixed so it stays in the viewport while scrolling.
    `background-attachment:scroll` (default) avoids iOS Safari quirks. */
-body:has(:is(.form-wrapper, #diario-wrapper, #dashboard-wrapper, #perfil-wrapper, #wl-wrapper)[style*="block"])::after {
+body:has(:is(.form-wrapper, #diario-wrapper, #dashboard-wrapper, #perfil-wrapper, #wl-wrapper, #mi-entreno-wrapper)[style*="block"])::after {
   top: 0; left: 0; width: 100%; height: 100%;
   background:
     radial-gradient(ellipse 55% 45% at 18% 12%, rgba(124,106,255,0.20) 0%, transparent 60%),
@@ -2906,6 +2906,125 @@ footer {
 .semana-body { display: none; border-top: 1px solid var(--border); }
 .semana-card.open .semana-body { display: block; }
 
+/* ===== MI ENTRENO ===== */
+#mi-entreno-wrapper { display: none; }
+
+.entreno-progress-track {
+  height: 8px; border-radius: 100px;
+  background: var(--surface2);
+  overflow: hidden; margin-bottom: 8px;
+}
+.entreno-progress-fill {
+  height: 100%; border-radius: 100px;
+  background: linear-gradient(90deg, var(--accent), var(--accent3));
+  width: 0%; transition: width 0.4s ease;
+}
+.entreno-progress-label {
+  font-size: 12px; color: var(--muted);
+  font-family: 'JetBrains Mono', monospace; letter-spacing: 0.5px;
+}
+
+/* Day card reuses .semana-card; these add the entreno-specific bits */
+.entreno-day .semana-header { gap: 12px; }
+.entreno-day-info { flex: 1; min-width: 0; }
+.entreno-day-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px; letter-spacing: 1px; color: var(--text);
+  line-height: 1.1;
+}
+.entreno-day-sub {
+  font-size: 11px; color: var(--muted); margin-top: 3px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Premium completion toggle — NOT a native checkbox */
+.entreno-check {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--surface2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+  transition: all 0.2s; padding: 0;
+  color: transparent;
+}
+.entreno-check:hover { border-color: var(--accent); }
+.entreno-check svg { width: 15px; height: 15px; display: block; }
+.entreno-check.done {
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  border-color: var(--accent3);
+  color: #fff;
+}
+.entreno-day.completed .semana-header { background: rgba(46,207,181,0.05); }
+
+/* Rest day — calmer, subtler */
+.entreno-day.rest { opacity: 0.82; }
+.entreno-day.rest .semana-badge {
+  background: rgba(124,106,255,0.08); color: var(--muted);
+}
+.entreno-rest-body {
+  padding: 16px 18px; font-size: 12px; color: var(--muted);
+  line-height: 1.6;
+}
+
+/* Exercise rows */
+.entreno-ex-list { padding: 6px 16px 16px; }
+.entreno-ex {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(124,106,255,0.08);
+}
+.entreno-ex:last-child { border-bottom: none; }
+.entreno-ex-top {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; margin-bottom: 4px;
+}
+.entreno-ex-name {
+  font-size: 13.5px; font-weight: 600; color: var(--text);
+  flex: 1; line-height: 1.3;
+}
+.entreno-ex-detail {
+  font-size: 11px; color: var(--accent-bright);
+  font-family: 'JetBrains Mono', monospace;
+  white-space: nowrap; flex-shrink: 0;
+}
+.entreno-ex-note {
+  font-size: 11px; color: var(--muted);
+  line-height: 1.5; margin: 2px 0 8px;
+}
+.entreno-weight-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.entreno-weight-label {
+  font-size: 10px; color: var(--muted);
+  letter-spacing: 1px; text-transform: uppercase;
+}
+.entreno-weight-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  width: 110px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.entreno-weight-input:focus { border-color: var(--accent); }
+.entreno-weight-input::placeholder { color: var(--muted); opacity: 0.5; }
+.entreno-weight-saved {
+  font-size: 11px; color: var(--accent3);
+  opacity: 0; transition: opacity 0.3s;
+}
+.entreno-weight-saved.show { opacity: 1; }
+
+@media (max-width: 640px) {
+  .entreno-weight-input { width: 96px; font-size: 16px; }
+  /* Stack name and detail so a long "3×15 · pesado · desc 90s" doesn't
+     force the exercise name to wrap awkwardly mid-word */
+  .entreno-ex-top { flex-direction: column; align-items: flex-start; gap: 3px; }
+  .entreno-ex-detail { font-size: 11px; }
+}
+
 .semana-transformacion { padding: 16px 18px 8px; }
 .semana-transf-header {
   font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
@@ -4499,6 +4618,12 @@ footer {
     radial-gradient(ellipse at 50% 50%, rgba(170,100,255,0.40) 0%, transparent 70%),
     linear-gradient(135deg, #1f0a3a 0%, #100630 60%, #07071a 100%);
 }
+.home-card-visual.cv-entreno {
+  background:
+    radial-gradient(ellipse at 35% 40%, rgba(124,106,255,0.40) 0%, transparent 70%),
+    radial-gradient(ellipse at 75% 75%, rgba(46,207,181,0.30) 0%, transparent 70%),
+    linear-gradient(135deg, #161240 0%, #0a0820 60%, #07071a 100%);
+}
 .home-card-body { padding: 12px 16px 18px; }
 .home-card-title {
   font-family: 'Bebas Neue', sans-serif;
@@ -4590,6 +4715,12 @@ footer {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16"/><path d="M9 3v4"/><path d="M15 3v4"/><circle cx="12" cy="14.5" r="1.4" fill="currentColor"/></svg>
       </div></div>
       <div><div class="nav-item-label">Mi Día</div></div>
+    </div>
+    <div class="nav-item" id="nav-entreno" onclick="showMiEntreno(); closeNav()">
+      <div class="nav-item-icon"><div class="nav-item-icon-inner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"/><path d="M21 21l-1-1"/><path d="M3 3l1 1"/><path d="M18 22l4-4"/><path d="M2 6l4-4"/><path d="M3 10l7-7"/><path d="M14 21l7-7"/></svg>
+      </div></div>
+      <div><div class="nav-item-label">Mi Entreno</div></div>
     </div>
     <div class="nav-item" id="nav-progreso" onclick="showDashboard(); closeNav()">
       <div class="nav-item-icon"><div class="nav-item-icon-inner">
@@ -4971,6 +5102,34 @@ QUE SÍ SE VE</div>
         <div class="home-card-body">
           <div class="home-card-title">MI DÍA</div>
           <div class="home-card-desc">Registrá comidas y entrenamientos.</div>
+        </div>
+      </div>
+
+      <div class="home-card" onclick="showMiEntreno(); setActiveNav('nav-entreno')">
+        <div class="home-card-visual cv-entreno">
+          <svg viewBox="0 0 400 100" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="ec-entreno" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#aa64ff"/>
+                <stop offset="100%" stop-color="#2ecfb5"/>
+              </linearGradient>
+              <filter id="ec-entreno-glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              <filter id="ec-entreno-soft"><feGaussianBlur stdDeviation="9"/></filter>
+            </defs>
+            <circle cx="200" cy="50" r="42" fill="rgba(124,106,255,0.18)" filter="url(#ec-entreno-soft)"/>
+            <g stroke="url(#ec-entreno)" stroke-width="6" stroke-linecap="round" filter="url(#ec-entreno-glow)">
+              <line x1="150" y1="50" x2="250" y2="50"/>
+              <line x1="150" y1="36" x2="150" y2="64"/>
+              <line x1="138" y1="42" x2="138" y2="58"/>
+              <line x1="250" y1="36" x2="250" y2="64"/>
+              <line x1="262" y1="42" x2="262" y2="58"/>
+            </g>
+            <circle cx="200" cy="50" r="5" fill="#fff"/>
+          </svg>
+        </div>
+        <div class="home-card-body">
+          <div class="home-card-title">MI ENTRENO</div>
+          <div class="home-card-desc">Tu rutina de la semana, día por día.</div>
         </div>
       </div>
 
@@ -5546,6 +5705,41 @@ QUE SÍ SE VE</div>
       </div>
     </div>
   </div>
+</div>
+
+<!-- MI ENTRENO — current-week training tracker (client: complete + log weights only) -->
+<div class="dashboard-wrapper" id="mi-entreno-wrapper">
+  <div class="dash-header">
+    <div class="dash-title" id="mi-entreno-title">
+      <span class="diario-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"></path><path d="M21 21l-1-1"></path><path d="M3 3l1 1"></path><path d="M18 22l4-4"></path><path d="M2 6l4-4"></path><path d="M3 10l7-7"></path><path d="M14 21l7-7"></path></svg></span>
+      <span>MI ENTRENO</span>
+    </div>
+    <button class="btn-back-chat" onclick="showHome()" id="entreno-back-btn">← Inicio</button>
+  </div>
+
+  <!-- Adherence summary -->
+  <div class="chart-card coach-card" id="entreno-summary-card" style="display:none">
+    <div class="chart-card-header">
+      <div class="chart-card-title"><span class="chart-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></span><span id="entreno-summary-title">TU SEMANA</span></div>
+    </div>
+    <div id="entreno-summary-body" style="padding:8px 20px 18px">
+      <div class="entreno-progress-track"><div class="entreno-progress-fill" id="entreno-progress-fill"></div></div>
+      <div class="entreno-progress-label" id="entreno-progress-label">0 de 0 días completados</div>
+    </div>
+  </div>
+
+  <!-- Empty state -->
+  <div class="chart-card coach-card" id="entreno-empty" style="display:none">
+    <div style="padding:36px 24px;text-align:center">
+      <div style="font-size:30px;margin-bottom:10px;opacity:.5">🏋️</div>
+      <div style="font-size:14px;color:var(--text);font-weight:600;margin-bottom:6px" id="entreno-empty-title">Todavía no tenés una rutina activa</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:16px" id="entreno-empty-desc">Pedile a tu coach la rutina de la semana en el chat y va a aparecer acá organizada día por día.</div>
+      <button onclick="showChat()" style="background:transparent;border:1px solid var(--accent);color:var(--accent-bright);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:11px;letter-spacing:1.5px;font-family:'JetBrains Mono', monospace;" id="entreno-empty-cta">→ IR AL CHAT</button>
+    </div>
+  </div>
+
+  <!-- Days accordion -->
+  <div id="entreno-days"></div>
 </div>
 
 <!-- LIGHTBOX -->
@@ -8676,6 +8870,8 @@ function hideAllSections() {
   document.getElementById('wl-wrapper').style.display = 'none';
   document.getElementById('diario-wrapper').style.display = 'none';
   document.getElementById('home-wrapper').style.display = 'none';
+  const entrenoEl = document.getElementById('mi-entreno-wrapper');
+  if (entrenoEl) entrenoEl.style.display = 'none';
   const perfilEl = document.getElementById('perfil-wrapper');
   if (perfilEl) perfilEl.style.display = 'none';
   document.getElementById('hero-section').style.display = 'none';
@@ -8942,6 +9138,251 @@ function showDashboard() {
   document.getElementById('dashboard-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
   renderDashboard();
   setActiveNav('nav-progreso');
+}
+
+// ============================
+// MI ENTRENO — current-week training tracker
+// Client can ONLY: mark a day complete + log exercise weights.
+// Structure (exercises/sets/reps/notes) is coach-defined and read-only.
+// ============================
+
+// Parses the AI-generated routine text (weeklyPlans.rutina.contenido) into
+// structured days. Handles both the generic (men) and Babot (women) output
+// formats we control via the system prompt. Heuristic but resilient because
+// the output shape is constrained.
+function parseRutinaContenido(text) {
+  if (!text || typeof text !== 'string') return [];
+  const DAY_NAMES = 'lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|monday|tuesday|wednesday|thursday|friday|saturday|sunday';
+  const days = [];
+  let current = null;
+
+  const clean = s => s.replace(/[*_#]/g, '').trim();
+  const isExercise = s => /^\s*\d+[\.\)]\s+/.test(s);
+  const isDayHeader = s => {
+    const c = clean(s);
+    if (/^d[ií]a\s*\d+/i.test(c)) return true;                          // "Día 1 · ..."
+    if (new RegExp(`^(${DAY_NAMES})\\b`, 'i').test(c)) return true;      // "LUNES — PUSH"
+    return false;
+  };
+  const isRest = s => /descanso/i.test(s) && !isExercise(s) && !/·\s*desc\s|descanso:\s*\d+\s*s/i.test(s);
+  const isSkippable = s => {
+    const c = clean(s).toLowerCase();
+    if (!c) return true;
+    if (/^-{2,}$/.test(s.trim())) return true;                          // --- separators
+    if (/^(💪\s*)?rutina\b/i.test(c)) return true;                      // title line
+    if (/^📋|^estructura\b|reloj de arena/i.test(c)) return true;       // meta line
+    if (/dudas|cargá tus|acordate de cargar|¿tenés alguna duda/i.test(c)) return true; // footer
+    return false;
+  };
+
+  for (const raw of text.split('\n')) {
+    const line = raw.replace(/\r/g, '');
+    const s = line.trim();
+    if (!s) continue;
+
+    if (isRest(s)) {
+      const label = clean(s).replace(/^🛋️?\s*/, '').replace(/^d[ií]as?\s+de\s+/i, '').trim();
+      days.push({ label: label || (lang === 'es' ? 'Descanso' : 'Rest'), isRest: true, exercises: [] });
+      current = null;
+      continue;
+    }
+    if (isSkippable(s)) continue;
+
+    if (isDayHeader(s)) {
+      current = { label: clean(s), isRest: false, exercises: [] };
+      days.push(current);
+      continue;
+    }
+
+    if (isExercise(s) && current) {
+      const body = clean(s).replace(/^\s*\d+[\.\)]\s+/, '').trim();
+      let name = body, detail = '';
+      const m = body.search(/\s[—·-]\s/);
+      if (m !== -1) { name = body.slice(0, m).trim(); detail = body.slice(m + 3).trim(); }
+      current.exercises.push({ name, detail, note: '' });
+      continue;
+    }
+
+    // Continuation line (Babot execution cue / intensifier) → attach as note
+    if (current && current.exercises.length && !isDayHeader(s)) {
+      const last = current.exercises[current.exercises.length - 1];
+      const c = clean(s);
+      last.note = last.note ? `${last.note} ${c}` : c;
+    }
+  }
+  return days;
+}
+
+// ---- Persistence (localStorage, keyed per user + ISO week) ----
+// Shape kept intentionally clean so a future Supabase sync is a drop-in:
+//   { [userId]: { [semana_iso]: { completed:{dayIdx:true}, weights:{exKey:"80kg"} } } }
+const LS_ENTRENO = 'coachai_entreno_v1';
+function entrenoWeekKey() {
+  return (weeklyPlans.rutina && weeklyPlans.rutina.semana_iso) ||
+         (typeof getISOWeekKey === 'function' ? getISOWeekKey() : 'wk');
+}
+function loadEntrenoAll() {
+  try { return JSON.parse(localStorage.getItem(LS_ENTRENO) || '{}'); } catch (e) { return {}; }
+}
+function getEntrenoWeekState() {
+  if (!currentUser) return { completed: {}, weights: {} };
+  const all = loadEntrenoAll();
+  const wk = entrenoWeekKey();
+  return (all[currentUser.id] && all[currentUser.id][wk]) || { completed: {}, weights: {} };
+}
+function saveEntrenoWeekState(state) {
+  if (!currentUser) return;
+  const all = loadEntrenoAll();
+  const wk = entrenoWeekKey();
+  all[currentUser.id] = all[currentUser.id] || {};
+  all[currentUser.id][wk] = state;
+  try { localStorage.setItem(LS_ENTRENO, JSON.stringify(all)); }
+  catch (e) { console.error('Entreno save failed:', e); }
+}
+
+function exKey(dayIdx, exIdx) { return `d${dayIdx}e${exIdx}`; }
+
+function showMiEntreno() {
+  hideAllSections();
+  const w = document.getElementById('mi-entreno-wrapper');
+  w.style.display = 'block';
+  w.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  renderMiEntreno();
+  setActiveNav('nav-entreno');
+}
+
+function renderMiEntreno() {
+  const daysEl = document.getElementById('entreno-days');
+  const emptyEl = document.getElementById('entreno-empty');
+  const summaryEl = document.getElementById('entreno-summary-card');
+  const rutina = weeklyPlans.rutina;
+
+  // Empty state: no active routine (none delivered or current one is closed)
+  if (!rutina || !rutina.contenido || rutina.closed) {
+    daysEl.innerHTML = '';
+    summaryEl.style.display = 'none';
+    emptyEl.style.display = 'block';
+    return;
+  }
+
+  const days = parseRutinaContenido(rutina.contenido);
+  if (!days.length) {
+    daysEl.innerHTML = '';
+    summaryEl.style.display = 'none';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  summaryEl.style.display = 'block';
+
+  const state = getEntrenoWeekState();
+  const esc = (typeof _esc === 'function') ? _esc : (x => String(x));
+
+  daysEl.innerHTML = days.map((day, i) => {
+    const done = !!state.completed[i];
+    const restCls = day.isRest ? ' rest' : '';
+    const doneCls = done ? ' completed' : '';
+    const badgeTxt = day.isRest ? (lang === 'es' ? 'OFF' : 'OFF') : `D${i + 1}`;
+
+    const body = day.isRest
+      ? `<div class="entreno-rest-body">${lang === 'es'
+          ? 'Día de descanso planificado. Recuperás, crecés y prevenís lesiones — también es parte del programa. Marcalo como cumplido si respetaste el descanso.'
+          : 'Planned rest day. Recovery is part of the program. Mark it done if you respected the rest.'}</div>`
+      : `<div class="entreno-ex-list">${day.exercises.map((ex, j) => {
+          const k = exKey(i, j);
+          const wv = state.weights[k] || '';
+          return `<div class="entreno-ex">
+            <div class="entreno-ex-top">
+              <div class="entreno-ex-name">${esc(ex.name)}</div>
+              ${ex.detail ? `<div class="entreno-ex-detail">${esc(ex.detail)}</div>` : ''}
+            </div>
+            ${ex.note ? `<div class="entreno-ex-note">${esc(ex.note)}</div>` : ''}
+            <div class="entreno-weight-row">
+              <span class="entreno-weight-label">${lang === 'es' ? 'Peso' : 'Weight'}</span>
+              <input class="entreno-weight-input" type="text" inputmode="text"
+                     value="${esc(wv)}" placeholder="${lang === 'es' ? 'ej: 80kg' : 'e.g. 80kg'}"
+                     maxlength="16"
+                     oninput="onEntrenoWeight(${i},${j},this.value)"
+                     aria-label="${lang === 'es' ? 'Peso para' : 'Weight for'} ${esc(ex.name)}">
+              <span class="entreno-weight-saved" id="ews-${k}">✓</span>
+            </div>
+          </div>`;
+        }).join('')}</div>`;
+
+    return `<div class="semana-card entreno-day${restCls}${doneCls}" id="entreno-day-${i}">
+      <div class="semana-header" onclick="toggleEntrenoDay(${i})">
+        <div class="semana-badge">${badgeTxt}</div>
+        <div class="entreno-day-info">
+          <div class="entreno-day-name">${esc(day.label)}</div>
+          <div class="entreno-day-sub">${day.isRest
+            ? (lang === 'es' ? 'Descanso' : 'Rest')
+            : `${day.exercises.length} ${lang === 'es' ? 'ejercicios' : 'exercises'}`}</div>
+        </div>
+        <button class="entreno-check${done ? ' done' : ''}" id="entreno-check-${i}"
+                onclick="event.stopPropagation();toggleEntrenoDone(${i})"
+                aria-label="${lang === 'es' ? 'Marcar día como completado' : 'Mark day complete'}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </button>
+        <div class="semana-chevron">▼</div>
+      </div>
+      <div class="semana-body">${body}</div>
+    </div>`;
+  }).join('');
+
+  updateEntrenoSummary(days);
+}
+
+function updateEntrenoSummary(days) {
+  const state = getEntrenoWeekState();
+  const total = days.length;
+  const done = days.reduce((n, _d, i) => n + (state.completed[i] ? 1 : 0), 0);
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  const fill = document.getElementById('entreno-progress-fill');
+  const label = document.getElementById('entreno-progress-label');
+  if (fill) fill.style.width = pct + '%';
+  if (label) label.textContent = lang === 'es'
+    ? `${done} de ${total} días completados`
+    : `${done} of ${total} days completed`;
+}
+
+function toggleEntrenoDay(i) {
+  const card = document.getElementById('entreno-day-' + i);
+  if (!card) return;
+  const wasOpen = card.classList.contains('open');
+  // Accordion: only one open at a time
+  document.querySelectorAll('#entreno-days .semana-card.open').forEach(c => c.classList.remove('open'));
+  if (!wasOpen) card.classList.add('open');
+}
+
+function toggleEntrenoDone(i) {
+  const state = getEntrenoWeekState();
+  state.completed[i] = !state.completed[i];
+  saveEntrenoWeekState(state);
+  const card = document.getElementById('entreno-day-' + i);
+  const check = document.getElementById('entreno-check-' + i);
+  if (check) check.classList.toggle('done', !!state.completed[i]);
+  if (card) card.classList.toggle('completed', !!state.completed[i]);
+  // Refresh the summary bar
+  const rutina = weeklyPlans.rutina;
+  if (rutina && rutina.contenido) updateEntrenoSummary(parseRutinaContenido(rutina.contenido));
+}
+
+let _entrenoWeightTimers = {};
+function onEntrenoWeight(dayIdx, exIdx, value) {
+  const k = exKey(dayIdx, exIdx);
+  // Debounce the localStorage write so we don't thrash on every keystroke
+  clearTimeout(_entrenoWeightTimers[k]);
+  _entrenoWeightTimers[k] = setTimeout(() => {
+    const state = getEntrenoWeekState();
+    const v = String(value).trim();
+    if (v) state.weights[k] = v; else delete state.weights[k];
+    saveEntrenoWeekState(state);
+    const saved = document.getElementById('ews-' + k);
+    if (saved) {
+      saved.classList.add('show');
+      setTimeout(() => saved.classList.remove('show'), 1200);
+    }
+  }, 500);
 }
 
 function showChat() {
