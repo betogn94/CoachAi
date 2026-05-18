@@ -5215,7 +5215,11 @@ QUE SÍ SE VE</div>
         </div>
       </div>
 
-      <div class="home-card" onclick="showPerfil(); setActiveNav('nav-perfil')">
+      <!-- PROVISIONAL: Perfil card hidden so Explorar shows 4 cards in a clean
+           grid. Re-show this (remove the inline display:none) when a new
+           section/feature is added so the grid stays visually balanced.
+           Perfil is still fully accessible from the nav drawer. -->
+      <div class="home-card" onclick="showPerfil(); setActiveNav('nav-perfil')" style="display:none">
         <div class="home-card-visual cv-perfil">
           <svg viewBox="0 0 400 100" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
