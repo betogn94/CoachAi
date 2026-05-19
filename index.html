@@ -11131,7 +11131,8 @@ function adminBuildPlanesHTML(planes, cierres) {
           <div class="admin-planes-header">
             <span class="admin-planes-tipo">${tipoLabel}</span>
             <span class="admin-plan-badge admin-plan-badge-history">SIN PEDIR</span>
-            <span class="admin-planes-meta">El alumno todavía no pidió su ${tipo}</span>
+            <span class="admin-planes-meta">El alumno todavía no tiene ${tipo}</span>
+            <button class="btn-admin-plan-edit" onclick="event.stopPropagation();adminCreatePlan('${tipo}')">+ Cargar ${tipo}</button>
           </div>
         </div>`;
     }
@@ -11359,29 +11360,111 @@ async function adminSaveStudent() {
 }
 
 // GOAL 2 — Edit weekly plan
-function adminEditPlan(idx) {
-  const p = adminDetailPlanes[idx];
-  if (!p) return;
-  const tipoLabel = p.tipo === 'dieta' ? '🥗 DIETA' : '💪 RUTINA';
-  document.getElementById('aam-title').textContent = `✏️ EDITAR ${tipoLabel} — Sem. ${p.semana_iso}`;
+// Unified plan modal — handles both EDIT (existing plan) and CREATE (paste a
+// coach's existing client plan into a SIN PEDIR slot). For rutina it shows a
+// format guide + a live "what Mi Entreno will detect" preview using the SAME
+// parser the app uses, so the coach sees if the paste will render before saving.
+function adminPlanModal(cfg) {
+  // cfg: { tipo, contenido, semana_iso, fecha_entrega, isNew }
+  const tipoLabel = cfg.tipo === 'dieta' ? '🥗 DIETA' : '💪 RUTINA';
+  const titleVerb = cfg.isNew ? '➕ CARGAR' : '✏️ EDITAR';
+  document.getElementById('aam-title').textContent = `${titleVerb} ${tipoLabel} — Sem. ${cfg.semana_iso}`;
+
+  const isRutina = cfg.tipo === 'rutina';
+  const guide = isRutina ? `
+    <div style="font-size:11px;color:var(--muted);line-height:1.55;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px">
+      <strong style="color:var(--accent-bright)">Formato para que Mi Entreno arme los días y las series:</strong><br>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text)">
+Día 1 · Pecho/Hombros<br>
+1. Press inclinado con mancuernas — 4×10 · pesado · desc 90s<br>
+2. Aperturas en máquina — 3×15 · medio · desc 60s<br>
+<br>
+Día 2 · Espalda<br>
+1. Jalón al pecho — 4×12 · pesado · desc 90s<br>
+<br>
+Descanso: Mié/Sáb/Dom
+      </span><br>
+      El número antes de la × (ej. <strong>4</strong>×10) define cuántas series de peso ve la clienta.
+    </div>` : `
+    <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:10px">
+      La dieta se muestra tal cual la pegues. Pegá el plan de alimentación completo de la clienta.
+    </div>`;
+
   document.getElementById('aam-body').innerHTML = `
     <div class="admin-modal-form">
       <div class="admin-modal-field">
         <label>Contenido del plan</label>
-        <textarea id="aep-contenido">${_esc(p.contenido)}</textarea>
+        ${guide}
+        <textarea id="aep-contenido" ${isRutina ? `oninput="adminUpdatePlanPreview()"` : ''} placeholder="Pegá acá ${cfg.tipo === 'dieta' ? 'la dieta' : 'la rutina'} de la clienta…">${_esc(cfg.contenido || '')}</textarea>
       </div>
+      ${isRutina ? `<div id="aep-preview" style="font-size:12px;color:var(--muted);margin:2px 0 8px;font-family:'JetBrains Mono',monospace"></div>` : ''}
       <div class="admin-modal-error" id="aep-error"></div>
       <div class="admin-modal-actions">
         <button class="btn-admin-cancel-modal" onclick="adminCloseActionModal()">Cancelar</button>
-        <button class="btn-admin-save" id="aep-save-btn" onclick="adminSavePlan(${idx})">Guardar plan</button>
+        <button class="btn-admin-save" id="aep-save-btn" onclick="adminUpsertPlan()">${cfg.isNew ? 'Cargar plan' : 'Guardar plan'}</button>
       </div>
     </div>`;
+  // Stash the target so the save knows where to write
+  _adminPlanTarget = { tipo: cfg.tipo, semana_iso: cfg.semana_iso, fecha_entrega: cfg.fecha_entrega };
   document.getElementById('admin-action-modal').classList.add('visible');
+  if (isRutina) adminUpdatePlanPreview();
 }
 
-async function adminSavePlan(idx) {
+let _adminPlanTarget = null;
+
+// Live preview: parse the pasted routine with the real app parser and show
+// exactly what Mi Entreno will detect (days / training vs rest / exercises).
+function adminUpdatePlanPreview() {
+  const el = document.getElementById('aep-preview');
+  if (!el) return;
+  const txt = document.getElementById('aep-contenido').value;
+  if (!txt.trim()) { el.textContent = ''; return; }
+  let days = [];
+  try { days = parseRutinaContenido(txt) || []; } catch (e) { days = []; }
+  const training = days.filter(d => !d.isRest);
+  const rest = days.filter(d => d.isRest);
+  const totalEx = training.reduce((n, d) => n + (d.exercises ? d.exercises.length : 0), 0);
+  const emptyTrainingDays = training.filter(d => !d.exercises || d.exercises.length === 0).length;
+
+  // No structure detected at all
+  if (!days.length || (!training.length && !rest.length)) {
+    el.innerHTML = '<span style="color:#ff6b6b">⚠ No detecté la estructura — revisá el formato de la guía de arriba.</span>';
+    return;
+  }
+  // Training days exist but no exercises were recognized → format is off
+  if (training.length && totalEx === 0) {
+    el.innerHTML = '<span style="color:#ff6b6b">⚠ Detecté días pero ningún ejercicio. Cada ejercicio debe ir numerado: <strong>1. Nombre — 4×10 ...</strong></span>';
+    return;
+  }
+  const warn = emptyTrainingDays > 0
+    ? ` · <span style="color:#ffb454">⚠ ${emptyTrainingDays} día(s) sin ejercicios — revisalos</span>`
+    : '';
+  el.innerHTML = `<span style="color:var(--accent3)">✓ Detecté:</span> ${training.length} día(s) de entrenamiento · ${rest.length} descanso · ${totalEx} ejercicios${warn}`;
+}
+
+function adminEditPlan(idx) {
+  const p = adminDetailPlanes[idx];
+  if (!p) return;
+  adminPlanModal({
+    tipo: p.tipo, contenido: p.contenido,
+    semana_iso: p.semana_iso, fecha_entrega: p.fecha_entrega, isNew: false
+  });
+}
+
+function adminCreatePlan(tipo) {
+  if (!adminDetailUserId) return;
+  adminPlanModal({
+    tipo, contenido: '',
+    semana_iso: (typeof getISOWeekKey === 'function' ? getISOWeekKey() : ''),
+    fecha_entrega: getTodayKey(), isNew: true
+  });
+}
+
+async function adminUpsertPlan() {
   const btn = document.getElementById('aep-save-btn');
   const errEl = document.getElementById('aep-error');
+  const t = _adminPlanTarget;
+  if (!t) return;
   btn.disabled = true; btn.textContent = 'Guardando...';
   errEl.textContent = '';
   const contenido = document.getElementById('aep-contenido').value.trim();
@@ -11389,15 +11472,18 @@ async function adminSavePlan(idx) {
     errEl.textContent = 'El plan no puede estar vacío.';
     btn.disabled = false; btn.textContent = 'Guardar plan'; return;
   }
-  const p = adminDetailPlanes[idx];
   try {
-    const { error } = await sbClient.from('planes_semanales')
-      .update({ contenido, updated_at: new Date().toISOString() })
-      .eq('usuario_id', adminDetailUserId)
-      .eq('tipo', p.tipo)
-      .eq('semana_iso', p.semana_iso);
+    // Upsert: creates the row if the client never had this plan, updates it
+    // if it already existed. onConflict matches the UNIQUE constraint.
+    const { error } = await sbClient.from('planes_semanales').upsert({
+      usuario_id: adminDetailUserId,
+      tipo: t.tipo,
+      semana_iso: t.semana_iso,
+      fecha_entrega: t.fecha_entrega || getTodayKey(),
+      contenido,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'usuario_id,tipo,semana_iso' });
     if (error) throw error;
-    adminDetailPlanes[idx] = { ...p, contenido };
     adminCloseActionModal();
     await showAdminStudentDetail(adminDetailUserId);
   } catch(e) {
