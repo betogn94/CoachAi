@@ -3110,8 +3110,48 @@ footer {
 }
 .entreno-weight-saved.show { opacity: 1; }
 
+/* Per-series weight inputs */
+.entreno-series { margin-top: 4px; }
+.entreno-series-title {
+  font-size: 10px; color: var(--muted);
+  letter-spacing: 1px; text-transform: uppercase; margin-bottom: 7px;
+}
+.entreno-serie-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 7px;
+}
+.entreno-serie-label {
+  font-size: 12px; color: var(--accent-bright);
+  font-family: 'JetBrains Mono', monospace;
+  width: 58px; flex-shrink: 0;
+}
+.entreno-serie-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  width: 76px;
+  outline: none;
+  text-align: right;
+  transition: border-color 0.2s;
+}
+.entreno-serie-input:focus { border-color: var(--accent); }
+.entreno-serie-input::placeholder { color: var(--muted); opacity: 0.45; }
+.entreno-serie-unit {
+  font-size: 12px; color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+.entreno-serie-saved {
+  font-size: 11px; color: var(--accent3);
+  opacity: 0; transition: opacity 0.3s; margin-left: 2px;
+}
+.entreno-serie-saved.show { opacity: 1; }
+
 @media (max-width: 640px) {
   .entreno-weight-input { width: 96px; font-size: 16px; }
+  .entreno-serie-input { font-size: 16px; width: 84px; }
   /* Stack name and detail so a long "3×15 · pesado · desc 90s" doesn't
      force the exercise name to wrap awkwardly mid-word */
   .entreno-ex-top { flex-direction: column; align-items: flex-start; gap: 3px; }
@@ -9654,6 +9694,30 @@ async function mirrorTrainedDay(dateStr, add, stateAfter) {
 }
 
 function exKey(dayIdx, exIdx) { return `d${dayIdx}e${exIdx}`; }
+// Per-series weight key. Each serie of each exercise has its own value.
+function serieKey(dayIdx, exIdx, serie) { return `d${dayIdx}e${exIdx}s${serie}`; }
+
+// Extract how many series an exercise has from its detail string. Handles the
+// two formats we control: Babot "3×15" / "3×20-15-12" / "2x20" and the generic
+// "4 series × 8 reps". The series count is always the leading number. Falls
+// back to 3 (the most common) if the detail is missing/unparseable, clamped 1-8.
+function parseSeriesCount(detail) {
+  if (!detail || typeof detail !== 'string') return 3;
+  const m = detail.trim().match(/^(\d{1,2})\s*(?:series|serie|[×xX])/);
+  let n = m ? parseInt(m[1], 10) : 3;
+  if (!Number.isFinite(n) || n < 1) n = 3;
+  return Math.min(n, 8);
+}
+
+// Numeric-only sanitizer for weight fields: digits + at most one decimal
+// separator. Strips letters, signs, spaces, units. "70 kg" → "70", "22,5" → "22.5".
+function sanitizeWeight(v) {
+  let s = String(v == null ? '' : v).replace(/,/g, '.').replace(/[^\d.]/g, '');
+  const parts = s.split('.');
+  if (parts.length > 2) s = parts[0] + '.' + parts.slice(1).join('');
+  // cap to a sane gym range length (e.g. 999.5)
+  return s.slice(0, 6);
+}
 
 async function showMiEntreno() {
   trackEvent('section_view', { section: 'entreno' });
@@ -9705,22 +9769,31 @@ function renderMiEntreno() {
           ? 'Día de descanso planificado. Recuperás, crecés y prevenís lesiones — también es parte del programa. Marcalo como cumplido si respetaste el descanso.'
           : 'Planned rest day. Recovery is part of the program. Mark it done if you respected the rest.'}</div>`
       : `<div class="entreno-ex-list">${day.exercises.map((ex, j) => {
-          const k = exKey(i, j);
-          const wv = state.weights[k] || '';
+          const nSeries = parseSeriesCount(ex.detail);
+          const seriesRows = [];
+          for (let s = 1; s <= nSeries; s++) {
+            const sk = serieKey(i, j, s);
+            const sv = state.weights[sk] || '';
+            seriesRows.push(`<div class="entreno-serie-row">
+              <span class="entreno-serie-label">${lang === 'es' ? 'Serie' : 'Set'} ${s}</span>
+              <input class="entreno-serie-input" type="text" inputmode="decimal"
+                     value="${esc(sv)}" placeholder="0"
+                     maxlength="6"
+                     oninput="onEntrenoWeight(${i},${j},${s},this)"
+                     aria-label="${lang === 'es' ? 'Peso serie' : 'Set weight'} ${s} — ${esc(ex.name)}">
+              <span class="entreno-serie-unit">kg</span>
+              <span class="entreno-serie-saved" id="ews-${sk}">✓</span>
+            </div>`);
+          }
           return `<div class="entreno-ex">
             <div class="entreno-ex-top">
               <div class="entreno-ex-name">${esc(ex.name)}</div>
               ${ex.detail ? `<div class="entreno-ex-detail">${esc(ex.detail)}</div>` : ''}
             </div>
             ${ex.note ? `<div class="entreno-ex-note">${esc(ex.note)}</div>` : ''}
-            <div class="entreno-weight-row">
-              <span class="entreno-weight-label">${lang === 'es' ? 'Peso' : 'Weight'}</span>
-              <input class="entreno-weight-input" type="text" inputmode="text"
-                     value="${esc(wv)}" placeholder="${lang === 'es' ? 'ej: 80kg' : 'e.g. 80kg'}"
-                     maxlength="16"
-                     oninput="onEntrenoWeight(${i},${j},this.value)"
-                     aria-label="${lang === 'es' ? 'Peso para' : 'Weight for'} ${esc(ex.name)}">
-              <span class="entreno-weight-saved" id="ews-${k}">✓</span>
+            <div class="entreno-series">
+              <div class="entreno-series-title">${lang === 'es' ? `Peso por serie (${nSeries})` : `Weight per set (${nSeries})`}</div>
+              ${seriesRows.join('')}
             </div>
           </div>`;
         }).join('')}</div>`;
@@ -9803,14 +9876,21 @@ function toggleEntrenoDone(i) {
 }
 
 let _entrenoWeightTimers = {};
-function onEntrenoWeight(dayIdx, exIdx, value) {
-  const k = exKey(dayIdx, exIdx);
-  // Debounce the localStorage write so we don't thrash on every keystroke
+function onEntrenoWeight(dayIdx, exIdx, serie, inputEl) {
+  const k = serieKey(dayIdx, exIdx, serie);
+  // Sanitize in place so only numeric characters ever stay in the field
+  // (strips letters/signs/units the user might type, keeps one decimal).
+  const clean = sanitizeWeight(inputEl && inputEl.value != null ? inputEl.value : '');
+  if (inputEl && inputEl.value !== clean) {
+    const pos = clean.length;
+    inputEl.value = clean;
+    try { inputEl.setSelectionRange(pos, pos); } catch (e) {}
+  }
+  // Debounce the persistence so we don't thrash on every keystroke
   clearTimeout(_entrenoWeightTimers[k]);
   _entrenoWeightTimers[k] = setTimeout(() => {
     const state = getEntrenoWeekState();
-    const v = String(value).trim();
-    if (v) state.weights[k] = v; else delete state.weights[k];
+    if (clean) state.weights[k] = clean; else delete state.weights[k];
     saveEntrenoWeekState(state);
     const saved = document.getElementById('ews-' + k);
     if (saved) {
