@@ -11406,6 +11406,7 @@ Descanso: Mié/Sáb/Dom
     </div>`;
   // Stash the target so the save knows where to write
   _adminPlanTarget = { tipo: cfg.tipo, semana_iso: cfg.semana_iso, fecha_entrega: cfg.fecha_entrega };
+  _adminPlanNormalized = false; // fresh: first Guardar will run the AI pass
   document.getElementById('admin-action-modal').classList.add('visible');
   if (isRutina) adminUpdatePlanPreview();
 }
@@ -11460,21 +11461,93 @@ function adminCreatePlan(tipo) {
   });
 }
 
+let _adminPlanNormalized = false;
+
+// Reformat-only AI pass. The coach pastes a plan in ANY format; the AI
+// restructures it into the canonical format the app parses (Mi Entreno,
+// Perfil, gráficos) WITHOUT changing a single exercise/serie/rep/peso/día.
+// Returns the normalized text, or null if the AI call fails (caller then
+// falls back to saving the raw text so onboarding never gets blocked).
+async function aiNormalizePlan(tipo, raw) {
+  const isRutina = tipo === 'rutina';
+  const system = isRutina
+    ? `Sos un FORMATEADOR de rutinas de entrenamiento. Recibís una rutina en CUALQUIER formato y la devolvés con EXACTAMENTE el mismo contenido, solo reordenada al formato canónico de abajo.
+
+PROHIBIDO ABSOLUTO: cambiar, agregar, quitar o inventar ejercicios, series, repeticiones, pesos, días, descansos o notas del coach. Si un dato no está en el original, NO lo inventes — omitilo.
+
+FORMATO CANÓNICO:
+Día 1 · [Grupo o nombre del día]
+1. [Ejercicio] — [series]×[reps] · [peso/intensidad si está] · desc [tiempo si está]
+2. [Ejercicio] — ...
+Día 2 · [...]
+Descanso: [días de descanso si se mencionan]
+
+REGLAS:
+- Cada ejercicio numerado (1. 2. 3...), uno por línea.
+- El número de SERIES va ANTES de la × (ej: "4×10" = 4 series de 10 reps). Si son reps variables/piramidal mantenelas (ej: 4×12-10-8).
+- Si el coach dejó una nota de ejecución/técnica, va en una línea debajo del ejercicio, tal cual.
+- Sin introducción, sin comentarios, sin explicaciones tuyas.
+Respondé SOLO con la rutina formateada.`
+    : `Sos un FORMATEADOR de planes de alimentación. Recibís una dieta en CUALQUIER formato y la devolvés con EXACTAMENTE el mismo contenido, solo ordenada y legible.
+
+PROHIBIDO ABSOLUTO: cambiar, agregar, quitar o inventar comidas, cantidades, calorías o macros. Si un dato no está, NO lo inventes.
+
+Agrupá por día (LUNES, MARTES, ... o "Día 1, Día 2" si así viene) y dentro de cada día las comidas (Desayuno, Almuerzo, Merienda, Cena u las que haya), una por línea. Sin introducción ni comentarios. Respondé SOLO con la dieta formateada.`;
+
+  try {
+    const resp = await fetch('/api/chat', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ system, messages: [{ role: 'user', content: raw }] })
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    let txt = (data.content && data.content[0] && data.content[0].text) || '';
+    txt = txt.replace(/^```[a-zA-Z]*\s*\n?/, '').replace(/\n?```\s*$/, '').trim();
+    return txt || null;
+  } catch (e) {
+    console.warn('aiNormalizePlan failed:', e);
+    return null;
+  }
+}
+
+// Two-step save: 1st click → AI normalizes + shows result for review;
+// 2nd click → commits. This applies the coach's intent (AI interprets the
+// plan) while keeping a mandatory human check before it goes live.
 async function adminUpsertPlan() {
   const btn = document.getElementById('aep-save-btn');
   const errEl = document.getElementById('aep-error');
   const t = _adminPlanTarget;
   if (!t) return;
-  btn.disabled = true; btn.textContent = 'Guardando...';
   errEl.textContent = '';
+  errEl.style.color = '';
   const contenido = document.getElementById('aep-contenido').value.trim();
   if (!contenido) {
     errEl.textContent = 'El plan no puede estar vacío.';
-    btn.disabled = false; btn.textContent = 'Guardar plan'; return;
+    return;
   }
+
+  // STEP 1 — normalize with AI and show the result for the coach to review.
+  if (!_adminPlanNormalized) {
+    btn.disabled = true; btn.textContent = '⏳ Procesando con IA…';
+    const norm = await aiNormalizePlan(t.tipo, contenido);
+    const ta = document.getElementById('aep-contenido');
+    if (norm) {
+      ta.value = norm;
+      if (t.tipo === 'rutina' && typeof adminUpdatePlanPreview === 'function') adminUpdatePlanPreview();
+      errEl.style.color = 'var(--accent3)';
+      errEl.textContent = '✨ La IA ordenó el plan (sin cambiar contenido). Revisalo y tocá "Confirmar y guardar".';
+    } else {
+      errEl.style.color = '#ffb454';
+      errEl.textContent = '⚠ No se pudo formatear con IA. Igual podés revisar el texto y guardarlo tal cual.';
+    }
+    _adminPlanNormalized = true;
+    btn.disabled = false; btn.textContent = 'Confirmar y guardar';
+    return;
+  }
+
+  // STEP 2 — commit whatever is in the textarea (normalized or hand-tweaked).
+  btn.disabled = true; btn.textContent = 'Guardando...';
   try {
-    // Upsert: creates the row if the client never had this plan, updates it
-    // if it already existed. onConflict matches the UNIQUE constraint.
     const { error } = await sbClient.from('planes_semanales').upsert({
       usuario_id: adminDetailUserId,
       tipo: t.tipo,
@@ -11487,8 +11560,9 @@ async function adminUpsertPlan() {
     adminCloseActionModal();
     await showAdminStudentDetail(adminDetailUserId);
   } catch(e) {
+    errEl.style.color = '';
     errEl.textContent = 'Error: ' + (e.message || 'Intentá de nuevo.');
-    btn.disabled = false; btn.textContent = 'Guardar plan';
+    btn.disabled = false; btn.textContent = 'Confirmar y guardar';
   }
 }
 
