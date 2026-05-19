@@ -634,8 +634,12 @@ textarea { resize: vertical; min-height: 80px; }
      `dvh` (dynamic viewport height) excludes the iOS Safari URL bar/toolbar,
      unlike `vh` which includes it — without this, recent messages were
      hidden under the toolbar on mobile. Old browsers fall back to vh. */
-  height: calc(100vh - 280px);
-  height: calc(100dvh - 280px);
+  /* Reserve only the real height of the fixed footer (input row ~76px +
+     quick-btns ~95px incl. its bottom offset + a little breathing room).
+     The old 280px over-reserved ~120px → big empty rectangle above the
+     quick buttons after a long reply (diet/routine). */
+  height: calc(100vh - 188px);
+  height: calc(100dvh - 188px);
   overflow-y: auto;
   padding: 20px 4px;
   display: flex;
@@ -3979,7 +3983,7 @@ footer {
 
 /* --- CHAT --- */
 @media (max-width: 640px) {
-  .chat-messages  { padding: 14px 4px; gap: 12px; height: calc(100vh - 260px); height: calc(100dvh - 260px); }
+  .chat-messages  { padding: 14px 4px; gap: 12px; height: calc(100vh - 200px); height: calc(100dvh - 200px); }
   .msg-bubble     { max-width: 85%; padding: 10px 14px; }
   .chat-input-row { padding: 12px 20px 14px; gap: 8px; }
   .quick-btns     { padding: 12px 20px 6px; gap: 8px; }
