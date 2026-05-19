@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>CoachAI — Plan de Dirección (Reunión con socio)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#070714; --surface:#111122; --surface2:#1a1a2e;
+  --border:rgba(124,106,255,0.18); --text:#f0f0fa; --muted:#8a8aa0;
+  --accent:#7c6aff; --accent-bright:#b4a7ff; --accent2:#5b9fff; --accent3:#2ecfb5;
+}
+* { box-sizing:border-box; margin:0; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+html, body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; font-size:11pt; line-height:1.6; }
+@page { size:A4; margin:0; }
+.page {
+  width:210mm; min-height:297mm; padding:17mm 16mm 20mm; page-break-after:always; position:relative;
+  background:
+    radial-gradient(ellipse 55% 45% at 18% 8%, rgba(124,106,255,0.16) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 82% 92%, rgba(46,207,181,0.12) 0%, transparent 60%),
+    linear-gradient(180deg,#070714 0%,#0a0a1a 100%);
+  overflow:hidden;
+}
+.page:last-child { page-break-after:avoid; }
+.foot { position:absolute; bottom:8mm; left:16mm; right:16mm; display:flex; justify-content:space-between;
+  font-family:'JetBrains Mono',monospace; font-size:8pt; letter-spacing:1px; color:var(--muted); }
+h1 { font-family:'Bebas Neue',sans-serif; font-size:44pt; letter-spacing:3px; line-height:1; margin-bottom:5mm;
+  background:linear-gradient(135deg,var(--accent-bright) 0%,var(--accent2) 50%,var(--accent3) 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+h2 { font-family:'Bebas Neue',sans-serif; font-size:24pt; letter-spacing:2px; color:var(--accent-bright);
+  margin-bottom:5mm; display:flex; align-items:baseline; gap:5mm; }
+h2 .num { font-family:'JetBrains Mono',monospace; font-size:13pt; color:var(--accent3); opacity:.75; }
+h3 { font-family:'Bebas Neue',sans-serif; font-size:15pt; letter-spacing:1.5px; color:var(--text); margin:6mm 0 2mm; }
+p { margin-bottom:3mm; color:#d8d8e8; }
+strong { color:var(--accent-bright); font-weight:700; }
+.lead { font-size:12pt; color:#e6e6f2; line-height:1.7; }
+.muted { color:var(--muted); }
+ul,ol { margin:2mm 0 4mm; padding-left:6mm; }
+li { margin-bottom:2mm; color:#d8d8e8; }
+li::marker { color:var(--accent2); }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:14px;
+  padding:6mm; margin-bottom:4mm; box-shadow:0 4px 18px rgba(0,0,0,.25); }
+.card.glow { border-color:rgba(124,106,255,.32); box-shadow:0 4px 24px rgba(124,106,255,.10), inset 0 2px 0 rgba(124,106,255,.4); }
+.card h3 { margin-top:0; }
+.tag { font-family:'JetBrains Mono',monospace; font-size:8pt; letter-spacing:1.5px; color:var(--accent3); text-transform:uppercase; }
+.cover { display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; }
+.cover-logo { font-family:'Bebas Neue',sans-serif; font-size:74pt; letter-spacing:9px; margin-bottom:5mm;
+  background:linear-gradient(135deg,#b4a7ff 0%,#5b9fff 50%,#2ecfb5 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  filter:drop-shadow(0 0 28px rgba(124,106,255,.3)); }
+.cover-sub { font-family:'Bebas Neue',sans-serif; font-size:22pt; letter-spacing:3px; color:var(--text); margin-bottom:4mm; }
+.cover-tag { font-size:13pt; color:var(--muted); letter-spacing:1px; margin-bottom:16mm; }
+.cover-meta { font-family:'JetBrains Mono',monospace; font-size:9pt; letter-spacing:2px; color:var(--muted); margin-top:26mm; }
+.callout { background:linear-gradient(135deg,rgba(124,106,255,.12),rgba(46,207,181,.07));
+  border:1px solid rgba(124,106,255,.28); border-radius:12px; padding:5mm 6mm; margin:4mm 0; }
+.callout.warn { background:linear-gradient(135deg,rgba(255,193,90,.12),rgba(124,106,255,.06));
+  border-color:rgba(255,193,90,.38); }
+.callout .tag { display:block; margin-bottom:2mm; }
+.callout.warn .tag { color:#ffc15a; }
+.pill { display:inline-block; font-family:'JetBrains Mono',monospace; font-size:8.5pt; letter-spacing:1px;
+  padding:1.5mm 3mm; border-radius:100px; background:rgba(124,106,255,.14); color:var(--accent-bright); }
+.divider { height:1px; background:linear-gradient(90deg,transparent,var(--accent),transparent); margin:6mm 0; }
+.two { display:grid; grid-template-columns:1fr 1fr; gap:5mm; }
+.phase { display:flex; gap:5mm; margin-bottom:4mm; align-items:flex-start; }
+.phase-num { font-family:'Bebas Neue',sans-serif; font-size:20pt; line-height:1.1; flex-shrink:0; width:18mm;
+  background:linear-gradient(135deg,var(--accent-bright),var(--accent3));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.phase-body { flex:1; }
+.phase-title { font-weight:700; color:var(--text); font-size:11.5pt; margin-bottom:1mm; }
+.phase-body .muted { font-size:10pt; }
+.role-h { font-family:'Bebas Neue',sans-serif; font-size:16pt; letter-spacing:1.5px; color:var(--accent-bright); margin-bottom:3mm; }
+.checklist li { margin-bottom:2.5mm; }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<section class="page cover">
+  <div class="cover-logo">COACHAI</div>
+  <div class="cover-sub">PLAN DE DIRECCIÓN</div>
+  <div class="cover-tag">Hacia la plataforma multi-coach + white-label de Daniel</div>
+  <div class="muted" style="max-width:135mm; font-size:11pt;">
+    Documento para la reunión con el socio. Cómo vamos a implementar, de a poco y sin
+    romper la beta actual, la nueva dirección del producto: la versión personalizada
+    de Daniel con sus clientas como piloto.
+  </div>
+  <div class="cover-meta">USO INTERNO · MAYO 2026 · COACHAI</div>
+</section>
+
+<!-- 01 — EL NORTE + ROLES -->
+<section class="page">
+  <h2><span class="num">01</span> EL NORTE Y LOS ROLES</h2>
+  <p class="lead">
+    Convertir CoachAI en una plataforma donde <strong>cada coach o gimnasio tiene su propia
+    versión</strong> y ve solo a sus alumnos. El primer caso real será la
+    <strong>versión white-label de Daniel</strong>, con sus clientas como piloto —
+    <strong>post-beta</strong> y sin tocar lo que hoy funciona.
+  </p>
+
+  <div class="divider"></div>
+
+  <h3>QUIÉN HACE QUÉ</h3>
+  <div class="two">
+    <div class="card glow">
+      <div class="role-h">DANIEL · SOCIO</div>
+      <ul>
+        <li>Ofrecer y vender el producto</li>
+        <li>Definir precios y modelo comercial</li>
+        <li>Aportar sus clientas como piloto</li>
+        <li>Su web actual como canal de venta</li>
+      </ul>
+    </div>
+    <div class="card glow">
+      <div class="role-h">NOSOTROS · TÉCNICO</div>
+      <ul>
+        <li>Construir la plataforma y la seguridad</li>
+        <li>Armar la versión white-label de Daniel</li>
+        <li>Conectar pago &rarr; acceso automático</li>
+        <li>Asesorarte y acompañarte en cada paso</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout">
+    <span class="tag">La idea en una frase</span>
+    Una sola plataforma que evoluciona; la versión de Daniel es la primera "piel"
+    premium arriba del mismo motor. Lo genérico actual queda intacto y protegido.
+  </div>
+
+  <div class="foot"><span>COACHAI · PLAN DE DIRECCIÓN</span><span>02</span></div>
+</section>
+
+<!-- 02 — EL PILOTO + ACLARACIÓN -->
+<section class="page">
+  <h2><span class="num">02</span> EL PILOTO CON DANIEL</h2>
+  <p class="lead">
+    Arrancamos con la <strong>versión personalizada de Daniel</strong> (su marca, su
+    subdominio). Sus <strong>clientas reales</strong> la usan y nosotros
+    <strong>monitoreamos su progreso</strong> para validar el producto. Es post-beta:
+    la beta genérica sigue funcionando en paralelo, sin riesgo.
+  </p>
+
+  <div class="divider"></div>
+
+  <h3>OJO: SON DOS PAGOS DISTINTOS</h3>
+  <p>Es la confusión más común — conviene dejarlo claro en la reunión:</p>
+  <div class="card">
+    <p style="margin:0"><strong>1 · Daniel como dueño de su versión.</strong>
+    Su versión white-label la configuramos nosotros <strong>a mano, una sola vez</strong>.
+    No necesita un sistema de pago automático para esto.</p>
+  </div>
+  <div class="card">
+    <p style="margin:0"><strong>2 · Las clientas de Daniel.</strong>
+    Entran desde la web que <strong>Daniel ya tiene</strong>, hacen clic,
+    <strong>pagan</strong>, y el sistema les <strong>habilita el acceso solo</strong>
+    a la app de Daniel.</p>
+  </div>
+  <div class="callout">
+    <span class="tag">Conclusión</span>
+    El pago automático que tenemos que construir es el <strong>#2</strong>
+    (las clientas), no el #1.
+  </div>
+
+  <div class="foot"><span>COACHAI · PLAN DE DIRECCIÓN</span><span>03</span></div>
+</section>
+
+<!-- 03 — PAGO → ACCESO + DECISIÓN -->
+<section class="page">
+  <h2><span class="num">03</span> PAGO &rarr; ACCESO</h2>
+  <h3>CÓMO FUNCIONA (EN SIMPLE)</h3>
+  <p>
+    La clienta entra a la web de Daniel &rarr; botón <strong>"Acceder a mi coach"</strong>
+    &rarr; paga con Stripe &rarr; Stripe nos avisa <strong>"pago OK"</strong> &rarr;
+    se le habilita el acceso a la versión de Daniel y queda como
+    <strong>alumna monitoreada</strong>. Todo automático y
+    <strong>probado primero en modo de prueba</strong> (sin dinero real) antes de ir en vivo.
+  </p>
+
+  <div class="divider"></div>
+
+  <h3>DECISIÓN PARA LA REUNIÓN</h3>
+  <div class="callout warn">
+    <span class="tag">A definir con Daniel</span>
+    <strong>Stripe directo</strong> vs <strong>Stripe vía "Merchant of Record"</strong>
+    (Paddle / Lemon Squeezy):
+  </div>
+  <div class="two">
+    <div class="card">
+      <h3 style="margin-top:0">STRIPE DIRECTO</h3>
+      <p class="muted" style="margin:0">Más simple de mostrar, <strong>pero</strong> ustedes
+      se hacen cargo de impuestos / IVA de cada país.</p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">MERCHANT OF RECORD</h3>
+      <p class="muted" style="margin:0">Usa Stripe por debajo, pero <strong>ellos manejan
+      los impuestos del mundo</strong> por ustedes. Recomendado: clientela internacional.</p>
+    </div>
+  </div>
+  <p class="muted">No hace falta cerrarlo hoy, pero que Daniel sepa el trade-off
+  porque impacta en el precio final que le pone al servicio.</p>
+
+  <div class="foot"><span>COACHAI · PLAN DE DIRECCIÓN</span><span>04</span></div>
+</section>
+
+<!-- 04 — IMPLEMENTACIÓN DE A POCO -->
+<section class="page">
+  <h2><span class="num">04</span> IMPLEMENTACIÓN DE A POCO</h2>
+  <p class="muted" style="margin-bottom:5mm">Orden de trabajo, sin fechas. Cada fase se prueba
+  y queda funcionando antes de pasar a la siguiente. La beta actual no se toca sin tu OK.</p>
+
+  <div class="phase">
+    <div class="phase-num">F0</div>
+    <div class="phase-body">
+      <div class="phase-title">Base invisible</div>
+      <div class="muted">Preparo la arquitectura multi-cuenta. Nada cambia visible, beta intacta.</div>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-num">F1</div>
+    <div class="phase-body">
+      <div class="phase-title">Seguridad real</div>
+      <div class="muted">Login de coach + aislamiento de datos (cada uno ve solo lo suyo). La pieza grande, con cuidado.</div>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-num">F2</div>
+    <div class="phase-body">
+      <div class="phase-title">Panel de Daniel</div>
+      <div class="muted">Su admin para ver y monitorear solo a sus clientas.</div>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-num">F3</div>
+    <div class="phase-body">
+      <div class="phase-title">White-label de Daniel</div>
+      <div class="muted">Su marca, su subdominio. Acá necesitamos su material de marca.</div>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-num">F4</div>
+    <div class="phase-body">
+      <div class="phase-title">Pago &rarr; acceso (Stripe)</div>
+      <div class="muted">Botón en su web + alta automática de la clienta al pagar.</div>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-num">F5</div>
+    <div class="phase-body">
+      <div class="phase-title">Superadmin</div>
+      <div class="muted">Vos ves todo (todas las cuentas). Más adelante.</div>
+    </div>
+  </div>
+
+  <div class="foot"><span>COACHAI · PLAN DE DIRECCIÓN</span><span>05</span></div>
+</section>
+
+<!-- 05 — QUÉ NECESITAMOS + CIERRE -->
+<section class="page">
+  <h2><span class="num">05</span> PARA ARRANCAR</h2>
+  <h3>QUÉ NECESITAMOS DE DANIEL</h3>
+  <p class="muted" style="margin-bottom:3mm">No es urgente — para ir juntando en paralelo:</p>
+  <div class="card">
+    <ul class="checklist" style="margin:0">
+      <li>Material de marca: logo, colores, nombre del coach, textos, redes</li>
+      <li>Contacto de quien maneja su página web (para poner el botón de pago)</li>
+      <li>Que abra una cuenta de <strong>Stripe</strong></li>
+      <li>Lista de las clientas que serán el piloto</li>
+      <li>Sus precios definidos</li>
+    </ul>
+  </div>
+
+  <div class="divider"></div>
+
+  <h3>TRANQUILIDAD</h3>
+  <div class="callout">
+    <span class="tag">Compromiso</span>
+    Es nuevo para vos, pero no estás solo: te explico cada concepto en criollo,
+    lo hacemos por partes, todo se prueba en modo seguro antes de tocar dinero o
+    usuarios reales, y <strong>nada de esto altera la beta que hoy está funcionando</strong>.
+  </div>
+
+  <p class="lead" style="margin-top:6mm">
+    Resumen para la reunión: <strong>Daniel vende y pone precios</strong>;
+    <strong>nosotros construimos por fases</strong>; el piloto es
+    <strong>su white-label con sus clientas</strong>; el único desarrollo de pago
+    necesario pronto es <strong>"clienta paga en su web &rarr; entra a su app"</strong>.
+  </p>
+
+  <div class="foot"><span>COACHAI · PLAN DE DIRECCIÓN</span><span>06</span></div>
+</section>
+
+</body>
+</html>
