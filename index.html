@@ -5826,6 +5826,28 @@ QUE SÍ SE VE</div>
     <button class="btn-back-chat" onclick="showHome()" id="dash-back-btn">← Inicio</button>
   </div>
 
+  <!-- FOTO DE PUNTO DE INICIO (solo si el alumno no la cargó en el onboarding · una única vez) -->
+  <div class="chart-card coach-card" id="foto-inicio-card" style="display:none">
+    <div class="chart-card-header">
+      <div class="chart-card-title"><span class="chart-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></span><span>TU PUNTO DE INICIO</span></div>
+    </div>
+    <div style="padding:14px 16px 18px">
+      <div id="foto-inicio-intro" style="font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:14px">
+        Todavía no cargaste tu <strong style="color:var(--text)">foto de punto de inicio</strong>. Podés agregarla ahora para ver tu evolución semana a semana. ⚠️ <strong style="color:var(--text)">Se puede cargar una sola vez</strong>: una vez que la confirmes, no se puede cambiar.
+      </div>
+      <input type="file" accept="image/*" id="foto-inicio-input" style="display:none" onchange="onFotoInicioPick(event)">
+      <img id="foto-inicio-preview" src="" alt="preview" style="display:none;width:100%;max-height:340px;object-fit:contain;border-radius:12px;margin-bottom:14px;background:rgba(255,255,255,0.03)">
+      <div id="foto-inicio-actions-initial">
+        <button class="btn-subir-foto" onclick="document.getElementById('foto-inicio-input').click()">📷 Elegir foto de frente</button>
+      </div>
+      <div id="foto-inicio-actions-confirm" style="display:none">
+        <button class="btn-subir-foto" onclick="document.getElementById('foto-inicio-input').click()">↺ Elegir otra</button>
+        <button class="btn-subir-foto" id="foto-inicio-confirm-btn" style="background:rgba(46,207,181,0.22);margin-top:8px" onclick="confirmFotoInicio()">✓ Confirmar como foto de inicio</button>
+      </div>
+      <div id="foto-inicio-status" style="font-size:12px;color:var(--muted2);text-align:center;margin-top:10px"></div>
+    </div>
+  </div>
+
   <!-- PLAN SEMANAL COACHÁI -->
   <div class="chart-card coach-card plan-collapsed" id="plan-semanal-card">
     <div class="chart-card-header">
@@ -8499,6 +8521,93 @@ async function uploadFotoInicial() {
   }
 }
 
+// ── FOTO DE PUNTO DE INICIO (post-onboarding, una única vez) ──────────────
+// Un alumno que completó el onboarding SIN foto inicial puede cargarla después,
+// pero una sola vez: puede previsualizar y elegir otra cuantas veces quiera,
+// pero al confirmar se sube como tipo='inicio' y la tarjeta no vuelve a
+// aparecer (no hay UI para borrar/cambiar una foto 'inicio' → inmutable).
+let _fotoInicioPendingFile = null;
+
+async function renderFotoInicioCard() {
+  const card = document.getElementById('foto-inicio-card');
+  if (!card) return;
+  // Default hidden — only the gating check below can reveal it.
+  card.style.display = 'none';
+  if (!sbClient || !currentUser) return;
+  let fotos = [];
+  try { fotos = await loadFotosProgreso(); } catch (e) { return; }
+  // Si ya existe una foto 'inicio', la decisión ya fue tomada: nunca más se
+  // muestra la opción (inmutable, una única vez).
+  const yaTieneInicio = (fotos || []).some(f => f.tipo === 'inicio');
+  // Limpiar cualquier selección pendiente en todos los casos (incl. cuando la
+  // tarjeta queda oculta para siempre porque ya hay foto 'inicio').
+  _fotoInicioPendingFile = null;
+  if (yaTieneInicio) return;
+  // Reset a estado inicial (por si re-renderiza tras cancelar/cambiar de sección)
+  const input   = document.getElementById('foto-inicio-input');
+  const preview = document.getElementById('foto-inicio-preview');
+  const status  = document.getElementById('foto-inicio-status');
+  const aInit    = document.getElementById('foto-inicio-actions-initial');
+  const aConfirm = document.getElementById('foto-inicio-actions-confirm');
+  if (input) input.value = '';
+  if (preview) { preview.style.display = 'none'; preview.src = ''; }
+  if (status) status.textContent = '';
+  if (aInit) aInit.style.display = '';
+  if (aConfirm) aConfirm.style.display = 'none';
+  card.style.display = '';
+}
+
+function onFotoInicioPick(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  try { validateImageFile(file); }
+  catch (e) {
+    event.target.value = '';
+    const st = document.getElementById('foto-inicio-status');
+    if (st) st.textContent = '⚠ ' + e.message;
+    return;
+  }
+  _fotoInicioPendingFile = file;
+  const preview = document.getElementById('foto-inicio-preview');
+  if (preview) { setPreviewSrc(preview, file); preview.style.display = 'block'; }
+  const aInit    = document.getElementById('foto-inicio-actions-initial');
+  const aConfirm = document.getElementById('foto-inicio-actions-confirm');
+  if (aInit) aInit.style.display = 'none';
+  if (aConfirm) aConfirm.style.display = '';
+  const st = document.getElementById('foto-inicio-status');
+  if (st) st.textContent = lang === 'es'
+    ? 'Revisá la foto. Podés elegir otra o confirmarla como tu punto de inicio.'
+    : 'Review the photo. You can pick another one or confirm it as your starting point.';
+}
+
+async function confirmFotoInicio() {
+  if (!_fotoInicioPendingFile) return;
+  const ok = confirm(lang === 'es'
+    ? 'Esta va a ser tu FOTO DE PUNTO DE INICIO y NO se podrá cambiar después. ¿Confirmás?'
+    : 'This will be your STARTING-POINT PHOTO and it CANNOT be changed later. Confirm?');
+  if (!ok) return;
+  const btn = document.getElementById('foto-inicio-confirm-btn');
+  const reBtn = document.querySelector('#foto-inicio-actions-confirm .btn-subir-foto');
+  const st  = document.getElementById('foto-inicio-status');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+  if (reBtn) reBtn.disabled = true;
+  if (st) st.textContent = lang === 'es' ? 'Subiendo tu foto de inicio...' : 'Uploading your starting photo...';
+  try {
+    await uploadFoto(_fotoInicioPendingFile, 'inicio');
+    _fotoInicioPendingFile = null;
+    if (st) st.textContent = lang === 'es' ? '✓ Foto de inicio guardada' : '✓ Starting photo saved';
+    const card = document.getElementById('foto-inicio-card');
+    if (card) card.style.display = 'none';
+    // Refrescar el seguimiento semanal para que la comparación use el nuevo baseline.
+    renderSemanas().catch(() => {});
+  } catch (e) {
+    console.error(e);
+    if (st) st.textContent = '⚠ ' + (e.message || (lang === 'es' ? 'Error al subir la foto' : 'Upload failed'));
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+    if (reBtn) reBtn.disabled = false;
+  }
+}
+
 async function subirFotoDesdeDash(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -9962,6 +10071,7 @@ async function renderDashboard() {
   renderPlanSemanalCard();
   renderAdherencia().catch(console.error);
   renderSemanas().catch(console.error);
+  renderFotoInicioCard().catch(console.error);
 }
 
 function getISOWeekRange(date = new Date()) {
