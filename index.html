@@ -8024,7 +8024,37 @@ function refreshQuickButtons() {
     : `<button class="qbtn qbtn-main" onclick="sendQuick('${qRutina}')">${qRutina}</button>`;
 
   container.innerHTML = dietaBtn + rutinaBtn;
+  // Buttons just (re)rendered — their height (1 vs 2 lines on narrow
+  // screens) changes the footer size, so recompute the messages area.
+  requestAnimationFrame(adjustChatMessagesHeight);
 }
+
+// Size .chat-messages so its bottom sits just above the fixed footer
+// (quick-btns / input row), regardless of phone size or whether the
+// quick-button labels wrapped to two lines. Replaces the old magic
+// px reservation that left a big empty rectangle on smaller screens.
+function adjustChatMessagesHeight() {
+  const cm = document.getElementById('chat-messages');
+  const wrap = document.getElementById('chat-wrapper');
+  if (!cm || !wrap || wrap.style.display === 'none') return;
+  const qb = document.getElementById('quick-btns');
+  const input = document.querySelector('.chat-input-row');
+  // Footer top = top of whichever fixed element starts higher (quick-btns
+  // sits above the input). Fall back to input row if no buttons.
+  let footerTop = window.innerHeight;
+  if (qb && qb.offsetHeight > 0) footerTop = Math.min(footerTop, qb.getBoundingClientRect().top);
+  if (input) footerTop = Math.min(footerTop, input.getBoundingClientRect().top);
+  const GAP = 10; // small breathing space so text isn't glued to the buttons
+  const top = cm.getBoundingClientRect().top;
+  const h = Math.max(140, Math.round(footerTop - GAP - top));
+  const wasAtBottom = cm.scrollHeight - cm.scrollTop - cm.clientHeight < 40;
+  cm.style.height = h + 'px';
+  if (wasAtBottom) cm.scrollTop = cm.scrollHeight;
+}
+
+// Recompute on viewport changes (rotation, mobile toolbar show/hide, resize)
+window.addEventListener('resize', () => requestAnimationFrame(adjustChatMessagesHeight));
+window.addEventListener('orientationchange', () => setTimeout(adjustChatMessagesHeight, 250));
 
 // Re-renders an already-delivered weekly plan from cache, with no AI call.
 function showWeeklyPlan(tipo) {
@@ -9915,10 +9945,12 @@ function showChat() {
   const cm = document.getElementById('chat-messages');
   if (cm) cm.scrollTop = cm.scrollHeight;
   requestAnimationFrame(() => {
+    adjustChatMessagesHeight();
     window.scrollTo(0, 0);
     if (cm) cm.scrollTop = cm.scrollHeight;
     setTimeout(() => {
       document.documentElement.style.scrollBehavior = '';
+      adjustChatMessagesHeight();
       if (cm) cm.scrollTop = cm.scrollHeight;
     }, 100);
   });
@@ -10368,6 +10400,7 @@ function showChatFromWL() {
   hideAllSections();
   document.getElementById('chat-wrapper').style.display = 'block';
   document.getElementById('chat-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  requestAnimationFrame(adjustChatMessagesHeight);
 }
 
 function selectColor(el) {
