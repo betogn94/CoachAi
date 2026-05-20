@@ -3218,6 +3218,141 @@ footer {
   font-size: 12px; color: var(--muted);
   font-family: 'JetBrains Mono', monospace;
 }
+
+/* ============ MI ALIMENTACIÓN — week view (mirror Mi Entreno) ============ */
+.alim-target-card { padding: 12px 16px; }
+.alim-target-info {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.8px;
+  color: var(--accent-bright); text-align: center;
+}
+.alim-day { transition: background 0.2s; }
+.alim-day.is-done { border-color: rgba(46,207,181,0.32); }
+.alim-day.is-done .semana-badge { background: rgba(46,207,181,0.18); color: var(--accent3); border-color: rgba(46,207,181,0.45); }
+.alim-day-info { flex: 1; min-width: 0; }
+.alim-day-name { font-size: 13.5px; font-weight: 700; color: var(--text); letter-spacing: 0.5px; }
+.alim-day-meta {
+  font-size: 11px; color: var(--muted); margin-top: 2px;
+  font-family: 'JetBrains Mono', monospace; letter-spacing: 0.4px;
+}
+.alim-meal-list { padding: 4px 14px 14px; }
+.alim-meal {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid rgba(124,106,255,0.08);
+}
+.alim-meal:last-child { border-bottom: none; }
+.alim-meal.is-cumplida { opacity: 0.92; }
+.alim-meal.is-cumplida .alim-meal-content { text-decoration: line-through; color: var(--muted); }
+.alim-check {
+  flex-shrink: 0;
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid rgba(124,106,255,0.45); background: transparent;
+  color: var(--accent3); font-size: 16px; font-weight: 700;
+  cursor: pointer; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.18s; padding: 0; font-family: inherit;
+  margin-top: 2px;
+}
+.alim-check:hover { border-color: var(--accent-bright); }
+.alim-meal.is-cumplida .alim-check {
+  background: rgba(46,207,181,0.20); border-color: var(--accent3); color: var(--accent3);
+}
+.alim-meal-body { flex: 1; min-width: 0; }
+.alim-meal-name {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  margin-bottom: 2px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+}
+.alim-edit-flag {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.6px;
+  color: var(--accent2); opacity: 0.85; font-weight: 500;
+}
+.alim-meal-content {
+  font-size: 12.5px; color: #d8d8e8; line-height: 1.45;
+  margin-top: 1px;
+}
+.alim-meal.is-editada .alim-meal-content { color: var(--accent-bright); font-style: italic; }
+.alim-meal-kcal {
+  font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+  color: var(--accent3); letter-spacing: 0.5px; margin-top: 4px;
+}
+.alim-edit-btn {
+  flex-shrink: 0;
+  width: 28px; height: 28px; border-radius: 8px;
+  background: rgba(124,106,255,0.10); border: 1px solid rgba(124,106,255,0.28);
+  color: var(--accent-bright); cursor: pointer; font-size: 13px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0; font-family: inherit;
+  transition: all 0.18s; margin-top: 2px;
+}
+.alim-edit-btn:hover { background: rgba(124,106,255,0.22); border-color: rgba(124,106,255,0.50); }
+.alim-edit-btn:active { transform: scale(0.95); }
+
+/* Edit modal */
+.alim-edit-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(7,7,20,0.88);
+  display: none; align-items: center; justify-content: center;
+  padding: 16px;
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
+.alim-edit-overlay.open { display: flex; }
+.alim-edit-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 18px; padding: 22px 22px 18px;
+  max-width: 460px; width: 100%; max-height: 92vh; overflow-y: auto;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.alim-edit-close {
+  position: absolute; top: 8px; right: 10px;
+  background: none; border: none; font-size: 24px;
+  color: var(--muted); cursor: pointer; line-height: 1; padding: 4px 8px;
+  font-family: inherit;
+}
+.alim-edit-close:hover { color: var(--text); }
+.alim-edit-title {
+  font-size: 16px; font-weight: 700; color: var(--text);
+  margin-bottom: 8px; padding-right: 30px; line-height: 1.3;
+}
+.alim-edit-planned {
+  font-size: 12px; color: var(--muted); line-height: 1.5;
+  background: rgba(124,106,255,0.08);
+  border-left: 3px solid var(--accent);
+  padding: 8px 12px; border-radius: 8px; margin-bottom: 12px;
+}
+#alim-edit-text {
+  width: 100%; min-height: 90px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px;
+  color: var(--text); font-family: inherit; font-size: 14px; line-height: 1.5;
+  resize: vertical; outline: none;
+  transition: border-color 0.15s;
+}
+#alim-edit-text:focus { border-color: var(--accent); }
+.alim-edit-actions {
+  display: flex; gap: 10px; margin-top: 12px;
+}
+.alim-edit-cancel, .alim-edit-save {
+  flex: 1; padding: 11px 14px; border-radius: 10px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: inherit; transition: all 0.18s;
+}
+.alim-edit-cancel {
+  background: transparent; border: 1px solid var(--border); color: var(--muted);
+}
+.alim-edit-cancel:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+.alim-edit-save {
+  background: rgba(46,207,181,0.22); border: 1px solid var(--accent3); color: var(--accent3);
+}
+.alim-edit-save:hover { background: rgba(46,207,181,0.32); }
+.alim-edit-save:disabled { opacity: 0.6; cursor: not-allowed; }
+.alim-edit-status {
+  font-size: 12px; color: var(--muted); text-align: center;
+  margin-top: 8px; min-height: 18px;
+}
+.alim-edit-hint {
+  font-size: 10.5px; color: var(--muted); text-align: center;
+  margin-top: 6px; line-height: 1.5; padding: 0 4px;
+}
 .entreno-serie-saved {
   font-size: 11px; color: var(--accent3);
   opacity: 0; transition: opacity 0.3s; margin-left: 2px;
@@ -6224,12 +6359,6 @@ QUE SÍ SE VE</div>
   <div class="diario-header">
     <div>
       <div class="diario-title" id="diario-title-text"><span class="diario-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h0a2 2 0 0 0 2-2V2"></path><line x1="5" y1="11" x2="5" y2="22"></line><path d="M21 15V2a5 3 0 0 0-5 3v7c0 1.1.9 2 2 2h3z"></path><line x1="18" y1="15" x2="18" y2="22"></line></svg></span><span>MI ALIMENTACIÓN</span></div>
-      <div class="diario-date-nav" style="display:flex; align-items:center; gap:8px; margin-top:4px; flex-wrap:wrap;">
-        <button onclick="navDiarioDay(-1)" id="diario-nav-prev" title="Día anterior" aria-label="Día anterior" style="background:transparent; border:1px solid var(--border); color:var(--muted); width:36px; height:36px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:18px; padding:0;">‹</button>
-        <div class="diario-date" id="diario-date-display" style="margin:0;"></div>
-        <button onclick="navDiarioDay(1)" id="diario-nav-next" title="Día siguiente" aria-label="Día siguiente" style="background:transparent; border:1px solid var(--border); color:var(--muted); width:36px; height:36px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:18px; padding:0;">›</button>
-        <button onclick="navDiarioToToday()" id="diario-nav-today" title="Volver a hoy" style="display:none; background:transparent; border:1px solid var(--accent); color:var(--accent-bright); height:36px; padding:0 12px; border-radius:8px; cursor:pointer; font-size:11px; letter-spacing:1px; font-family:'JetBrains Mono', monospace;">→ HOY</button>
-      </div>
     </div>
     <button class="btn-back-chat" onclick="showHome()" id="diario-back-btn">← Inicio</button>
   </div>
@@ -6242,43 +6371,38 @@ QUE SÍ SE VE</div>
     <button onclick="showChat()" style="margin-top:10px; background:transparent; border:1px solid var(--accent); color:var(--accent-bright); padding:6px 14px; border-radius:6px; cursor:pointer; font-size:11px; letter-spacing:1.5px; font-family:'JetBrains Mono', monospace;" id="diario-no-plan-cta">→ IR AL CHAT</button>
   </div>
 
-  <!-- ALIMENTACIÓN -->
+  <!-- Target macros header (shown when dieta has a Target line) -->
+  <div class="chart-card coach-card alim-target-card" id="alim-target-card" style="display:none; margin-bottom:14px">
+    <div class="alim-target-info" id="alim-target-info"></div>
+  </div>
+
+  <!-- WEEK VIEW — días con comidas tildables (mirror Mi Entreno) -->
   <div class="chart-card coach-card" style="margin-bottom:16px">
     <div class="chart-card-header">
-      <div class="chart-card-title" id="diario-food-title"><span class="chart-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h0a2 2 0 0 0 2-2V2"></path><line x1="5" y1="11" x2="5" y2="22"></line><path d="M21 15V2a5 3 0 0 0-5 3v7c0 1.1.9 2 2 2h3z"></path><line x1="18" y1="15" x2="18" y2="22"></line></svg></span><span>ALIMENTACIÓN DE HOY</span></div>
+      <div class="chart-card-title"><span class="chart-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line><line x1="8" y1="3" x2="8" y2="7"></line><line x1="16" y1="3" x2="16" y2="7"></line></svg></span><span>SEGUIMIENTO SEMANAL</span></div>
     </div>
-    <div class="diario-meals-grid">
-      <div class="diario-meal-group">
-        <div class="diario-meal-label" id="d-label-desayuno">🌅 Desayuno</div>
-        <textarea class="diario-textarea" id="d-desayuno" placeholder="Ej: Avena con leche, 2 huevos revueltos, banana..."></textarea>
-      </div>
-      <div class="diario-meal-group">
-        <div class="diario-meal-label" id="d-label-almuerzo">☀️ Almuerzo</div>
-        <textarea class="diario-textarea" id="d-almuerzo" placeholder="Ej: Pollo grillado 200g, arroz integral, ensalada..."></textarea>
-      </div>
-      <div class="diario-meal-group">
-        <div class="diario-meal-label" id="d-label-merienda">🕐 Merienda</div>
-        <textarea class="diario-textarea" id="d-merienda" placeholder="Ej: Yogur griego con granola, fruta..."></textarea>
-      </div>
-      <div class="diario-meal-group">
-        <div class="diario-meal-label" id="d-label-cena">🌙 Cena</div>
-        <textarea class="diario-textarea" id="d-cena" placeholder="Ej: Salmón al horno con verduras salteadas..."></textarea>
+    <div id="alim-days-container" style="padding:12px 16px 20px">
+      <div class="chart-empty" id="alim-empty">
+        <div class="chart-empty-icon">🥗</div>
+        <span>Tu plan de la semana va a aparecer acá día por día.</span>
       </div>
     </div>
-    <!-- Macros estimados por IA (read-only) -->
-    <div class="macros-estimados" id="macros-estimados" style="display:none">
-      <div class="macro-est-badge">🔥 <strong id="m-kcal">—</strong> kcal</div>
-      <div class="macro-est-badge">🥩 <strong id="m-prot">—</strong>g prot</div>
-      <div class="macro-est-badge">🌾 <strong id="m-carbs">—</strong>g carbos</div>
-      <div class="macro-est-badge">🫒 <strong id="m-fat">—</strong>g grasa</div>
+  </div>
+</div>
+
+<!-- Edit comida modal -->
+<div class="alim-edit-overlay" id="alim-edit-modal" onclick="closeAlimEdit(event)" role="dialog" aria-modal="true" aria-label="Editar comida">
+  <div class="alim-edit-card" onclick="event.stopPropagation()">
+    <button class="alim-edit-close" onclick="closeAlimEdit()" aria-label="Cerrar">×</button>
+    <div class="alim-edit-title" id="alim-edit-title">—</div>
+    <div class="alim-edit-planned" id="alim-edit-planned"></div>
+    <textarea id="alim-edit-text" placeholder="Ej: 200g de pechuga + 200g arroz integral + ensalada" rows="3"></textarea>
+    <div class="alim-edit-actions">
+      <button class="alim-edit-cancel" onclick="closeAlimEdit()" type="button">Cancelar</button>
+      <button class="alim-edit-save" id="alim-edit-save-btn" onclick="saveAlimEdit()" type="button">Guardar</button>
     </div>
-    <div id="macros-estimando" style="display:none;padding:12px 22px;font-size:12px;color:var(--muted)">⏳ Estimando macros con IA...</div>
-    <!-- Shown when estimateMacros returned null. Previously, a failed macros call
-         silently saved a row with all-null kcal/protein and the user had no idea. -->
-    <div id="macros-failed" style="display:none;margin:0 22px 12px;padding:10px 14px;font-size:12px;color:rgba(255,196,0,0.95);background:rgba(255,196,0,0.08);border-left:3px solid rgba(255,196,0,0.5);border-radius:8px;line-height:1.5;">
-      ⚠ No pudimos estimar los macros automáticamente. Las comidas se guardaron igual — los valores de kcal/proteína quedan vacíos para este día.
-    </div>
-    <button class="btn-save-diario" id="btn-save-diario" onclick="saveDiario()" style="margin:4px 22px 20px;width:calc(100% - 44px)">💾 GUARDAR MI ALIMENTACIÓN</button>
+    <div class="alim-edit-status" id="alim-edit-status"></div>
+    <div class="alim-edit-hint">Si modificás el texto la IA estima las calorías nuevas (tarda unos segundos). Si lo dejás igual, se cuenta como cumplido con las calorías del plan.</div>
   </div>
 </div>
 
@@ -8372,6 +8496,299 @@ function setEntrenó(val) {
   document.getElementById('ejercicios-section').style.display = val ? 'block' : 'none';
 }
 
+// ============================
+// MI ALIMENTACIÓN — vista semanal por comidas (mirror de Mi Entreno)
+// State shape per meal key d{day}m{mealIdx}: { cumplido, customText, customKcal }
+// Source of truth: alimentacion_semanal table (per usuario + semana_iso).
+// On every state change we ALSO sync progreso_diario for the affected date so
+// the AI's recentDiario context + Mi Progreso kcal bars keep working.
+// ============================
+let _alimEstado = null;            // jsonb estado cache for current week
+let _alimDays = null;              // parsed dieta days (cached for sync)
+let _alimHeader = null;            // parsed dieta header (target macros)
+const _alimExpandedDays = new Set(); // which day indices are expanded
+let _alimSaveTimer = null;
+const ALIM_SAVE_DEBOUNCE = 500;
+
+function alimWeekKey() {
+  return (weeklyPlans.dieta && weeklyPlans.dieta.semana_iso) ||
+         (typeof getISOWeekKey === 'function' ? getISOWeekKey() : 'wk');
+}
+
+async function loadAlimentacionEstado() {
+  if (!sbClient || !currentUser) { _alimEstado = {}; return _alimEstado; }
+  const wk = alimWeekKey();
+  try {
+    const { data } = await sbClient.from('alimentacion_semanal')
+      .select('estado').eq('usuario_id', currentUser.id).eq('semana_iso', wk).maybeSingle();
+    _alimEstado = (data && data.estado) || {};
+  } catch (e) { console.error('[CoachAI] loadAlimentacionEstado:', e); _alimEstado = {}; }
+  return _alimEstado;
+}
+
+function _alimSaveDebounced() {
+  if (_alimSaveTimer) clearTimeout(_alimSaveTimer);
+  _alimSaveTimer = setTimeout(async () => {
+    if (!sbClient || !currentUser) return;
+    const wk = alimWeekKey();
+    try {
+      await sbClient.from('alimentacion_semanal').upsert({
+        usuario_id: currentUser.id,
+        semana_iso: wk,
+        estado: _alimEstado || {},
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'usuario_id,semana_iso' });
+    } catch (e) { console.error('[CoachAI] alim save:', e); }
+  }, ALIM_SAVE_DEBOUNCE);
+}
+
+// Map day index (0=Mon..6=Sun) to actual date string in the ISO week of the
+// dieta plan, so progreso_diario gets the right `fecha` per meal.
+function alimDateForDayIdx(i) {
+  const wk = alimWeekKey();
+  const m = wk.match(/^(\d{4})-W(\d+)$/);
+  if (!m) return getTodayKey();
+  const year = parseInt(m[1]); const week = parseInt(m[2]);
+  // ISO 8601: week 1 contains Jan 4. Find Monday of week 1, then offset.
+  const jan4 = new Date(year, 0, 4);
+  const jan4Dow = jan4.getDay() || 7;
+  const wk1Mon = new Date(jan4); wk1Mon.setDate(jan4.getDate() - jan4Dow + 1);
+  const target = new Date(wk1Mon); target.setDate(wk1Mon.getDate() + (week - 1) * 7 + i);
+  return formatLocalDate(target);
+}
+
+// Sync the day's progreso_diario row from current alimentacion state.
+// Sums kcal across all meals tildadas (planned kcal for unedited, customKcal
+// for edited). Writes the effective text per meal to the 4 fixed columns.
+async function syncProgresoDiarioForDay(dayIdx) {
+  if (!currentUser || !sbClient || !_alimDays) return;
+  const day = _alimDays[dayIdx];
+  if (!day) return;
+  const fecha = alimDateForDayIdx(dayIdx);
+  let totalKcal = 0;
+  const cols = { desayuno: null, almuerzo: null, merienda: null, cena: null };
+  let hasAny = false;
+  for (let j = 0; j < day.meals.length; j++) {
+    const meal = day.meals[j];
+    const st = _alimEstado[`d${dayIdx}m${j}`] || {};
+    if (!st.cumplido) continue;
+    hasAny = true;
+    const text = (st.customText || meal.content) || null;
+    const kcal = st.customText ? (st.customKcal != null ? st.customKcal : 0) : (meal.kcal || 0);
+    totalKcal += kcal;
+    if (Object.prototype.hasOwnProperty.call(cols, meal.key)) {
+      cols[meal.key] = text;
+    }
+  }
+  const data = {
+    desayuno: cols.desayuno, almuerzo: cols.almuerzo,
+    merienda: cols.merienda, cena: cols.cena,
+    calorias_consumidas: hasAny ? totalKcal : null,
+    proteinas_g: null, carbos_g: null, grasas_g: null,
+  };
+  try { await saveDiarioToSupabase(data, fecha); }
+  catch (e) { console.error('[CoachAI] sync progreso_diario:', e); }
+}
+
+async function renderMiAlimentacion() {
+  const container = document.getElementById('alim-days-container');
+  const targetCard = document.getElementById('alim-target-card');
+  const targetInfo = document.getElementById('alim-target-info');
+  if (!container) return;
+
+  const dietaPlan = weeklyPlans && weeklyPlans.dieta;
+  if (!dietaPlan || dietaPlan.closed) {
+    container.innerHTML = `<div class="chart-empty" id="alim-empty"><div class="chart-empty-icon">🥗</div><span>${lang === 'es' ? 'Sin dieta activa todavía. Pedile a CoachAI tu plan en el chat para empezar a tildar comidas día por día.' : 'No active diet yet. Ask CoachAI for your weekly plan in the chat.'}</span></div>`;
+    if (targetCard) targetCard.style.display = 'none';
+    _alimDays = null; _alimHeader = null;
+    return;
+  }
+
+  const parsed = parseDietaContenido(dietaPlan.contenido);
+  _alimDays = parsed.days;
+  _alimHeader = parsed.header;
+
+  // Target header
+  if (targetCard && targetInfo) {
+    if (_alimHeader && _alimHeader.targetKcal) {
+      targetInfo.textContent = `🎯 ${_alimHeader.targetKcal} kcal · P:${_alimHeader.targetProt||'—'}g · C:${_alimHeader.targetCarbs||'—'}g · G:${_alimHeader.targetFat||'—'}g`;
+      targetCard.style.display = 'block';
+    } else {
+      targetCard.style.display = 'none';
+    }
+  }
+
+  if (!_alimDays || _alimDays.length === 0) {
+    container.innerHTML = `<div class="chart-empty"><div class="chart-empty-icon">🥗</div><span>${lang === 'es' ? 'No pudimos parsear la dieta. Avisanos para ajustar el formato.' : 'Could not parse the diet. Let us know to adjust the format.'}</span></div>`;
+    return;
+  }
+
+  // Load state from supabase if not yet
+  if (_alimEstado === null) await loadAlimentacionEstado();
+  const estado = _alimEstado || {};
+
+  // Today's index — Spanish week starts Monday (0=Lun..6=Dom)
+  const todayJsDow = new Date().getDay();
+  const todayIdx = todayJsDow === 0 ? 6 : todayJsDow - 1;
+  if (_alimExpandedDays.size === 0 && todayIdx < _alimDays.length) {
+    _alimExpandedDays.add(todayIdx);
+  }
+
+  container.innerHTML = _alimDays.map((day, i) => {
+    const isToday = i === todayIdx;
+    const isExpanded = _alimExpandedDays.has(i);
+    const cumplidaCount = day.meals.filter((m, j) => estado[`d${i}m${j}`]?.cumplido).length;
+    const allCumplidas = day.meals.length > 0 && cumplidaCount === day.meals.length;
+    const mealsHtml = day.meals.map((m, j) => {
+      const sk = `d${i}m${j}`;
+      const st = estado[sk] || {};
+      const cumplido = !!st.cumplido;
+      const customText = st.customText;
+      const customKcal = st.customKcal;
+      const showText = customText || m.content;
+      const showKcal = customText ? customKcal : m.kcal;
+      return `<div class="alim-meal${cumplido ? ' is-cumplida' : ''}${customText ? ' is-editada' : ''}">
+        <button class="alim-check" onclick="event.stopPropagation();toggleAlimComida(${i},${j})" type="button" aria-label="${lang==='es'?'Cumplido':'Done'}">${cumplido ? '✓' : ''}</button>
+        <div class="alim-meal-body">
+          <div class="alim-meal-name">${m.emoji} ${_esc(m.name)}${customText ? ' <span class="alim-edit-flag">· editada</span>' : ''}</div>
+          <div class="alim-meal-content">${_esc(showText)}</div>
+          ${showKcal != null ? `<div class="alim-meal-kcal">${showKcal} kcal</div>` : ''}
+        </div>
+        <button class="alim-edit-btn" onclick="event.stopPropagation();editAlimComida(${i},${j})" type="button" aria-label="${lang==='es'?'Editar':'Edit'}">✏️</button>
+      </div>`;
+    }).join('');
+
+    const headerMeta = `${day.meals.length} ${lang==='es'?'comidas':'meals'}${day.totalKcal ? ' · ' + day.totalKcal + ' kcal' : ''} · ${cumplidaCount}/${day.meals.length} ${lang==='es'?'cumplidas':'done'}`;
+    return `<div class="semana-card alim-day${allCumplidas ? ' is-done' : ''}${isExpanded ? ' is-expanded' : ''}" id="alim-day-${i}">
+      <div class="semana-header" onclick="toggleAlimDay(${i})">
+        <div class="semana-badge">${allCumplidas ? '✓' : `D${i+1}`}</div>
+        <div class="alim-day-info">
+          <div class="alim-day-name">${_esc(day.dayName)}${isToday ? ` · ${lang==='es'?'HOY':'TODAY'}` : ''}</div>
+          <div class="alim-day-meta">${headerMeta}</div>
+        </div>
+        <div class="semana-toggle">${isExpanded ? '▲' : '▼'}</div>
+      </div>
+      <div class="alim-meal-list" id="alim-meal-list-${i}" style="display:${isExpanded ? 'block' : 'none'}">
+        ${mealsHtml}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleAlimDay(i) {
+  if (_alimExpandedDays.has(i)) _alimExpandedDays.delete(i);
+  else _alimExpandedDays.add(i);
+  // Cheap re-render — 7 cards max
+  renderMiAlimentacion().catch(console.error);
+}
+
+async function toggleAlimComida(i, j) {
+  if (!_alimDays || !_alimEstado) return;
+  const meal = _alimDays[i]?.meals[j];
+  if (!meal) return;
+  const sk = `d${i}m${j}`;
+  const cur = _alimEstado[sk] || {};
+  _alimEstado[sk] = { ...cur, cumplido: !cur.cumplido };
+  _alimSaveDebounced();
+  await renderMiAlimentacion();
+  syncProgresoDiarioForDay(i).catch(console.error);
+}
+
+// ── Edit modal ─────────────────────────────────────────────
+let _alimEditCtx = null;
+
+function editAlimComida(i, j) {
+  if (!_alimDays || !_alimEstado) return;
+  const meal = _alimDays[i]?.meals[j];
+  if (!meal) return;
+  _alimEditCtx = { i, j };
+  const st = _alimEstado[`d${i}m${j}`] || {};
+  document.getElementById('alim-edit-title').textContent = `${meal.emoji} ${meal.name} — ${_alimDays[i].dayName}`;
+  document.getElementById('alim-edit-planned').textContent = `${lang === 'es' ? 'Planificado' : 'Planned'}: ${meal.content}${meal.kcal ? ` (${meal.kcal} kcal)` : ''}`;
+  const ta = document.getElementById('alim-edit-text');
+  ta.value = st.customText || meal.content;
+  document.getElementById('alim-edit-status').textContent = '';
+  document.getElementById('alim-edit-save-btn').disabled = false;
+  document.getElementById('alim-edit-save-btn').textContent = lang === 'es' ? 'Guardar' : 'Save';
+  document.getElementById('alim-edit-modal').classList.add('open');
+  setTimeout(() => ta.focus(), 50);
+}
+
+function closeAlimEdit(event) {
+  if (event && event.target && event.target.id !== 'alim-edit-modal'
+      && !event.target.classList.contains('alim-edit-close')
+      && !event.target.classList.contains('alim-edit-cancel')) return;
+  document.getElementById('alim-edit-modal').classList.remove('open');
+  _alimEditCtx = null;
+}
+
+async function estimateKcalForMeal(mealText) {
+  try {
+    const resp = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system: 'Sos un nutricionista experto. Estimás las calorías totales de UNA comida descrita en lenguaje natural. Respondés SOLO con un JSON válido: {"kcal":<número entero>}. Sin texto adicional.',
+        messages: [{ role: 'user', content: `Estimá las calorías de esta comida (una sola):\n${mealText}\n\nRespondé SOLO con: {"kcal":número}` }]
+      })
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const txt = data.content?.[0]?.text || '';
+    const m = txt.match(/\{[\s\S]*?\}/);
+    if (!m) return null;
+    const parsed = JSON.parse(m[0]);
+    return (typeof parsed.kcal === 'number' && parsed.kcal > 0) ? Math.round(parsed.kcal) : null;
+  } catch (e) {
+    console.error('[CoachAI] estimateKcalForMeal:', e);
+    return null;
+  }
+}
+
+async function saveAlimEdit() {
+  if (!_alimEditCtx) return;
+  const { i, j } = _alimEditCtx;
+  const newText = document.getElementById('alim-edit-text').value.trim();
+  const status = document.getElementById('alim-edit-status');
+  const btn = document.getElementById('alim-edit-save-btn');
+  if (!newText) { status.textContent = lang === 'es' ? '⚠ Escribí qué comiste.' : '⚠ Write what you ate.'; return; }
+  btn.disabled = true;
+  btn.textContent = lang === 'es' ? '⏳ Estimando kcal...' : '⏳ Estimating kcal...';
+  status.textContent = lang === 'es' ? 'Pidiéndole a la IA que calcule las calorías de esta comida...' : 'Asking AI to estimate calories...';
+
+  const meal = _alimDays[i]?.meals[j];
+  const plannedTextUnchanged = meal && newText === meal.content;
+  // If the user didn't actually change the text, treat it as a plain "cumplí" — no AI call needed, use planned kcal
+  let kcal = null;
+  if (plannedTextUnchanged) {
+    kcal = meal.kcal || null;
+  } else {
+    kcal = await estimateKcalForMeal(newText);
+  }
+
+  const sk = `d${i}m${j}`;
+  _alimEstado[sk] = {
+    cumplido: true,
+    customText: plannedTextUnchanged ? null : newText,
+    customKcal: plannedTextUnchanged ? null : kcal,
+  };
+  _alimSaveDebounced();
+
+  status.textContent = plannedTextUnchanged
+    ? (lang === 'es' ? '✓ Marcado como cumplido' : '✓ Marked as done')
+    : (kcal != null
+        ? (lang === 'es' ? `✓ Guardado · ${kcal} kcal estimadas` : `✓ Saved · ${kcal} kcal estimated`)
+        : (lang === 'es' ? '✓ Guardado (no pudimos estimar kcal)' : '✓ Saved (could not estimate kcal)'));
+  btn.textContent = lang === 'es' ? '✓ Listo' : '✓ Done';
+
+  setTimeout(() => {
+    document.getElementById('alim-edit-modal').classList.remove('open');
+    _alimEditCtx = null;
+    renderMiAlimentacion().catch(console.error);
+    syncProgresoDiarioForDay(i).catch(console.error);
+  }, 700);
+}
+
 async function showDiario() {
   setActiveNav('nav-diario');
   trackEvent('section_view', { section: 'alimentacion' });
@@ -8379,47 +8796,8 @@ async function showDiario() {
   document.getElementById('diario-wrapper').style.display = 'block';
   document.getElementById('diario-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-  // Show date being viewed (default = today). The viewedDiarioDate state is set
-  // by navDiarioDay; null means today.
-  const targetDate = viewedDiarioDate || getTodayKey();
-  const isToday = targetDate === getTodayKey();
-  const dateObj = new Date(targetDate + 'T12:00:00');
-  document.getElementById('diario-date-display').textContent =
-    (isToday ? '' : (lang === 'es' ? '⏪ ' : '⏪ ')) +
-    dateObj.toLocaleDateString(lang === 'es' ? 'es-AR' : 'en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
-  // Disable next-day button when we're already on today
-  const nextBtn = document.getElementById('diario-nav-next');
-  if (nextBtn) {
-    nextBtn.disabled = isToday;
-    nextBtn.style.opacity = isToday ? '0.35' : '1';
-    nextBtn.style.cursor = isToday ? 'not-allowed' : 'pointer';
-  }
-  // Disable prev-day button at the back edge of history
-  const prevBtn = document.getElementById('diario-nav-prev');
-  if (prevBtn) {
-    const lowerBound = new Date(getTodayKey() + 'T12:00:00');
-    lowerBound.setDate(lowerBound.getDate() - MAX_DIARIO_HISTORY_DAYS);
-    const atFloor = targetDate <= formatLocalDate(lowerBound);
-    prevBtn.disabled = atFloor;
-    prevBtn.style.opacity = atFloor ? '0.35' : '1';
-    prevBtn.style.cursor = atFloor ? 'not-allowed' : 'pointer';
-  }
-  // Show "→ HOY" only when the user is viewing a past day. Gives an explicit
-  // way back instead of forcing them to chevron-forward one day at a time.
-  const todayBtn = document.getElementById('diario-nav-today');
-  if (todayBtn) todayBtn.style.display = isToday ? 'none' : 'inline-flex';
-
-  // Reset meal fields to empty (training was moved to Mi Entreno)
-  ['d-desayuno','d-almuerzo','d-merienda','d-cena'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-  document.getElementById('macros-estimados').style.display = 'none';
-  document.getElementById('macros-estimando').style.display = 'none';
-  const macrosFailed = document.getElementById('macros-failed');
-  if (macrosFailed) macrosFailed.style.display = 'none';
-
   // Empty-state banner: if the user has no active diet plan, prompt them to
-  // ask the coach. Doesn't block — they can still log what they ate.
+  // ask the coach. Doesn't block — the weekly view will show its own empty state.
   const noActiveDieta = !(weeklyPlans.dieta && !weeklyPlans.dieta.closed);
   const banner = document.getElementById('diario-no-plan-banner');
   if (banner) {
@@ -8432,29 +8810,8 @@ async function showDiario() {
     }
   }
 
-  // If a row already exists for the viewed date, pre-fill so the user can edit it.
-  const btn = document.getElementById('btn-save-diario');
-  const existing = await loadTodayDiario(targetDate);
-  if (existing) {
-    document.getElementById('d-desayuno').value = existing.desayuno || '';
-    document.getElementById('d-almuerzo').value = existing.almuerzo || '';
-    document.getElementById('d-merienda').value = existing.merienda || '';
-    document.getElementById('d-cena').value = existing.cena || '';
-    if (existing.calorias_consumidas || existing.proteinas_g) {
-      showMacrosEstimados({
-        calorias_consumidas: existing.calorias_consumidas,
-        proteinas_g: existing.proteinas_g,
-        carbos_g: existing.carbos_g,
-        grasas_g: existing.grasas_g,
-      });
-    }
-    btn.textContent = lang === 'es' ? '✏️ ACTUALIZAR MI ALIMENTACIÓN' : '✏️ UPDATE MY MEALS';
-  } else {
-    btn.textContent = isToday
-      ? (lang === 'es' ? '💾 GUARDAR MI ALIMENTACIÓN' : '💾 SAVE MY MEALS')
-      : (lang === 'es' ? '💾 GUARDAR ESTE DÍA' : '💾 SAVE THIS DAY');
-  }
-  btn.disabled = false;
+  // Render the weekly meal view (cards per day, today expanded)
+  await renderMiAlimentacion();
 }
 
 function showMacrosEstimados(macros) {
@@ -10139,6 +10496,89 @@ function parseRutinaContenido(text) {
     }
   }
   return days;
+}
+
+// ============================
+// DIETA PARSER — mirrors parseRutinaContenido, output shape:
+//   { header: { targetKcal, targetProt, targetCarbs, targetFat } | null,
+//     days: [{ dayName, dayKey, meals: [{key,name,emoji,content,kcal}], totalKcal }] }
+// Robust to: accents, the actual emoji header, optional Col/Pre/Post meals,
+// kcal suffix variations (— Xcal, - Xcal, – Xkcal).
+// ============================
+function parseDietaContenido(text) {
+  if (!text || typeof text !== 'string') return { header: null, days: [] };
+  const DAY_NAMES_RE = /^(LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)\b/i;
+  const DAY_TO_KEY = {
+    'LUNES':'lun','MARTES':'mar','MIÉRCOLES':'mie','MIERCOLES':'mie',
+    'JUEVES':'jue','VIERNES':'vie','SÁBADO':'sab','SABADO':'sab','DOMINGO':'dom',
+  };
+  const MEAL_PREFIX = {
+    'des':       { key:'desayuno',     name:'Desayuno',     emoji:'🌅' },
+    'desayuno':  { key:'desayuno',     name:'Desayuno',     emoji:'🌅' },
+    'alm':       { key:'almuerzo',     name:'Almuerzo',     emoji:'☀️' },
+    'almuerzo':  { key:'almuerzo',     name:'Almuerzo',     emoji:'☀️' },
+    'mer':       { key:'merienda',     name:'Merienda',     emoji:'🕐' },
+    'merienda':  { key:'merienda',     name:'Merienda',     emoji:'🕐' },
+    'cena':      { key:'cena',         name:'Cena',         emoji:'🌙' },
+    'col':       { key:'colacion',     name:'Colación',     emoji:'🍎' },
+    'colacion':  { key:'colacion',     name:'Colación',     emoji:'🍎' },
+    'pre':       { key:'pre-entreno',  name:'Pre-entreno',  emoji:'⚡' },
+    'post':      { key:'post-entreno', name:'Post-entreno', emoji:'💪' },
+    'snack':     { key:'snack',        name:'Snack',        emoji:'🍎' },
+  };
+  // Strip accents for prefix lookup (so "Colación:" → "colacion")
+  const stripAcc = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  let header = null;
+  const days = [];
+  let current = null;
+  for (const raw of text.split('\n')) {
+    const line = raw.replace(/\r/g, '').trim();
+    if (!line) continue;
+    // Header: "Target: Xkcal/día | P:Xg C:Xg G:Xg"
+    if (!header && /Target\s*:\s*\d/i.test(line)) {
+      const tgt   = line.match(/Target\s*:\s*(\d+)\s*kcal/i);
+      const prot  = line.match(/P\s*:\s*(\d+)\s*g/i);
+      const carbs = line.match(/C\s*:\s*(\d+)\s*g/i);
+      const fat   = line.match(/G\s*:\s*(\d+)\s*g/i);
+      header = {
+        targetKcal:  tgt   ? parseInt(tgt[1])   : null,
+        targetProt:  prot  ? parseInt(prot[1])  : null,
+        targetCarbs: carbs ? parseInt(carbs[1]) : null,
+        targetFat:   fat   ? parseInt(fat[1])   : null,
+      };
+      continue;
+    }
+    const clean = line.replace(/[*_#]/g, '').trim();
+    // Day header
+    const dm = clean.match(DAY_NAMES_RE);
+    if (dm) {
+      const upper = stripAcc(dm[1]).toUpperCase();
+      const normUpper = (upper === 'MIERCOLES' ? 'MIÉRCOLES' : upper === 'SABADO' ? 'SÁBADO' : dm[1].toUpperCase());
+      if (current) days.push(current);
+      current = { dayName: normUpper, dayKey: DAY_TO_KEY[normUpper] || DAY_TO_KEY[upper] || normUpper.slice(0,3).toLowerCase(), meals: [], totalKcal: null };
+      continue;
+    }
+    if (!current) continue;
+    // Total
+    const total = clean.match(/^Total\s*:\s*(\d+)\s*(?:kcal|cal)?/i);
+    if (total) { current.totalKcal = parseInt(total[1]); continue; }
+    // Meal: "Prefix: content — Xcal"
+    const mm = clean.match(/^([\wáéíóúñÁÉÍÓÚÑ]+)\s*:\s*(.+)$/);
+    if (!mm) continue;
+    const prefix = stripAcc(mm[1].toLowerCase());
+    const meta = MEAL_PREFIX[prefix];
+    if (!meta) continue;
+    const rest = mm[2].trim();
+    const kcalMatch = rest.match(/[—–-]\s*(\d+)\s*(?:kcal|cal)\s*$/i);
+    let content = rest, kcal = null;
+    if (kcalMatch) {
+      kcal = parseInt(kcalMatch[1]);
+      content = rest.substring(0, kcalMatch.index).replace(/[—–-]\s*$/, '').trim();
+    }
+    current.meals.push({ key: meta.key, name: meta.name, emoji: meta.emoji, content, kcal });
+  }
+  if (current) days.push(current);
+  return { header, days };
 }
 
 // ---- Persistence ----
