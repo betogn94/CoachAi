@@ -11813,14 +11813,35 @@ async function betaAddInvitado() {
   msg.className = 'beta-inv-msg';
   if (!email || !email.includes('@')) { msg.textContent = 'Ingresá un email válido.'; msg.classList.add('err'); return; }
   try {
+    const invitadoPor = currentUser?.email || 'admin';
     const { error } = await sbClient.from('beta_invitados')
-      .insert([{ email, nombre: nombre || null, invitado_por: 'admin' }]);
+      .insert([{ email, nombre: nombre || null, invitado_por: invitadoPor }]);
     if (error) {
       msg.textContent = error.code === '23505' ? 'Ese email ya estaba invitado.' : 'No se pudo invitar: ' + error.message;
       msg.classList.add('err');
       return;
     }
-    msg.textContent = `✓ ${email} invitado.`;
+    // DB insert succeeded. Now fire the courtesy email — DB is the source of
+    // truth so even if this fails the invitation works on the app side.
+    let mailStatus = '';
+    try {
+      const resp = await fetch('/api/send-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, nombre: nombre || null, invitadoPor })
+      });
+      if (resp.ok) {
+        mailStatus = ' · mail enviado 📬';
+      } else {
+        const errData = await resp.json().catch(() => ({}));
+        console.warn('[CoachAI] invite mail failed:', resp.status, errData);
+        mailStatus = ' · mail no se pudo enviar (avisale vos directo)';
+      }
+    } catch (e) {
+      console.warn('[CoachAI] invite mail network error:', e);
+      mailStatus = ' · mail no se pudo enviar (avisale vos directo)';
+    }
+    msg.textContent = `✓ ${email} invitado${mailStatus}`;
     msg.classList.add('ok');
     document.getElementById('beta-inv-nombre').value = '';
     document.getElementById('beta-inv-email').value = '';

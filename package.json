@@ -2,6 +2,7 @@
   "name": "coachai",
   "version": "1.0.0",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0"
+    "@anthropic-ai/sdk": "^0.39.0",
+    "resend": "^4.0.0"
   }
 }
