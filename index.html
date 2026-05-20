@@ -8507,6 +8507,7 @@ let _alimEstado = null;            // jsonb estado cache for current week
 let _alimDays = null;              // parsed dieta days (cached for sync)
 let _alimHeader = null;            // parsed dieta header (target macros)
 const _alimExpandedDays = new Set(); // which day indices are expanded
+const _alimDirtyDays = new Set();  // day indices that need progreso_diario sync
 let _alimSaveTimer = null;
 const ALIM_SAVE_DEBOUNCE = 500;
 
@@ -8526,6 +8527,11 @@ async function loadAlimentacionEstado() {
   return _alimEstado;
 }
 
+// Debounced flush: saves the estado AND syncs progreso_diario for all days
+// that changed since the last flush. Coalescing on the day level prevents
+// the race where two rapid toggles each fire their own sync and the
+// out-of-order write of the first overwrites the (correct) cumulative
+// write of the second.
 function _alimSaveDebounced() {
   if (_alimSaveTimer) clearTimeout(_alimSaveTimer);
   _alimSaveTimer = setTimeout(async () => {
@@ -8539,6 +8545,13 @@ function _alimSaveDebounced() {
         updated_at: new Date().toISOString()
       }, { onConflict: 'usuario_id,semana_iso' });
     } catch (e) { console.error('[CoachAI] alim save:', e); }
+    // Flush dirty-day syncs in sequence so the LAST write of each day reflects
+    // the final state. Run distinct days in parallel (they target different rows).
+    const days = [..._alimDirtyDays];
+    _alimDirtyDays.clear();
+    if (days.length) {
+      await Promise.all(days.map(i => syncProgresoDiarioForDay(i).catch(e => console.error('[CoachAI] sync day', i, e))));
+    }
   }, ALIM_SAVE_DEBOUNCE);
 }
 
@@ -8689,9 +8702,9 @@ async function toggleAlimComida(i, j) {
   const sk = `d${i}m${j}`;
   const cur = _alimEstado[sk] || {};
   _alimEstado[sk] = { ...cur, cumplido: !cur.cumplido };
+  _alimDirtyDays.add(i);
   _alimSaveDebounced();
   await renderMiAlimentacion();
-  syncProgresoDiarioForDay(i).catch(console.error);
 }
 
 // ── Edit modal ─────────────────────────────────────────────
@@ -8772,6 +8785,7 @@ async function saveAlimEdit() {
     customText: plannedTextUnchanged ? null : newText,
     customKcal: plannedTextUnchanged ? null : kcal,
   };
+  _alimDirtyDays.add(i);
   _alimSaveDebounced();
 
   status.textContent = plannedTextUnchanged
