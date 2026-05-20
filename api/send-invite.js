@@ -45,17 +45,17 @@ function buildEmail({ nombre, invitadoPor }) {
   </style>
   <![endif]-->
 </head>
-<body style="margin:0;padding:0;background:#070714;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#f0f0fa;">
+<body style="margin:0;padding:0;background:#000000;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#f0f0fa;">
   <!-- Pre-header (only shows in inbox preview) -->
-  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;color:#070714;font-size:1px;line-height:1px;">
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;color:#000000;font-size:1px;line-height:1px;">
     Tu coach personal con IA — rutina, dieta y seguimiento adaptados a vos. Beta exclusiva.
   </div>
 
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#070714" style="background:#070714;padding:24px 12px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#000000" style="background:#000000;padding:24px 12px;">
     <tr>
       <td align="center">
         <!-- ====== Email card ====== -->
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;width:100%;background:#0c0c1c;border-radius:20px;overflow:hidden;border:1px solid rgba(124,106,255,0.18);">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;width:100%;background:#000000;border-radius:20px;overflow:hidden;border:1px solid rgba(124,106,255,0.26);">
 
           <!-- HERO with gradient + wordmark -->
           <tr>
