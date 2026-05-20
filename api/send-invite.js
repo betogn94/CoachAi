@@ -22,10 +22,16 @@ const ALLOWED_ORIGINS = [
 
 function buildEmail({ nombre, invitadoPor }) {
   const safeNombre = (nombre || '').replace(/[<>]/g, '').trim();
-  const greetHtml = safeNombre ? `Hola <strong>${safeNombre}</strong>,` : 'Hola,';
+  const subject = safeNombre
+    ? `${safeNombre}, tu lugar en la beta de CoachAI 💪`
+    : 'Tu lugar en la beta cerrada de CoachAI 💪';
+
+  const greetHtml = safeNombre ? `Hola <strong style="color:#b4a7ff;">${safeNombre}</strong>,` : 'Hola,';
   const greetTxt  = safeNombre ? `Hola ${safeNombre},` : 'Hola,';
 
-  const subject = '💪 Te invitamos a probar CoachAI (beta cerrada)';
+  // Brand gradient used in the hero band — same as the app's wordmark/CTA
+  const gradient = 'linear-gradient(135deg,#7c6aff 0%,#5b9fff 50%,#2ecfb5 100%)';
+  const gradientCta = 'linear-gradient(135deg,#7c6aff 0%,#5b9fff 100%)';
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -33,56 +39,139 @@ function buildEmail({ nombre, invitadoPor }) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>CoachAI — invitación</title>
+  <!--[if mso]>
+  <style type="text/css">
+    body, table, td, p, a { font-family: Arial, Helvetica, sans-serif !important; }
+  </style>
+  <![endif]-->
 </head>
-<body style="margin:0;padding:0;background:#070714;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#070714;padding:32px 16px;">
+<body style="margin:0;padding:0;background:#070714;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#f0f0fa;">
+  <!-- Pre-header (only shows in inbox preview) -->
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;color:#070714;font-size:1px;line-height:1px;">
+    Tu coach personal con IA — rutina, dieta y seguimiento adaptados a vos. Beta exclusiva.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#070714" style="background:#070714;padding:24px 12px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#111122;border:1px solid rgba(124,106,255,0.18);border-radius:18px;padding:36px 32px;">
+        <!-- ====== Email card ====== -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;width:100%;background:#0c0c1c;border-radius:20px;overflow:hidden;border:1px solid rgba(124,106,255,0.18);">
+
+          <!-- HERO with gradient + wordmark -->
           <tr>
-            <td align="center" style="padding-bottom:24px;">
-              <div style="font-family:'Bebas Neue','Arial Narrow',Arial,sans-serif;font-size:36pt;letter-spacing:6px;line-height:1;background:linear-gradient(135deg,#b4a7ff 0%,#5b9fff 50%,#2ecfb5 100%);-webkit-background-clip:text;background-clip:text;color:#b4a7ff;font-weight:700;">COACHAI</div>
+            <td align="center" bgcolor="#7c6aff" style="background:#7c6aff;background:${gradient};padding:44px 24px 38px;text-align:center;">
+              <div style="font-family:'Helvetica Neue','Arial Black',Arial,sans-serif;font-size:42px;font-weight:900;letter-spacing:9px;line-height:1;color:#ffffff;text-shadow:0 2px 14px rgba(0,0,0,0.20);">COACHAI</div>
+              <div style="margin-top:14px;font-size:12.5px;color:rgba(255,255,255,0.92);letter-spacing:2px;text-transform:uppercase;font-weight:600;">Tu coach personal con IA</div>
             </td>
           </tr>
+
+          <!-- Greeting + intro -->
           <tr>
-            <td style="padding-bottom:18px;font-size:16px;color:#f0f0fa;line-height:1.55;">
-              ${greetHtml}
+            <td style="padding:34px 32px 0;">
+              <div style="font-size:17px;color:#f0f0fa;line-height:1.5;margin-bottom:18px;">
+                ${greetHtml}
+              </div>
+              <div style="font-size:15px;color:#dcdcec;line-height:1.7;margin-bottom:14px;">
+                Imaginate tener un <strong style="color:#f0f0fa;">coach experto en entrenamiento y nutrición</strong> disponible <strong style="color:#f0f0fa;">24/7 en el celular</strong>, que arma tu plan exacto y te acompaña semana a semana.
+              </div>
+              <div style="font-size:15px;color:#dcdcec;line-height:1.7;margin-bottom:22px;">
+                Eso es <strong style="color:#b4a7ff;">CoachAI</strong>. Y te queremos como uno de los primeros en probarla.
+              </div>
             </td>
           </tr>
+
+          <!-- Features box -->
           <tr>
-            <td style="padding-bottom:18px;font-size:15px;color:#d8d8e8;line-height:1.65;">
-              Te invitamos a sumarte a la <strong style="color:#b4a7ff;">beta cerrada de CoachAI</strong> — una app de entrenamiento personal con inteligencia artificial.
+            <td style="padding:0 32px 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:rgba(124,106,255,0.07);border:1px solid rgba(124,106,255,0.20);border-radius:14px;">
+                <tr>
+                  <td style="padding:18px 22px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="padding:7px 0;font-size:14.5px;color:#f0f0fa;line-height:1.55;">
+                          <span style="display:inline-block;width:28px;font-size:18px;vertical-align:middle;">💪</span>
+                          <strong style="color:#b4a7ff;">Rutina semanal</strong> armada a tu medida y objetivos
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:7px 0;font-size:14.5px;color:#f0f0fa;line-height:1.55;">
+                          <span style="display:inline-block;width:28px;font-size:18px;vertical-align:middle;">🥗</span>
+                          <strong style="color:#b4a7ff;">Plan nutricional</strong> con tus gustos y restricciones
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:7px 0;font-size:14.5px;color:#f0f0fa;line-height:1.55;">
+                          <span style="display:inline-block;width:28px;font-size:18px;vertical-align:middle;">🤖</span>
+                          <strong style="color:#b4a7ff;">Coach AI 24/7</strong> en el bolsillo — pregunta y ajusta
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:7px 0;font-size:14.5px;color:#f0f0fa;line-height:1.55;">
+                          <span style="display:inline-block;width:28px;font-size:18px;vertical-align:middle;">📊</span>
+                          <strong style="color:#b4a7ff;">Progreso real</strong> medido semana a semana
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
+
+          <!-- CTA -->
           <tr>
-            <td style="padding-bottom:22px;font-size:14.5px;color:#c8c8d8;line-height:1.7;">
-              En 1 minuto vas a tener:<br>
-              · Una <strong style="color:#f0f0fa;">rutina semanal</strong> armada a tu medida<br>
-              · Un <strong style="color:#f0f0fa;">plan de alimentación</strong> personalizado con tus gustos y restricciones<br>
-              · Un <strong style="color:#f0f0fa;">coach AI</strong> 24/7 para preguntas, ajustes y seguimiento<br>
-              · Métricas semanales de progreso reales
+            <td align="center" style="padding:0 32px 26px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" bgcolor="#7c6aff" style="background:#7c6aff;background:${gradientCta};border-radius:100px;box-shadow:0 6px 20px rgba(124,106,255,0.32);">
+                    <a href="${APP_URL}" target="_blank" style="display:inline-block;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;letter-spacing:0.8px;padding:16px 40px;border-radius:100px;">
+                      ENTRAR A COACHAI &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
+
+          <!-- How to enter -->
           <tr>
-            <td align="center" style="padding:8px 0 22px;">
-              <a href="${APP_URL}" style="display:inline-block;background:linear-gradient(135deg,#7c6aff 0%,#5b9fff 100%);color:#ffffff;text-decoration:none;padding:14px 36px;border-radius:100px;font-size:15px;font-weight:700;letter-spacing:0.5px;">Entrar a CoachAI →</a>
+            <td style="padding:0 32px 24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:rgba(46,207,181,0.07);border-left:3px solid #2ecfb5;border-radius:8px;">
+                <tr>
+                  <td style="padding:14px 18px;">
+                    <div style="font-size:10.5px;font-weight:700;color:#2ecfb5;letter-spacing:1.6px;text-transform:uppercase;margin-bottom:6px;">Cómo entrar</div>
+                    <div style="font-size:13.5px;color:#d8d8e8;line-height:1.65;">
+                      Ingresá a <a href="${APP_URL}" style="color:#5b9fff;text-decoration:none;font-weight:600;">coachaipro.ai</a> con <strong style="color:#f0f0fa;">este mismo email</strong>. Sin clave, sin formularios largos — la app te reconoce.
+                    </div>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
+
+          <!-- Closing -->
           <tr>
-            <td style="padding-bottom:18px;font-size:13.5px;color:#a8a8c0;line-height:1.65;background:rgba(124,106,255,0.07);border-left:3px solid #7c6aff;padding:14px 16px;border-radius:8px;">
-              <strong style="color:#b4a7ff;">Para entrar:</strong> ingresá a <a href="${APP_URL}" style="color:#5b9fff;text-decoration:none;">coachaipro.ai</a> con <strong style="color:#f0f0fa;">este mismo email</strong>. No necesitás clave — la app te reconoce y te recuerda.
+            <td style="padding:4px 32px 26px;">
+              <div style="font-size:13.5px;color:#a8a8c0;line-height:1.65;margin-bottom:18px;">
+                ¿Dudas? <strong style="color:#dcdcec;">Respondé este mail</strong> y te contestamos personalmente.
+              </div>
+              <div style="font-size:13.5px;color:#a8a8c0;line-height:1.65;">
+                Te esperamos.<br>
+                <strong style="color:#b4a7ff;">— Equipo CoachAI</strong>
+              </div>
             </td>
           </tr>
+
+          <!-- Footer -->
           <tr>
-            <td style="padding-top:10px;font-size:13px;color:#8a8aa0;line-height:1.6;">
-              Cualquier duda, <strong style="color:#a8a8c0;">respondé este mail</strong> y te contestamos.
+            <td style="padding:18px 32px 22px;border-top:1px solid rgba(124,106,255,0.10);">
+              <div style="font-size:11px;color:#6c6c80;line-height:1.55;text-align:center;">
+                Recibiste este mail porque te invitamos a la beta cerrada de CoachAI.<br>
+                <a href="${APP_URL}" style="color:#7c6aff;text-decoration:none;">coachaipro.ai</a>
+              </div>
             </td>
           </tr>
-          <tr>
-            <td style="padding-top:24px;font-size:11px;color:#6c6c80;line-height:1.5;border-top:1px solid rgba(124,106,255,0.10);padding-top:18px;">
-              Recibís este mail porque te invitamos a la beta. Si fue un error, ignoralo y no vas a recibir más mensajes.
-            </td>
-          </tr>
+
         </table>
       </td>
     </tr>
@@ -90,22 +179,27 @@ function buildEmail({ nombre, invitadoPor }) {
 </body>
 </html>`;
 
-  const text = `${greetTxt}
+  const text = `COACHAI — Tu coach personal con IA
 
-Te invitamos a sumarte a la beta cerrada de CoachAI — una app de entrenamiento personal con inteligencia artificial.
+${greetTxt}
 
-En 1 minuto vas a tener:
-- Una rutina semanal armada a tu medida
-- Un plan de alimentación personalizado
-- Un coach AI 24/7 para preguntas, ajustes y seguimiento
-- Métricas semanales de progreso reales
+Imaginate tener un coach experto en entrenamiento y nutrición disponible 24/7 en el celular, que arma tu plan exacto y te acompaña semana a semana.
 
-Para entrar: ingresá a ${APP_URL} con este mismo email. No necesitás clave.
+Eso es CoachAI. Y te queremos como uno de los primeros en probarla.
 
-Cualquier duda, respondé este mail y te contestamos.
+💪 Rutina semanal armada a tu medida
+🥗 Plan nutricional con tus gustos y restricciones
+🤖 Coach AI 24/7 en el bolsillo
+📊 Progreso real medido semana a semana
 
-—
-Equipo CoachAI
+→ ENTRAR A COACHAI: ${APP_URL}
+
+Cómo entrar: ingresá a coachaipro.ai con este mismo email. Sin clave, sin formularios — la app te reconoce.
+
+¿Dudas? Respondé este mail y te contestamos personalmente.
+
+Te esperamos.
+— Equipo CoachAI
 ${APP_URL}`;
 
   return { subject, html, text };
