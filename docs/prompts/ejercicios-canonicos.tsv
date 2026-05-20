@@ -1,0 +1,136 @@
+slug	nombre_es	muscle_group	in_femenino	in_masculino
+# GLÚTEOS
+hip-thrust	Hip thrust	gluteos	yes	yes
+hip-thrust-unilateral	Hip thrust unilateral	gluteos	yes	yes
+puente-gluteos	Puentes de glúteos	gluteos	yes	yes
+glute-bridge-maquina	Glute bridge en máquina	gluteos	yes	yes
+abduccion-caderas	Abducción de caderas	gluteos	yes	yes
+abduccion-polea	Abducción en polea	gluteos	yes	yes
+abduccion-maquina	Abducción en máquina	gluteos	yes	yes
+patadas-burro	Patadas de burro	gluteos	yes	yes
+pull-through	Pull through	gluteos	yes	yes
+almejas	Almejas	gluteos	yes	no
+frog-pumps	Frog pumps	gluteos	yes	no
+extensiones-espalda	Extensiones de espalda (foco glúteo/isquio)	gluteos	yes	yes
+# CUÁDRICEPS
+extension-cuadriceps	Extensión de cuádriceps	cuadriceps	yes	yes
+sentadilla-hack	Sentadilla hack	cuadriceps	yes	yes
+sentadilla-smith	Sentadilla Smith	cuadriceps	yes	yes
+sentadilla-pendular	Sentadilla pendular	cuadriceps	yes	yes
+sentadilla-sissy	Sentadilla sissy	cuadriceps	yes	yes
+prensa-45-pies-bajos	Prensa 45° con pies bajos	cuadriceps	yes	yes
+prensa-hack-pies-bajos	Prensa hack pies bajos	cuadriceps	yes	yes
+spanish-squat	Spanish squat	cuadriceps	yes	yes
+step-down	Step down	cuadriceps	yes	yes
+zancada-corta	Zancada corta con foco cuádriceps	cuadriceps	yes	yes
+sentadilla-libre-barra	Sentadilla libre con barra	cuadriceps	no	yes
+# ISQUIOS
+peso-muerto-rumano	Peso muerto rumano (PMR)	isquios	yes	yes
+peso-muerto-rumano-unilateral	PMR unilateral	isquios	yes	yes
+curl-femoral-acostado	Curl femoral acostado	isquios	yes	yes
+curl-femoral-sentado	Curl femoral sentado	isquios	yes	yes
+curl-femoral-de-pie	Curl femoral de pie	isquios	yes	yes
+buenos-dias	Buenos días	isquios	yes	yes
+deslizamientos-femorales	Deslizamientos femorales	isquios	yes	yes
+nordic-curl	Nordic curl asistido	isquios	yes	yes
+# PANTORRILLAS
+pantorrilla-de-pie	Pantorrilla de pie en máquina	pantorrillas	no	yes
+pantorrilla-sentado	Pantorrilla sentado	pantorrillas	no	yes
+pantorrilla-prensa	Pantorrilla en prensa	pantorrillas	no	yes
+donkey-calf	Donkey calf raises	pantorrillas	no	yes
+pantorrilla-unilateral	Pantorrilla unilateral con mancuerna	pantorrillas	no	yes
+# TRANSICIONALES PIERNA
+sentadilla-bulgara	Sentadilla búlgara	transicional-pierna	yes	yes
+step-ups	Step ups caja alta	transicional-pierna	yes	yes
+estocadas	Estocadas	transicional-pierna	yes	yes
+estocadas-invertidas	Estocadas invertidas	transicional-pierna	yes	yes
+prensa-pies-arriba	Prensa con pies arriba	transicional-pierna	yes	yes
+prensa-una-pierna	Prensa a una pierna	transicional-pierna	yes	yes
+prensa-hack-piernas-separadas	Prensa hack piernas separadas	transicional-pierna	yes	yes
+sentadilla-sumo	Sentadilla sumo	transicional-pierna	yes	yes
+sentadilla-goblet	Sentadilla goblet	transicional-pierna	yes	yes
+zancadas-caminando	Zancadas caminando	transicional-pierna	yes	yes
+# PECHO
+press-plano-barra	Press plano con barra	pecho	yes	yes
+press-plano-mancuernas	Press plano con mancuernas	pecho	yes	yes
+press-inclinado-barra	Press inclinado con barra	pecho	yes	yes
+press-inclinado-mancuernas	Press inclinado con mancuernas (prioridad clavicular)	pecho	yes	yes
+press-declinado	Press declinado	pecho	no	yes
+press-pecho-maquina	Press en máquina	pecho	yes	yes
+press-convergente-pecho	Press convergente en máquina	pecho	yes	yes
+aperturas-mancuernas	Aperturas con mancuernas	pecho	yes	yes
+pec-deck	Aperturas en máquina (pec deck)	pecho	yes	yes
+crossover-polea	Crossover en polea	pecho	yes	yes
+fondos-paralelas-pecho	Fondos en paralelas (foco pecho)	pecho	no	yes
+flexiones	Flexiones	pecho	yes	yes
+flexiones-cerradas	Flexiones cerradas	pecho	yes	yes
+# ESPALDA
+jalon-al-pecho	Jalón al pecho (agarre abierto)	espalda	yes	yes
+jalon-cerrado	Jalón agarre cerrado	espalda	yes	yes
+jalon-neutro	Jalón agarre neutro	espalda	yes	yes
+jalon-unilateral	Jalón unilateral	espalda	yes	yes
+jalon-supino	Jalón supino	espalda	yes	yes
+dominadas-libres	Dominadas	espalda	no	yes
+dominadas-asistidas	Dominadas asistidas	espalda	yes	yes
+remo-sentado	Remo sentado	espalda	yes	yes
+remo-unilateral-mancuerna	Remo unilateral con mancuerna	espalda	yes	yes
+remo-maquina	Remo en máquina	espalda	yes	yes
+remo-pecho-apoyado	Remo pecho apoyado	espalda	yes	yes
+remo-t-bar	Remo T-bar	espalda	yes	yes
+remo-barra	Remo con barra (convencional/Pendlay)	espalda	no	yes
+remo-polea-baja	Remo polea baja	espalda	yes	yes
+remo-hammer	Remo en máquina Hammer	espalda	yes	yes
+remo-supino	Remo supino	espalda	yes	yes
+remo-cerrado	Remo cerrado	espalda	yes	yes
+remo-alto	Remo alto	espalda	yes	yes
+high-row	High row con foco dorsal	espalda	yes	yes
+pull-over-polea	Pull over en polea	espalda	yes	yes
+straight-arm-pulldown	Straight arm pulldown	espalda	yes	yes
+# TRAPECIOS
+shrugs-mancuernas	Encogimientos con mancuernas	trapecios	no	yes
+shrugs-barra	Encogimientos con barra	trapecios	no	yes
+shrugs-maquina	Shrugs en máquina	trapecios	no	yes
+face-pull-trapecio	Face pull con foco trapecio medio	trapecios	no	yes
+# HOMBROS LATERALES
+elevaciones-laterales-mancuernas	Elevaciones laterales con mancuernas	hombros	yes	yes
+elevaciones-laterales-polea	Elevaciones laterales en polea	hombros	yes	yes
+elevaciones-laterales-maquina	Elevaciones laterales en máquina	hombros	yes	yes
+laterales-inclinadas	Laterales inclinadas	hombros	yes	yes
+# HOMBROS POSTERIORES
+reverse-pec-deck	Reverse pec deck	hombros	yes	yes
+pajaros-mancuernas	Pájaros con mancuernas	hombros	yes	yes
+face-pull	Face pull	hombros	yes	yes
+rear-delt-row	Rear delt row	hombros	yes	yes
+# HOMBROS FRONTALES
+press-militar	Press militar	hombros	yes	yes
+shoulder-press-maquina	Shoulder press en máquina	hombros	yes	yes
+press-arnold	Press Arnold	hombros	yes	yes
+press-mancuernas-hombro	Press de hombros con mancuernas	hombros	yes	yes
+elevaciones-frontales	Elevaciones frontales	hombros	yes	yes
+landmine-press	Landmine press	hombros	yes	yes
+# BÍCEPS
+curl-barra	Curl con barra	biceps	yes	yes
+curl-barra-z	Curl con barra Z	biceps	yes	yes
+curl-alternado-mancuernas	Curl alternado con mancuernas	biceps	yes	yes
+curl-martillo	Curl martillo	biceps	yes	yes
+curl-inclinado	Curl inclinado	biceps	yes	yes
+curl-predicador	Curl predicador	biceps	yes	yes
+curl-polea-baja	Curl en polea baja	biceps	yes	yes
+bayesian-curl	Bayesian curl	biceps	yes	yes
+spider-curl	Spider curl	biceps	yes	yes
+curl-concentrado	Curl concentrado	biceps	yes	yes
+curl-maquina	Curl en máquina	biceps	yes	yes
+# TRÍCEPS
+pushdown-polea	Pushdown en polea	triceps	yes	yes
+pushdown-cuerda	Pushdown con cuerda	triceps	yes	yes
+extension-overhead	Extensión por encima de la cabeza	triceps	yes	yes
+extension-unilateral-polea	Extensión unilateral en polea	triceps	yes	yes
+skull-crushers	Skull crushers	triceps	yes	yes
+press-frances	Press francés	triceps	yes	yes
+fondos-paralelas	Fondos en paralelas	triceps	no	yes
+fondos-asistidos	Fondos asistidos	triceps	yes	yes
+fondos-banco	Fondos en banco	triceps	yes	yes
+kickbacks	Kickbacks	triceps	yes	yes
+extension-maquina	Extensión en máquina	triceps	yes	yes
+jm-press	JM press	triceps	yes	yes
+press-cerrado	Press cerrado	triceps	yes	yes
