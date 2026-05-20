@@ -4,10 +4,6 @@
 // The DB row is the source of truth — the email is the courtesy notification.
 // If this fails, the invitation still works on the DB side (the invitee can
 // still register), so we surface a soft error in the UI instead of blocking.
-//
-// During the beta, FROM defaults to Resend's sandbox sender. Once
-// coachaipro.ai is verified inside Resend, set RESEND_FROM env var to
-// 'Equipo CoachAI <invite@coachaipro.ai>' — no code change required.
 
 import { Resend } from 'resend';
 
@@ -21,7 +17,14 @@ const ALLOWED_ORIGINS = [
 ];
 
 function buildEmail({ nombre, invitadoPor }) {
-  const safeNombre = (nombre || '').replace(/[<>]/g, '').trim();
+  // Strip HTML angle brackets + the Unicode replacement char (U+FFFD = "?")
+  // + C0/C1 control chars. Real admin-panel submissions are always clean UTF-8;
+  // this is a defensive sanitizer for malformed test calls / weird inputs.
+  const safeNombre = (nombre || '')
+    .replace(/[<>]/g, '')
+    .replace(/[�\x00-\x1F\x7F-\x9F]/g, '')
+    .trim();
+
   const subject = safeNombre
     ? `${safeNombre}, tu lugar en la beta de CoachAI 💪`
     : 'Tu lugar en la beta cerrada de CoachAI 💪';
@@ -29,33 +32,44 @@ function buildEmail({ nombre, invitadoPor }) {
   const greetHtml = safeNombre ? `Hola <strong style="color:#b4a7ff;">${safeNombre}</strong>,` : 'Hola,';
   const greetTxt  = safeNombre ? `Hola ${safeNombre},` : 'Hola,';
 
-  // Brand gradient used in the hero band — same as the app's wordmark/CTA
   const gradient = 'linear-gradient(135deg,#7c6aff 0%,#5b9fff 50%,#2ecfb5 100%)';
   const gradientCta = 'linear-gradient(135deg,#7c6aff 0%,#5b9fff 100%)';
 
   const html = `<!DOCTYPE html>
-<html lang="es">
+<html lang="es" style="color-scheme:dark;">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="supported-color-schemes" content="dark only">
   <title>CoachAI — invitación</title>
+  <style type="text/css">
+    /* Force dark backgrounds across all clients that respect <style> */
+    :root { color-scheme: dark; }
+    body, table, td { background-color: #000000 !important; }
+    /* Gmail mobile dark-mode override hint */
+    @media (prefers-color-scheme: dark) {
+      body, table, td { background-color: #000000 !important; }
+    }
+  </style>
   <!--[if mso]>
   <style type="text/css">
     body, table, td, p, a { font-family: Arial, Helvetica, sans-serif !important; }
   </style>
   <![endif]-->
 </head>
-<body style="margin:0;padding:0;background:#000000;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#f0f0fa;">
+<body bgcolor="#000000" style="margin:0;padding:0;background:#000000;background-color:#000000;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#f0f0fa;color-scheme:dark;">
   <!-- Pre-header (only shows in inbox preview) -->
   <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;color:#000000;font-size:1px;line-height:1px;">
     Tu coach personal con IA — rutina, dieta y seguimiento adaptados a vos. Beta exclusiva.
   </div>
 
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#000000" style="background:#000000;padding:24px 12px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#000000" style="background:#000000;background-color:#000000;padding:24px 12px;">
     <tr>
-      <td align="center">
+      <td align="center" bgcolor="#000000" style="background:#000000;">
         <!-- ====== Email card ====== -->
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;width:100%;background:#000000;border-radius:20px;overflow:hidden;border:1px solid rgba(124,106,255,0.26);">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#000000" style="max-width:580px;width:100%;background:#000000;background-color:#000000;border-radius:20px;overflow:hidden;border:1px solid rgba(124,106,255,0.28);">
 
           <!-- HERO with gradient + wordmark -->
           <tr>
@@ -67,7 +81,7 @@ function buildEmail({ nombre, invitadoPor }) {
 
           <!-- Greeting + intro -->
           <tr>
-            <td style="padding:34px 32px 0;">
+            <td bgcolor="#000000" style="background:#000000;padding:34px 32px 0;">
               <div style="font-size:17px;color:#f0f0fa;line-height:1.5;margin-bottom:18px;">
                 ${greetHtml}
               </div>
@@ -82,7 +96,7 @@ function buildEmail({ nombre, invitadoPor }) {
 
           <!-- Features box -->
           <tr>
-            <td style="padding:0 32px 28px;">
+            <td bgcolor="#000000" style="background:#000000;padding:0 32px 28px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:rgba(124,106,255,0.07);border:1px solid rgba(124,106,255,0.20);border-radius:14px;">
                 <tr>
                   <td style="padding:18px 22px;">
@@ -120,7 +134,7 @@ function buildEmail({ nombre, invitadoPor }) {
 
           <!-- CTA -->
           <tr>
-            <td align="center" style="padding:0 32px 26px;">
+            <td align="center" bgcolor="#000000" style="background:#000000;padding:0 32px 26px;">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td align="center" bgcolor="#7c6aff" style="background:#7c6aff;background:${gradientCta};border-radius:100px;box-shadow:0 6px 20px rgba(124,106,255,0.32);">
@@ -135,7 +149,7 @@ function buildEmail({ nombre, invitadoPor }) {
 
           <!-- How to enter -->
           <tr>
-            <td style="padding:0 32px 24px;">
+            <td bgcolor="#000000" style="background:#000000;padding:0 32px 24px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:rgba(46,207,181,0.07);border-left:3px solid #2ecfb5;border-radius:8px;">
                 <tr>
                   <td style="padding:14px 18px;">
@@ -151,7 +165,7 @@ function buildEmail({ nombre, invitadoPor }) {
 
           <!-- Closing -->
           <tr>
-            <td style="padding:4px 32px 26px;">
+            <td bgcolor="#000000" style="background:#000000;padding:4px 32px 26px;">
               <div style="font-size:13.5px;color:#a8a8c0;line-height:1.65;margin-bottom:18px;">
                 ¿Dudas? <strong style="color:#dcdcec;">Respondé este mail</strong> y te contestamos personalmente.
               </div>
@@ -164,7 +178,7 @@ function buildEmail({ nombre, invitadoPor }) {
 
           <!-- Footer -->
           <tr>
-            <td style="padding:18px 32px 22px;border-top:1px solid rgba(124,106,255,0.10);">
+            <td bgcolor="#000000" style="background:#000000;padding:18px 32px 22px;border-top:1px solid rgba(124,106,255,0.10);">
               <div style="font-size:11px;color:#6c6c80;line-height:1.55;text-align:center;">
                 Recibiste este mail porque te invitamos a la beta cerrada de CoachAI.<br>
                 <a href="${APP_URL}" style="color:#7c6aff;text-decoration:none;">coachaipro.ai</a>
