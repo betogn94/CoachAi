@@ -8972,28 +8972,50 @@ async function loadEjerciciosBiblioteca() {
   return _ejBiblioteca;
 }
 
+// Spanish connectors that aren't meaningful for exercise matching
+const _EJ_STOPWORDS = new Set(['de','del','con','en','y','o','a','el','la','los','las','al','un','una','para']);
+function _ejTokens(s) {
+  return s.split(' ').filter(t => t.length >= 1 && !_EJ_STOPWORDS.has(t));
+}
+
 function _findEjercicioMatch(freeName) {
   if (!_ejBiblioteca || !_ejBiblioteca.length) return null;
   const norm = _normalizeExName(freeName);
   if (!norm) return null;
-  // 1) exact normalized match
-  const exact = _ejBiblioteca.find(r => r._normName === norm);
-  if (exact) return exact;
+  // 1) exact normalized match — when multiple rows tie (e.g. "Face pull" and
+  // "Face pull (foco trapecio)" both normalize to "face pull"), prefer the row
+  // whose ORIGINAL nombre_es is closest in length to the input. That picks the
+  // generic over the more qualified variant when the user typed the generic.
+  const exactList = _ejBiblioteca.filter(r => r._normName === norm);
+  if (exactList.length) {
+    const inLen = freeName.length;
+    exactList.sort((a, b) => Math.abs(a.nombre_es.length - inLen) - Math.abs(b.nombre_es.length - inLen));
+    return exactList[0];
+  }
   // 2) substring containment in either direction
-  const sub = _ejBiblioteca.find(r => r._normName.includes(norm) || norm.includes(r._normName));
-  if (sub) return sub;
-  // 3) token overlap (≥2 shared meaningful tokens, ≥50% of the shorter set)
-  const tokens = norm.split(' ').filter(t => t.length >= 3);
+  const subMatches = _ejBiblioteca.filter(r => r._normName.includes(norm) || norm.includes(r._normName));
+  if (subMatches.length) {
+    // On tie, prefer the row whose normalized name is closest in LENGTH to the input
+    // (more generic = same length; specialized variants are longer)
+    subMatches.sort((a, b) => Math.abs(a._normName.length - norm.length) - Math.abs(b._normName.length - norm.length));
+    return subMatches[0];
+  }
+  // 3) token overlap — keep single-char tokens (e.g. "Z" in Curl barra Z); ignore stopwords
+  const tokens = _ejTokens(norm);
   if (!tokens.length) return null;
-  let best = null, bestScore = 0;
+  let best = null, bestOverlap = 0, bestLenDiff = Infinity;
   for (const r of _ejBiblioteca) {
-    const tb = r._normName.split(' ').filter(t => t.length >= 3);
+    const tb = _ejTokens(r._normName);
     if (!tb.length) continue;
     const overlap = tokens.filter(t => tb.includes(t)).length;
-    const score = overlap / Math.max(1, Math.min(tokens.length, tb.length));
-    if (overlap >= 2 && score > bestScore) { bestScore = score; best = r; }
+    if (overlap < 2) continue;
+    const lenDiff = Math.abs(r._normName.length - norm.length);
+    // Pick by max overlap first, then by closest length (better match for variants like "Z")
+    if (overlap > bestOverlap || (overlap === bestOverlap && lenDiff < bestLenDiff)) {
+      bestOverlap = overlap; bestLenDiff = lenDiff; best = r;
+    }
   }
-  return bestScore >= 0.5 ? best : null;
+  return bestOverlap >= 2 ? best : null;
 }
 
 async function showEjercicioModal(freeName) {
@@ -9062,6 +9084,10 @@ function closeLightbox() {
 // users expect Esc to dismiss overlays without hunting for the close button.
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
+  // Close the topmost open overlay (ejercicio modal takes precedence over lightbox
+  // if both are somehow open, since it's the most recent UI element)
+  const ejModal = document.getElementById('ej-modal');
+  if (ejModal?.classList.contains('open')) { closeEjercicioModal(); return; }
   const lightbox = document.getElementById('foto-lightbox');
   if (lightbox?.classList.contains('open')) closeLightbox();
 });
