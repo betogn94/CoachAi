@@ -3087,6 +3087,77 @@ footer {
   font-size: 11px; color: var(--muted);
   line-height: 1.5; margin: 2px 0 8px;
 }
+.entreno-ex-info-btn {
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(124,106,255,0.10); border: 1px solid rgba(124,106,255,0.28);
+  color: var(--accent-bright);
+  padding: 4px 10px; border-radius: 100px;
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.4px;
+  cursor: pointer; margin: 4px 0 6px;
+  transition: background 0.15s, border-color 0.15s;
+  font-family: inherit;
+}
+.entreno-ex-info-btn:hover { background: rgba(124,106,255,0.20); border-color: rgba(124,106,255,0.50); }
+.entreno-ex-info-btn:active { transform: scale(0.97); }
+
+/* ============ Ejercicio: modal "Cómo se hace" ============ */
+.ej-modal-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(7,7,20,0.88);
+  display: none; align-items: center; justify-content: center;
+  padding: 16px;
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  animation: ej-modal-fade 0.15s ease-out;
+}
+.ej-modal-overlay.open { display: flex; }
+@keyframes ej-modal-fade { from { opacity: 0; } to { opacity: 1; } }
+.ej-modal-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 18px; padding: 22px 22px 20px;
+  max-width: 440px; width: 100%; max-height: 92vh; overflow-y: auto;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.ej-modal-close {
+  position: absolute; top: 8px; right: 10px;
+  background: none; border: none; font-size: 24px;
+  color: var(--muted); cursor: pointer; line-height: 1; padding: 4px 8px;
+  font-family: inherit;
+}
+.ej-modal-close:hover { color: var(--text); }
+.ej-modal-title {
+  font-size: 16px; font-weight: 700; color: var(--text);
+  margin-bottom: 2px; padding-right: 30px; line-height: 1.3;
+}
+.ej-modal-muscle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; letter-spacing: 1.2px; color: var(--accent3);
+  text-transform: uppercase; margin-bottom: 14px;
+}
+.ej-modal-gif-wrap {
+  width: 100%; aspect-ratio: 1 / 1;
+  background: rgba(255,255,255,0.04); border-radius: 12px;
+  margin-bottom: 14px; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.ej-modal-gif-wrap img {
+  width: 100%; height: 100%; object-fit: contain; display: block;
+}
+.ej-modal-gif-wrap.empty { aspect-ratio: 1 / 1; min-height: 80px; max-height: 140px; }
+.ej-modal-gif-wrap.empty img { display: none; }
+.ej-modal-gif-wrap.empty::after {
+  content: '📷  Demo en preparación';
+  color: var(--muted); font-size: 12px;
+}
+.ej-modal-desc {
+  font-size: 13.5px; line-height: 1.6; color: var(--text);
+  background: rgba(124,106,255,0.06);
+  border-left: 3px solid var(--accent);
+  padding: 12px 14px; border-radius: 8px;
+  white-space: pre-line;
+}
 .entreno-weight-row {
   display: flex; align-items: center; gap: 8px;
 }
@@ -5988,6 +6059,19 @@ QUE SÍ SE VE</div>
   <img id="lightbox-img" src="" alt="">
 </div>
 
+<!-- "CÓMO SE HACE" modal — exercise demo + Daniel-style cues -->
+<div class="ej-modal-overlay" id="ej-modal" onclick="closeEjercicioModal(event)" role="dialog" aria-modal="true" aria-label="Demostración del ejercicio">
+  <div class="ej-modal-card" onclick="event.stopPropagation()">
+    <button class="ej-modal-close" onclick="closeEjercicioModal()" aria-label="Cerrar">×</button>
+    <div class="ej-modal-title" id="ej-modal-title">—</div>
+    <div class="ej-modal-muscle" id="ej-modal-muscle"></div>
+    <div class="ej-modal-gif-wrap" id="ej-modal-gif-wrap">
+      <img id="ej-modal-gif" src="" alt="Demostración del ejercicio">
+    </div>
+    <div class="ej-modal-desc" id="ej-modal-desc"></div>
+  </div>
+</div>
+
 <!-- CIERRE DE SEMANA -->
 <div class="cierre-overlay" id="cierre-overlay">
   <div class="cierre-card coach-card">
@@ -8858,6 +8942,113 @@ function renderFotos(fotos) {
   }
 }
 
+// ============================
+// EJERCICIO "CÓMO SE HACE" — looped 2-frame demo + Daniel-style cues
+// Loads ejercicios_biblioteca lazily on first open; cached in memory.
+// ============================
+let _ejBiblioteca = null;
+let _ejGifTimer = null;
+
+function _normalizeExName(s) {
+  return String(s || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '') // strip accents
+    .replace(/\(.*?\)/g, ' ')          // strip parentheticals
+    .replace(/[^a-z0-9\s]/g, ' ')      // strip punctuation
+    .replace(/\s+/g, ' ').trim();
+}
+
+async function loadEjerciciosBiblioteca() {
+  if (_ejBiblioteca) return _ejBiblioteca;
+  if (!sbClient) initSupabase();
+  try {
+    const { data, error } = await sbClient.from('ejercicios_biblioteca').select('*');
+    if (error) throw error;
+    _ejBiblioteca = (data || []).map(r => ({ ...r, _normName: _normalizeExName(r.nombre_es) }));
+  } catch (e) {
+    console.error('[CoachAI] could not load ejercicios_biblioteca:', e);
+    _ejBiblioteca = [];
+  }
+  return _ejBiblioteca;
+}
+
+function _findEjercicioMatch(freeName) {
+  if (!_ejBiblioteca || !_ejBiblioteca.length) return null;
+  const norm = _normalizeExName(freeName);
+  if (!norm) return null;
+  // 1) exact normalized match
+  const exact = _ejBiblioteca.find(r => r._normName === norm);
+  if (exact) return exact;
+  // 2) substring containment in either direction
+  const sub = _ejBiblioteca.find(r => r._normName.includes(norm) || norm.includes(r._normName));
+  if (sub) return sub;
+  // 3) token overlap (≥2 shared meaningful tokens, ≥50% of the shorter set)
+  const tokens = norm.split(' ').filter(t => t.length >= 3);
+  if (!tokens.length) return null;
+  let best = null, bestScore = 0;
+  for (const r of _ejBiblioteca) {
+    const tb = r._normName.split(' ').filter(t => t.length >= 3);
+    if (!tb.length) continue;
+    const overlap = tokens.filter(t => tb.includes(t)).length;
+    const score = overlap / Math.max(1, Math.min(tokens.length, tb.length));
+    if (overlap >= 2 && score > bestScore) { bestScore = score; best = r; }
+  }
+  return bestScore >= 0.5 ? best : null;
+}
+
+async function showEjercicioModal(freeName) {
+  const modal = document.getElementById('ej-modal');
+  if (!modal) return;
+  if (_ejGifTimer) { clearInterval(_ejGifTimer); _ejGifTimer = null; }
+
+  await loadEjerciciosBiblioteca();
+  const row = _findEjercicioMatch(freeName);
+
+  const title    = document.getElementById('ej-modal-title');
+  const muscle   = document.getElementById('ej-modal-muscle');
+  const gifWrap  = document.getElementById('ej-modal-gif-wrap');
+  const gif      = document.getElementById('ej-modal-gif');
+  const desc     = document.getElementById('ej-modal-desc');
+
+  if (!row) {
+    title.textContent = freeName;
+    muscle.textContent = '';
+    desc.textContent = lang === 'es'
+      ? 'Todavía no tenemos la explicación de este ejercicio cargada. La sumamos pronto.'
+      : 'No explanation loaded yet for this exercise. Coming soon.';
+    gifWrap.classList.add('empty');
+    gif.removeAttribute('src');
+  } else {
+    title.textContent = row.nombre_es;
+    muscle.textContent = (row.muscle_group || '').replace(/-/g, ' ');
+    desc.textContent = row.descripcion || '';
+    if (row.frame_0_url && row.frame_1_url) {
+      gifWrap.classList.remove('empty');
+      const frames = [row.frame_0_url, row.frame_1_url];
+      let toggle = 0;
+      gif.src = frames[0];
+      _ejGifTimer = setInterval(() => {
+        toggle = 1 - toggle;
+        gif.src = frames[toggle];
+      }, 700);
+    } else {
+      gifWrap.classList.add('empty');
+      gif.removeAttribute('src');
+    }
+  }
+  modal.classList.add('open');
+}
+
+function closeEjercicioModal(event) {
+  // Only close if click is on overlay itself or the close button — not on the card
+  if (event && event.target && event.target.id !== 'ej-modal' && !event.target.classList.contains('ej-modal-close')) return;
+  const modal = document.getElementById('ej-modal');
+  if (modal) modal.classList.remove('open');
+  if (_ejGifTimer) { clearInterval(_ejGifTimer); _ejGifTimer = null; }
+  const gif = document.getElementById('ej-modal-gif');
+  if (gif) gif.removeAttribute('src');
+}
+
 function openLightbox(url) {
   document.getElementById('lightbox-img').src = url;
   document.getElementById('foto-lightbox').classList.add('open');
@@ -10115,11 +10306,14 @@ function renderMiEntreno() {
               <span class="entreno-serie-saved" id="ews-${sk}">✓</span>
             </div>`);
           }
+          // Escape exercise name for the JS string literal inside onclick (escape backslashes and apostrophes)
+          const exNameSafe = String(ex.name).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
           return `<div class="entreno-ex">
             <div class="entreno-ex-top">
               <div class="entreno-ex-name">${esc(ex.name)}</div>
               ${ex.detail ? `<div class="entreno-ex-detail">${esc(ex.detail)}</div>` : ''}
             </div>
+            <button class="entreno-ex-info-btn" onclick="event.stopPropagation();showEjercicioModal('${exNameSafe}')" type="button">ℹ️ ${lang === 'es' ? 'Cómo se hace' : 'How to do it'}</button>
             ${ex.note ? `<div class="entreno-ex-note">${esc(ex.note)}</div>` : ''}
             <div class="entreno-series">
               <div class="entreno-series-title">${lang === 'es' ? `Peso por serie (${nSeries})` : `Weight per set (${nSeries})`}</div>
