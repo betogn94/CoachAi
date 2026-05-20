@@ -1,0 +1,16 @@
+{
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "coachaipro.com" }],
+      "destination": "https://coachaipro.ai/$1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "www.coachaipro.com" }],
+      "destination": "https://coachaipro.ai/$1",
+      "permanent": true
+    }
+  ]
+}
