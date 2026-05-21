@@ -6692,6 +6692,33 @@ function countUniqueDays(text) {
   return new Set(matches).size;
 }
 
+// Build the short notification shown in the chat when the AI delivers a plan.
+// Instead of dumping the full plan in the chat (wall of text), we tell the user
+// where to find it. The plan content still lives in conversationHistory + the
+// planes_semanales table so the AI keeps context and Mi Entreno / Mi Alimentación
+// render correctly.
+function buildPlanReadyNotification(tipo) {
+  const isRutina = tipo === 'rutina';
+  const titleEs = isRutina ? '💪 Tu rutina de la semana está lista' : '🥗 Tu dieta de la semana está lista';
+  const titleEn = isRutina ? '💪 Your weekly routine is ready'      : '🥗 Your weekly meal plan is ready';
+  const bodyEs  = isRutina
+    ? `La armé personalizada para vos. Pasala a revisar en <a onclick="showMiEntreno();return false" style="cursor:pointer;color:var(--accent-bright);text-decoration:underline;font-weight:700">Mi Entreno</a> — la tenés organizada día por día, podés marcar tus entrenos cumplidos y cargar tu peso por serie.`
+    : `La armé con tus gustos y restricciones. Pasala a revisar en <a onclick="showDiario();return false" style="cursor:pointer;color:var(--accent-bright);text-decoration:underline;font-weight:700">Mi Alimentación</a> — la tenés organizada día por día, podés tildar cada comida cumplida o editarla si comiste otra cosa.`;
+  const bodyEn  = isRutina
+    ? `I built it custom for you. Check it out in <a onclick="showMiEntreno();return false" style="cursor:pointer;color:var(--accent-bright);text-decoration:underline;font-weight:700">My Training</a> — organized day by day, ready to track completed workouts and per-set weights.`
+    : `I built it around your preferences. Check it out in <a onclick="showDiario();return false" style="cursor:pointer;color:var(--accent-bright);text-decoration:underline;font-weight:700">My Nutrition</a> — organized day by day, tick each meal as done or edit if you ate something else.`;
+  const noteEs  = `📍 También podés acceder desde tu <a onclick="showPerfil();return false" style="cursor:pointer;color:var(--accent2);text-decoration:underline">Perfil</a>.`;
+  const noteEn  = `📍 You can also access it from your <a onclick="showPerfil();return false" style="cursor:pointer;color:var(--accent2);text-decoration:underline">Profile</a>.`;
+  const title = lang === 'es' ? titleEs : titleEn;
+  const body  = lang === 'es' ? bodyEs  : bodyEn;
+  const note  = lang === 'es' ? noteEs  : noteEn;
+  return `<div style="font-size:14.5px;line-height:1.65">
+    <div style="font-size:15.5px;font-weight:700;color:var(--text);margin-bottom:8px">${title}</div>
+    <div style="margin-bottom:8px">${body}</div>
+    <div style="font-size:12.5px;color:var(--muted);margin-top:6px">${note}</div>
+  </div>`;
+}
+
 function detectPlanInReply(reply) {
   if (!reply || typeof reply !== 'string') return null;
   // Dieta markers: nutritional plan headings with kcal/macros
@@ -8356,7 +8383,18 @@ async function sendToAI(userMessage, isFirst = false) {
       return;
     }
     removeTyping();
-    addMessage(formatResponse(reply), 'coach');
+    // If this reply IS a plan delivery, swap the full plan dump in the chat
+    // for a short notification pointing to Mi Entreno / Mi Alimentación + Perfil.
+    // The full content still lives in conversationHistory (for AI follow-ups
+    // like "cambiá el ejercicio de pecho") and in planes_semanales (for the
+    // Mi Entreno / Mi Alimentación sections to render correctly).
+    const _planTipoForDisplay = pendingPlanDelivery
+      || ((reply && reply.length > 400) ? detectPlanInReply(reply) : null);
+    if (_planTipoForDisplay) {
+      addMessage(buildPlanReadyNotification(_planTipoForDisplay), 'coach');
+    } else {
+      addMessage(formatResponse(reply), 'coach');
+    }
     conversationHistory.push({ role: 'assistant', content: reply });
     todayConversation.push({ role: 'assistant', content: reply });
     pushedUserTurn = false; // assistant turn balanced the user turn — alternation OK
