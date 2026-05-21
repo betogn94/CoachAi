@@ -6648,7 +6648,9 @@ function stopHeartbeat() {
 const TOUR_DONE_KEY = 'coachai_tour_done_v1';
 const TOUR_STEPS = [
   {
-    nav: null, // intro step — no navigation
+    nav: () => showHome(), // intro step always lands on Home — works for both
+                           // first-time (already there, idempotent) and replays
+                           // from Perfil (switches back so the card has Home as backdrop)
     title: '¡Bienvenido a CoachAI! 👋',
     body: 'En 40 segundos te muestro las 5 partes más importantes de la app. Si querés saltarlo, podés volver a verlo desde tu Perfil cuando quieras.',
   },
