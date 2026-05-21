@@ -6938,8 +6938,9 @@ const LS_KEY = 'coachai_profile_v1';
 // and auto-resume on next visit so they never re-type credentials.
 const LS_SESSION = 'coachai_session_v1';
 // Closed-beta capacity. New-account creation is blocked once this many
-// usuarios rows exist (existing users are unaffected).
-const BETA_MAX_USERS = 10;
+// usuarios rows exist (existing users are unaffected). Bumped from 10 → 20
+// after the first wave filled and demand grew (~80 interested signups).
+const BETA_MAX_USERS = 20;
 
 function saveProfile() {
   const data = {
