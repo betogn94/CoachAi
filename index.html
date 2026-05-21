@@ -1347,27 +1347,67 @@ footer {
   border-color: var(--accent-bright);
 }
 
-/* Edit data link (subtle, at the bottom) */
+/* "Mi información" card — user-editable contact fields in Perfil */
+.mi-info-body { padding: 16px 18px 18px; }
+.mi-info-field { margin-bottom: 14px; }
+.mi-info-field:last-of-type { margin-bottom: 18px; }
+.mi-info-label {
+  display: block; font-size: 11px; font-weight: 700;
+  letter-spacing: 1.2px; color: var(--accent3);
+  text-transform: uppercase; margin-bottom: 6px;
+}
+.mi-info-label .mi-info-optional {
+  color: var(--muted); font-weight: 500; letter-spacing: 0.5px;
+  text-transform: none; margin-left: 4px; font-size: 10.5px;
+}
+.mi-info-input {
+  width: 100%; box-sizing: border-box;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(124,106,255,0.20);
+  border-radius: 10px; padding: 10px 12px;
+  color: var(--text); font-size: 14.5px;
+  font-family: inherit; transition: border-color 0.15s, background 0.15s;
+}
+.mi-info-input:focus {
+  outline: none; border-color: var(--accent);
+  background: rgba(124,106,255,0.06);
+}
+.mi-info-input::placeholder { color: var(--muted2); }
+.mi-info-readonly {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: rgba(124,106,255,0.04);
+  border: 1px dashed rgba(124,106,255,0.20);
+  border-radius: 10px; padding: 10px 12px;
+  color: var(--text); font-size: 14px;
+}
+.mi-info-readonly-lock { color: var(--muted); font-size: 12px; }
+.mi-info-hint {
+  font-size: 11px; color: var(--muted); margin-top: 5px; line-height: 1.5;
+}
+.mi-info-hint a { color: var(--accent2); text-decoration: none; }
+.btn-mi-info-save {
+  width: 100%; padding: 12px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+  color: white; border: none; border-radius: 12px;
+  font-size: 13.5px; font-weight: 700; letter-spacing: 0.4px;
+  cursor: pointer; font-family: inherit;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 14px rgba(124,106,255,0.30);
+}
+.btn-mi-info-save:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(124,106,255,0.40); }
+.btn-mi-info-save:active { transform: scale(0.98); }
+.btn-mi-info-save:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.mi-info-msg {
+  margin-top: 10px; font-size: 12px; text-align: center; min-height: 16px;
+}
+.mi-info-msg.ok { color: var(--accent3); }
+.mi-info-msg.err { color: #e96a6a; }
+
+/* Replay-tour row stays subtle below the info card */
 .perfil-edit-row {
   text-align: center;
   margin-top: 8px;
   padding: 6px 0 4px;
-}
-.btn-perfil-editar {
-  background: none;
-  border: none;
-  color: var(--muted);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 12px;
-  letter-spacing: 0.4px;
-  cursor: pointer;
-  padding: 6px 14px;
-  border-radius: 6px;
-  transition: color 0.2s, background 0.2s;
-}
-.btn-perfil-editar:hover {
-  color: var(--accent-bright);
-  background: rgba(124,106,255,0.06);
 }
 
 @media (max-width: 720px) {
@@ -6111,10 +6151,35 @@ QUE SÍ SE VE</div>
     </div>
   </div>
 
-  <div class="perfil-edit-row" style="flex-direction:column;gap:12px;align-items:center">
-    <button class="btn-perfil-editar" id="btn-perfil-editar" onclick="openEditProfileForm()">
-      ✏️ Editar datos del perfil
-    </button>
+  <!-- MI INFORMACIÓN — datos de contacto editables (NO datos físicos) -->
+  <div class="chart-card coach-card">
+    <div class="chart-card-header">
+      <div class="chart-card-title"><span class="chart-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span><span>MI INFORMACIÓN</span></div>
+    </div>
+    <div class="mi-info-body">
+      <div class="mi-info-field">
+        <label class="mi-info-label">Nombre</label>
+        <input type="text" class="mi-info-input" id="mi-info-nombre" maxlength="60" autocomplete="name">
+      </div>
+      <div class="mi-info-field">
+        <label class="mi-info-label">Email</label>
+        <div class="mi-info-readonly">
+          <span id="mi-info-email">—</span>
+          <span class="mi-info-readonly-lock">🔒</span>
+        </div>
+        <div class="mi-info-hint">Para cambiar tu email, escribinos a <a href="mailto:invite@coachaipro.ai">invite@coachaipro.ai</a>.</div>
+      </div>
+      <div class="mi-info-field">
+        <label class="mi-info-label">Teléfono <span class="mi-info-optional">(opcional)</span></label>
+        <input type="tel" class="mi-info-input" id="mi-info-telefono" maxlength="30" autocomplete="tel" placeholder="+54 9 11 ...">
+        <div class="mi-info-hint">Para futuras notificaciones por WhatsApp. No lo compartimos con nadie.</div>
+      </div>
+      <button class="btn-mi-info-save" id="btn-mi-info-save" onclick="saveMiInfo()">Guardar cambios</button>
+      <div class="mi-info-msg" id="mi-info-msg"></div>
+    </div>
+  </div>
+
+  <div class="perfil-edit-row">
     <button class="tour-replay-btn" onclick="startTour(true)">
       🎯 Ver tutorial otra vez
     </button>
@@ -10672,6 +10737,63 @@ async function renderPerfil() {
   renderPerfilStats(stats);
   renderPerfilPlan();
   renderPerfilAnalisis(cierres);
+  renderMiInfo();
+}
+
+// "Mi información" card — pre-fill from currentUser so the user sees their
+// existing nombre/email/telefono on render. The form only persists nombre +
+// telefono; email is locked to prevent login-key changes (request via support).
+function renderMiInfo() {
+  if (!currentUser) return;
+  const nEl = document.getElementById('mi-info-nombre');
+  const eEl = document.getElementById('mi-info-email');
+  const tEl = document.getElementById('mi-info-telefono');
+  if (nEl) nEl.value = currentUser.nombre || '';
+  if (eEl) eEl.textContent = currentUser.email || '—';
+  if (tEl) tEl.value = currentUser.telefono || '';
+  const msg = document.getElementById('mi-info-msg');
+  if (msg) { msg.textContent = ''; msg.className = 'mi-info-msg'; }
+}
+
+async function saveMiInfo() {
+  if (!currentUser || !sbClient) return;
+  const btn = document.getElementById('btn-mi-info-save');
+  const msg = document.getElementById('mi-info-msg');
+  const nombre = (document.getElementById('mi-info-nombre').value || '').trim();
+  const telefono = (document.getElementById('mi-info-telefono').value || '').trim();
+  if (!nombre) {
+    msg.textContent = 'El nombre no puede quedar vacío.';
+    msg.className = 'mi-info-msg err';
+    return;
+  }
+  btn.disabled = true;
+  msg.textContent = 'Guardando...';
+  msg.className = 'mi-info-msg';
+  try {
+    const patch = { nombre, telefono: telefono || null };
+    const { error } = await sbClient.from('usuarios').update(patch).eq('id', currentUser.id);
+    if (error) throw error;
+    // Mirror into currentUser so other surfaces (chat profile bar, AI context) reflect immediately
+    currentUser.nombre = nombre;
+    currentUser.telefono = telefono || null;
+    // Also update the form input on the onboarding/edit form so an opened editor
+    // sees the new nombre next time (prevents stale-cache feel).
+    const fNombre = document.getElementById('f-nombre');
+    if (fNombre) fNombre.value = nombre;
+    // Refresh visible header bits (perfil hero + chat profile bar) cheaply
+    if (typeof renderPerfilHero === 'function') {
+      try { await renderPerfilHero(await loadPerfilLifetimeStats()); } catch (e) {}
+    }
+    msg.textContent = '✓ Cambios guardados';
+    msg.className = 'mi-info-msg ok';
+    setTimeout(() => { if (msg.textContent === '✓ Cambios guardados') { msg.textContent = ''; msg.className = 'mi-info-msg'; } }, 3000);
+  } catch (e) {
+    console.error('[CoachAI] saveMiInfo error:', e);
+    msg.textContent = 'No se pudo guardar. Intentá de nuevo.';
+    msg.className = 'mi-info-msg err';
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function renderPerfilPlan() {
