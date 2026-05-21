@@ -2941,6 +2941,61 @@ footer {
 .btn-admin-plan-edit:hover { border-color: var(--accent); color: var(--accent); }
 #admin-action-modal .modal-card { max-width: 540px; width: 94%; }
 .admin-modal-form { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+/* Sections inside the edit-student modal */
+.admin-modal-section {
+  background: rgba(124,106,255,0.03);
+  border: 1px solid rgba(124,106,255,0.10);
+  border-radius: 12px;
+  padding: 12px 14px 14px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.admin-modal-section-title {
+  font-size: 11px; font-weight: 700; letter-spacing: 1.3px;
+  text-transform: uppercase; color: var(--accent3);
+  margin-bottom: 2px;
+}
+.admin-modal-field-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.admin-modal-field-row-3 { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 540px) {
+  .admin-modal-field-row, .admin-modal-field-row-3 { grid-template-columns: 1fr; }
+}
+.aef-readonly {
+  padding: 9px 11px; border-radius: 8px;
+  background: rgba(124,106,255,0.04);
+  border: 1px dashed rgba(124,106,255,0.20);
+  color: var(--text); font-size: 13px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.aef-readonly-lock { color: var(--muted); font-size: 11px; }
+.aef-locked-hint {
+  margin-left: 6px; font-size: 9.5px; color: var(--muted);
+  text-transform: none; letter-spacing: 0;
+}
+.aef-days-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+}
+.aef-day-chip {
+  display: flex; align-items: center; justify-content: center;
+  padding: 8px 0; border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(124,106,255,0.20);
+  color: var(--muted); cursor: pointer;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+  transition: all 0.15s;
+  user-select: none;
+}
+.aef-day-chip:hover { color: var(--text); border-color: rgba(124,106,255,0.40); }
+.aef-day-chip input { display: none; }
+.aef-day-chip.checked {
+  background: rgba(124,106,255,0.15);
+  border-color: var(--accent);
+  color: var(--accent-bright);
+}
+.aef-array-hint {
+  font-size: 10.5px; color: var(--muted2); margin-top: 2px;
+}
 .admin-modal-field { display: flex; flex-direction: column; gap: 5px; }
 .admin-modal-field label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
 .admin-modal-field input,
@@ -12754,48 +12809,193 @@ function adminCloseActionModal() {
 function adminEditStudent() {
   const user = adminAllUsers.find(u => u.id === adminDetailUserId);
   if (!user) return;
-  const diasVal = Array.isArray(user.dias_entreno) ? user.dias_entreno.join(', ') : (user.dias_entreno || '');
-  const opts = (list, cur) => list.map(v => `<option value="${v}" ${cur===v?'selected':''}>${v.charAt(0).toUpperCase()+v.slice(1)}</option>`).join('');
+
+  // Helpers
+  const sel = (cur, list) => list.map(([v, lbl]) =>
+    `<option value="${v}" ${cur === v ? 'selected' : ''}>${lbl}</option>`).join('');
+  const arr = (v) => Array.isArray(v) ? v.join(', ') : (v || '');
+  // Normalize day codes that may have arrived as full names from older edits
+  // (e.g. "lunes" → "lun", "miércoles" → "mie") so the checkboxes pre-fill correctly.
+  const normDay = (d) => {
+    const map = { lunes:'lun', martes:'mar', 'miércoles':'mie', miercoles:'mie',
+                  jueves:'jue', viernes:'vie', 'sábado':'sab', sabado:'sab', domingo:'dom' };
+    const low = String(d || '').toLowerCase().trim();
+    return map[low] || low.slice(0, 3);
+  };
+  const userDays = new Set((Array.isArray(user.dias_entreno) ? user.dias_entreno : []).map(normDay));
+  const dayChip = (code, label) =>
+    `<label class="aef-day-chip ${userDays.has(code) ? 'checked' : ''}" data-day="${code}">
+       <input type="checkbox" ${userDays.has(code) ? 'checked' : ''}>
+       <span>${label}</span>
+     </label>`;
 
   document.getElementById('aam-title').textContent = '✏️ EDITAR ALUMNO';
   document.getElementById('aam-body').innerHTML = `
     <div class="admin-modal-form">
-      <div class="admin-modal-field">
-        <label>Nombre</label>
-        <input id="aef-nombre" type="text" value="${_escAttr(user.nombre||'')}">
+
+      <!-- ── DATOS PERSONALES ── -->
+      <div class="admin-modal-section">
+        <div class="admin-modal-section-title">👤 Datos personales</div>
+        <div class="admin-modal-field-row">
+          <div class="admin-modal-field">
+            <label>Nombre</label>
+            <input id="aef-nombre" type="text" maxlength="60" value="${_escAttr(user.nombre || '')}">
+          </div>
+          <div class="admin-modal-field">
+            <label>Edad</label>
+            <input id="aef-edad" type="number" min="14" max="99" value="${_escAttr(user.edad || '')}">
+          </div>
+        </div>
+        <div class="admin-modal-field">
+          <label>Email <span class="aef-locked-hint">🔒 no editable</span></label>
+          <div class="aef-readonly"><span>${_esc(user.email || '—')}</span><span class="aef-readonly-lock">🔒</span></div>
+        </div>
+        <div class="admin-modal-field-row">
+          <div class="admin-modal-field">
+            <label>Teléfono</label>
+            <input id="aef-telefono" type="tel" maxlength="30" value="${_escAttr(user.telefono || '')}" placeholder="+54 9 11 ...">
+          </div>
+          <div class="admin-modal-field">
+            <label>Sexo</label>
+            <select id="aef-sexo">
+              <option value="">—</option>
+              ${sel(user.sexo, [['masculino','Masculino'],['femenino','Femenino']])}
+            </select>
+          </div>
+        </div>
       </div>
-      <div class="admin-modal-field">
-        <label>Email</label>
-        <input id="aef-email" type="email" value="${_escAttr(user.email||'')}">
+
+      <!-- ── MEDIDAS ── -->
+      <div class="admin-modal-section">
+        <div class="admin-modal-section-title">📏 Medidas</div>
+        <div class="admin-modal-field-row">
+          <div class="admin-modal-field">
+            <label>Peso (kg)</label>
+            <input id="aef-peso" type="number" step="0.1" min="30" max="300" value="${_escAttr(user.peso || '')}">
+          </div>
+          <div class="admin-modal-field">
+            <label>Altura (cm)</label>
+            <input id="aef-altura" type="number" min="120" max="230" value="${_escAttr(user.altura || '')}">
+          </div>
+        </div>
+        <div class="admin-modal-field-row admin-modal-field-row-3">
+          <div class="admin-modal-field">
+            <label>Cuello (cm)</label>
+            <input id="aef-cuello" type="number" step="0.1" value="${_escAttr(user.cuello || '')}">
+          </div>
+          <div class="admin-modal-field">
+            <label>Cintura (cm)</label>
+            <input id="aef-cintura" type="number" step="0.1" value="${_escAttr(user.cintura || '')}">
+          </div>
+          <div class="admin-modal-field">
+            <label>Cadera (cm)</label>
+            <input id="aef-cadera" type="number" step="0.1" value="${_escAttr(user.cadera || '')}">
+          </div>
+        </div>
       </div>
-      <div class="admin-modal-field">
-        <label>Objetivo</label>
-        <select id="aef-objetivo">
-          <option value="">— Sin definir —</option>
-          ${opts(['bajar de peso','ganar músculo','definición','mantenimiento','rendimiento'], user.objetivo)}
-        </select>
+
+      <!-- ── OBJETIVOS Y NIVEL ── -->
+      <div class="admin-modal-section">
+        <div class="admin-modal-section-title">🎯 Objetivos y nivel</div>
+        <div class="admin-modal-field-row admin-modal-field-row-3">
+          <div class="admin-modal-field">
+            <label>Objetivo</label>
+            <select id="aef-objetivo">
+              <option value="">—</option>
+              ${sel(user.objetivo, [['definir','🔥 Definir'],['volumen','💪 Volumen'],['mantenimiento','⚖️ Mantenimiento']])}
+            </select>
+          </div>
+          <div class="admin-modal-field">
+            <label>Nivel</label>
+            <select id="aef-nivel">
+              <option value="">—</option>
+              ${sel(user.nivel, [['principiante','🌱 Principiante'],['intermedio','⚡ Intermedio'],['avanzado','🔱 Avanzado']])}
+            </select>
+          </div>
+          <div class="admin-modal-field">
+            <label>Actividad diaria</label>
+            <select id="aef-actividad">
+              <option value="">—</option>
+              ${sel(user.actividad, [['sedentario','Sedentario'],['leve','Levemente activo'],['moderado','Moderadamente activo'],['activo','Muy activo']])}
+            </select>
+          </div>
+        </div>
       </div>
-      <div class="admin-modal-field">
-        <label>Nivel</label>
-        <select id="aef-nivel">
-          <option value="">— Sin definir —</option>
-          ${opts(['principiante','intermedio','avanzado'], user.nivel)}
-        </select>
+
+      <!-- ── ENTRENAMIENTO ── -->
+      <div class="admin-modal-section">
+        <div class="admin-modal-section-title">💪 Entrenamiento</div>
+        <div class="admin-modal-field">
+          <label>Días disponibles</label>
+          <div class="aef-days-grid" id="aef-days-grid">
+            ${dayChip('lun','L')}${dayChip('mar','M')}${dayChip('mie','X')}${dayChip('jue','J')}${dayChip('vie','V')}${dayChip('sab','S')}${dayChip('dom','D')}
+          </div>
+        </div>
+        <div class="admin-modal-field-row">
+          <div class="admin-modal-field">
+            <label>Duración por sesión</label>
+            <select id="aef-duracion">
+              <option value="">—</option>
+              ${sel(user.duracion_sesion, [['30min','30 min'],['45min','45 min'],['60min','1 hora'],['75min','1 h 15 min'],['90min','1 h 30 min']])}
+            </select>
+          </div>
+          <div class="admin-modal-field">
+            <label>Lugar de entrenamiento</label>
+            <select id="aef-lugar">
+              <option value="">—</option>
+              ${sel(user.lugar_entreno, [['gimnasio_completo','Gimnasio completo'],['casa_sin_equipo','Casa sin equipo'],['casa_mancuernas','Casa con mancuernas/bandas'],['aire_libre','Aire libre / calistenia']])}
+            </select>
+          </div>
+        </div>
       </div>
-      <div class="admin-modal-field">
-        <label>Días de entrenamiento (separados por coma)</label>
-        <input id="aef-dias" type="text" value="${_escAttr(diasVal)}" placeholder="lunes, miércoles, viernes">
+
+      <!-- ── NUTRICIÓN Y SALUD ── -->
+      <div class="admin-modal-section">
+        <div class="admin-modal-section-title">🥗 Nutrición y salud</div>
+        <div class="admin-modal-field-row">
+          <div class="admin-modal-field">
+            <label>Comidas por día</label>
+            <input id="aef-comidas" type="text" maxlength="4" value="${_escAttr(user.comidas_dia || '')}" placeholder="4">
+          </div>
+          <div class="admin-modal-field">
+            <label>No le gusta</label>
+            <input id="aef-nolegusta" type="text" maxlength="200" value="${_escAttr(user.no_le_gusta || '')}" placeholder="ej: pescado, hígado">
+          </div>
+        </div>
+        <div class="admin-modal-field">
+          <label>Lesiones / limitaciones</label>
+          <input id="aef-lesiones" type="text" value="${_escAttr(arr(user.lesiones))}" placeholder="rodilla derecha, lumbar, hombro izquierdo...">
+          <div class="aef-array-hint">Separadas por coma.</div>
+        </div>
+        <div class="admin-modal-field">
+          <label>Restricciones de dieta</label>
+          <input id="aef-restricciones" type="text" value="${_escAttr(arr(user.restricciones_dieta))}" placeholder="vegetariano, sin gluten, low-carb...">
+          <div class="aef-array-hint">Separadas por coma.</div>
+        </div>
+        <div class="admin-modal-field">
+          <label>Alergias</label>
+          <input id="aef-alergias" type="text" value="${_escAttr(arr(user.alergias))}" placeholder="maní, lácteos, frutos secos...">
+          <div class="aef-array-hint">Separadas por coma.</div>
+        </div>
       </div>
-      <div class="admin-modal-field">
-        <label>Preferencias / no le gusta</label>
-        <input id="aef-nolegusta" type="text" value="${_escAttr(user.no_le_gusta||'')}" placeholder="Ej: brócoli, pollo">
-      </div>
+
       <div class="admin-modal-error" id="aef-error"></div>
       <div class="admin-modal-actions">
         <button class="btn-admin-cancel-modal" onclick="adminCloseActionModal()">Cancelar</button>
         <button class="btn-admin-save" id="aef-save-btn" onclick="adminSaveStudent()">Guardar cambios</button>
       </div>
     </div>`;
+
+  // Day chips: rely on the native <label><input type="checkbox"/></label>
+  // behavior to toggle the input on click, then sync the visual class via the
+  // 'change' event. Adding a manual click handler on the label causes a
+  // double-toggle (we toggle, then the synthetic input click toggles back).
+  document.querySelectorAll('#aef-days-grid .aef-day-chip input').forEach(input => {
+    input.addEventListener('change', (e) => {
+      e.target.closest('.aef-day-chip').classList.toggle('checked', e.target.checked);
+    });
+  });
+
   document.getElementById('admin-action-modal').classList.add('visible');
 }
 
@@ -12804,30 +13004,66 @@ async function adminSaveStudent() {
   const errEl = document.getElementById('aef-error');
   btn.disabled = true; btn.textContent = 'Guardando...';
   errEl.textContent = '';
+
   const nombre = document.getElementById('aef-nombre').value.trim();
-  const email  = document.getElementById('aef-email').value.trim();
-  if (!nombre || !email) {
-    errEl.textContent = 'Nombre y email son obligatorios.';
+  if (!nombre) {
+    errEl.textContent = 'El nombre es obligatorio.';
     btn.disabled = false; btn.textContent = 'Guardar cambios'; return;
   }
-  const diasRaw = document.getElementById('aef-dias').value;
-  const dias = diasRaw ? diasRaw.split(',').map(d => d.trim()).filter(Boolean) : null;
-  const updates = {
-    nombre, email,
-    objetivo:    document.getElementById('aef-objetivo').value || null,
-    nivel:       document.getElementById('aef-nivel').value || null,
-    dias_entreno: dias,
-    no_le_gusta: document.getElementById('aef-nolegusta').value.trim() || null
+
+  // Helpers
+  const num = (id) => {
+    const v = document.getElementById(id).value.trim();
+    if (!v) return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
   };
+  const txt = (id) => document.getElementById(id).value.trim() || null;
+  const arr = (id) => {
+    const raw = document.getElementById(id).value;
+    if (!raw) return [];
+    return raw.split(',').map(s => s.trim()).filter(Boolean);
+  };
+  // Collect selected day codes from the chips
+  const dias = Array.from(document.querySelectorAll('#aef-days-grid .aef-day-chip input'))
+    .filter(cb => cb.checked)
+    .map(cb => cb.closest('.aef-day-chip').dataset.day);
+
+  const updates = {
+    nombre,
+    // email intentionally NOT included — read-only by design
+    telefono:           txt('aef-telefono'),
+    edad:               num('aef-edad'),
+    sexo:               txt('aef-sexo'),
+    peso:               num('aef-peso'),
+    altura:             num('aef-altura'),
+    cuello:             num('aef-cuello'),
+    cintura:            num('aef-cintura'),
+    cadera:             num('aef-cadera'),
+    objetivo:           txt('aef-objetivo'),
+    nivel:              txt('aef-nivel'),
+    actividad:          txt('aef-actividad'),
+    dias_entreno:       dias.length ? dias : null,
+    duracion_sesion:    txt('aef-duracion'),
+    lugar_entreno:      txt('aef-lugar'),
+    comidas_dia:        txt('aef-comidas'),
+    no_le_gusta:        txt('aef-nolegusta'),
+    lesiones:           arr('aef-lesiones'),
+    restricciones_dieta: arr('aef-restricciones'),
+    alergias:           arr('aef-alergias'),
+  };
+
   try {
     const { error } = await sbClient.from('usuarios').update(updates).eq('id', adminDetailUserId);
     if (error) throw error;
+    // Mirror into local cache so the detail view refreshes immediately
     const idx = adminAllUsers.findIndex(u => u.id === adminDetailUserId);
     if (idx !== -1) adminAllUsers[idx] = { ...adminAllUsers[idx], ...updates };
     adminCloseActionModal();
     await showAdminStudentDetail(adminDetailUserId);
   } catch(e) {
-    errEl.textContent = 'Error: ' + (e.message || 'Intentá de nuevo.');
+    console.error('[CoachAI] adminSaveStudent error:', e);
+    errEl.textContent = 'Error al guardar: ' + (e.message || 'Intentá de nuevo.');
     btn.disabled = false; btn.textContent = 'Guardar cambios';
   }
 }
