@@ -2348,6 +2348,96 @@ footer {
   font-size: 11px; color: var(--accent3); margin-top: 3px;
   letter-spacing: 0.2px;
 }
+
+/* ============ Welcome tour overlay (in-app guided onboarding) ============ */
+.tour-overlay {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  z-index: 9999; padding: 14px 12px 18px;
+  pointer-events: none;
+  display: none;
+}
+.tour-overlay.active { display: block; }
+.tour-card {
+  max-width: 540px; margin: 0 auto;
+  background: var(--surface); color: var(--text);
+  border: 1px solid rgba(124,106,255,0.40);
+  border-radius: 18px; padding: 20px 22px 16px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.55), 0 0 0 1px rgba(46,207,181,0.08);
+  position: relative;
+  pointer-events: auto;
+  animation: tour-card-in 0.28s cubic-bezier(0.18, 1.1, 0.4, 1.05);
+}
+@keyframes tour-card-in {
+  from { transform: translateY(28px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.tour-close {
+  position: absolute; top: 7px; right: 9px;
+  background: none; border: none; color: var(--muted);
+  font-size: 22px; cursor: pointer; padding: 4px 8px;
+  line-height: 1; font-family: inherit;
+}
+.tour-close:hover { color: var(--text); }
+.tour-progress {
+  height: 3px; background: rgba(124,106,255,0.18);
+  border-radius: 100px; margin-bottom: 12px; overflow: hidden;
+}
+.tour-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent2) 50%, var(--accent3) 100%);
+  border-radius: 100px; transition: width 0.32s ease;
+  width: 0%;
+}
+.tour-step-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 1.5px;
+  color: var(--accent3); text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.tour-title {
+  font-size: 17px; font-weight: 700; color: var(--text);
+  line-height: 1.3; margin-bottom: 6px;
+  padding-right: 28px;
+}
+.tour-body {
+  font-size: 14px; color: var(--muted); line-height: 1.6;
+  margin-bottom: 16px;
+}
+.tour-actions {
+  display: flex; align-items: center; gap: 8px;
+}
+.tour-btn {
+  padding: 9px 14px; border-radius: 100px;
+  font-size: 12.5px; font-weight: 600; cursor: pointer;
+  border: 1px solid transparent; background: none;
+  font-family: inherit; transition: all 0.15s ease;
+}
+.tour-btn-back {
+  border: 1px solid var(--border); color: var(--muted);
+}
+.tour-btn-back:hover:not(:disabled) { color: var(--text); border-color: rgba(124,106,255,0.40); }
+.tour-btn-back:disabled { opacity: 0.30; cursor: not-allowed; }
+.tour-btn-skip {
+  margin-left: auto; color: var(--muted); font-size: 11.5px;
+}
+.tour-btn-skip:hover { color: var(--text); }
+.tour-btn-next {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+  color: white; padding: 10px 20px; font-weight: 700;
+  box-shadow: 0 4px 14px rgba(124,106,255,0.32);
+}
+.tour-btn-next:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(124,106,255,0.42); }
+
+/* "Ver tutorial otra vez" CTA in Perfil */
+.tour-replay-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(124,106,255,0.10); border: 1px solid rgba(124,106,255,0.30);
+  color: var(--accent-bright);
+  padding: 9px 16px; border-radius: 100px;
+  font-size: 12.5px; font-weight: 600; cursor: pointer;
+  font-family: inherit; transition: background 0.15s, border-color 0.15s;
+}
+.tour-replay-btn:hover { background: rgba(124,106,255,0.22); border-color: rgba(124,106,255,0.55); }
 .beta-inv-badge {
   font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
   padding: 3px 9px; border-radius: 100px; white-space: nowrap;
@@ -6021,9 +6111,12 @@ QUE SÍ SE VE</div>
     </div>
   </div>
 
-  <div class="perfil-edit-row">
+  <div class="perfil-edit-row" style="flex-direction:column;gap:12px;align-items:center">
     <button class="btn-perfil-editar" id="btn-perfil-editar" onclick="openEditProfileForm()">
       ✏️ Editar datos del perfil
+    </button>
+    <button class="tour-replay-btn" onclick="startTour(true)">
+      🎯 Ver tutorial otra vez
     </button>
   </div>
 </div>
@@ -6208,6 +6301,22 @@ QUE SÍ SE VE</div>
       <img id="ej-modal-gif" src="" alt="Demostración del ejercicio">
     </div>
     <div class="ej-modal-desc" id="ej-modal-desc"></div>
+  </div>
+</div>
+
+<!-- Welcome tour — fixed-bottom card walks the user through the app -->
+<div class="tour-overlay" id="tour-overlay" role="dialog" aria-modal="false" aria-label="Tutorial de CoachAI">
+  <div class="tour-card">
+    <button class="tour-close" onclick="endTour(true)" aria-label="Cerrar tutorial">×</button>
+    <div class="tour-progress"><div class="tour-progress-bar" id="tour-progress-bar"></div></div>
+    <div class="tour-step-num" id="tour-step-num">1 / 6</div>
+    <div class="tour-title" id="tour-title">—</div>
+    <div class="tour-body" id="tour-body">—</div>
+    <div class="tour-actions">
+      <button class="tour-btn tour-btn-back" id="tour-btn-back" onclick="prevTourStep()">← Atrás</button>
+      <button class="tour-btn tour-btn-skip" onclick="endTour(true)">Saltar</button>
+      <button class="tour-btn tour-btn-next" id="tour-btn-next" onclick="nextTourStep()">Siguiente →</button>
+    </div>
   </div>
 </div>
 
@@ -6528,6 +6637,106 @@ function startHeartbeat() {
 }
 function stopHeartbeat() {
   if (_heartbeatTimer) { clearInterval(_heartbeatTimer); _heartbeatTimer = null; }
+}
+
+// ============================
+// WELCOME TOUR — in-app guided onboarding
+// ============================
+// Fires automatically on the first launchCoach() after onboarding, walks the
+// user through the 5 key sections of the app, then sets a flag in localStorage
+// so it doesn't re-fire. Users can replay it anytime from the Perfil section.
+const TOUR_DONE_KEY = 'coachai_tour_done_v1';
+const TOUR_STEPS = [
+  {
+    nav: null, // intro step — no navigation
+    title: '¡Bienvenido a CoachAI! 👋',
+    body: 'En 40 segundos te muestro las 5 partes más importantes de la app. Si querés saltarlo, podés volver a verlo desde tu Perfil cuando quieras.',
+  },
+  {
+    nav: () => showChat(),
+    title: '💬 El chat es tu coach',
+    body: 'Acá le pedís tu rutina, tu dieta, hacés preguntas y ajustás cosas. Para arrancar, escribí "rutina de la semana" o "dieta de la semana".',
+  },
+  {
+    nav: () => showMiEntreno(),
+    title: '💪 Mi Entreno',
+    body: 'Tu rutina semanal aparece acá, organizada día por día. Podés cargar tu peso por cada serie y tocar "ℹ️ Cómo se hace" al lado de cada ejercicio para ver una demo.',
+  },
+  {
+    nav: () => showDiario(),
+    title: '🥗 Mi Alimentación',
+    body: 'Tu plan de comidas semanal. Tildá ✓ cada comida que cumplas o tocá ✏️ para editarla si comiste otra cosa. Las calorías se actualizan solas en Mi Progreso.',
+  },
+  {
+    nav: () => showDashboard(),
+    title: '📊 Mi Progreso',
+    body: 'Acá ves tus métricas: adherencia de entrenos, calorías por día, fotos de evolución y el resumen de tu semana.',
+  },
+  {
+    nav: () => showPerfil(),
+    title: '👤 Tu Perfil',
+    body: 'Tus datos, tus planes guardados, y este tutorial siempre accesible desde el botón "Ver tutorial otra vez". ¡A entrenar!',
+    isLast: true,
+  },
+];
+
+let _tourIdx = 0;
+
+function startTour(force) {
+  // Skip if already completed unless explicitly forced (replay from Perfil)
+  if (!force) {
+    try { if (localStorage.getItem(TOUR_DONE_KEY) === '1') return; } catch (e) {}
+  }
+  _tourIdx = 0;
+  const overlay = document.getElementById('tour-overlay');
+  if (!overlay) return;
+  renderTourStep();
+  overlay.classList.add('active');
+  trackEvent('tour_started', { forced: !!force });
+}
+
+function renderTourStep() {
+  const step = TOUR_STEPS[_tourIdx];
+  if (!step) { endTour(false); return; }
+  // Navigate to the section this step is talking about
+  if (typeof step.nav === 'function') {
+    try { step.nav(); } catch (e) { console.warn('[CoachAI] tour nav err:', e); }
+  }
+  const num = document.getElementById('tour-step-num');
+  const title = document.getElementById('tour-title');
+  const body = document.getElementById('tour-body');
+  const bar = document.getElementById('tour-progress-bar');
+  const back = document.getElementById('tour-btn-back');
+  const next = document.getElementById('tour-btn-next');
+  if (num) num.textContent = `Paso ${_tourIdx + 1} / ${TOUR_STEPS.length}`;
+  if (title) title.textContent = step.title;
+  if (body) body.textContent = step.body;
+  if (bar) bar.style.width = `${((_tourIdx + 1) / TOUR_STEPS.length) * 100}%`;
+  if (back) back.disabled = _tourIdx === 0;
+  if (next) next.textContent = step.isLast ? '✓ Terminar' : 'Siguiente →';
+}
+
+function nextTourStep() {
+  if (_tourIdx < TOUR_STEPS.length - 1) {
+    _tourIdx++;
+    renderTourStep();
+  } else {
+    endTour(false);
+  }
+}
+
+function prevTourStep() {
+  if (_tourIdx > 0) {
+    _tourIdx--;
+    renderTourStep();
+  }
+}
+
+function endTour(skipped) {
+  const overlay = document.getElementById('tour-overlay');
+  if (overlay) overlay.classList.remove('active');
+  try { localStorage.setItem(TOUR_DONE_KEY, '1'); } catch (e) {}
+  trackEvent(skipped ? 'tour_skipped' : 'tour_completed', { step: _tourIdx + 1, total: TOUR_STEPS.length });
 }
 
 // Refresh last_active (always) and bump session_count (only on a new entry).
@@ -8283,6 +8492,12 @@ async function launchCoach() {
     const container = document.getElementById('chat-messages');
     if (container) container.scrollTop = container.scrollHeight;
   }
+
+  // First-time welcome tour: fires once after the user lands on home/chat.
+  // Delay a bit so the page settles and the user sees the home first, then the
+  // overlay appears smoothly. startTour() is a no-op if the user already
+  // completed it (localStorage flag), so reruns of launchCoach() are safe.
+  setTimeout(() => { try { startTour(false); } catch (e) {} }, 1200);
 }
 
 // ============================
