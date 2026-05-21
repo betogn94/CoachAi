@@ -23,6 +23,53 @@ Pensar en marcas referentes: **Stripe, Linear, Whoop, Strava, Hevy, Notion**. La
 
 ---
 
+## 📱 "Es una app, no una página" — animaciones de navegación
+
+> ⭐ **Directiva clave del usuario para esta sesión.**
+
+Aunque técnicamente CoachAI es hoy una web (single-file HTML), está **pensada y usada como una app móvil**. La mayoría del tráfico viene del celular, agregada al home screen como PWA. El usuario debería sentir que navega una **app nativa**, no que clickea links en una página.
+
+### Lo que falta hoy
+
+La navegación entre secciones (Home ↔ Chat ↔ Mi Entreno ↔ Mi Alimentación ↔ Mi Progreso ↔ Perfil) es **instantánea, sin transición**. Cambia `display: none/block` y listo. Funcional pero "se siente web", no app.
+
+### Lo que queremos
+
+Animaciones de navegación tipo iOS/Material que den sensación de profundidad y dirección:
+
+- **Slide horizontal** entre secciones (left ↔ right según jerarquía)
+- **Fade + scale sutil** para modales (Cómo se hace, edit modals, tour, lightbox)
+- **Slide-up** para sheets desde abajo (cierre semanal, action modals)
+- **Spring physics** o easing tipo `cubic-bezier(0.32, 0.72, 0, 1)` (iOS native curve) en vez de `ease` genérico
+- **Microinteracciones de press**: scale 0.97 con bounce on tap, no solo color change
+- **Skeleton screens** o shimmer placeholders durante cargas (en vez de "Cargando...")
+- **Page enter animation**: subtle fade-up de cards en cascada al entrar a una sección
+
+### Dónde están las palancas hoy (para no buscar a ciegas)
+
+En `index.html`, las funciones que manejan navegación:
+
+- `showHome()`, `showChat()`, `showMiEntreno()`, `showDiario()`, `showDashboard()`, `showPerfil()` — cada una hace `style.display = 'block'` en su wrapper y oculta el resto.
+- `hideAllSections()` — la función que apaga todo antes de prender la nueva.
+
+La capa de animación se puede agregar **encima** sin tocar la lógica funcional: wrapping cada `show*` con fade-out → swap → fade-in, o usando CSS animations con `@keyframes` + clases temporales.
+
+### Referencias visuales sugeridas
+
+- **Whoop** — transiciones suaves entre tabs, sheets desde abajo, easing premium
+- **Apple Fitness** — jerarquía de animaciones, sentido de profundidad
+- **Linear iOS app** — microinteracciones premium con timing nativo
+- **Notion mobile** — push transitions cuando entrás a una sub-sección
+- **Hevy** — feedback haptic-visual en botones de "marcar set"
+
+### Importante
+
+- Las animaciones deben ser **performantes en celulares de gama media** (no usar transforms costosos, preferir `transform`/`opacity` sobre `top`/`left`/`width`).
+- **Respetar `prefers-reduced-motion`** — si el usuario tiene esa preferencia, animaciones reducidas a fades cortos o ninguna.
+- No agregar animaciones por agregar — cada una debe tener un propósito (informar dirección, dar feedback de acción, mejorar percepción de velocidad).
+
+---
+
 ## 🛑 Reglas duras — qué NO tocar
 
 Esta es una app en **beta activa con usuarios reales**. El alcance es **estrictamente visual/UX**. Cualquier cambio fuera de esto rompe usuarios.
