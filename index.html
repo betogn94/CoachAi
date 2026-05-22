@@ -16,7 +16,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260522-1305-autoreload">
+<meta name="app-version" content="20260522-1320-hidestatsbar">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -4613,43 +4613,11 @@ footer {
   .msg-bubble     { max-width: 85%; padding: 10px 14px; }
   .chat-input-row { padding: 12px 20px 14px; gap: 8px; }
   .quick-btns     { padding: 12px 20px 6px; gap: 8px; }
-  /* Stats bar on mobile: 6 chips don't fit on one row (the longest value,
-     "⚡ Intermedio", is ~85px alone — wider than the 65px share each would
-     get on a 390px iPhone screen). Wrap to TWO rows of 3 chips each instead.
-     That keeps all values readable, no horizontal scroll needed, and the
-     two rows together are barely taller than one row of the original. */
-  .chat-profile-bar {
-    flex-wrap: wrap;
-    overflow-x: hidden;
-  }
-  .cpb-item {
-    flex: 1 1 calc(33.333% - 0.1px);   /* 3 per row; tiny subtraction prevents wrap rounding bugs */
-    min-width: 0;                       /* allow flex children to shrink below content width */
-    padding: 8px 6px;
-    gap: 2px;
-    text-align: center;
-    align-items: center;
-    border-right-color: rgba(255,255,255,0.06);
-  }
-  /* Row 1: items 3 → border-right off (end of row); Row 2: same on item 6 */
-  .cpb-item:nth-child(3n) { border-right: none; }
-  /* Row 1 items get a bottom border to separate the two rows visually */
-  .cpb-item:nth-child(-n+3) { border-bottom: 1px solid rgba(255,255,255,0.06); }
-  .cpb-label {
-    font-size: 9px;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-  }
-  .cpb-value {
-    font-size: 11px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-  }
+  /* Stats bar on mobile: hide it entirely. The same info (nombre, peso, IMC,
+     objetivo, nivel, días) is already shown in Perfil, so duplicating it in
+     chat just steals vertical space. Removing it gives the conversation more
+     breathing room on small screens. Desktop keeps the bar visible. */
+  .chat-profile-bar-wrap { display: none; }
   .qbtn-main      { min-width: unset; flex: 1; font-size: 13px; padding: 10px 16px; }
 }
 
