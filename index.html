@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260522-2105-fixes-objetivo-dieta">
+<meta name="app-version" content="20260522-2155-dieta-synth-7days">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -10137,7 +10137,14 @@ async function renderMiAlimentacion() {
     return;
   }
 
-  const parsed = parseDietaContenido(dietaPlan.contenido);
+  let parsed = parseDietaContenido(dietaPlan.contenido);
+  // Migrated client fallback: if the AI-style parser didn't pick up any days
+  // (coach pasted a plain plan — meal headers + bullets, no LUNES/MARTES
+  // structure), synthesize a 7-day repeat from the same meals so the rest
+  // of the interactive render (check meals done, kcal graph) works as usual.
+  if (!parsed.days || parsed.days.length === 0) {
+    parsed = synthesizePlainTextDieta(dietaPlan.contenido);
+  }
   _alimDays = parsed.days;
   _alimHeader = parsed.header;
 
@@ -10152,11 +10159,10 @@ async function renderMiAlimentacion() {
   }
 
   if (!_alimDays || _alimDays.length === 0) {
-    // Fallback: the AI-style parser found no days (likely a plain-text plan
-    // pasted by a coach migrating a client — meal headers stand alone with
-    // bullet items below, no LUNES/MARTES day structure). Render a clean
-    // meal-by-meal view from the raw text instead of giving up.
-    container.innerHTML = renderPlainTextDieta(dietaPlan.contenido);
+    // synthesizePlainTextDieta above already handles the coach-pasted case
+    // by repeating the meal list across 7 days; if we still got no days,
+    // the contenido is truly unparseable. Show the soft empty state.
+    container.innerHTML = `<div class="chart-empty"><div class="chart-empty-icon">🥗</div><span>${lang === 'es' ? 'No pudimos parsear la dieta. Avisanos para ajustar el formato.' : 'Could not parse the diet. Let us know to adjust the format.'}</span></div>`;
     return;
   }
 
@@ -12187,11 +12193,109 @@ function parseDietaContenido(text) {
   return { header, days };
 }
 
-// Fallback dieta renderer for plain-text plans pasted by migrating coaches
-// (Daniel et al.). The structured parser above expects the AI's
-// "LUNES → Desayuno: ... — Xkcal" shape, which a human-typed plan never has.
-// This routine just looks for MEAL HEADERS (DESAYUNO/ALMUERZO/...) as stand-
-// alone lines, collects the bullet-list items underneath, and renders cards.
+// Plain-text dieta → structured days. Used when a coach pastes a single-day
+// meal plan with standalone MEAL HEADERS + bullet items (the migration flow).
+// We synthesize the same plan repeated across all 7 days so the existing
+// interactive day-by-day render works unchanged — clients can mark meals as
+// done, the kcal graph updates, etc. Kcal per meal is estimated from the
+// (P · C · G) macros line (P*4 + C*4 + G*9), otherwise nullable.
+function synthesizePlainTextDieta(text) {
+  if (!text || typeof text !== 'string') return { header: null, days: [] };
+  const MEAL_RE  = /^(DESAYUNO|ALMUERZO|MERIENDA|CENA|COLACI[ÓO]N(?:\s+\S+)?|PRE[\s-]?ENTRENO|POST[\s-]?ENTRENO|SNACK)\b/i;
+  const MACRO_RE = /^\(.*[PpCcGg]\s*:.*\)$/;
+  const TOTAL_RE = /^TOTAL\b/i;
+  const stripAcc = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  // Same mapping the structured parser uses, so the rendered meal keys match
+  // existing _alimEstado entries (no double-tracking after one-off migrations).
+  const MEAL_META = {
+    desayuno:    { key: 'desayuno',     name: 'Desayuno',     emoji: '🌅' },
+    almuerzo:    { key: 'almuerzo',     name: 'Almuerzo',     emoji: '☀️' },
+    merienda:    { key: 'merienda',     name: 'Merienda',     emoji: '🕐' },
+    cena:        { key: 'cena',         name: 'Cena',         emoji: '🌙' },
+    colacion:    { key: 'colacion',     name: 'Colación',     emoji: '🍎' },
+    preentreno:  { key: 'pre-entreno',  name: 'Pre-entreno',  emoji: '⚡' },
+    postentreno: { key: 'post-entreno', name: 'Post-entreno', emoji: '💪' },
+    snack:       { key: 'snack',        name: 'Snack',        emoji: '🍎' },
+  };
+
+  const baseMeals = [];
+  let current = null;
+  let headerKcal = null;
+
+  for (const raw of text.split('\n')) {
+    const line = raw.replace(/\r/g, '').trim();
+    if (!line) continue;
+    if (MEAL_RE.test(line)) {
+      if (current) baseMeals.push(current);
+      const normHeader = stripAcc(line).toLowerCase().replace(/[\s\-_]/g, '');
+      const metaKey = Object.keys(MEAL_META).find(k => normHeader.startsWith(k)) || 'snack';
+      // Suffix the meta with a "+0/1/2..." index when the same meal type
+      // repeats (e.g. two COLACIÓN entries) so each gets a unique key in
+      // estado tracking.
+      const existing = baseMeals.filter(m => m.baseKey === MEAL_META[metaKey].key).length;
+      const meta = MEAL_META[metaKey];
+      current = {
+        baseKey: meta.key,
+        key: existing === 0 ? meta.key : `${meta.key}-${existing + 1}`,
+        name: meta.name + (existing > 0 ? ` ${existing + 1}` : ''),
+        emoji: meta.emoji,
+        content: '',
+        _items: [],
+        kcal: null,
+      };
+      continue;
+    }
+    if (TOTAL_RE.test(line)) {
+      const m = line.match(/(\d+)\s*kcal/i);
+      if (m) headerKcal = parseInt(m[1]);
+      continue;
+    }
+    if (MACRO_RE.test(line) && current) {
+      const p = (line.match(/P\s*:\s*(\d+)/i) || [])[1];
+      const c = (line.match(/C\s*:\s*(\d+)/i) || [])[1];
+      const g = (line.match(/G\s*:\s*(\d+)/i) || [])[1];
+      if (p || c || g) current.kcal = parseInt(p || 0) * 4 + parseInt(c || 0) * 4 + parseInt(g || 0) * 9;
+      continue;
+    }
+    if (current) {
+      current._items.push(line.replace(/^[-·•]\s*/, '').trim());
+    }
+  }
+  if (current) baseMeals.push(current);
+
+  // Flatten items into the "content" field the structured render expects
+  for (const m of baseMeals) {
+    m.content = m._items.join(', ');
+    delete m._items;
+    delete m.baseKey;
+  }
+
+  if (!baseMeals.length) return { header: null, days: [] };
+
+  // Sum per-day kcal from each meal's macro-derived estimate
+  const dayKcal = baseMeals.reduce((s, m) => s + (m.kcal || 0), 0);
+
+  // Synthesize all 7 weekdays with the same meal list (clients tap-toggle done
+  // per day; the plan content itself is the same template).
+  const dayKeys  = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
+  const dayNames = ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO'];
+  const days = dayKeys.map((k, i) => ({
+    dayName: dayNames[i],
+    dayKey: k,
+    meals: baseMeals.map(m => ({ ...m })),  // shallow copy so per-day state is independent
+    totalKcal: dayKcal || null,
+  }));
+
+  // Optional header (target kcal) lets the top "🎯 Xkcal" chip show up
+  const header = headerKcal ? {
+    targetKcal: headerKcal, targetProt: null, targetCarbs: null, targetFat: null,
+  } : null;
+
+  return { header, days };
+}
+
+// (Legacy) Plain-text dieta renderer — kept in case we ever want a non-
+// interactive read-only fallback for an extreme case where synthesis fails.
 function renderPlainTextDieta(text) {
   if (!text || typeof text !== 'string') return '';
   // Common meal headers — any line that STARTS with one of these (possibly
