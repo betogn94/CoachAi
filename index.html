@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260522-1655-progreso-scrolltop">
+<meta name="app-version" content="20260522-1830-onboarding-multipanel">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -389,6 +389,367 @@ h1 {
 }
 
 .section-card.visible { display: block; }
+
+/* === ONE-CARD ONBOARDING · Multi-panel slide + Morph height ===
+   The 5 logical steps are split into 9 visual panels (step 1 into 1a/1b/1c,
+   step 4 into 4a/4b, step 5 into 5a/5b). All panels live side-by-side in a
+   horizontal track that slides via translateX. The viewport morphs its
+   height to match the active panel's natural height — no internal scroll. */
+.onb-viewport {
+  position: relative;
+  overflow: hidden;
+  transition: height 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: height;
+}
+
+.onb-track {
+  display: flex;
+  align-items: flex-start;          /* clave: panels keep their natural height */
+  transition: transform 0.48s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+}
+
+/* Each panel = one "card" in the slide. Crystal-depth glass styling. */
+.step-panel {
+  flex: 0 0 100%;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 22px;
+  background-color: rgba(20,20,32,0.55);
+  background-image:
+    linear-gradient(135deg, rgba(124,106,255,0.06) 0%, transparent 45%),
+    linear-gradient(225deg, rgba(46,207,181,0.04) 0%, transparent 45%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  box-shadow:
+    0 16px 50px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.09);
+  display: flex;
+  flex-direction: column;
+}
+
+/* The original .section-card becomes a logical wrapper only (no layout of its
+   own). This way validateStep + getElementById('step1') etc keep working,
+   but the visual chrome belongs to .step-panel. */
+.onb-track .section-card {
+  display: contents !important;
+}
+
+/* Sub-progress dots at the bottom of multi-panel steps */
+.step-panel-dots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 14px;
+}
+.step-panel-dots .pdot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: rgba(124,106,255,0.20);
+  transition: background 0.25s ease, transform 0.25s ease;
+}
+.step-panel-dots .pdot.active {
+  background: var(--accent);
+  transform: scale(1.4);
+}
+
+/* Block tab-focus / interaction on off-screen panels */
+.onb-track .step-panel:not(.active) {
+  pointer-events: none;
+}
+.onb-track .step-panel:not(.active) input,
+.onb-track .step-panel:not(.active) select,
+.onb-track .step-panel:not(.active) textarea,
+.onb-track .step-panel:not(.active) button {
+  visibility: hidden;
+}
+
+/* Depth-embedded inputs in the multi-panel form */
+.onb-track .step-panel input[type="text"],
+.onb-track .step-panel input[type="number"],
+.onb-track .step-panel input[type="email"],
+.onb-track .step-panel select,
+.onb-track .step-panel textarea {
+  background: rgba(0,0,0,0.28);
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
+}
+.onb-track .step-panel input:focus,
+.onb-track .step-panel select:focus,
+.onb-track .step-panel textarea:focus {
+  background: rgba(0,0,0,0.36);
+  border-color: rgba(124,106,255,0.55);
+  box-shadow:
+    inset 0 1px 2px rgba(0,0,0,0.4),
+    0 0 0 3px rgba(124,106,255,0.16);
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onb-viewport,
+  .onb-track { transition: none; }
+}
+
+/* ===== Onboarding visual rework (matches Claude Design mockup) ===== */
+
+/* Progress bar redesign: 5 horizontal segments + "PASO X DE 5" label + Saltar */
+.progress-bar-container { padding: 14px 22px 10px !important; position: relative; }
+.progress-bar-container .progress-steps {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 6px !important;
+  align-items: center !important;
+  margin: 0 !important;
+}
+.progress-bar-container .progress-step {
+  flex: 1 1 0 !important;
+  height: 4px !important;
+  min-width: 0 !important;
+  border-radius: 100px !important;
+  background: rgba(124,106,255,0.18) !important;
+  opacity: 1 !important;
+  position: relative !important;
+  transition: background 0.32s ease !important;
+  /* Disable everything from the old icon+label styling */
+  padding: 0 !important;
+  margin: 0 !important;
+  display: block !important;
+}
+.progress-bar-container .progress-step.done {
+  background: var(--accent3) !important;
+}
+.progress-bar-container .progress-step.active {
+  /* Brand gradient purple → blue (NOT using --accent2 which is coral/red) */
+  background: linear-gradient(90deg, #7c6aff 0%, #5b9fff 100%) !important;
+}
+.progress-bar-container .progress-step .ps-icon,
+.progress-bar-container .progress-step .ps-label,
+.progress-bar-container .progress-step::after,
+.progress-bar-container .progress-step::before {
+  display: none !important;
+}
+.progress-step-label {
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 1.6px;
+  color: var(--muted);
+  margin-top: 10px;
+  text-transform: uppercase;
+}
+.progress-skip-link {
+  position: absolute;
+  top: 12px;
+  right: 22px;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  padding: 4px 8px;
+  text-decoration: none;
+}
+.progress-skip-link:hover { color: var(--text); }
+
+/* Hide hero section while the form-wrapper is visible — onboarding occupies
+   the whole flow per the design. Uses :has() for clean toggle; the boot
+   script also nudges display:none for browsers without :has() support. */
+body:has(.form-wrapper[style*="block"]) #hero-section { display: none !important; }
+body:has(.form-wrapper[style*="block"]) .home-wrapper { display: none !important; }
+
+/* Floating bottom nav — single shared element OUTSIDE the panels. Respects
+   iOS safe-area-inset-bottom so the button row doesn't touch the home
+   indicator when the app is running as a PWA in standalone mode. */
+.onb-bottom-nav {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 16px auto 0;
+  padding: 0 22px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  padding-left: calc(22px + env(safe-area-inset-left));
+  padding-right: calc(22px + env(safe-area-inset-right));
+  max-width: 760px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.onb-back-btn {
+  flex-shrink: 0;
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  background: rgba(20,20,32,0.55);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text);
+  font-size: 20px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  transition: transform 0.18s, background 0.18s;
+}
+.onb-back-btn:hover { background: rgba(30,30,48,0.7); transform: translateY(-1px); }
+.onb-back-btn:active { transform: scale(0.95); }
+.onb-back-btn:disabled,
+.onb-back-btn.hidden { visibility: hidden; pointer-events: none; }
+.onb-next-btn {
+  flex: 1;
+  height: 52px;
+  border-radius: 14px;
+  /* Brand gradient: purple → blue → teal. Explicit hex (not --accent2 which
+     is coral red in this app and would turn the button pink). */
+  background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%);
+  color: white;
+  border: none;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  box-shadow: 0 6px 24px rgba(124,106,255,0.32);
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+.onb-next-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 32px rgba(124,106,255,0.42); }
+.onb-next-btn:active { transform: scale(0.98); }
+
+/* Resumen list (inside the multi-panel form): label left + value right
+   with thin separator lines. Overrides the generic .resumen-grid card style. */
+.onb-track .resumen-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  grid-template-columns: none !important;
+  gap: 0 !important;
+  margin-bottom: 12px !important;
+}
+.onb-track .resumen-item {
+  background: none !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  border-radius: 0 !important;
+  padding: 14px 0 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: baseline !important;
+  gap: 12px !important;
+}
+.onb-track .resumen-item:last-child { border-bottom: none !important; }
+.onb-track .resumen-label {
+  margin-bottom: 0 !important;
+  flex-shrink: 0 !important;
+}
+.onb-track .resumen-value { text-align: right !important; }
+
+/* Foto upload area: clean square with dotted brand-tinted border */
+.onb-track .foto-upload-area {
+  aspect-ratio: 1 / 1;
+  max-width: 240px;
+  margin: 0 auto;
+  border: 2px dashed rgba(124,106,255,0.30);
+  border-radius: 18px;
+  background: rgba(124,106,255,0.04);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.onb-track .foto-upload-area:hover {
+  border-color: rgba(124,106,255,0.55);
+  background: rgba(124,106,255,0.08);
+}
+.onb-track .foto-upload-icon { font-size: 36px; opacity: 0.7; }
+.onb-track .foto-upload-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 6px;
+}
+
+/* Hide the in-panel launch button — replaced by the floating bottom nav */
+.onb-track .btn-launch { display: none !important; }
+
+/* Keep 2-column form grid inside onboarding even on mobile (the global
+   responsive rule collapses .form-grid to 1 col below 640px, which would
+   stack edad/sexo and peso/altura vertically — defeats the design layout). */
+.onb-track .form-grid {
+  grid-template-columns: 1fr 1fr !important;
+  gap: 12px !important;
+}
+
+/* Selects inside narrow 2-col grids: ensure the option text doesn't overflow
+   the available width. text-overflow on a native <select> truncates the
+   selected option's display text cleanly (the dropdown list itself still
+   shows full text when opened). Also trim padding to gain a few extra px. */
+.onb-track .form-grid select,
+.onb-track select {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  padding-right: 28px !important;   /* room for the native arrow */
+}
+
+/* Level + Objetivo cards inside onboarding: switch from the global 3-column
+   grid (which crams vertical cards into narrow phone columns) to a horizontal
+   1-column stack with emoji on the LEFT and text on the right. Matches the
+   Design mockup's panel 2 (TU NIVEL) styling. */
+.onb-track .level-grid,
+.onb-track .objetivo-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  grid-template-columns: none !important;
+  gap: 10px !important;
+  margin-top: 8px !important;
+}
+.onb-track .level-card,
+.onb-track .objetivo-card {
+  /* CSS Grid: emoji spans both rows on the left column, title+desc stack
+     in the right column. Looks like the Design mockup (PASO 2 TU NIVEL). */
+  display: grid !important;
+  grid-template-columns: 44px 1fr !important;
+  grid-template-rows: auto auto !important;
+  column-gap: 14px !important;
+  row-gap: 2px !important;
+  align-items: center !important;
+  text-align: left !important;
+  padding: 14px 18px !important;
+  border-width: 1px !important;
+  border-radius: 14px !important;
+  background: rgba(20,20,32,0.6) !important;
+}
+.onb-track .level-emoji,
+.onb-track .objetivo-emoji {
+  grid-column: 1 !important;
+  grid-row: 1 / 3 !important;
+  font-size: 30px !important;
+  margin-bottom: 0 !important;
+  text-align: center !important;
+  line-height: 1 !important;
+  align-self: center !important;
+}
+.onb-track .level-title,
+.onb-track .objetivo-title {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  margin-bottom: 0 !important;
+  color: var(--text) !important;
+  align-self: end !important;
+}
+.onb-track .level-desc,
+.onb-track .objetivo-sub {
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  font-size: 12px !important;
+  color: var(--muted) !important;
+  line-height: 1.35 !important;
+  margin-bottom: 0 !important;
+  align-self: start !important;
+}
 
 @keyframes slideIn {
   from { opacity: 0; transform: translateY(16px); }
@@ -5654,30 +6015,21 @@ footer {
   </div>
 </div>
 
-<!-- PROGRESS -->
+<!-- PROGRESS — 5 horizontal bars + "PASO X DE 5" label + Saltar link.
+     The .progress-step elements keep their original ids (ps1-ps5) so the
+     existing nextPanel/prevPanel JS that toggles .active/.done classes
+     continues to work without changes. The icon+label children are styled
+     hidden (display:none) by the new CSS. -->
 <div class="progress-bar-container">
   <div class="progress-steps">
-    <div class="progress-step active" id="ps1">
-      <div class="ps-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 19.5c0-3.59 2.91-6.5 6.5-6.5s6.5 2.91 6.5 6.5"/></svg></div>
-      <div class="ps-label" data-es="Perfil" data-en="Profile">Perfil</div>
-    </div>
-    <div class="progress-step" id="ps2">
-      <div class="ps-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg></div>
-      <div class="ps-label" data-es="Objetivo" data-en="Goal">Objetivo</div>
-    </div>
-    <div class="progress-step" id="ps3">
-      <div class="ps-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6.5" x2="9" y2="17.5"/><line x1="15" y1="6.5" x2="15" y2="17.5"/><line x1="9" y1="12" x2="15" y2="12"/><rect x="5" y="9" width="2.2" height="6" rx="0.5" fill="currentColor"/><rect x="16.8" y="9" width="2.2" height="6" rx="0.5" fill="currentColor"/></svg></div>
-      <div class="ps-label" data-es="Entreno" data-en="Training">Entreno</div>
-    </div>
-    <div class="progress-step" id="ps4">
-      <div class="ps-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v6.5c0 1 .5 1.5 1.5 1.5s1.5-.5 1.5-1.5V3"/><line x1="8.5" y1="11" x2="8.5" y2="21"/><path d="M16 3c-1.5 0-2.5 1.5-2.5 4v4h2.5v10"/></svg></div>
-      <div class="ps-label" data-es="Nutrición" data-en="Nutrition">Nutrición</div>
-    </div>
-    <div class="progress-step" id="ps5">
-      <div class="ps-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 13 9 17 19 7"/></svg></div>
-      <div class="ps-label" data-es="Listo" data-en="Ready">Listo</div>
-    </div>
+    <div class="progress-step active" id="ps1"></div>
+    <div class="progress-step" id="ps2"></div>
+    <div class="progress-step" id="ps3"></div>
+    <div class="progress-step" id="ps4"></div>
+    <div class="progress-step" id="ps5"></div>
   </div>
+  <div class="progress-step-label" id="progress-step-label" data-es="PASO 1 DE 5" data-en="STEP 1 OF 5">PASO 1 DE 5</div>
+  <a class="progress-skip-link" id="progress-skip-link" onclick="launchCoach()" data-es="Saltar" data-en="Skip">Saltar</a>
 </div>
 
 
@@ -6152,292 +6504,443 @@ QUE SÍ SE VE</div>
 <!-- FORM WRAPPER -->
 <div class="form-wrapper">
 
-  <!-- PASO 1: PERFIL FÍSICO -->
-  <div class="section-card visible" id="step1">
-    <div class="section-header">
-      <div class="section-number">01</div>
-      <div class="section-info">
-        <div class="section-title" data-es="PERFIL FÍSICO" data-en="PHYSICAL PROFILE">PERFIL FÍSICO</div>
-        <div class="section-desc" data-es="Datos básicos para calcular tus métricas" data-en="Basic data to calculate your metrics">Datos básicos para calcular tus métricas</div>
+  <!-- Multi-panel onboarding viewport: 9 panels total (step 1 → 1a/1b/1c,
+       step 4 → 4a/4b, step 5 → 5a/5b). The .section-card with each
+       original step's id (step1, step2, ..., step5) is preserved as a
+       logical wrapper (display:contents) so validateStep + getElementById
+       keep working. See nextPanel() / prevPanel() / slideOnboardingToPanel(). -->
+  <div class="onb-viewport" id="onb-viewport">
+   <div class="onb-track" id="onb-track">
+
+    <!-- ============ PANEL 1.1 · DATOS BÁSICOS ============ -->
+    <div class="step-panel active" data-step="1" data-panel="1">
+      <div class="section-card visible" id="step1">
+        <div class="section-header">
+          <div class="section-number">01</div>
+          <div class="section-info">
+            <div class="section-title" data-es="DATOS BÁSICOS" data-en="BASIC DATA">DATOS BÁSICOS</div>
+            <div class="section-desc" data-es="Para calcular tus métricas" data-en="To calculate your metrics">Para calcular tus métricas</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <!-- Nombre: full-width single row -->
+          <div class="form-group full" style="margin-bottom:12px">
+            <label data-es="Nombre" data-en="Name">Nombre</label>
+            <input type="text" id="f-nombre" placeholder="Ej: Matías">
+          </div>
+          <!-- Edad + Sexo: 2 columns -->
+          <div class="form-grid" style="margin-bottom:12px">
+            <div class="form-group">
+              <label data-es="Edad" data-en="Age">Edad</label>
+              <input type="number" id="f-edad" placeholder="Ej: 28 años" min="14" max="80">
+            </div>
+            <div class="form-group">
+              <label data-es="Sexo" data-en="Sex">Sexo</label>
+              <select id="f-sexo">
+                <option value="" data-es="Elegí" data-en="Pick">Elegí</option>
+                <option value="masculino" data-es="Masculino" data-en="Male">Masculino</option>
+                <option value="femenino" data-es="Femenino" data-en="Female">Femenino</option>
+              </select>
+            </div>
+          </div>
+          <!-- Peso + Altura: 2 columns (visual symmetry with edad/sexo) -->
+          <div class="form-grid">
+            <div class="form-group">
+              <label data-es="Peso (kg)" data-en="Weight (kg)">Peso (kg)</label>
+              <input type="number" id="f-peso" placeholder="Ej: 75" min="30" max="250">
+            </div>
+            <div class="form-group">
+              <label data-es="Altura (cm)" data-en="Height (cm)">Altura (cm)</label>
+              <input type="number" id="f-altura" placeholder="Ej: 175" min="140" max="220">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step-panel-dots">
+        <span class="pdot active"></span>
+        <span class="pdot"></span>
+        <span class="pdot"></span>
       </div>
     </div>
-    <div class="section-body">
-      <div class="form-grid">
-        <div class="form-group">
-          <label data-es="Nombre" data-en="Name">Nombre</label>
-          <input type="text" id="f-nombre" placeholder="Ej: Matías">
-        </div>
-        <div class="form-group">
-          <label data-es="Edad" data-en="Age">Edad</label>
-          <input type="number" id="f-edad" placeholder="Ej: 28 años" min="14" max="80">
-        </div>
-        <div class="form-group">
-          <label data-es="Sexo" data-en="Sex">Sexo</label>
-          <select id="f-sexo">
-            <option value="" data-es="— Seleccionar —" data-en="— Select —">— Seleccionar —</option>
-            <option value="masculino" data-es="Masculino" data-en="Male">Masculino</option>
-            <option value="femenino" data-es="Femenino" data-en="Female">Femenino</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label data-es="Peso actual (kg)" data-en="Current weight (kg)">Peso actual (kg)</label>
-          <input type="number" id="f-peso" placeholder="Ej: 75 kg" min="30" max="250">
-        </div>
-        <div class="form-group">
-          <label data-es="Altura (cm)" data-en="Height (cm)">Altura (cm)</label>
-          <input type="number" id="f-altura" placeholder="Ej: 175 cm" min="140" max="220">
-        </div>
-      </div>
 
-      <div class="form-group full" style="margin-top:16px">
-        <label>📏 Medidas para calcular % graso <span style="color:var(--muted);font-size:11px">(opcional pero recomendado)</span></label>
-        <div style="font-size:11px;color:var(--muted);margin:6px 0 10px;line-height:1.5">Estas medidas nos permiten calcular tu % de grasa corporal inicial con mayor precisión.</div>
-        <div class="form-grid" style="margin-top:8px">
-          <div class="form-group">
-            <label data-es="Cuello (cm)" data-en="Neck (cm)">Cuello (cm)</label>
-            <input type="number" id="f-cuello" placeholder="Ej: 38 cm" min="20" max="60">
+    <!-- ============ PANEL 1.2 · MEDIDAS (opcional) ============ -->
+    <div class="step-panel" data-step="1" data-panel="2">
+      <div class="section-card" id="step1-cuerpo">
+        <div class="section-header">
+          <div class="section-number">01</div>
+          <div class="section-info">
+            <div class="section-title" data-es="MEDIDAS" data-en="MEASUREMENTS">MEDIDAS</div>
+            <div class="section-desc" data-es="Opcional · para calcular % graso con más precisión" data-en="Optional · for a more precise body fat %">Opcional · para calcular % graso con más precisión</div>
           </div>
-          <div class="form-group">
-            <label data-es="Cintura (cm)" data-en="Waist (cm)">Cintura (cm)</label>
-            <input type="number" id="f-cintura-form" placeholder="Ej: 85 cm" min="40" max="200">
+        </div>
+        <div class="section-body">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5">
+            Estas medidas nos permiten calcular tu % de grasa corporal inicial con mayor precisión. Podés saltearlas y completarlas más tarde desde Perfil.
           </div>
-          <div class="form-group">
+          <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 12px">
+            <div class="form-group">
+              <label data-es="Cuello (cm)" data-en="Neck (cm)">Cuello (cm)</label>
+              <input type="number" id="f-cuello" placeholder="Ej: 38" min="20" max="60">
+            </div>
+            <div class="form-group">
+              <label data-es="Cintura (cm)" data-en="Waist (cm)">Cintura (cm)</label>
+              <input type="number" id="f-cintura-form" placeholder="Ej: 85" min="40" max="200">
+            </div>
+          </div>
+          <div class="form-group full" style="margin-top:12px">
             <label data-es="Cadera (cm) — solo mujeres" data-en="Hips (cm) — women only">Cadera (cm) — solo mujeres</label>
-            <input type="number" id="f-cadera-form" placeholder="Ej: 95 cm" min="40" max="200">
+            <input type="number" id="f-cadera-form" placeholder="Ej: 95" min="40" max="200">
           </div>
         </div>
       </div>
+      <div class="step-panel-dots">
+        <span class="pdot"></span>
+        <span class="pdot active"></span>
+        <span class="pdot"></span>
+      </div>
+    </div>
 
-      <div class="form-group full" style="margin-top:20px">
-        <label data-es="¿Cuál es tu objetivo? (tu coach lo analizará con tus datos y te guiará)" data-en="What's your goal? (your coach will analyze it with your data and guide you)">¿Cuál es tu objetivo? (tu coach lo analizará con tus datos y te guiará)</label>
-        <div class="objetivo-grid" style="margin-top:10px">
-          <div class="objetivo-card" onclick="selectSingle('objetivo','definir',this)" id="obj-definir">
-            <div class="objetivo-emoji">🔥</div>
-            <div class="objetivo-title" data-es="Definir" data-en="Cut">Definir</div>
-            <div class="objetivo-sub" data-es="Bajar grasa y marcar músculo" data-en="Lose fat and define muscle">Bajar grasa y marcar músculo</div>
-          </div>
-          <div class="objetivo-card" onclick="selectSingle('objetivo','volumen',this)" id="obj-volumen">
-            <div class="objetivo-emoji">💪</div>
-            <div class="objetivo-title" data-es="Ganar músculo" data-en="Build muscle">Ganar músculo</div>
-            <div class="objetivo-sub" data-es="Ganar masa muscular y fuerza" data-en="Gain muscle mass and strength">Ganar masa muscular y fuerza</div>
-          </div>
-          <div class="objetivo-card" onclick="selectSingle('objetivo','mantenimiento',this)" id="obj-mant">
-            <div class="objetivo-emoji">⚖️</div>
-            <div class="objetivo-title" data-es="Mantener" data-en="Maintain">Mantener</div>
-            <div class="objetivo-sub" data-es="Mantener y mejorar rendimiento" data-en="Maintain and improve performance">Mantener y mejorar rendimiento</div>
+    <!-- ============ PANEL 1.3 · OBJETIVO ============ -->
+    <div class="step-panel" data-step="1" data-panel="3">
+      <div class="section-card" id="step1-objetivo">
+        <div class="section-header">
+          <div class="section-number">01</div>
+          <div class="section-info">
+            <div class="section-title" data-es="¿CUÁL ES TU OBJETIVO?" data-en="WHAT'S YOUR GOAL?">¿CUÁL ES TU OBJETIVO?</div>
+            <div class="section-desc" data-es="Tu coach lo analizará con tus datos y te guiará" data-en="Your coach will analyze it with your data and guide you">Tu coach lo analizará con tus datos y te guiará</div>
           </div>
         </div>
-      </div>
-
-      <div class="nav-buttons">
-        <button class="btn-next" onclick="goTo(2)" data-es="SIGUIENTE →" data-en="NEXT →">SIGUIENTE →</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- PASO 2: NIVEL -->
-  <div class="section-card" id="step2">
-    <div class="section-header">
-      <div class="section-number">02</div>
-      <div class="section-info">
-        <div class="section-title" data-es="NIVEL DE ENTRENAMIENTO" data-en="TRAINING LEVEL">NIVEL DE ENTRENAMIENTO</div>
-        <div class="section-desc" data-es="¿Cuál es tu experiencia y actividad diaria?" data-en="What's your experience and daily activity?">¿Cuál es tu experiencia y actividad diaria?</div>
-      </div>
-    </div>
-    <div class="section-body">
-      <div class="form-group full" style="margin-bottom:24px">
-        <label data-es="Nivel de entrenamiento" data-en="Training level">Nivel de entrenamiento</label>
-        <div class="level-grid">
-          <div class="level-card" onclick="selectSingle('nivel','principiante',this)">
-            <div class="level-emoji">🌱</div>
-            <div class="level-title" data-es="Principiante" data-en="Beginner">Principiante</div>
-            <div class="level-desc" data-es="Menos de 6 meses entrenando o estoy empezando" data-en="Less than 6 months training or just starting">Menos de 6 meses entrenando o estoy empezando</div>
-          </div>
-          <div class="level-card" onclick="selectSingle('nivel','intermedio',this)">
-            <div class="level-emoji">⚡</div>
-            <div class="level-title" data-es="Intermedio" data-en="Intermediate">Intermedio</div>
-            <div class="level-desc" data-es="Entre 6 meses y 2 años, conozco los ejercicios básicos" data-en="Between 6 months and 2 years, know the basics">Entre 6 meses y 2 años, conozco los ejercicios básicos</div>
-          </div>
-          <div class="level-card" onclick="selectSingle('nivel','avanzado',this)">
-            <div class="level-emoji">🔱</div>
-            <div class="level-title" data-es="Avanzado" data-en="Advanced">Avanzado</div>
-            <div class="level-desc" data-es="Más de 2 años, entrenamiento constante y técnica sólida" data-en="More than 2 years, consistent training and solid technique">Más de 2 años, entrenamiento constante y técnica sólida</div>
+        <div class="section-body">
+          <div class="form-group full">
+            <div class="objetivo-grid" style="margin-top:10px">
+              <div class="objetivo-card" onclick="selectSingle('objetivo','definir',this)" id="obj-definir">
+                <div class="objetivo-emoji">🔥</div>
+                <div class="objetivo-title" data-es="Definir" data-en="Cut">Definir</div>
+                <div class="objetivo-sub" data-es="Bajar grasa y marcar músculo" data-en="Lose fat and define muscle">Bajar grasa y marcar músculo</div>
+              </div>
+              <div class="objetivo-card" onclick="selectSingle('objetivo','volumen',this)" id="obj-volumen">
+                <div class="objetivo-emoji">💪</div>
+                <div class="objetivo-title" data-es="Ganar músculo" data-en="Build muscle">Ganar músculo</div>
+                <div class="objetivo-sub" data-es="Ganar masa muscular y fuerza" data-en="Gain muscle mass and strength">Ganar masa muscular y fuerza</div>
+              </div>
+              <div class="objetivo-card" onclick="selectSingle('objetivo','mantenimiento',this)" id="obj-mant">
+                <div class="objetivo-emoji">⚖️</div>
+                <div class="objetivo-title" data-es="Mantener" data-en="Maintain">Mantener</div>
+                <div class="objetivo-sub" data-es="Mantener y mejorar rendimiento" data-en="Maintain and improve performance">Mantener y mejorar rendimiento</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      <div class="form-group full">
-        <label data-es="Actividad física diaria (fuera del gym)" data-en="Daily physical activity (outside gym)">Actividad física diaria (fuera del gym)</label>
-        <select id="f-actividad">
-          <option value="" data-es="— Seleccionar —" data-en="— Select —">— Seleccionar —</option>
-          <option value="sedentario" data-es="Sedentario — trabajo sentado, poco movimiento" data-en="Sedentary — desk job, little movement">Sedentario — trabajo sentado, poco movimiento</option>
-          <option value="leve" data-es="Levemente activo — camino bastante en el día" data-en="Lightly active — walk a fair bit daily">Levemente activo — camino bastante en el día</option>
-          <option value="moderado" data-es="Moderadamente activo — trabajo físico o deportes suaves" data-en="Moderately active — physical work or light sports">Moderadamente activo — trabajo físico o deportes suaves</option>
-          <option value="activo" data-es="Muy activo — trabajo físico intenso o deporte diario" data-en="Very active — intense physical work or daily sport">Muy activo — trabajo físico intenso o deporte diario</option>
-        </select>
-      </div>
-
-      <div class="nav-buttons">
-        <button class="btn-back" onclick="goTo(1)" data-es="← Atrás" data-en="← Back">← Atrás</button>
-        <button class="btn-next" onclick="goTo(3)" data-es="SIGUIENTE →" data-en="NEXT →">SIGUIENTE →</button>
+      <div class="step-panel-dots">
+        <span class="pdot"></span>
+        <span class="pdot"></span>
+        <span class="pdot active"></span>
       </div>
     </div>
-  </div>
 
-  <!-- PASO 3: ENTRENAMIENTO -->
-  <div class="section-card" id="step3">
-    <div class="section-header">
-      <div class="section-number">03</div>
-      <div class="section-info">
-        <div class="section-title" data-es="PLAN DE ENTRENAMIENTO" data-en="TRAINING PLAN">PLAN DE ENTRENAMIENTO</div>
-        <div class="section-desc" data-es="Días, tiempo y lugar donde vas a entrenar" data-en="Days, time and place where you'll train">Días, tiempo y lugar donde vas a entrenar</div>
-      </div>
-    </div>
-    <div class="section-body">
-
-      <div class="form-group full" style="margin-bottom:24px">
-        <label data-es="¿Qué días podés entrenar?" data-en="Which days can you train?">¿Qué días podés entrenar?</label>
-        <div class="dias-grid">
-          <div class="dia-card" onclick="toggleDia(this,'lun')"><div class="dia-name" data-es="LUN" data-en="MON">LUN</div><div class="dia-num">L</div></div>
-          <div class="dia-card" onclick="toggleDia(this,'mar')"><div class="dia-name" data-es="MAR" data-en="TUE">MAR</div><div class="dia-num">M</div></div>
-          <div class="dia-card" onclick="toggleDia(this,'mie')"><div class="dia-name" data-es="MIÉ" data-en="WED">MIÉ</div><div class="dia-num">X</div></div>
-          <div class="dia-card" onclick="toggleDia(this,'jue')"><div class="dia-name" data-es="JUE" data-en="THU">JUE</div><div class="dia-num">J</div></div>
-          <div class="dia-card" onclick="toggleDia(this,'vie')"><div class="dia-name" data-es="VIE" data-en="FRI">VIE</div><div class="dia-num">V</div></div>
-          <div class="dia-card" onclick="toggleDia(this,'sab')"><div class="dia-name" data-es="SÁB" data-en="SAT">SÁB</div><div class="dia-num">S</div></div>
-          <div class="dia-card" onclick="toggleDia(this,'dom')"><div class="dia-name" data-es="DOM" data-en="SUN">DOM</div><div class="dia-num">D</div></div>
-        </div>
-      </div>
-
-      <div class="form-grid">
-        <div class="form-group">
-          <label data-es="Duración por sesión" data-en="Session duration">Duración por sesión</label>
-          <select id="f-duracion">
-            <option value="" data-es="— Seleccionar —" data-en="— Select —">— Seleccionar —</option>
-            <option value="30min" data-es="30 minutos" data-en="30 minutes">30 minutos</option>
-            <option value="45min" data-es="45 minutos" data-en="45 minutes">45 minutos</option>
-            <option value="60min" data-es="1 hora" data-en="1 hour">1 hora</option>
-            <option value="75min" data-es="1 hora 15 min" data-en="1 hour 15 min">1 hora 15 min</option>
-            <option value="90min" data-es="1 hora 30 min" data-en="1 hour 30 min">1 hora 30 min</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label data-es="Lugar de entrenamiento" data-en="Training location">Lugar de entrenamiento</label>
-          <select id="f-lugar">
-            <option value="" data-es="— Seleccionar —" data-en="— Select —">— Seleccionar —</option>
-            <option value="gimnasio_completo" data-es="Gimnasio con equipamiento completo" data-en="Gym with full equipment">Gimnasio con equipamiento completo</option>
-            <option value="casa_sin_equipo" data-es="Casa — sin equipamiento" data-en="Home — no equipment">Casa — sin equipamiento</option>
-            <option value="casa_mancuernas" data-es="Casa — con mancuernas / bandas" data-en="Home — with dumbbells / bands">Casa — con mancuernas / bandas</option>
-            <option value="aire_libre" data-es="Al aire libre / calistenia" data-en="Outdoors / calisthenics">Al aire libre / calistenia</option>
-            <option value="mixto" data-es="Mixto (gym + casa)" data-en="Mixed (gym + home)">Mixto (gym + casa)</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="form-group full" style="margin-top:18px">
-        <label data-es="Lesiones o limitaciones físicas (opcional)" data-en="Injuries or physical limitations (optional)">Lesiones o limitaciones físicas (opcional)</label>
-        <div class="chip-group" id="lesiones-chips">
-          <div class="chip" onclick="toggleChip(this,'lesion_rodilla')" data-es="🦵 Rodilla" data-en="🦵 Knee">🦵 Rodilla</div>
-          <div class="chip" onclick="toggleChip(this,'lesion_espalda')" data-es="🫀 Espalda baja" data-en="🫀 Lower back">🫀 Espalda baja</div>
-          <div class="chip" onclick="toggleChip(this,'lesion_hombro')" data-es="💪 Hombro" data-en="💪 Shoulder">💪 Hombro</div>
-          <div class="chip" onclick="toggleChip(this,'lesion_cuello')" data-es="🧠 Cuello / cervical" data-en="🧠 Neck / cervical">🧠 Cuello / cervical</div>
-          <div class="chip" onclick="toggleChip(this,'lesion_tobillo')" data-es="🦶 Tobillo" data-en="🦶 Ankle">🦶 Tobillo</div>
-          <div class="chip" onclick="toggleChip(this,'sin_lesiones')" data-es="✅ Sin lesiones" data-en="✅ No injuries">✅ Sin lesiones</div>
-        </div>
-      </div>
-
-      <div class="nav-buttons">
-        <button class="btn-back" onclick="goTo(2)" data-es="← Atrás" data-en="← Back">← Atrás</button>
-        <button class="btn-next" onclick="goTo(4)" data-es="SIGUIENTE →" data-en="NEXT →">SIGUIENTE →</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- PASO 4: NUTRICIÓN -->
-  <div class="section-card" id="step4">
-    <div class="section-header">
-      <div class="section-number">04</div>
-      <div class="section-info">
-        <div class="section-title" data-es="NUTRICIÓN Y ALIMENTACIÓN" data-en="NUTRITION & DIET">NUTRICIÓN Y ALIMENTACIÓN</div>
-        <div class="section-desc" data-es="Para armar tu plan nutricional personalizado" data-en="To build your personalized nutrition plan">Para armar tu plan nutricional personalizado</div>
-      </div>
-    </div>
-    <div class="section-body">
-
-      <div class="form-group full" style="margin-bottom:20px">
-        <label data-es="Restricciones o preferencias alimenticias" data-en="Dietary restrictions or preferences">Restricciones o preferencias alimenticias</label>
-        <div class="chip-group" id="dieta-chips">
-          <div class="chip" onclick="toggleChip(this,'vegetariano')" data-es="🌿 Vegetariano" data-en="🌿 Vegetarian">🌿 Vegetariano</div>
-          <div class="chip" onclick="toggleChip(this,'vegano')" data-es="🌱 Vegano" data-en="🌱 Vegan">🌱 Vegano</div>
-          <div class="chip" onclick="toggleChip(this,'sin_gluten')" data-es="🌾 Sin gluten" data-en="🌾 Gluten-free">🌾 Sin gluten</div>
-          <div class="chip" onclick="toggleChip(this,'sin_lactosa')" data-es="🥛 Sin lactosa" data-en="🥛 Lactose-free">🥛 Sin lactosa</div>
-          <div class="chip" onclick="toggleChip(this,'keto')" data-es="🥩 Keto / bajo carbohidrato" data-en="🥩 Keto / low carb">🥩 Keto / bajo carbohidrato</div>
-          <div class="chip" onclick="toggleChip(this,'sin_restricciones')" data-es="✅ Sin restricciones" data-en="✅ No restrictions">✅ Sin restricciones</div>
-        </div>
-      </div>
-
-      <div class="form-group full" style="margin-bottom:20px">
-        <label data-es="Alergias alimentarias" data-en="Food allergies">Alergias alimentarias</label>
-        <div class="chip-group" id="alergia-chips">
-          <div class="chip" onclick="toggleChip(this,'alergia_mani')" data-es="🥜 Maní / frutos secos" data-en="🥜 Peanuts / nuts">🥜 Maní / frutos secos</div>
-          <div class="chip" onclick="toggleChip(this,'alergia_mariscos')" data-es="🦐 Mariscos" data-en="🦐 Seafood">🦐 Mariscos</div>
-          <div class="chip" onclick="toggleChip(this,'alergia_huevo')" data-es="🥚 Huevo" data-en="🥚 Egg">🥚 Huevo</div>
-          <div class="chip" onclick="toggleChip(this,'alergia_soja')" data-es="🫘 Soja" data-en="🫘 Soy">🫘 Soja</div>
-          <div class="chip" onclick="toggleChip(this,'sin_alergias')" data-es="✅ Sin alergias" data-en="✅ No allergies">✅ Sin alergias</div>
-        </div>
-      </div>
-
-      <div class="form-group full" style="margin-bottom:20px">
-        <label data-es="¿Cuántas comidas hacés por día?" data-en="How many meals do you eat per day?">¿Cuántas comidas hacés por día?</label>
-        <div class="chip-group" id="comidas-chips">
-          <div class="chip" onclick="selectChipGroup('comidas','2',this)" data-es="2 comidas" data-en="2 meals">2 comidas</div>
-          <div class="chip" onclick="selectChipGroup('comidas','3',this)" data-es="3 comidas" data-en="3 meals">3 comidas</div>
-          <div class="chip" onclick="selectChipGroup('comidas','4',this)" data-es="4 comidas" data-en="4 meals">4 comidas</div>
-          <div class="chip" onclick="selectChipGroup('comidas','5',this)" data-es="5+ comidas" data-en="5+ meals">5+ comidas</div>
-        </div>
-      </div>
-
-      <div class="form-group full">
-        <label data-es="Alimentos que NO te gustan o no querés en tu plan (opcional)" data-en="Foods you DON'T like or don't want in your plan (optional)">Alimentos que NO te gustan o no querés en tu plan (opcional)</label>
-        <textarea id="f-nodislike" placeholder="Ej: no me gusta el brócoli, no como hígado, odio el atún..."></textarea>
-      </div>
-
-      <div class="nav-buttons">
-        <button class="btn-back" onclick="goTo(3)" data-es="← Atrás" data-en="← Back">← Atrás</button>
-        <button class="btn-next" onclick="goTo(5)" data-es="SIGUIENTE →" data-en="NEXT →">SIGUIENTE →</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- PASO 5: RESUMEN -->
-  <div class="section-card" id="step5">
-    <div class="section-header">
-      <div class="section-number">05</div>
-      <div class="section-info">
-        <div class="section-title" data-es="RESUMEN DE TU PERFIL" data-en="YOUR PROFILE SUMMARY">RESUMEN DE TU PERFIL</div>
-        <div class="section-desc" data-es="Confirmá tus datos antes de arrancar" data-en="Confirm your data before starting">Confirmá tus datos antes de arrancar</div>
-      </div>
-    </div>
-    <div class="section-body">
-      <div class="resumen-grid" id="resumen-grid"></div>
-
-      <!-- FOTO INICIAL OPCIONAL -->
-      <div style="margin: 20px 0 8px">
-        <div style="font-size:13px;color:var(--muted);margin-bottom:12px;text-align:center" id="foto-inicial-label">
-          📸 <strong style="color:var(--text)">Foto inicial (opcional)</strong> — guardala para ver tu evolución semana a semana
-        </div>
-        <div class="foto-upload-area" id="foto-upload-area">
-          <input type="file" accept="image/*" id="foto-inicial-input" onchange="previewFotoInicial(event)">
-          <div id="foto-upload-placeholder">
-            <div class="foto-upload-icon">📷</div>
-            <div class="foto-upload-label">Tocá para subir una foto de frente<br><strong>JPG, PNG o WEBP · máx 5MB</strong></div>
+    <!-- ============ PANEL 2.1 · TU NIVEL ============ -->
+    <div class="step-panel" data-step="2" data-panel="1">
+      <div class="section-card" id="step2">
+        <div class="section-header">
+          <div class="section-number">02</div>
+          <div class="section-info">
+            <div class="section-title" data-es="TU NIVEL" data-en="YOUR LEVEL">TU NIVEL</div>
+            <div class="section-desc" data-es="¿Cuál es tu experiencia?" data-en="What's your experience?">¿Cuál es tu experiencia?</div>
           </div>
-          <img class="foto-preview" id="foto-inicial-preview" src="" alt="preview">
         </div>
-        <div style="font-size:11px;color:var(--muted2);text-align:center;margin-top:4px" id="foto-status"></div>
+        <div class="section-body">
+          <div class="form-group full">
+            <div class="level-grid">
+              <div class="level-card" onclick="selectSingle('nivel','principiante',this)">
+                <div class="level-emoji">🌱</div>
+                <div class="level-title" data-es="Principiante" data-en="Beginner">Principiante</div>
+                <div class="level-desc" data-es="Menos de 6 meses entrenando" data-en="Less than 6 months training">Menos de 6 meses entrenando</div>
+              </div>
+              <div class="level-card" onclick="selectSingle('nivel','intermedio',this)">
+                <div class="level-emoji">⚡</div>
+                <div class="level-title" data-es="Intermedio" data-en="Intermediate">Intermedio</div>
+                <div class="level-desc" data-es="6 meses a 2 años, conozco los básicos" data-en="6 months to 2 years, know the basics">6 meses a 2 años, conozco los básicos</div>
+              </div>
+              <div class="level-card" onclick="selectSingle('nivel','avanzado',this)">
+                <div class="level-emoji">🔱</div>
+                <div class="level-title" data-es="Avanzado" data-en="Advanced">Avanzado</div>
+                <div class="level-desc" data-es="Más de 2 años, técnica sólida" data-en="More than 2 years, solid technique">Más de 2 años, técnica sólida</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <button class="btn-launch" onclick="launchCoach()" data-es="🚀 COMENZAR CON MI COACH" data-en="🚀 START WITH MY COACH">🚀 COMENZAR CON MI COACH</button>
+      <div class="step-panel-dots">
+        <span class="pdot active"></span>
+        <span class="pdot"></span>
+      </div>
     </div>
+
+    <!-- ============ PANEL 2.2 · ACTIVIDAD DIARIA ============ -->
+    <div class="step-panel" data-step="2" data-panel="2">
+      <div class="section-card" id="step2-actividad">
+        <div class="section-header">
+          <div class="section-number">02</div>
+          <div class="section-info">
+            <div class="section-title" data-es="ACTIVIDAD DIARIA" data-en="DAILY ACTIVITY">ACTIVIDAD DIARIA</div>
+            <div class="section-desc" data-es="¿Cuánto te movés fuera del gym?" data-en="How active are you outside the gym?">¿Cuánto te movés fuera del gym?</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="form-group full">
+            <select id="f-actividad">
+              <option value="" data-es="— Seleccionar —" data-en="— Select —">— Seleccionar —</option>
+              <option value="sedentario" data-es="Sedentario — trabajo sentado, poco movimiento" data-en="Sedentary — desk job, little movement">Sedentario — trabajo sentado, poco movimiento</option>
+              <option value="leve" data-es="Levemente activo — camino bastante en el día" data-en="Lightly active — walk a fair bit daily">Levemente activo — camino bastante en el día</option>
+              <option value="moderado" data-es="Moderadamente activo — trabajo físico o deportes suaves" data-en="Moderately active — physical work or light sports">Moderadamente activo — trabajo físico o deportes suaves</option>
+              <option value="activo" data-es="Muy activo — trabajo físico intenso o deporte diario" data-en="Very active — intense physical work or daily sport">Muy activo — trabajo físico intenso o deporte diario</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="step-panel-dots">
+        <span class="pdot"></span>
+        <span class="pdot active"></span>
+      </div>
+    </div>
+
+    <!-- ============ PANEL 3.1 · TU PLAN ============ -->
+    <div class="step-panel" data-step="3" data-panel="1">
+      <div class="section-card" id="step3">
+        <div class="section-header">
+          <div class="section-number">03</div>
+          <div class="section-info">
+            <div class="section-title" data-es="TU PLAN" data-en="YOUR PLAN">TU PLAN</div>
+            <div class="section-desc" data-es="Días, tiempo y lugar" data-en="Days, time and place">Días, tiempo y lugar</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="form-group full" style="margin-bottom:20px">
+            <label data-es="¿Qué días podés entrenar?" data-en="Which days can you train?">¿Qué días podés entrenar?</label>
+            <div class="dias-grid">
+              <div class="dia-card" onclick="toggleDia(this,'lun')"><div class="dia-name" data-es="LUN" data-en="MON">LUN</div><div class="dia-num">L</div></div>
+              <div class="dia-card" onclick="toggleDia(this,'mar')"><div class="dia-name" data-es="MAR" data-en="TUE">MAR</div><div class="dia-num">M</div></div>
+              <div class="dia-card" onclick="toggleDia(this,'mie')"><div class="dia-name" data-es="MIÉ" data-en="WED">MIÉ</div><div class="dia-num">X</div></div>
+              <div class="dia-card" onclick="toggleDia(this,'jue')"><div class="dia-name" data-es="JUE" data-en="THU">JUE</div><div class="dia-num">J</div></div>
+              <div class="dia-card" onclick="toggleDia(this,'vie')"><div class="dia-name" data-es="VIE" data-en="FRI">VIE</div><div class="dia-num">V</div></div>
+              <div class="dia-card" onclick="toggleDia(this,'sab')"><div class="dia-name" data-es="SÁB" data-en="SAT">SÁB</div><div class="dia-num">S</div></div>
+              <div class="dia-card" onclick="toggleDia(this,'dom')"><div class="dia-name" data-es="DOM" data-en="SUN">DOM</div><div class="dia-num">D</div></div>
+            </div>
+          </div>
+          <div class="form-group full" style="margin-bottom:14px">
+            <label data-es="Duración por sesión" data-en="Session duration">Duración por sesión</label>
+            <select id="f-duracion">
+              <option value="" data-es="— Seleccionar —" data-en="— Select —">— Seleccionar —</option>
+              <option value="30min" data-es="30 minutos" data-en="30 minutes">30 minutos</option>
+              <option value="45min" data-es="45 minutos" data-en="45 minutes">45 minutos</option>
+              <option value="60min" data-es="1 hora" data-en="1 hour">1 hora</option>
+              <option value="75min" data-es="1 hora 15 min" data-en="1 hour 15 min">1 hora 15 min</option>
+              <option value="90min" data-es="1 hora 30 min" data-en="1 hour 30 min">1 hora 30 min</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label data-es="Lugar de entrenamiento" data-en="Training location">Lugar de entrenamiento</label>
+            <select id="f-lugar">
+              <option value="" data-es="— Seleccionar —" data-en="— Select —">— Seleccionar —</option>
+              <option value="gimnasio_completo" data-es="Gimnasio con equipamiento completo" data-en="Gym with full equipment">Gimnasio con equipamiento completo</option>
+              <option value="casa_sin_equipo" data-es="Casa — sin equipamiento" data-en="Home — no equipment">Casa — sin equipamiento</option>
+              <option value="casa_mancuernas" data-es="Casa — con mancuernas / bandas" data-en="Home — with dumbbells / bands">Casa — con mancuernas / bandas</option>
+              <option value="aire_libre" data-es="Al aire libre / calistenia" data-en="Outdoors / calisthenics">Al aire libre / calistenia</option>
+              <option value="mixto" data-es="Mixto (gym + casa)" data-en="Mixed (gym + home)">Mixto (gym + casa)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="step-panel-dots">
+        <span class="pdot active"></span>
+        <span class="pdot"></span>
+      </div>
+    </div>
+
+    <!-- ============ PANEL 3.2 · LIMITACIONES FÍSICAS ============ -->
+    <div class="step-panel" data-step="3" data-panel="2">
+      <div class="section-card" id="step3-limitaciones">
+        <div class="section-header">
+          <div class="section-number">03</div>
+          <div class="section-info">
+            <div class="section-title" data-es="LIMITACIONES" data-en="LIMITATIONS">LIMITACIONES</div>
+            <div class="section-desc" data-es="Opcional · lesiones o zonas a cuidar" data-en="Optional · injuries or areas to take care of">Opcional · lesiones o zonas a cuidar</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="form-group full">
+            <div class="chip-group" id="lesiones-chips">
+              <div class="chip" onclick="toggleChip(this,'lesion_rodilla')" data-es="🦵 Rodilla" data-en="🦵 Knee">🦵 Rodilla</div>
+              <div class="chip" onclick="toggleChip(this,'lesion_espalda')" data-es="🫀 Espalda baja" data-en="🫀 Lower back">🫀 Espalda baja</div>
+              <div class="chip" onclick="toggleChip(this,'lesion_hombro')" data-es="💪 Hombro" data-en="💪 Shoulder">💪 Hombro</div>
+              <div class="chip" onclick="toggleChip(this,'lesion_cuello')" data-es="🧠 Cuello / cervical" data-en="🧠 Neck / cervical">🧠 Cuello / cervical</div>
+              <div class="chip" onclick="toggleChip(this,'lesion_tobillo')" data-es="🦶 Tobillo" data-en="🦶 Ankle">🦶 Tobillo</div>
+              <div class="chip" onclick="toggleChip(this,'sin_lesiones')" data-es="✅ Sin lesiones" data-en="✅ No injuries">✅ Sin lesiones</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step-panel-dots">
+        <span class="pdot"></span>
+        <span class="pdot active"></span>
+      </div>
+    </div>
+
+    <!-- ============ PANEL 4.1 · RESTRICCIONES ============ -->
+    <div class="step-panel" data-step="4" data-panel="1">
+      <div class="section-card" id="step4">
+        <div class="section-header">
+          <div class="section-number">04</div>
+          <div class="section-info">
+            <div class="section-title" data-es="RESTRICCIONES" data-en="RESTRICTIONS">RESTRICCIONES</div>
+            <div class="section-desc" data-es="Restricciones o estilo alimenticio" data-en="Dietary restrictions or style">Restricciones o estilo alimenticio</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="form-group full">
+            <div class="chip-group" id="dieta-chips">
+              <div class="chip" onclick="toggleChip(this,'vegetariano')" data-es="🌿 Vegetariano" data-en="🌿 Vegetarian">🌿 Vegetariano</div>
+              <div class="chip" onclick="toggleChip(this,'vegano')" data-es="🌱 Vegano" data-en="🌱 Vegan">🌱 Vegano</div>
+              <div class="chip" onclick="toggleChip(this,'sin_gluten')" data-es="🌾 Sin gluten" data-en="🌾 Gluten-free">🌾 Sin gluten</div>
+              <div class="chip" onclick="toggleChip(this,'sin_lactosa')" data-es="🥛 Sin lactosa" data-en="🥛 Lactose-free">🥛 Sin lactosa</div>
+              <div class="chip" onclick="toggleChip(this,'keto')" data-es="🥩 Keto / bajo carbohidrato" data-en="🥩 Keto / low carb">🥩 Keto / bajo carbohidrato</div>
+              <div class="chip" onclick="toggleChip(this,'sin_restricciones')" data-es="✅ Sin restricciones" data-en="✅ No restrictions">✅ Sin restricciones</div>
+            </div>
+          </div>
+          <!-- Kept in the DOM (hidden) so launchCoach() / saveProfile()
+               keep finding the element. The 'foods I don't like' free-text
+               input was removed from the visible onboarding per design. -->
+          <textarea id="f-nodislike" style="display:none"></textarea>
+        </div>
+      </div>
+      <div class="step-panel-dots">
+        <span class="pdot active"></span>
+        <span class="pdot"></span>
+        <span class="pdot"></span>
+      </div>
+    </div>
+
+    <!-- ============ PANEL 4.2 · COMIDAS POR DÍA ============ -->
+    <div class="step-panel" data-step="4" data-panel="2">
+      <div class="section-card" id="step4-comidas">
+        <div class="section-header">
+          <div class="section-number">04</div>
+          <div class="section-info">
+            <div class="section-title" data-es="COMIDAS POR DÍA" data-en="MEALS PER DAY">COMIDAS POR DÍA</div>
+            <div class="section-desc" data-es="¿Cuántas comidas hacés por día?" data-en="How many meals do you eat per day?">¿Cuántas comidas hacés por día?</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="form-group full">
+            <div class="chip-group" id="comidas-chips">
+              <div class="chip" onclick="selectChipGroup('comidas','2',this)" data-es="2 comidas" data-en="2 meals">2 comidas</div>
+              <div class="chip" onclick="selectChipGroup('comidas','3',this)" data-es="3 comidas" data-en="3 meals">3 comidas</div>
+              <div class="chip" onclick="selectChipGroup('comidas','4',this)" data-es="4 comidas" data-en="4 meals">4 comidas</div>
+              <div class="chip" onclick="selectChipGroup('comidas','5',this)" data-es="5+ comidas" data-en="5+ meals">5+ comidas</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step-panel-dots">
+        <span class="pdot"></span>
+        <span class="pdot active"></span>
+        <span class="pdot"></span>
+      </div>
+    </div>
+
+    <!-- ============ PANEL 4.3 · ALERGIAS ============ -->
+    <div class="step-panel" data-step="4" data-panel="3">
+      <div class="section-card" id="step4-alergias">
+        <div class="section-header">
+          <div class="section-number">04</div>
+          <div class="section-info">
+            <div class="section-title" data-es="ALERGIAS" data-en="ALLERGIES">ALERGIAS</div>
+            <div class="section-desc" data-es="Para evitarlas en tu plan" data-en="To avoid them in your plan">Para evitarlas en tu plan</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="form-group full">
+            <div class="chip-group" id="alergia-chips">
+              <div class="chip" onclick="toggleChip(this,'alergia_mani')" data-es="🥜 Maní / frutos secos" data-en="🥜 Peanuts / nuts">🥜 Maní / frutos secos</div>
+              <div class="chip" onclick="toggleChip(this,'alergia_mariscos')" data-es="🦐 Mariscos" data-en="🦐 Seafood">🦐 Mariscos</div>
+              <div class="chip" onclick="toggleChip(this,'alergia_huevo')" data-es="🥚 Huevo" data-en="🥚 Egg">🥚 Huevo</div>
+              <div class="chip" onclick="toggleChip(this,'alergia_soja')" data-es="🫘 Soja" data-en="🫘 Soy">🫘 Soja</div>
+              <div class="chip" onclick="toggleChip(this,'sin_alergias')" data-es="✅ Sin alergias" data-en="✅ No allergies">✅ Sin alergias</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step-panel-dots">
+        <span class="pdot"></span>
+        <span class="pdot"></span>
+        <span class="pdot active"></span>
+      </div>
+    </div>
+
+    <!-- ============ PANEL 5.1 · RESUMEN ============ -->
+    <div class="step-panel" data-step="5" data-panel="1">
+      <div class="section-card" id="step5">
+        <div class="section-header">
+          <div class="section-number">05</div>
+          <div class="section-info">
+            <div class="section-title" data-es="CONFIRMÁ TUS DATOS" data-en="CONFIRM YOUR DATA">CONFIRMÁ TUS DATOS</div>
+            <div class="section-desc" data-es="Revisá antes de arrancar" data-en="Review before starting">Revisá antes de arrancar</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="resumen-grid" id="resumen-grid"></div>
+        </div>
+      </div>
+      <div class="step-panel-dots">
+        <span class="pdot active"></span>
+        <span class="pdot"></span>
+      </div>
+    </div>
+
+    <!-- ============ PANEL 5.2 · FOTO INICIAL ============ -->
+    <div class="step-panel" data-step="5" data-panel="2">
+      <div class="section-card" id="step5-foto">
+        <div class="section-header">
+          <div class="section-number">05</div>
+          <div class="section-info">
+            <div class="section-title" data-es="FOTO INICIAL" data-en="INITIAL PHOTO">FOTO INICIAL</div>
+            <div class="section-desc" data-es="Opcional · para ver tu evolución" data-en="Optional · to see your progress">Opcional · para ver tu evolución</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div style="margin: 4px 0 8px">
+            <div style="font-size:13px;color:var(--muted);margin-bottom:12px;text-align:center" id="foto-inicial-label">
+              📸 <strong style="color:var(--text)">Foto inicial (opcional)</strong> — guardala para ver tu evolución semana a semana
+            </div>
+            <div class="foto-upload-area" id="foto-upload-area">
+              <input type="file" accept="image/*" id="foto-inicial-input" onchange="previewFotoInicial(event)">
+              <div id="foto-upload-placeholder">
+                <div class="foto-upload-icon">📷</div>
+                <div class="foto-upload-label">Tocá para subir una foto de frente<br><strong>JPG, PNG o WEBP · máx 5MB</strong></div>
+              </div>
+              <img class="foto-preview" id="foto-inicial-preview" src="" alt="preview">
+            </div>
+            <div style="font-size:11px;color:var(--muted2);text-align:center;margin-top:4px" id="foto-status"></div>
+          </div>
+          <button class="btn-launch" onclick="launchCoach()" data-es="🚀 COMENZAR CON MI COACH" data-en="🚀 START WITH MY COACH">🚀 COMENZAR CON MI COACH</button>
+        </div>
+      </div>
+      <div class="step-panel-dots">
+        <span class="pdot"></span>
+        <span class="pdot active"></span>
+      </div>
+    </div>
+
+   </div><!-- /.onb-track -->
+  </div><!-- /.onb-viewport -->
+
+  <!-- Floating bottom nav — single shared element. Back is hidden on panel 0
+       (no prev). Next button text updates per panel ("SIGUIENTE" / "EMPEZAR")
+       via JS. Both buttons fire nextPanel/prevPanel which handle the slide. -->
+  <div class="onb-bottom-nav" id="onb-bottom-nav">
+    <button class="onb-back-btn" id="onb-back-btn" onclick="prevPanel()" aria-label="Atrás">←</button>
+    <button class="onb-next-btn" id="onb-next-btn" onclick="onbNextOrLaunch()" data-es="SIGUIENTE" data-en="NEXT">SIGUIENTE</button>
   </div>
 
 </div>
@@ -7570,6 +8073,8 @@ async function handleEmailLogin() {
       document.querySelector('.form-wrapper').style.display = 'block';
       document.querySelector('.progress-bar-container').style.display = 'block';
       document.getElementById('f-nombre').value = nombre;
+      // Initialize the Morph track once the form is mounted
+      requestAnimationFrame(() => initOnboardingPanels());
     } else {
       const p = result.user;
       if (p.nombre) document.getElementById('f-nombre').value = p.nombre || '';
@@ -7591,6 +8096,8 @@ async function handleEmailLogin() {
         document.getElementById('hero-section').style.display = 'block';
         document.querySelector('.form-wrapper').style.display = 'block';
         document.querySelector('.progress-bar-container').style.display = 'block';
+        // Partial profile — initialize Morph track for the resumed onboarding
+        requestAnimationFrame(() => initOnboardingPanels());
       }
     }
   } catch(err) {
@@ -7721,6 +8228,8 @@ function resetProfile() {
   document.querySelector('.progress-bar-container').style.display = 'block';
   document.getElementById('chat-wrapper').style.display = 'none';
   resetAppState();
+  // Initialize the Morph track for the fresh onboarding restart
+  requestAnimationFrame(() => initOnboardingPanels());
 }
 
 function restoreFormFromProfile(p) {
@@ -8016,6 +8525,8 @@ function applyLangToWhiteLabel(l) {
 // ============================
 // NAVIGATION
 // ============================
+// Legacy goTo(step) — kept for backward compat with any external callers.
+// Maps a logical step (1-5) to the first panel of that step and slides there.
 function goTo(step) {
   if (step > currentStep && !validateStep(currentStep)) return;
   document.getElementById(`step${currentStep}`).classList.remove('visible');
@@ -8027,7 +8538,163 @@ function goTo(step) {
   document.getElementById(`ps${currentStep}`).classList.remove('done');
   if (step === 5) buildResumen();
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Slide to first panel of that step
+  const targetIdx = onbPanels.findIndex(p => p.step === step && p.panel === 1);
+  if (targetIdx !== -1) slideOnboardingToPanel(targetIdx);
 }
+
+// ===== Multi-panel onboarding (9 panels) =====
+// The onboarding is broken into 9 visual panels but 5 logical steps. Each
+// .step-panel has data-step (1-5) and data-panel (1-N) attributes. We track
+// currentPanelIdx (0-8) for slide position, and currentStep (1-5) for the
+// progress bar + validation gating.
+let onbPanels = [];
+let currentPanelIdx = 0;
+
+function initOnboardingPanels() {
+  const track = document.getElementById('onb-track');
+  if (!track) return;
+  onbPanels = Array.from(track.querySelectorAll('.step-panel')).map(el => ({
+    el,
+    step:  parseInt(el.dataset.step, 10),
+    panel: parseInt(el.dataset.panel, 10),
+  }));
+  currentPanelIdx = 0;
+  currentStep = 1;
+  slideOnboardingToPanel(0);
+}
+
+function slideOnboardingToPanel(idx) {
+  const viewport = document.getElementById('onb-viewport');
+  const track = document.getElementById('onb-track');
+  if (!viewport || !track || !onbPanels.length) return;
+
+  // 1. Mark active panel (CSS hides inputs on inactive ones)
+  onbPanels.forEach((p, i) => p.el.classList.toggle('active', i === idx));
+
+  // 2. Horizontal slide
+  track.style.transform = `translateX(-${idx * 100}%)`;
+
+  currentPanelIdx = idx;
+
+  // 3. Morph viewport height to active panel (after layout settles)
+  morphOnboardingHeight();
+
+  // 4. Update the shared bottom nav + progress label per the active panel
+  updateOnboardingChrome();
+}
+
+// Updates the elements that live OUTSIDE the panels but reflect the current
+// step/panel state: "PASO X DE 5" label, Saltar link visibility, bottom-nav
+// back-button visibility, and the next/launch button's label.
+function updateOnboardingChrome() {
+  if (!onbPanels[currentPanelIdx]) return;
+  const cur = onbPanels[currentPanelIdx];
+  const isFirst = currentPanelIdx === 0;
+  const isLast = currentPanelIdx === onbPanels.length - 1;
+  const isFoto = cur.step === 5 && cur.panel === 2;  // only optional panel
+
+  const stepLabel = document.getElementById('progress-step-label');
+  if (stepLabel) {
+    stepLabel.textContent = lang === 'es' ? `PASO ${cur.step} DE 5` : `STEP ${cur.step} OF 5`;
+  }
+
+  // Saltar visible on every panel (matches Design mockup). On the foto panel
+  // it skips photo upload + launches. On other panels it short-circuits to
+  // launchCoach() — which validates internally, so the user can't actually
+  // bail with an incomplete profile (validation will reject the launch).
+  const skip = document.getElementById('progress-skip-link');
+  if (skip) skip.style.display = 'block';
+
+  const back = document.getElementById('onb-back-btn');
+  if (back) back.classList.toggle('hidden', isFirst);
+
+  const nextBtn = document.getElementById('onb-next-btn');
+  if (nextBtn) {
+    if (isLast) {
+      nextBtn.textContent = lang === 'es' ? 'EMPEZAR' : 'START';
+      nextBtn.dataset.es = 'EMPEZAR';
+      nextBtn.dataset.en = 'START';
+    } else {
+      nextBtn.textContent = lang === 'es' ? 'SIGUIENTE' : 'NEXT';
+      nextBtn.dataset.es = 'SIGUIENTE';
+      nextBtn.dataset.en = 'NEXT';
+    }
+  }
+}
+
+// Single onclick handler for the floating "next" button. On the last panel
+// it kicks off launchCoach() (final submit) instead of trying to slide further.
+function onbNextOrLaunch() {
+  if (currentPanelIdx === onbPanels.length - 1) {
+    launchCoach();
+  } else {
+    nextPanel();
+  }
+}
+
+function morphOnboardingHeight() {
+  const viewport = document.getElementById('onb-viewport');
+  if (!viewport || !onbPanels[currentPanelIdx]) return;
+  const activeEl = onbPanels[currentPanelIdx].el;
+  // Double-rAF: wait for layout to settle (especially after buildResumen or
+  // photo preview that changes dimensions on the active panel)
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const h = activeEl.offsetHeight;
+      if (h > 0) viewport.style.height = `${h}px`;
+    });
+  });
+}
+
+function nextPanel() {
+  if (currentPanelIdx >= onbPanels.length - 1) return;  // last panel: launchCoach handles it
+  const cur = onbPanels[currentPanelIdx];
+  const nxt = onbPanels[currentPanelIdx + 1];
+
+  // Validate ONLY when crossing to a different logical step
+  if (nxt.step > cur.step && !validateStep(cur.step)) return;
+
+  // If logical step changes, update progress bar + .visible class
+  if (nxt.step !== cur.step) {
+    document.querySelectorAll('.progress-step').forEach((el, i) => {
+      el.classList.remove('active', 'done');
+      if (i + 1 < nxt.step) el.classList.add('done');
+      if (i + 1 === nxt.step) el.classList.add('active');
+    });
+    document.querySelectorAll('.section-card').forEach(el => el.classList.remove('visible'));
+    const targetCard = document.querySelector(`.step-panel[data-step="${nxt.step}"][data-panel="1"] .section-card`);
+    if (targetCard) targetCard.classList.add('visible');
+    currentStep = nxt.step;
+    // buildResumen needs to run BEFORE measuring height on step 5
+    if (nxt.step === 5) buildResumen();
+  }
+
+  slideOnboardingToPanel(currentPanelIdx + 1);
+}
+
+function prevPanel() {
+  if (currentPanelIdx <= 0) return;
+  const cur = onbPanels[currentPanelIdx];
+  const prv = onbPanels[currentPanelIdx - 1];
+
+  if (prv.step !== cur.step) {
+    document.querySelectorAll('.progress-step').forEach((el, i) => {
+      el.classList.remove('active', 'done');
+      if (i + 1 < prv.step) el.classList.add('done');
+      if (i + 1 === prv.step) el.classList.add('active');
+    });
+    document.querySelectorAll('.section-card').forEach(el => el.classList.remove('visible'));
+    const targetCard = document.querySelector(`.step-panel[data-step="${prv.step}"][data-panel="1"] .section-card`);
+    if (targetCard) targetCard.classList.add('visible');
+    currentStep = prv.step;
+  }
+
+  slideOnboardingToPanel(currentPanelIdx - 1);
+}
+
+// Re-measure when the viewport changes (rotation, browser resize, keyboard)
+window.addEventListener('resize', morphOnboardingHeight);
 
 function validateStep(step) {
   if (step === 1) {
@@ -8100,25 +8767,39 @@ function toggleDia(el, dia) {
 // RESUMEN
 // ============================
 function buildResumen() {
-  const nombre = document.getElementById('f-nombre').value;
-  const edad = document.getElementById('f-edad').value;
-  const sexo = document.getElementById('f-sexo').value;
-  const peso = document.getElementById('f-peso').value;
-  const altura = document.getElementById('f-altura').value;
-  const imc = (peso / ((altura/100)**2)).toFixed(1);
+  const nombre  = document.getElementById('f-nombre').value;
+  const edad    = document.getElementById('f-edad').value;
+  const sexo    = document.getElementById('f-sexo').value;
+  const peso    = document.getElementById('f-peso').value;
+  const altura  = document.getElementById('f-altura').value;
+  const lugar   = document.getElementById('f-lugar')?.value || '';
 
-  const objetivoLabels = { definir: lang==='es'?'🔥 Definir':'🔥 Cut', volumen: lang==='es'?'💪 Ganar músculo':'💪 Build muscle', mantenimiento: lang==='es'?'⚖️ Mantener':'⚖️ Maintain' };
   const nivelLabels = { principiante: lang==='es'?'🌱 Principiante':'🌱 Beginner', intermedio: lang==='es'?'⚡ Intermedio':'⚡ Intermediate', avanzado: lang==='es'?'🔱 Avanzado':'🔱 Advanced' };
+  const lugarLabels = {
+    gimnasio_completo: lang==='es'?'🏋️ Gimnasio':'🏋️ Gym',
+    casa_sin_equipo:   lang==='es'?'🏠 Casa':'🏠 Home',
+    casa_mancuernas:   lang==='es'?'🏠 Casa + pesas':'🏠 Home + weights',
+    aire_libre:        lang==='es'?'🌳 Aire libre':'🌳 Outdoors',
+    mixto:             lang==='es'?'🔀 Mixto':'🔀 Mixed',
+  };
+  const dietaSelected = [...document.querySelectorAll('#dieta-chips .chip.selected')]
+    .map(c => c.textContent.replace(/[🌿🌱🌾🥛🥩✅]/g, '').trim());
+  const restriccionesValue = dietaSelected.length
+    ? dietaSelected.join(', ')
+    : (lang==='es' ? 'Ninguna' : 'None');
 
+  // Compact list matching the Design mockup (CONFIRMÁ TUS DATOS):
+  // NOMBRE / EDAD / PESO·ALTURA / NIVEL / DÍAS / LUGAR / RESTRICCIONES.
+  // Long marketing text removed — it caused awkward 5-line wraps on the right.
+  const dash = '—';
   const items = [
-    { label: lang==='es'?'Nombre':'Name', value: nombre },
-    { label: lang==='es'?'Edad / Sexo':'Age / Sex', value: `${edad} años · ${sexo}` },
-    { label: lang==='es'?'Peso / Altura':'Weight / Height', value: `${peso}kg · ${altura}cm` },
-    { label: 'IMC', value: imc, cls: 'accent' },
-    { label: lang==='es'?'Objetivo a priori':'Initial goal', value: objetivoLabels[selections.objetivo] || '—', cls: 'green' },
-    { label: lang==='es'?'Nivel':'Level', value: nivelLabels[selections.nivel] || '—' },
-    { label: lang==='es'?'Días entreno':'Training days', value: selectedDias.length > 0 ? `${selectedDias.length} días/semana` : '—', cls: 'accent' },
-    { label: lang==='es'?'Tu coach analizará tu perfil':'Your coach will analyze your profile', value: lang==='es'?'y te guiará al mejor camino ✨':'and guide you to the best path ✨' },
+    { label: lang==='es'?'Nombre':'Name', value: nombre || dash },
+    { label: lang==='es'?'Edad':'Age',    value: edad ? `${edad} · ${sexo || ''}`.trim().replace(/·\s*$/, '') : dash },
+    { label: lang==='es'?'Peso · Altura':'Weight · Height', value: (peso && altura) ? `${peso}kg · ${altura}cm` : dash },
+    { label: lang==='es'?'Nivel':'Level', value: nivelLabels[selections.nivel] || dash },
+    { label: lang==='es'?'Días':'Days',   value: selectedDias.length > 0 ? `${selectedDias.length} días/sem` : dash, cls: 'accent' },
+    { label: lang==='es'?'Lugar':'Place', value: lugarLabels[lugar] || dash },
+    { label: lang==='es'?'Restricciones':'Restrictions', value: restriccionesValue, cls: 'accent' },
   ];
 
   document.getElementById('resumen-grid').innerHTML = items.map(i =>
@@ -9864,6 +10545,9 @@ function previewFotoInicial(event) {
   preview.style.display = 'block';
   placeholder.style.display = 'none';
   document.getElementById('foto-status').textContent = lang === 'es' ? '✓ Foto lista para subir al comenzar' : '✓ Photo ready to upload';
+  // The panel just got taller — re-measure the onboarding viewport so the
+  // card grows to fit the preview image (instead of clipping).
+  if (typeof morphOnboardingHeight === 'function') morphOnboardingHeight();
 }
 
 async function uploadFoto(file, tipo = 'progreso') {
@@ -10950,6 +11634,8 @@ function openEditProfileForm() {
   document.getElementById('ps1').classList.add('active');
   currentStep = 1;
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Sync the Morph track with the freshly opened form
+  requestAnimationFrame(() => initOnboardingPanels());
 }
 
 function getWeeksActiveSince(createdAtIso) {
