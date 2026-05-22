@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260522-1600-pwa-icon-fix">
+<meta name="app-version" content="20260522-1640-scrolltop-fix">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -9552,7 +9552,9 @@ async function showDiario() {
   trackEvent('section_view', { section: 'alimentacion' });
   hideAllSections();
   document.getElementById('diario-wrapper').style.display = 'block';
-  document.getElementById('diario-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Use scrollToTop() instead of scrollIntoView+smooth — see showMiEntreno
+  // comment. Smooth-scroll APIs misbehave inside iOS PWA standalone mode.
+  scrollToTop();
 
   // Empty-state banner: if the user has no active diet plan, prompt them to
   // ask the coach. Doesn't block — the weekly view will show its own empty state.
@@ -10929,7 +10931,9 @@ function showPerfil() {
   hideAllSections();
   const wrapper = document.getElementById('perfil-wrapper');
   wrapper.style.display = 'block';
-  wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Reset viewport to top via the robust helper (smooth scrolls misbehave in
+  // iOS PWA standalone; users land "half-scrolled" into the page otherwise).
+  scrollToTop();
   renderPerfil().catch(console.error);
   setActiveNav('nav-perfil');
 }
@@ -11526,7 +11530,11 @@ async function showMiEntreno() {
   hideAllSections();
   const w = document.getElementById('mi-entreno-wrapper');
   w.style.display = 'block';
-  w.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Reset viewport to the absolute top. scrollIntoView({smooth}) is unreliable
+  // on iOS PWA standalone — sometimes ignored, sometimes interrupted, leaving
+  // the section "half-scrolled". scrollToTop() forces 0 via three different
+  // APIs inside a rAF, which works consistently across iOS Safari / Chrome / etc.
+  scrollToTop();
   renderMiEntreno();                 // instant paint from localStorage cache
   await hydrateEntrenoFromSupabase(); // then refresh from durable source
   renderMiEntreno();
