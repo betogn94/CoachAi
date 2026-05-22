@@ -4097,10 +4097,10 @@ footer {
   height: 64px;
   margin: 0 auto 14px;
   position: relative;
-  /* Combina dos animaciones desfasadas para sentirse "viva" */
+  /* Glow + heartbeat dramático corren a tiempos distintos */
   animation:
     landingIconGlow 3s ease-in-out infinite,
-    landingIconBeat 2s ease-in-out infinite;
+    landingIconBeat 3s ease-in-out infinite;
 }
 .landing-login-icon img {
   width: 100%;
@@ -4110,16 +4110,16 @@ footer {
   transform: translateX(1px);
 }
 
-/* Glow original del repo (renombrado de landingIconPulse → landingIconGlow) */
+/* Glow original del repo */
 @keyframes landingIconGlow {
   0%, 100% { filter: drop-shadow(0 0 16px rgba(124,106,255,0.32)) drop-shadow(0 0 28px rgba(46,207,181,0.16)); }
   50%      { filter: drop-shadow(0 0 22px rgba(124,106,255,0.45)) drop-shadow(0 0 38px rgba(46,207,181,0.24)); }
 }
 
-/* Heartbeat sutil — el "latido" */
+/* Heartbeat fuerte — scale + opacity dip (el "rebote" del mockup) */
 @keyframes landingIconBeat {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(0.94); }
+  0%, 100% { transform: scale(1);   opacity: 1;   }
+  50%      { transform: scale(0.6); opacity: 0.4; }
 }
 
 @media (prefers-reduced-motion: reduce) {
