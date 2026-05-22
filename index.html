@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260522-1830-onboarding-multipanel">
+<meta name="app-version" content="20260522-2020-client-migration">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -7388,6 +7388,20 @@ QUE SÍ SE VE</div>
           <input id="beta-inv-email" class="beta-inv-input" placeholder="email@ejemplo.com" maxlength="120" inputmode="email">
           <button class="beta-inv-add" onclick="betaAddInvitado()">+ Invitar</button>
         </div>
+        <!-- Cliente migrada: toggle + 2 textareas para precargar rutina/dieta del coach.
+             Al completar el onboarding la clienta encuentra su plan ya cargado en Mi Entreno + Mi Alimentación. -->
+        <label class="beta-migrada-toggle" style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none">
+          <input type="checkbox" id="beta-inv-migrada" onchange="toggleMigradaFields()" style="width:14px;height:14px;cursor:pointer">
+          <span>Cliente migrada — ya tiene rutina y dieta del coach</span>
+        </label>
+        <div id="beta-inv-migrada-fields" style="display:none;margin-top:10px">
+          <input id="beta-inv-coach" class="beta-inv-input" placeholder="Nombre del coach (ej: Daniel)" maxlength="40" style="width:100%;margin-bottom:8px">
+          <textarea id="beta-inv-pre-rutina" placeholder="Pegá la rutina actual de la clienta (texto libre — días, ejercicios, series/reps)..." style="width:100%;min-height:90px;padding:10px;border-radius:8px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);color:var(--text);font-family:inherit;font-size:12.5px;margin-bottom:8px;resize:vertical"></textarea>
+          <textarea id="beta-inv-pre-dieta" placeholder="Pegá la dieta actual (texto libre — comidas, macros, alimentos)..." style="width:100%;min-height:90px;padding:10px;border-radius:8px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);color:var(--text);font-family:inherit;font-size:12.5px;resize:vertical"></textarea>
+          <div style="font-size:11px;color:var(--muted2);margin-top:6px;line-height:1.5">
+            💡 Tip: cuanto más limpio el formato (con "LUNES" / "MARTES" como encabezados, ejercicios numerados), mejor se va a renderizar en la app. Si no, igual queda guardado como texto.
+          </div>
+        </div>
         <div id="beta-inv-msg" class="beta-inv-msg"></div>
         <div id="beta-invitados-list"></div>
       </div>
@@ -9526,6 +9540,55 @@ Combine this with the daily log for a complete picture of the client's journey. 
 // ============================
 // LAUNCH COACH
 // ============================
+// Migrates a client coming from an existing coach (Daniel, etc.) by reading
+// the pre-loaded rutina/dieta from beta_invitados and inserting them into
+// planes_semanales for the current ISO week. Returns the coach's name if a
+// migration happened (so the first-chat welcome can mention it), or null.
+async function migrateClientPreloadedPlans() {
+  if (!sbClient || !currentUser?.email) return null;
+  try {
+    const { data: inv } = await sbClient
+      .from('beta_invitados')
+      .select('migrada_de_coach, pre_rutina, pre_dieta')
+      .ilike('email', currentUser.email)
+      .maybeSingle();
+    if (!inv || (!inv.pre_rutina && !inv.pre_dieta)) return null;
+
+    // Use the user's actual usuario_id (set by saveProfileToSupabase). It's
+    // already populated on currentUser by the auth/profile flow.
+    const uid = currentUser.id;
+    if (!uid) return null;
+
+    // Build ISO week string (matches the format used by AI-generated plans)
+    const d = new Date();
+    const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    tmp.setUTCDate(tmp.getUTCDate() + 4 - (tmp.getUTCDay() || 7));
+    const year = tmp.getUTCFullYear();
+    const weekNum = Math.ceil((((tmp - new Date(Date.UTC(year, 0, 1))) / 86400000) + 1) / 7);
+    const semanaIso = `${year}-W${String(weekNum).padStart(2, '0')}`;
+    const fechaEntrega = new Date().toISOString().slice(0, 10);
+
+    const rows = [];
+    if (inv.pre_rutina) rows.push({ usuario_id: uid, tipo: 'rutina', semana_iso: semanaIso, fecha_entrega: fechaEntrega, contenido: inv.pre_rutina });
+    if (inv.pre_dieta)  rows.push({ usuario_id: uid, tipo: 'dieta',  semana_iso: semanaIso, fecha_entrega: fechaEntrega, contenido: inv.pre_dieta });
+    if (!rows.length) return null;
+
+    const { error } = await sbClient.from('planes_semanales').insert(rows);
+    if (error) { console.warn('[CoachAI] migration insert failed:', error); return null; }
+
+    // One-shot: clear the pre-loaded text so a second login doesn't re-insert
+    await sbClient.from('beta_invitados')
+      .update({ pre_rutina: null, pre_dieta: null })
+      .ilike('email', currentUser.email);
+
+    if (typeof trackEvent === 'function') trackEvent('client_migrated', { from: inv.migrada_de_coach });
+    return inv.migrada_de_coach || 'tu coach';
+  } catch (e) {
+    console.warn('[CoachAI] migration check failed:', e);
+    return null;
+  }
+}
+
 async function launchCoach() {
   // Upload initial photo if selected
   uploadFotoInicial().catch(console.error);
@@ -9544,8 +9607,15 @@ async function launchCoach() {
       actividad: document.getElementById('f-actividad').value,
       dias_entreno: selectedDias,
     };
-    saveProfileToSupabase(profileData).catch(console.error);
+    // Await saveProfile so the new user row exists with an id, then migrate
+    // any pre-loaded plans from beta_invitados into planes_semanales BEFORE
+    // we load weekly plans below — that way loadCurrentWeekPlans() picks
+    // them up on the first render. migrationCoach is the coach name if we
+    // migrated (used for the welcome bubble), or null.
+    await saveProfileToSupabase(profileData).catch(console.error);
   }
+  const migrationCoach = await migrateClientPreloadedPlans();
+  window._migrationCoach = migrationCoach;   // read by the chat init below
 
   // Show hamburger nav (replaces individual header buttons)
   document.getElementById('hamburger-btn').style.display = 'flex';
@@ -9628,7 +9698,30 @@ async function launchCoach() {
   // ONLY trigger the onboarding welcome flow for true first-time users.
   // Any prior message means the user already has a relationship with CoachAI.
   if (!renderedAny) {
-    await sendToAI(null, true);
+    // If the client was migrated by an existing coach (Daniel etc.), inject
+    // a deterministic welcome that points to Mi Entreno + Mi Alimentación
+    // BEFORE the generic AI greeting — so she sees the plan is already there
+    // and isn't confused thinking the AI needs to generate it from scratch.
+    if (window._migrationCoach) {
+      const coach = window._migrationCoach;
+      const nombreCliente = (document.getElementById('f-nombre')?.value || '').trim().split(' ')[0];
+      const isEs = (lang === 'es');
+      const welcomeHtml = isEs
+        ? `${nombreCliente ? '¡Hola ' + nombreCliente + '!' : '¡Hola!'} 👋 Veo que venís migrada de <strong>${coach}</strong> — ya cargó tu rutina + dieta de esta semana. Las podés revisar acá:<br><br>` +
+          `💪 <a href="#" onclick="showMiEntreno();return false" style="color:var(--accent-bright)">Mi Entreno</a> — tu rutina de la semana día por día<br>` +
+          `🥗 <a href="#" onclick="showDiario();return false" style="color:var(--accent-bright)">Mi Alimentación</a> — tu plan nutricional<br><br>` +
+          `Cuando tengas dudas, quieras ajustar algo, o necesites mi ayuda, escribime acá nomás. ¡Vamos por todo! 🚀`
+        : `${nombreCliente ? 'Hi ' + nombreCliente + '!' : 'Hi!'} 👋 I see you're coming over from <strong>${coach}</strong> — he loaded your routine + diet for this week. You can review them here:<br><br>` +
+          `💪 <a href="#" onclick="showMiEntreno();return false" style="color:var(--accent-bright)">My Training</a> — your weekly routine day by day<br>` +
+          `🥗 <a href="#" onclick="showDiario();return false" style="color:var(--accent-bright)">My Nutrition</a> — your meal plan<br><br>` +
+          `When you have questions, want to adjust anything, or need my help — just write here. Let's go! 🚀`;
+      // addMessage(content, type, skipPersistFlag) — we DO want to persist this
+      // so the user sees it again on subsequent logins. Skip the AI welcome too.
+      addMessage(welcomeHtml, 'bot', false);
+      window._migrationCoach = null;  // one-shot
+    } else {
+      await sendToAI(null, true);
+    }
   } else {
     // Scroll to bottom so user lands at the most recent message.
     const container = document.getElementById('chat-messages');
@@ -13325,16 +13418,38 @@ function renderBetaInvitados() {
   }).join('');
 }
 
+// Toggles the "Cliente migrada" extra fields (coach name + 2 textareas) under
+// the beta invite form. When checked, the coach can pre-load the client's
+// existing rutina and dieta — they get inserted as the client's first
+// planes_semanales entries when she completes onboarding.
+function toggleMigradaFields() {
+  const checked = document.getElementById('beta-inv-migrada').checked;
+  document.getElementById('beta-inv-migrada-fields').style.display = checked ? 'block' : 'none';
+}
+
 async function betaAddInvitado() {
   const nombre = document.getElementById('beta-inv-nombre').value.trim();
   const email = document.getElementById('beta-inv-email').value.trim().toLowerCase();
   const msg = document.getElementById('beta-inv-msg');
   msg.className = 'beta-inv-msg';
   if (!email || !email.includes('@')) { msg.textContent = 'Ingresá un email válido.'; msg.classList.add('err'); return; }
+  // Read the optional "cliente migrada" fields. Empty strings → null so the
+  // launchCoach pre-load step can detect "no migrated plans" cleanly.
+  const isMigrada  = document.getElementById('beta-inv-migrada').checked;
+  const coachName  = isMigrada ? document.getElementById('beta-inv-coach').value.trim() : '';
+  const preRutina  = isMigrada ? document.getElementById('beta-inv-pre-rutina').value.trim() : '';
+  const preDieta   = isMigrada ? document.getElementById('beta-inv-pre-dieta').value.trim() : '';
   try {
     const invitadoPor = currentUser?.email || 'admin';
     const { error } = await sbClient.from('beta_invitados')
-      .insert([{ email, nombre: nombre || null, invitado_por: invitadoPor }]);
+      .insert([{
+        email,
+        nombre: nombre || null,
+        invitado_por: invitadoPor,
+        migrada_de_coach: coachName || null,
+        pre_rutina: preRutina || null,
+        pre_dieta:  preDieta  || null,
+      }]);
     if (error) {
       msg.textContent = error.code === '23505' ? 'Ese email ya estaba invitado.' : 'No se pudo invitar: ' + error.message;
       msg.classList.add('err');
@@ -13364,6 +13479,12 @@ async function betaAddInvitado() {
     msg.classList.add('ok');
     document.getElementById('beta-inv-nombre').value = '';
     document.getElementById('beta-inv-email').value = '';
+    // Reset migrada toggle + textareas
+    document.getElementById('beta-inv-migrada').checked = false;
+    document.getElementById('beta-inv-coach').value = '';
+    document.getElementById('beta-inv-pre-rutina').value = '';
+    document.getElementById('beta-inv-pre-dieta').value = '';
+    document.getElementById('beta-inv-migrada-fields').style.display = 'none';
     await loadBetaPanel();
   } catch (e) {
     msg.textContent = 'Error de conexión.'; msg.classList.add('err');
