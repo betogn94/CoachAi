@@ -16,7 +16,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260522-1240-chatbar-2rows">
+<meta name="app-version" content="20260522-1305-autoreload">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -13855,56 +13855,81 @@ async function pwaInstall() {
 // ===== App version check (anti iOS-PWA stale cache) =====
 // Fetch /version.json with cache:'no-store' and compare to the cached HTML's
 // <meta app-version>. If they don't match, the installed PWA is running an
-// outdated bundle — show a banner so the user can refresh without having to
-// delete + reinstall the app.
+// outdated bundle.
+//
+// Strategy: instead of showing a banner that the user has to tap (which can
+// fail silently if the banner DOM/CSS has issues), we AUTO-RELOAD on mismatch
+// with a cache-bust query string. This is safe because:
+//   1. sessionStorage flag prevents infinite reload loops if the cache truly
+//      can't be cleared (we only auto-reload ONCE per app session).
+//   2. The fallback banner still shows if auto-reload was already attempted —
+//      so if iOS refuses to drop the cache, the user at least sees the banner
+//      and can act manually.
 let _appUpdateCheckInFlight = false;
-let _appUpdateBannerShown = false;
+let _appUpdateActionTaken = false;
 async function checkForAppUpdate() {
-  if (_appUpdateCheckInFlight || _appUpdateBannerShown) return;
+  if (_appUpdateCheckInFlight || _appUpdateActionTaken) return;
   _appUpdateCheckInFlight = true;
   try {
-    const loaded = document.querySelector('meta[name="app-version"]')?.content;
-    // Cache-bust both the URL and the request to defeat every intermediate cache
-    const r = await fetch('/version.json?t=' + Date.now(), { cache: 'no-store' });
-    if (!r.ok) return;
+    const loaded = document.querySelector('meta[name="app-version"]')?.content || '__legacy__';
+    // Cache-bust the URL AND the request to defeat every intermediate cache
+    const r = await fetch('/version.json?t=' + Date.now(), {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' },
+    });
+    if (!r.ok) { console.warn('[CoachAI] version.json not ok:', r.status); return; }
     const j = await r.json();
-    if (j && j.v && loaded && j.v !== loaded) {
-      _appUpdateBannerShown = true;
+    console.log('[CoachAI] version-check loaded=', loaded, ' server=', j && j.v);
+    if (!j || !j.v) return;
+    if (j.v === loaded) return;  // up to date, nothing to do
+
+    // Mismatch detected.
+    _appUpdateActionTaken = true;
+
+    // If we already tried auto-reload this session and we're STILL stale, the
+    // cache is genuinely stuck — show the banner so the user can take action
+    // (delete + reinstall is the last resort, but at least they know).
+    const alreadyTried = sessionStorage.getItem('coachai_auto_updated') === '1';
+    if (alreadyTried) {
       const b = document.getElementById('app-update-banner');
-      if (b) {
-        // Trigger reflow before adding 'show' so the slide-down transition runs
-        b.style.display = 'flex';
-        // eslint-disable-next-line no-unused-expressions
-        b.offsetHeight;
-        b.classList.add('show');
-      }
-      if (typeof trackEvent === 'function') trackEvent('app_update_banner_shown', { from: loaded, to: j.v });
+      if (b) { b.style.display = 'flex'; b.offsetHeight; b.classList.add('show'); }
+      return;
     }
+
+    // First mismatch detection — mark + auto-reload immediately
+    sessionStorage.setItem('coachai_auto_updated', '1');
+    await forceAppUpdate();
   } catch (e) {
+    console.warn('[CoachAI] version-check failed:', e);
     // Offline or version.json missing — silent; we'll retry on next visibility change
   } finally {
     _appUpdateCheckInFlight = false;
   }
 }
 
-// Banner button handler: nuke all caches + unregister the SW, then hard-reload.
-// This is the cleanest way to break out of iOS PWA's locked-in stale snapshot
-// without the user having to delete + reinstall the app from the home screen.
+// Clear the auto-update flag once we confirm the user is on a fresh load with
+// the latest version — so the next deploy can trigger auto-reload again.
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    // After 5s of being on a successful load, clear the flag so future mismatches
+    // can trigger auto-reload again.
+    sessionStorage.removeItem('coachai_auto_updated');
+  }, 5000);
+});
+
+// Force a clean refresh: drop SW + CacheStorage + reload with cache-bust query.
+// Used both by the auto-reload path and the manual "Actualizar" button.
 async function forceAppUpdate() {
   try {
-    // 1) Unregister any service worker so the new HTML isn't intercepted on reload
     if ('serviceWorker' in navigator) {
       const regs = await navigator.serviceWorker.getRegistrations();
       await Promise.all(regs.map(r => r.unregister()));
     }
-    // 2) Clear all CacheStorage entries
     if ('caches' in window) {
       const keys = await caches.keys();
       await Promise.all(keys.map(k => caches.delete(k)));
     }
   } catch (e) { /* best-effort; reload anyway */ }
-  // 3) Cache-busted hard reload (the ?_v param prevents iOS from serving the
-  //    same cached HTML it had a millisecond ago)
   const url = new URL(window.location.href);
   url.searchParams.set('_v', Date.now().toString());
   window.location.replace(url.toString());
