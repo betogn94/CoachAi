@@ -94,10 +94,12 @@ header {
      battery overlay the content. Push the header down by the safe-area inset
      so the logo + hamburger never get covered by the notch / Dynamic Island.
      Also respect left/right insets for landscape on devices with rounded
-     corners. env() falls back to 0 on browsers/devices without safe-areas. */
-  padding-top: calc(18px + env(safe-area-inset-top));
-  padding-left: calc(36px + env(safe-area-inset-left));
-  padding-right: calc(36px + env(safe-area-inset-right));
+     corners. env() falls back to 0 on browsers/devices without safe-areas.
+     !important is required because the mobile media query below overrides
+     `padding` with a shorthand, which would otherwise erase these values. */
+  padding-top: calc(18px + env(safe-area-inset-top)) !important;
+  padding-left: calc(36px + env(safe-area-inset-left)) !important;
+  padding-right: calc(36px + env(safe-area-inset-right)) !important;
 }
 
 /* ===== iOS / Android safe-area handling for PWA standalone mode =====
@@ -929,7 +931,12 @@ footer {
 /* RESPONSIVE */
 @media (max-width: 640px) {
   header {
+    /* Mobile: smaller base padding, but still respect iOS safe-area on top
+       so the status bar (notch / Dynamic Island) doesn't cover the logo. */
     padding: 10px 16px;
+    padding-top: calc(10px + env(safe-area-inset-top)) !important;
+    padding-left: calc(16px + env(safe-area-inset-left)) !important;
+    padding-right: calc(16px + env(safe-area-inset-right)) !important;
     flex-wrap: nowrap;
     gap: 0;
     align-items: center;
