@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#070714">
+<title>Sin conexión — CoachAI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body {
+  height: 100%;
+  background: #070714;
+  color: #f0f0fa;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+}
+body {
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(ellipse 60% 50% at 18% 12%, rgba(124,106,255,0.18) 0%, transparent 60%),
+    radial-gradient(ellipse 55% 45% at 82% 88%, rgba(46,207,181,0.14) 0%, transparent 60%),
+    linear-gradient(180deg, #070714 0%, #0a0a1a 100%);
+}
+.off-card {
+  max-width: 420px; width: 100%; text-align: center;
+  background: #111122; border: 1px solid rgba(124,106,255,0.20);
+  border-radius: 22px;
+  padding: 40px 28px 32px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+}
+.off-wordmark {
+  font-family: 'Bebas Neue', 'Arial Narrow', Arial, sans-serif;
+  font-size: 30px; letter-spacing: 6px; line-height: 1;
+  background: linear-gradient(135deg, #b4a7ff 0%, #5b9fff 50%, #2ecfb5 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: #b4a7ff;
+  margin-bottom: 28px;
+}
+.off-icon {
+  font-size: 48px; margin-bottom: 16px;
+  filter: drop-shadow(0 0 18px rgba(124,106,255,0.35));
+}
+.off-title {
+  font-size: 22px; font-weight: 700; color: #f0f0fa;
+  margin-bottom: 8px; letter-spacing: 0.2px;
+}
+.off-body {
+  font-size: 14px; color: #a8a8c0; line-height: 1.6;
+  margin-bottom: 24px;
+}
+.off-retry {
+  background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 100%);
+  color: white; border: none;
+  padding: 13px 30px; border-radius: 100px;
+  font-size: 13.5px; font-weight: 700; letter-spacing: 0.5px;
+  cursor: pointer; font-family: inherit;
+  box-shadow: 0 6px 20px rgba(124,106,255,0.32);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.off-retry:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(124,106,255,0.45); }
+.off-retry:active { transform: scale(0.98); }
+.off-hint {
+  margin-top: 18px; font-size: 11.5px; color: #6c6c80;
+}
+</style>
+</head>
+<body>
+<div class="off-card">
+  <div class="off-wordmark">COACHAI</div>
+  <div class="off-icon">📡</div>
+  <div class="off-title">Sin conexión</div>
+  <div class="off-body">
+    CoachAI necesita internet para hablar con tu coach.<br>
+    Volvé a intentarlo cuando recuperes señal.
+  </div>
+  <button class="off-retry" onclick="location.reload()">Reintentar</button>
+  <div class="off-hint">Tu progreso queda guardado — nada se pierde.</div>
+</div>
+</body>
+</html>

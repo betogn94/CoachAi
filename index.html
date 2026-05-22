@@ -2,8 +2,17 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>CoachAI — Entrenador Personal con IA</title>
+<!-- ===== PWA install (manifest + iOS A2HS support + theme color) ===== -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#7c6aff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#070714" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CoachAI">
+<link rel="apple-touch-icon" href="/logo-icon.png">
+<link rel="icon" type="image/png" href="/logo-icon.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -4136,6 +4145,41 @@ footer {
 }
 
 .landing-admin-link:hover { color: var(--accent-bright); }
+
+/* ============ PWA install button + iOS A2HS hint (landing only) ============ */
+.pwa-install-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  background: rgba(124,106,255,0.10);
+  border: 1px solid rgba(124,106,255,0.32);
+  color: var(--accent-bright);
+  padding: 11px 22px; border-radius: 100px;
+  font-size: 13px; font-weight: 600; letter-spacing: 0.4px;
+  font-family: inherit; cursor: pointer;
+  margin: 0 auto 18px;
+  transition: background 0.18s, border-color 0.18s, transform 0.18s;
+}
+.pwa-install-btn:hover {
+  background: rgba(124,106,255,0.22);
+  border-color: rgba(124,106,255,0.55);
+  transform: translateY(-1px);
+}
+.pwa-install-btn:active { transform: scale(0.98); }
+
+.pwa-ios-hint {
+  max-width: 360px; margin: 0 auto 18px;
+  padding: 12px 16px; border-radius: 14px;
+  background: rgba(46,207,181,0.07);
+  border: 1px solid rgba(46,207,181,0.22);
+  color: #c8e8de;
+  font-size: 12.5px; line-height: 1.55; text-align: center;
+}
+.pwa-ios-hint strong { color: #f0f0fa; font-weight: 700; }
+.pwa-ios-hint .pwa-share-icon {
+  display: inline-block;
+  font-weight: 700;
+  color: var(--accent3);
+  padding: 0 2px;
+}
 
 .landing-footer-text {
   font-size: 11px;
@@ -13412,7 +13456,61 @@ window.addEventListener('DOMContentLoaded', () => {
   initSupabase();
   // Persistent login: if this device logged in before, resume automatically.
   tryAutoLogin().catch(console.error);
+
+  // ===== PWA install =====
+  // Register the service worker so the app can be installed + show a branded
+  // offline page when the user has no connection. Silent on failure.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(err => {
+      console.warn('[CoachAI] SW registration failed:', err);
+    });
+  }
+
+  // Capture Android Chrome's install prompt so we can fire it from our own button.
+  // Without this hook, Chrome would auto-show its mini-infobar — we want our
+  // branded button to be the call to action.
+  window._pwaDeferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    window._pwaDeferredPrompt = e;
+    const btn = document.getElementById('pwa-install-btn');
+    if (btn) btn.style.display = 'inline-flex';
+  });
+
+  // App already installed (or running standalone) → hide both prompts entirely
+  const inStandalone = window.matchMedia('(display-mode: standalone)').matches
+                    || window.navigator.standalone === true;
+
+  // iOS Safari doesn't support beforeinstallprompt → show the manual A2HS hint
+  // (only on iOS Safari, only when not already installed)
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua);
+  const isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua);
+  if (isIOS && isSafari && !inStandalone) {
+    const hint = document.getElementById('pwa-ios-hint');
+    if (hint) hint.style.display = 'block';
+  }
+
+  // Log successful install for beta analytics
+  window.addEventListener('appinstalled', () => {
+    try { if (typeof trackEvent === 'function') trackEvent('pwa_installed', null); } catch (e) {}
+    const btn = document.getElementById('pwa-install-btn');
+    if (btn) btn.style.display = 'none';
+  });
 });
+
+async function pwaInstall() {
+  const dp = window._pwaDeferredPrompt;
+  if (!dp) return;
+  dp.prompt();
+  try {
+    const { outcome } = await dp.userChoice;
+    if (typeof trackEvent === 'function') trackEvent('pwa_install_prompt_' + outcome, null);
+  } catch (e) { /* user dismissed quickly — ignore */ }
+  window._pwaDeferredPrompt = null;
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'none';
+}
 
 </script>
 
@@ -13431,6 +13529,15 @@ window.addEventListener('DOMContentLoaded', () => {
     <div class="email-login-loading" id="el-loading">Conectando...</div>
   </div>
   <div class="landing-admin-link" onclick="showAdminLogin()">⚙️ Acceso administrador</div>
+
+  <!-- PWA install prompt — shown only when the browser supports it (Android Chrome) -->
+  <button id="pwa-install-btn" class="pwa-install-btn" style="display:none" onclick="pwaInstall()">
+    📱 Instalar CoachAI en tu celular
+  </button>
+  <!-- iOS Safari fallback — shown only when iOS is detected and app isn't already installed -->
+  <div id="pwa-ios-hint" class="pwa-ios-hint" style="display:none">
+    💡 <strong>Instalá CoachAI en tu iPhone:</strong> tocá <span class="pwa-share-icon">⎘</span> Compartir → <strong>Agregar a inicio</strong>
+  </div>
 
   <div class="landing-footer-text" id="landing-footer-text">Powered by Anthropic Claude</div>
 </div>
