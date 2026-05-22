@@ -90,6 +90,63 @@ header {
   position: sticky;
   top: 0;
   z-index: 200;
+  /* iOS PWA standalone: status-bar style is 'black-translucent', so the time/
+     battery overlay the content. Push the header down by the safe-area inset
+     so the logo + hamburger never get covered by the notch / Dynamic Island.
+     Also respect left/right insets for landscape on devices with rounded
+     corners. env() falls back to 0 on browsers/devices without safe-areas. */
+  padding-top: calc(18px + env(safe-area-inset-top));
+  padding-left: calc(36px + env(safe-area-inset-left));
+  padding-right: calc(36px + env(safe-area-inset-right));
+}
+
+/* ===== iOS / Android safe-area handling for PWA standalone mode =====
+   When the app is installed and runs full-screen, the status bar (top) and
+   home indicator (bottom) overlap the page. Every fixed/sticky element that
+   sits at an edge needs to respect env(safe-area-inset-*). */
+
+/* Chat input row sits at viewport bottom — lift it above the home indicator */
+.chat-input-row {
+  padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+}
+
+/* Feedback FAB pinned to bottom-right */
+#feedback-fab {
+  bottom: calc(18px + env(safe-area-inset-bottom)) !important;
+  right: calc(16px + env(safe-area-inset-right)) !important;
+}
+
+/* Landing screen (login) is a full-viewport fixed layer */
+.landing-wrapper {
+  padding-top: calc(40px + env(safe-area-inset-top)) !important;
+  padding-bottom: calc(40px + env(safe-area-inset-bottom)) !important;
+  padding-left: calc(24px + env(safe-area-inset-left)) !important;
+  padding-right: calc(24px + env(safe-area-inset-right)) !important;
+}
+
+/* Nav drawer slides in from the right — its top header needs to clear status bar,
+   bottom edge needs to clear home indicator */
+.nav-drawer-header {
+  padding-top: calc(18px + env(safe-area-inset-top)) !important;
+  padding-right: calc(22px + env(safe-area-inset-right)) !important;
+}
+.nav-drawer {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Modal overlays cover the full viewport; make their internal padding safe */
+.modal-overlay,
+.pwa-modal-overlay,
+.email-login-overlay,
+.feedback-overlay,
+.cierre-overlay,
+.foto-lightbox,
+.ej-modal-overlay,
+.alim-edit-overlay {
+  padding-top: calc(16px + env(safe-area-inset-top));
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  padding-left: calc(16px + env(safe-area-inset-left));
+  padding-right: calc(16px + env(safe-area-inset-right));
 }
 
 /* Header logo — uses official PNG, screen-blend so dark bg becomes transparent */
