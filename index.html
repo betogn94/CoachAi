@@ -16,7 +16,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260522-1320-hidestatsbar">
+<meta name="app-version" content="20260522-1410-quickbtns-safearea">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -827,9 +827,13 @@ body:has(#chat-wrapper[style*="block"]) footer {
   gap: 10px;
   flex-wrap: wrap;
   justify-content: center;
-  /* Fixed just above the input row */
+  /* Fixed just above the input row. The 76px is the input row's content
+     height; we ALSO add env(safe-area-inset-bottom) because the input row
+     padding-bottom grows by that amount on iOS PWA (home indicator clearance).
+     Without this, the quick buttons sit ~34px lower than they should on iPhone
+     and visually overlap the textarea. */
   position: fixed;
-  bottom: 76px;
+  bottom: calc(76px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
