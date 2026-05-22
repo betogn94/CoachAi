@@ -4165,21 +4165,83 @@ footer {
 }
 .pwa-install-btn:active { transform: scale(0.98); }
 
-.pwa-ios-hint {
-  max-width: 360px; margin: 0 auto 18px;
-  padding: 12px 16px; border-radius: 14px;
-  background: rgba(46,207,181,0.07);
-  border: 1px solid rgba(46,207,181,0.22);
-  color: #c8e8de;
-  font-size: 12.5px; line-height: 1.55; text-align: center;
+/* PWA install instructions modal (opened from the landing button) */
+.pwa-modal-overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(7,7,20,0.88);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  padding: 16px;
+  animation: pwa-modal-fade 0.18s ease-out;
 }
-.pwa-ios-hint strong { color: #f0f0fa; font-weight: 700; }
-.pwa-ios-hint .pwa-share-icon {
-  display: inline-block;
-  font-weight: 700;
+.pwa-modal-overlay.open { display: flex; }
+@keyframes pwa-modal-fade { from { opacity: 0; } to { opacity: 1; } }
+.pwa-modal-card {
+  background: var(--surface);
+  border: 1px solid rgba(124,106,255,0.35);
+  border-radius: 20px;
+  padding: 26px 26px 20px;
+  max-width: 440px; width: 100%; max-height: 88vh; overflow-y: auto;
+  position: relative;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+  animation: pwa-card-in 0.24s cubic-bezier(0.18, 1.1, 0.4, 1.05);
+}
+@keyframes pwa-card-in {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+.pwa-modal-close {
+  position: absolute; top: 10px; right: 12px;
+  background: none; border: none; color: var(--muted);
+  font-size: 24px; cursor: pointer; padding: 4px 8px; line-height: 1;
+  font-family: inherit;
+}
+.pwa-modal-close:hover { color: var(--text); }
+.pwa-modal-title {
+  font-size: 18px; font-weight: 700; color: var(--text);
+  margin-bottom: 14px; padding-right: 32px; line-height: 1.3;
+}
+.pwa-modal-body {
+  font-size: 14px; color: var(--muted); line-height: 1.65;
+}
+.pwa-modal-body p { margin-bottom: 10px; }
+.pwa-modal-body strong { color: var(--text); font-weight: 600; }
+.pwa-modal-body .pwa-share-icon {
+  display: inline-block; vertical-align: -4px;
+  width: 18px; height: 18px;
+  background: rgba(46,207,181,0.18);
   color: var(--accent3);
-  padding: 0 2px;
+  padding: 2px; border-radius: 5px;
+  margin: 0 2px;
 }
+.pwa-modal-body ol {
+  padding-left: 0; margin: 12px 0; list-style: none; counter-reset: pwa-step;
+}
+.pwa-modal-body ol li {
+  counter-increment: pwa-step;
+  padding-left: 32px; position: relative;
+  margin-bottom: 12px; color: var(--text);
+}
+.pwa-modal-body ol li::before {
+  content: counter(pwa-step);
+  position: absolute; left: 0; top: 0;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+  color: white; font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.pwa-modal-ok {
+  width: 100%; margin-top: 18px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+  color: white; border: none;
+  padding: 12px 24px; border-radius: 100px;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
+  cursor: pointer; font-family: inherit;
+  box-shadow: 0 6px 20px rgba(124,106,255,0.32);
+  transition: transform 0.15s;
+}
+.pwa-modal-ok:hover { transform: translateY(-1px); }
+.pwa-modal-ok:active { transform: scale(0.98); }
 
 .landing-footer-text {
   font-size: 11px;
@@ -6479,6 +6541,17 @@ QUE SÍ SE VE</div>
       <img id="ej-modal-gif" src="" alt="Demostración del ejercicio">
     </div>
     <div class="ej-modal-desc" id="ej-modal-desc"></div>
+  </div>
+</div>
+
+<!-- PWA install instructions — platform-aware modal opened from the landing button
+     when the native install prompt isn't available (iOS Safari, desktop, etc.) -->
+<div class="pwa-modal-overlay" id="pwa-modal" onclick="closePwaModal(event)" role="dialog" aria-modal="true" aria-label="Instalar CoachAI">
+  <div class="pwa-modal-card" onclick="event.stopPropagation()">
+    <button class="pwa-modal-close" onclick="closePwaModal()" aria-label="Cerrar">×</button>
+    <div class="pwa-modal-title" id="pwa-modal-title">Instalar CoachAI</div>
+    <div class="pwa-modal-body" id="pwa-modal-body"></div>
+    <button class="pwa-modal-ok" onclick="closePwaModal()">Entendido</button>
   </div>
 </div>
 
@@ -13468,27 +13541,20 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Capture Android Chrome's install prompt so we can fire it from our own button.
   // Without this hook, Chrome would auto-show its mini-infobar — we want our
-  // branded button to be the call to action.
+  // branded button to be the call to action. The button itself stays visible
+  // either way; if we don't capture a prompt, click opens the manual modal.
   window._pwaDeferredPrompt = null;
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     window._pwaDeferredPrompt = e;
-    const btn = document.getElementById('pwa-install-btn');
-    if (btn) btn.style.display = 'inline-flex';
   });
 
-  // App already installed (or running standalone) → hide both prompts entirely
+  // App already installed (or running standalone) → hide the install button
   const inStandalone = window.matchMedia('(display-mode: standalone)').matches
                     || window.navigator.standalone === true;
-
-  // iOS Safari doesn't support beforeinstallprompt → show the manual A2HS hint
-  // (only on iOS Safari, only when not already installed)
-  const ua = navigator.userAgent || '';
-  const isIOS = /iPad|iPhone|iPod/.test(ua);
-  const isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua);
-  if (isIOS && isSafari && !inStandalone) {
-    const hint = document.getElementById('pwa-ios-hint');
-    if (hint) hint.style.display = 'block';
+  if (inStandalone) {
+    const btn = document.getElementById('pwa-install-btn');
+    if (btn) btn.style.display = 'none';
   }
 
   // Log successful install for beta analytics
@@ -13496,20 +13562,126 @@ window.addEventListener('DOMContentLoaded', () => {
     try { if (typeof trackEvent === 'function') trackEvent('pwa_installed', null); } catch (e) {}
     const btn = document.getElementById('pwa-install-btn');
     if (btn) btn.style.display = 'none';
+    closePwaModal();
   });
 });
 
+// Detect platform so we can show the right A2HS instructions when there's no
+// native install prompt available (iOS Safari, desktop Safari, in-app browsers).
+function detectPwaPlatform() {
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua)
+             || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPadOS 13+
+  const isAndroid = /Android/.test(ua);
+  const isChrome = /Chrome|CriOS/.test(ua) && !/Edg|OPR|SamsungBrowser/.test(ua);
+  const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS|OPR/.test(ua);
+  const isFirefox = /Firefox|FxiOS/.test(ua);
+  const isInApp = /FBAN|FBAV|Instagram|Line|WhatsApp|MicroMessenger/i.test(ua);
+  if (isInApp) return 'inapp';
+  if (isIOS) return 'ios';
+  if (isAndroid) return 'android';
+  return 'desktop';
+}
+
+// HTML content for each platform's install instructions.
+function pwaModalContent(platform) {
+  // Inline SVG of the iOS Share icon (square with up arrow) so users recognise it
+  const shareIcon = '<svg class="pwa-share-icon" viewBox="0 0 24 24" aria-hidden="true">'
+                  + '<path fill="currentColor" d="M12 2.5a1 1 0 0 1 .7.3l3.5 3.5a1 1 0 0 1-1.4 1.4L13 5.9V15a1 1 0 1 1-2 0V5.9L9.2 7.7a1 1 0 1 1-1.4-1.4l3.5-3.5a1 1 0 0 1 .7-.3Z"/>'
+                  + '<path fill="currentColor" d="M5 11a2 2 0 0 1 2-2h2a1 1 0 1 1 0 2H7v9h10v-9h-2a1 1 0 1 1 0-2h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-9Z"/>'
+                  + '</svg>';
+  if (platform === 'ios') {
+    return {
+      title: 'Instalar en iPhone / iPad',
+      body: '<p>Para usar CoachAI como una app, tenés que agregarla a tu pantalla de inicio desde <strong>Safari</strong>:</p>'
+          + '<ol>'
+          + '<li>Tocá el botón <strong>Compartir</strong> ' + shareIcon + ' abajo de la pantalla.</li>'
+          + '<li>Deslizá y elegí <strong>"Agregar a pantalla de inicio"</strong>.</li>'
+          + '<li>Tocá <strong>Agregar</strong> arriba a la derecha.</li>'
+          + '</ol>'
+          + '<p style="margin-top:14px;color:#6c6c80;font-size:12.5px;">Si estás viendo esto desde Chrome o Instagram, abrí el link en Safari primero.</p>'
+    };
+  }
+  if (platform === 'android') {
+    return {
+      title: 'Instalar en Android',
+      body: '<p>Para instalar CoachAI como una app:</p>'
+          + '<ol>'
+          + '<li>Tocá el menú <strong>⋮</strong> arriba a la derecha del navegador.</li>'
+          + '<li>Elegí <strong>"Instalar app"</strong> o <strong>"Agregar a pantalla de inicio"</strong>.</li>'
+          + '<li>Confirmá tocando <strong>Instalar</strong>.</li>'
+          + '</ol>'
+          + '<p style="margin-top:14px;color:#6c6c80;font-size:12.5px;">Si no ves la opción, asegurate de estar usando <strong>Chrome</strong>.</p>'
+    };
+  }
+  if (platform === 'inapp') {
+    return {
+      title: 'Abrí CoachAI en tu navegador',
+      body: '<p>Estás viendo CoachAI dentro de otra app (Instagram, Facebook, etc.). Para instalarla:</p>'
+          + '<ol>'
+          + '<li>Tocá el menú <strong>⋮</strong> o <strong>•••</strong> arriba a la derecha.</li>'
+          + '<li>Elegí <strong>"Abrir en el navegador"</strong> (Safari en iPhone, Chrome en Android).</li>'
+          + '<li>Una vez ahí, volvé a tocar <strong>Instalar CoachAI</strong>.</li>'
+          + '</ol>'
+    };
+  }
+  // desktop
+  return {
+    title: 'Instalar en computadora',
+    body: '<p>CoachAI funciona mejor desde el celular, pero también la podés instalar en tu compu:</p>'
+        + '<ol>'
+        + '<li>Buscá el ícono de <strong>instalar</strong> ⊕ en la barra de direcciones de Chrome / Edge.</li>'
+        + '<li>Clickeá <strong>Instalar</strong>.</li>'
+        + '</ol>'
+        + '<p style="margin-top:14px;color:#6c6c80;font-size:12.5px;">Si no aparece, abrí el menú del navegador y buscá "Instalar CoachAI".</p>'
+  };
+}
+
+function openPwaModal(platform) {
+  const overlay = document.getElementById('pwa-modal');
+  const titleEl = document.getElementById('pwa-modal-title');
+  const bodyEl  = document.getElementById('pwa-modal-body');
+  if (!overlay || !titleEl || !bodyEl) return;
+  const { title, body } = pwaModalContent(platform);
+  titleEl.textContent = title;
+  bodyEl.innerHTML = body;
+  overlay.classList.add('open');
+  try { if (typeof trackEvent === 'function') trackEvent('pwa_install_modal', { platform }); } catch (e) {}
+}
+
+function closePwaModal(event) {
+  // Called from: backdrop click (overlay onclick), close button, OK button, or
+  // programmatically. For backdrop clicks, only close if the click was on the
+  // overlay itself — not on the card (which uses stopPropagation but defensive).
+  if (event && event.target && event.target.id === 'pwa-modal') {
+    // backdrop click: fall through and close
+  } else if (event && event.currentTarget && event.currentTarget.id === 'pwa-modal' && event.target.id !== 'pwa-modal') {
+    return; // click bubbled from inside the card — ignore
+  }
+  const overlay = document.getElementById('pwa-modal');
+  if (overlay) overlay.classList.remove('open');
+}
+
 async function pwaInstall() {
+  // 1) Already installed? Nothing to do.
+  const inStandalone = window.matchMedia('(display-mode: standalone)').matches
+                    || window.navigator.standalone === true;
+  if (inStandalone) return;
+
+  // 2) Native prompt available (Android Chrome, Edge desktop) → fire it directly.
   const dp = window._pwaDeferredPrompt;
-  if (!dp) return;
-  dp.prompt();
-  try {
-    const { outcome } = await dp.userChoice;
-    if (typeof trackEvent === 'function') trackEvent('pwa_install_prompt_' + outcome, null);
-  } catch (e) { /* user dismissed quickly — ignore */ }
-  window._pwaDeferredPrompt = null;
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'none';
+  if (dp) {
+    try {
+      dp.prompt();
+      const { outcome } = await dp.userChoice;
+      if (typeof trackEvent === 'function') trackEvent('pwa_install_prompt_' + outcome, null);
+    } catch (e) { /* user dismissed quickly — ignore */ }
+    window._pwaDeferredPrompt = null;
+    return;
+  }
+
+  // 3) No prompt available → show manual instructions for this platform.
+  openPwaModal(detectPwaPlatform());
 }
 
 </script>
@@ -13530,14 +13702,11 @@ async function pwaInstall() {
   </div>
   <div class="landing-admin-link" onclick="showAdminLogin()">⚙️ Acceso administrador</div>
 
-  <!-- PWA install prompt — shown only when the browser supports it (Android Chrome) -->
-  <button id="pwa-install-btn" class="pwa-install-btn" style="display:none" onclick="pwaInstall()">
-    📱 Instalar CoachAI en tu celular
+  <!-- PWA install button — always visible on landing; click opens a platform-
+       aware modal (or fires the native prompt if Android Chrome captured it) -->
+  <button id="pwa-install-btn" class="pwa-install-btn" onclick="pwaInstall()">
+    📱 Instalar CoachAI como app
   </button>
-  <!-- iOS Safari fallback — shown only when iOS is detected and app isn't already installed -->
-  <div id="pwa-ios-hint" class="pwa-ios-hint" style="display:none">
-    💡 <strong>Instalá CoachAI en tu iPhone:</strong> tocá <span class="pwa-share-icon">⎘</span> Compartir → <strong>Agregar a inicio</strong>
-  </div>
 
   <div class="landing-footer-text" id="landing-footer-text">Powered by Anthropic Claude</div>
 </div>
