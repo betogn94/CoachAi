@@ -677,10 +677,21 @@ textarea { resize: vertical; min-height: 80px; }
   align-items: center;
   gap: 0;
   padding: 0;
+  /* Respect iOS safe-area horizontally so the first/last chip never kisses the
+     screen edge (matters on iPhones in landscape or with rounded screens). */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
   background: transparent;
   border-bottom: 1px solid rgba(255,255,255,0.04);
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  /* Fade-out gradient on the right edge so users see the row is scrollable
+     (instead of thinking the last chip is cut off and broken). Mask uses
+     `to right` so opacity drops in the rightmost 28px. */
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 28px), transparent 100%);
+          mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 28px), transparent 100%);
 }
 
 .chat-profile-bar::-webkit-scrollbar { display: none; }
