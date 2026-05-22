@@ -16,7 +16,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260522-1410-quickbtns-safearea">
+<meta name="app-version" content="20260522-1525-pwa-ghost-ring">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -4230,23 +4230,96 @@ footer {
 .landing-admin-link:hover { color: var(--accent-bright); }
 
 /* ============ PWA install button + iOS A2HS hint (landing only) ============ */
+/* === PWA INSTALL BUTTON · Ghost Ring === */
 .pwa-install-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  background: rgba(124,106,255,0.10);
-  border: 1px solid rgba(124,106,255,0.32);
-  color: var(--accent-bright);
-  padding: 11px 22px; border-radius: 100px;
-  font-size: 13px; font-weight: 600; letter-spacing: 0.4px;
-  font-family: inherit; cursor: pointer;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px 10px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text);
+  /* Truco padding-box / border-box: borde gradient brand sin teñir el fondo */
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%) border-box;
+  border: 1.5px solid transparent;
   margin: 0 auto 18px;
-  transition: background 0.18s, border-color 0.18s, transform 0.18s;
+  box-shadow:
+    0 4px 24px rgba(124,106,255,0.18),
+    0 0 0 1px rgba(124,106,255,0.05);
+  transition: transform 0.2s cubic-bezier(0.18, 1.1, 0.4, 1.05), box-shadow 0.25s ease;
 }
 .pwa-install-btn:hover {
-  background: rgba(124,106,255,0.22);
-  border-color: rgba(124,106,255,0.55);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 32px rgba(124,106,255,0.30),
+    0 0 0 1px rgba(124,106,255,0.10);
 }
-.pwa-install-btn:active { transform: scale(0.98); }
+.pwa-install-btn:active { transform: translateY(0) scale(0.98); }
+
+/* Ícono wrap con anillo conic girando */
+.pwa-install-btn .pi-icon-wrap {
+  position: relative;
+  width: 38px; height: 38px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.pwa-install-btn .pi-icon-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    transparent 0%,
+    rgba(124,106,255,0.55) 20%,
+    transparent 45%,
+    rgba(46,207,181,0.50) 70%,
+    transparent 100%);
+  filter: blur(6px);
+  animation: pi-spin 10s linear infinite;
+}
+@keyframes pi-spin { to { transform: rotate(360deg); } }
+
+.pwa-install-btn .pi-icon {
+  position: relative;
+  width: 100%; height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(124,106,255,0.20), rgba(46,207,181,0.14));
+  border: 1px solid rgba(124,106,255,0.30);
+  color: var(--accent-bright);
+  display: flex; align-items: center; justify-content: center;
+}
+.pwa-install-btn .pi-icon svg { width: 18px; height: 18px; }
+
+/* Copy: título + sub en 2 líneas */
+.pwa-install-btn .pi-text {
+  display: flex; flex-direction: column; align-items: flex-start;
+  flex: 1; min-width: 0;
+}
+.pwa-install-btn .pi-title {
+  font-size: 14px; font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.2px;
+  line-height: 1.2;
+}
+.pwa-install-btn .pi-sub {
+  font-size: 10.5px;
+  color: var(--muted);
+  letter-spacing: 0.4px;
+  margin-top: 2px;
+}
+.pwa-install-btn .pi-arrow {
+  width: 18px; flex-shrink: 0;
+  color: var(--accent-bright);
+  font-size: 16px; font-weight: 600;
+  line-height: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pwa-install-btn .pi-icon-ring { animation: none; }
+}
 
 /* PWA install instructions modal (opened from the landing button) */
 .pwa-modal-overlay {
@@ -13927,8 +14000,22 @@ async function forceAppUpdate() {
 
   <!-- PWA install button — always visible on landing; click opens a platform-
        aware modal (or fires the native prompt if Android Chrome captured it) -->
-  <button id="pwa-install-btn" class="pwa-install-btn" onclick="pwaInstall()">
-    📱 Instalar CoachAI como app
+  <button id="pwa-install-btn" class="pwa-install-btn" onclick="pwaInstall()" aria-label="Instalar CoachAI como app">
+    <span class="pi-icon-wrap">
+      <span class="pi-icon-ring" aria-hidden="true"></span>
+      <span class="pi-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="2" width="14" height="20" rx="2.5"></rect>
+          <path d="M9 11l3 3 3-3"></path>
+          <line x1="12" y1="7" x2="12" y2="14"></line>
+        </svg>
+      </span>
+    </span>
+    <span class="pi-text">
+      <span class="pi-title">Instalar CoachAI</span>
+      <span class="pi-sub">Llevala siempre con vos</span>
+    </span>
+    <span class="pi-arrow" aria-hidden="true">→</span>
   </button>
 
   <div class="landing-footer-text" id="landing-footer-text">Powered by Anthropic Claude</div>
