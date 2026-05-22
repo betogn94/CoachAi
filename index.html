@@ -16,7 +16,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260522-1215-chatbar-overlay">
+<meta name="app-version" content="20260522-1240-chatbar-2rows">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -676,32 +676,10 @@ textarea { resize: vertical; min-height: 80px; }
   position: relative;
 }
 
-/* Wrapper holds the scroll-fade overlay (positioned absolute on the right),
-   while the inner .chat-profile-bar handles the actual horizontal scroll.
-   Splitting them is the only way that works reliably on iOS Safari — mask-image
-   on a scrollable element doesn't render predictably across iOS versions. */
+/* Wrapper is just a passthrough now (kept so we don't change HTML if we ever
+   want to add the scroll-fade overlay back for desktop edge cases). */
 .chat-profile-bar-wrap {
-  position: relative;
   border-bottom: 1px solid rgba(255,255,255,0.04);
-}
-.chat-profile-bar-wrap::after {
-  /* Visible chevron + gradient overlay on the right edge. Combines a
-     transparent→bg gradient (so chips visibly fade out) with a "›" glyph that
-     makes the affordance unmistakable: there's more to the right. */
-  content: '›';
-  position: absolute;
-  top: 0; bottom: 0;
-  right: 0;
-  width: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: calc(14px + env(safe-area-inset-right));
-  pointer-events: none;
-  font-size: 22px; font-weight: 700; line-height: 1;
-  color: var(--accent-bright);
-  background: linear-gradient(to right, rgba(8,8,16,0) 0%, var(--bg) 70%);
-  z-index: 2;
 }
 
 .chat-profile-bar {
@@ -712,9 +690,7 @@ textarea { resize: vertical; min-height: 80px; }
   /* Respect iOS safe-area horizontally so the first/last chip never kisses the
      screen edge (matters on iPhones in landscape or with rounded screens). */
   padding-left: env(safe-area-inset-left);
-  /* Trailing padding ensures the last chip can scroll fully past the 56px
-     fade overlay (otherwise the rightmost chip is always partly hidden). */
-  padding-right: calc(56px + env(safe-area-inset-right));
+  padding-right: env(safe-area-inset-right);
   background: transparent;
   overflow-x: auto;
   overflow-y: hidden;
@@ -4637,7 +4613,43 @@ footer {
   .msg-bubble     { max-width: 85%; padding: 10px 14px; }
   .chat-input-row { padding: 12px 20px 14px; gap: 8px; }
   .quick-btns     { padding: 12px 20px 6px; gap: 8px; }
-  .cpb-item       { padding: 10px 12px; }
+  /* Stats bar on mobile: 6 chips don't fit on one row (the longest value,
+     "⚡ Intermedio", is ~85px alone — wider than the 65px share each would
+     get on a 390px iPhone screen). Wrap to TWO rows of 3 chips each instead.
+     That keeps all values readable, no horizontal scroll needed, and the
+     two rows together are barely taller than one row of the original. */
+  .chat-profile-bar {
+    flex-wrap: wrap;
+    overflow-x: hidden;
+  }
+  .cpb-item {
+    flex: 1 1 calc(33.333% - 0.1px);   /* 3 per row; tiny subtraction prevents wrap rounding bugs */
+    min-width: 0;                       /* allow flex children to shrink below content width */
+    padding: 8px 6px;
+    gap: 2px;
+    text-align: center;
+    align-items: center;
+    border-right-color: rgba(255,255,255,0.06);
+  }
+  /* Row 1: items 3 → border-right off (end of row); Row 2: same on item 6 */
+  .cpb-item:nth-child(3n) { border-right: none; }
+  /* Row 1 items get a bottom border to separate the two rows visually */
+  .cpb-item:nth-child(-n+3) { border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .cpb-label {
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  .cpb-value {
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
   .qbtn-main      { min-width: unset; flex: 1; font-size: 13px; padding: 10px 16px; }
 }
 
