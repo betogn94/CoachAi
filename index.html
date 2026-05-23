@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260523-1620-bottom-nav-floating">
+<meta name="app-version" content="20260523-1730-chat-hamburger">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -806,6 +806,21 @@ body:has(.form-wrapper[style*="block"]) .home-wrapper { display: none !important
    are sensitive to the exact style attribute string. */
 .cai-bottom-nav { display: none; }
 body.app-active .cai-bottom-nav { display: flex; }
+
+/* ===== Context-aware header chrome =====
+   ES/EN toggle only shows on Home (the section where the user is "settling
+   in" and might want to change language). Hidden in chat, mi alimentación,
+   mi entreno, progreso, perfil — those have less header noise.
+
+   The hamburger button is the inverse: hidden everywhere EXCEPT chat. The
+   bottom nav is hidden inside chat (chat input row owns the bottom edge),
+   so we need an alternative way to navigate out. Hamburger → drawer with
+   the 6 nav items. */
+body.app-active .lang-toggle { display: none; }
+body.app-active:has(#home-wrapper[style*="block"]) .lang-toggle { display: flex; }
+
+body.app-active #hamburger-btn { display: none !important; }
+body.app-active:has(#chat-wrapper[style*="block"]) #hamburger-btn { display: flex !important; }
 /* Reserve bottom padding only when the nav is showing so content above isn't
    covered. The nav itself occupies ~80px (pill ~48 + gap 4 + label ~14 + the
    14px from-bottom offset), so we reserve a safe 100px so the last card never
@@ -6100,12 +6115,82 @@ footer {
       <button class="lang-btn active" onclick="setLang('es')">ES</button>
       <button class="lang-btn" onclick="setLang('en')">EN</button>
     </div>
+    <button class="hamburger-btn" id="hamburger-btn" onclick="openNav()" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </header>
 
-<!-- Hamburger + nav-drawer replaced by the floating bottom nav at the
-     end of <body>. Empty overlay element kept (legacy code references it). -->
+<!-- NAV OVERLAY (backdrop for drawer) -->
 <div class="nav-overlay" id="nav-overlay" onclick="closeNav()"></div>
+
+<!-- NAV DRAWER — visible ONLY when hamburger is tapped from Chat. Bottom nav
+     is the primary nav in every other section; the drawer is the secondary
+     way to navigate AWAY from chat (where the bottom nav is hidden). -->
+<div class="nav-drawer" id="nav-drawer">
+  <div class="nav-drawer-header">
+    <div class="nav-drawer-logo">
+      <img src="logo.png" alt="COACHAI">
+    </div>
+    <button class="nav-close-btn" onclick="closeNav()">×</button>
+  </div>
+  <div class="nav-user-chip">
+    <div class="nav-user-avatar">
+      <img src="logo-icon.png" alt="">
+    </div>
+    <div>
+      <div class="nav-user-name" id="nav-user-name">—</div>
+      <div class="nav-user-goal" id="nav-user-goal">—</div>
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-label">Navegación</div>
+    <div class="nav-item" id="drawer-inicio" onclick="showHome(); setActiveNav('nav-inicio'); closeNav()">
+      <div class="nav-item-icon"><div class="nav-item-icon-inner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11L12 4l8.5 7"/><path d="M5.5 10v9h13v-9"/><path d="M10 19v-5h4v5"/></svg>
+      </div></div>
+      <div><div class="nav-item-label">Inicio</div></div>
+    </div>
+    <div class="nav-item" id="drawer-coach" onclick="showChat(); setActiveNav('nav-coach'); closeNav()">
+      <div class="nav-item-icon"><div class="nav-item-icon-inner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5c0-2.485 2.015-4.5 4.5-4.5h5c2.485 0 4.5 2.015 4.5 4.5s-2.015 4.5-4.5 4.5h-4l-3 2.5v-2.5c-1.5-0.8-2.5-2.4-2.5-4.5z"/><path d="M11 17c0.6 1.6 2.1 2.5 4 2.5h2.5l2.5 2v-2c1.3-0.7 2-2 2-3.5"/></svg>
+      </div></div>
+      <div><div class="nav-item-label">Coach AI</div></div>
+    </div>
+    <div class="nav-item" id="drawer-diario" onclick="showDiario(); setActiveNav('nav-diario'); closeNav()">
+      <div class="nav-item-icon"><div class="nav-item-icon-inner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16"/><path d="M9 3v4"/><path d="M15 3v4"/><circle cx="12" cy="14.5" r="1.4" fill="currentColor"/></svg>
+      </div></div>
+      <div><div class="nav-item-label">Mi Alimentación</div></div>
+    </div>
+    <div class="nav-item" id="drawer-entreno" onclick="showMiEntreno(); setActiveNav('nav-entreno'); closeNav()">
+      <div class="nav-item-icon"><div class="nav-item-icon-inner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"/><path d="M21 21l-1-1"/><path d="M3 3l1 1"/><path d="M18 22l4-4"/><path d="M2 6l4-4"/><path d="M3 10l7-7"/><path d="M14 21l7-7"/></svg>
+      </div></div>
+      <div><div class="nav-item-label">Mi Entreno</div></div>
+    </div>
+    <div class="nav-item" id="drawer-progreso" onclick="showDashboard(); setActiveNav('nav-progreso'); closeNav()">
+      <div class="nav-item-icon"><div class="nav-item-icon-inner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17l4.5-4.5 3 3 7-7"/><path d="M14 8.5h4v4"/></svg>
+      </div></div>
+      <div><div class="nav-item-label">Progreso</div></div>
+    </div>
+    <div class="nav-item" id="drawer-perfil" onclick="showPerfil(); setActiveNav('nav-perfil'); closeNav()">
+      <div class="nav-item-icon"><div class="nav-item-icon-inner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 19.5c0-3.59 2.91-6.5 6.5-6.5s6.5 2.91 6.5 6.5"/></svg>
+      </div></div>
+      <div><div class="nav-item-label">Perfil</div></div>
+    </div>
+  </div>
+  <div class="nav-drawer-footer">
+    <div class="nav-footer-brand">
+      <div class="nav-footer-pulse"></div>
+      <div class="nav-footer-brand-name">COACHAI</div>
+      <span class="nav-version-tag">v1.0</span>
+    </div>
+    <div class="nav-version">Entrenador Personal con IA · 24/7</div>
+  </div>
+</div>
 
 <!-- PROGRESS — 5 horizontal bars + "PASO X DE 5" label + Saltar link.
      The .progress-step elements keep their original ids (ps1-ps5) so the
@@ -11779,15 +11864,23 @@ function getGreeting() {
 // ============================
 // NAV DRAWER
 // ============================
-// Legacy drawer was replaced by the floating bottom nav. These two are kept
-// as no-ops so any leftover callers (older inline onclicks, etc.) don't 500.
+// Drawer is the secondary nav, used ONLY from chat (where the floating
+// bottom nav is hidden because the chat input row owns the bottom edge).
+// Triggered by the hamburger button, which CSS only renders when the chat
+// section is visible.
 function openNav() {
   const drawer = document.getElementById('nav-drawer');
+  const overlay = document.getElementById('nav-overlay');
   if (drawer) drawer.classList.add('open');
+  if (overlay) overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 function closeNav() {
   const drawer = document.getElementById('nav-drawer');
+  const overlay = document.getElementById('nav-overlay');
   if (drawer) drawer.classList.remove('open');
+  if (overlay) overlay.classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 // setActiveNav: toggle the .active class on the matching tab AND slide the
