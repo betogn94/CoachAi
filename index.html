@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260523-1830-safari-drawer-only">
+<meta name="app-version" content="20260523-1945-chat-cards">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -867,6 +867,88 @@ body.app-active:has(.form-wrapper[style*="block"]) { padding-bottom: 0; }
   .cai-bottom-nav-thumb { transition: none; }
 }
 
+/* === CHAT · Quick-reply cards (Premium variant) =====
+   Re-skin of the two big quick-action buttons in the chat (Dieta / Rutina
+   de la semana). The old qbtn-main was a single-line pill with emoji + text;
+   the new card stacks an icon plate, a 2-line title/sub, and a → arrow.
+   Lives inside .quick-btns (the fixed row above the chat input). */
+.qbtn-card {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  border-radius: 16px;
+  background: rgba(0,0,0,0.30);
+  border: 1px solid rgba(255,255,255,0.06);
+  cursor: pointer;
+  text-align: left;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text);
+  min-width: 0;
+  transition: transform 0.2s cubic-bezier(0.18, 1.1, 0.4, 1.05),
+              border-color 0.25s ease,
+              box-shadow 0.25s ease;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
+}
+.qbtn-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(124,106,255,0.45);
+  box-shadow: 0 8px 24px rgba(124,106,255,0.18);
+}
+.qbtn-card:active { transform: scale(0.98); }
+
+.qbtn-card-ico {
+  width: 38px; height: 38px;
+  border-radius: 12px;
+  border: 1px solid rgba(124,106,255,0.30);
+  background: linear-gradient(135deg, rgba(124,106,255,0.22), rgba(46,207,181,0.14));
+  color: var(--accent-bright);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.qbtn-card-ico svg { width: 22px; height: 22px; }
+
+/* Rutina variant inverts the gradient teal→blue so the two cards read
+   distinct at a glance (without losing brand cohesion). */
+.qbtn-card.is-rutina .qbtn-card-ico {
+  background: linear-gradient(135deg, rgba(46,207,181,0.22), rgba(91,159,255,0.14));
+  border-color: rgba(46,207,181,0.30);
+  color: var(--accent3);
+}
+
+.qbtn-card-text { flex: 1; min-width: 0; }
+.qbtn-card-title {
+  font-size: 15px; font-weight: 600;
+  color: var(--text);
+  line-height: 1.1;
+  display: block;
+}
+.qbtn-card-sub {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 3px;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qbtn-card-arrow {
+  color: var(--accent-bright);
+  font-weight: 600;
+  font-size: 17px;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .qbtn-card { padding: 11px 12px; gap: 10px; }
+  .qbtn-card-ico { width: 34px; height: 34px; }
+  .qbtn-card-ico svg { width: 20px; height: 20px; }
+  .qbtn-card-title { font-size: 14px; }
+  .qbtn-card-sub { font-size: 10.5px; }
+}
+
 /* Hide the in-panel launch button — replaced by the floating bottom nav */
 .onb-track .btn-launch { display: none !important; }
 
@@ -1301,10 +1383,10 @@ textarea { resize: vertical; min-height: 80px; }
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
-/* Push messages to the bottom of the scroll area (Claude/WhatsApp pattern) */
-.chat-messages > *:first-child {
-  margin-top: auto;
-}
+/* Messages stack from the TOP of the scroll area (ChatGPT/Claude pattern).
+   Earlier rule used `margin-top: auto` to bottom-pin (WhatsApp pattern) but
+   that left a big empty space above the first message when the thread was
+   short. Top-stacking reads cleaner in a conversation context. */
 
 /* Hide the page footer when chat section is open — it overlaps the fixed input */
 body:has(#chat-wrapper[style*="block"]) footer {
@@ -1315,47 +1397,56 @@ body:has(#chat-wrapper[style*="block"]) footer {
 @keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .msg.user { flex-direction: row-reverse; }
 
-.msg-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  background:
-    linear-gradient(var(--surface2), var(--surface2)) padding-box,
-    linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%) border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  flex-shrink: 0;
-  box-shadow: 0 0 12px rgba(124,106,255,0.20);
-}
+/* Avatars removed — chat reads cleaner without them (like ChatGPT / Claude).
+   Coach vs user distinction comes from bubble alignment + tint alone.
+   Element kept in the DOM (hidden) so addMessage's existing innerHTML
+   template doesn't need to change. */
+.msg-avatar { display: none; }
 
+/* Chat bubbles — same "depth card" look as the quick-reply cards above
+   (dark embedded background + soft outline + inner top shadow + 16px
+   radius). Coach gets a subtle brand-gradient stripe on the left edge to
+   read as "from your coach"; user gets a violet/teal tinted fill to read
+   as "your message highlighted". Both share the same chrome so the chat
+   feels visually unified with the quick-reply cards underneath. */
 .msg-bubble {
-  max-width: 72%;
+  position: relative;
+  max-width: 85%;          /* wider now that there's no avatar taking 38px on the side */
   padding: 13px 17px;
   border-radius: 16px;
   font-size: 14px;
   line-height: 1.65;
+  background: rgba(0,0,0,0.30);
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
 }
 
 .msg.coach .msg-bubble {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-top-left-radius: 4px;
-  /* Subtle gradient accent on left edge */
-  border-left: 2px solid transparent;
-  background-image: linear-gradient(var(--surface2), var(--surface2)), linear-gradient(180deg, rgba(124,106,255,0.55) 0%, rgba(46,207,181,0.35) 100%);
-  background-origin: border-box;
-  background-clip: padding-box, border-box;
+  border-top-left-radius: 4px;   /* speech-bubble corner cue toward the avatar */
+}
+/* Coach gradient hint — thin vertical stripe along the left inner edge */
+.msg.coach .msg-bubble::before {
+  content: '';
+  position: absolute;
+  left: 6px; top: 10px; bottom: 10px;
+  width: 2px;
+  border-radius: 100px;
+  background: linear-gradient(180deg, rgba(124,106,255,0.65) 0%, rgba(46,207,181,0.35) 100%);
+  pointer-events: none;
 }
 
 .msg.user .msg-bubble {
-  background: linear-gradient(135deg, rgba(124,106,255,0.18) 0%, rgba(46,207,181,0.10) 100%);
-  border: 1px solid rgba(124,106,255,0.32);
+  /* Same dark-card base but tinted with the brand-violet→teal gradient so
+     the user's own messages stand out without breaking the chrome. */
+  background:
+    linear-gradient(135deg, rgba(124,106,255,0.22) 0%, rgba(46,207,181,0.12) 100%),
+    rgba(0,0,0,0.30);
+  border-color: rgba(124,106,255,0.30);
   border-top-right-radius: 4px;
-  color: var(--accent-bright);
-  box-shadow: 0 0 16px rgba(124,106,255,0.10);
+  color: var(--text);
+  box-shadow:
+    inset 0 1px 2px rgba(0,0,0,0.4),
+    0 0 14px rgba(124,106,255,0.10);
 }
 
 .msg-bubble strong { color: var(--accent-bright); }
@@ -9953,7 +10044,7 @@ async function launchCoach() {
           `When you have questions, want to adjust anything, or need my help — just write here. Let's go! 🚀`;
       // addMessage(content, type, skipPersistFlag) — we DO want to persist this
       // so the user sees it again on subsequent logins. Skip the AI welcome too.
-      addMessage(welcomeHtml, 'bot', false);
+      addMessage(welcomeHtml, 'coach', false);
       window._migrationCoach = null;  // one-shot
     } else {
       await sendToAI(null, true);
@@ -9988,6 +10079,13 @@ function autoResize(el) {
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 }
 
+// Empty avatar plates — the gradient + plate chrome is enough on its own
+// to differentiate coach (violet) from user (teal). Setting these to ''
+// removes the SVG inside; if we want to restore the icons later, see git
+// history for the robot/person SVGs.
+const _COACH_AVATAR_SVG = '';
+const _USER_AVATAR_SVG  = '';
+
 function addMessage(content, type, skipTrack = false) {
   const container = document.getElementById('chat-messages');
   const div = document.createElement('div');
@@ -9996,7 +10094,10 @@ function addMessage(content, type, skipTrack = false) {
   // types in chat. Coach content already went through formatResponse() which
   // escapes input before applying markdown, so it's safe to insert as HTML.
   const safeContent = type === 'user' ? _esc(content) : content;
-  div.innerHTML = `<div class="msg-avatar">${type === 'coach' ? '🤖' : '👤'}</div><div class="msg-bubble">${safeContent}</div>`;
+  // Coach SVG for anything that ISN'T explicitly a user message — covers
+  // 'coach' and any legacy 'bot' callers.
+  const avatarSvg = type === 'user' ? _USER_AVATAR_SVG : _COACH_AVATAR_SVG;
+  div.innerHTML = `<div class="msg-avatar">${avatarSvg}</div><div class="msg-bubble">${safeContent}</div>`;
   container.appendChild(div);
   if (type === 'coach') {
     div.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -10011,7 +10112,7 @@ function showTyping() {
   const div = document.createElement('div');
   div.className = 'msg coach';
   div.id = 'typing-msg';
-  div.innerHTML = `<div class="msg-avatar">🤖</div><div class="typing-bubble"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+  div.innerHTML = `<div class="msg-avatar">${_COACH_AVATAR_SVG}</div><div class="typing-bubble"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
 }
@@ -10176,23 +10277,56 @@ async function sendMessage() {
 function refreshQuickButtons() {
   const container = document.getElementById('quick-btns');
   if (!container) return;
-  const qDieta = lang === 'es' ? '🥗 Dieta de la semana' : '🥗 Weekly Diet';
-  const qRutina = lang === 'es' ? '💪 Rutina de la semana' : '💪 Weekly Routine';
-  const verDieta = lang === 'es' ? '🥗 Ver mi dieta' : '🥗 View my diet';
-  const verRutina = lang === 'es' ? '💪 Ver mi rutina' : '💪 View my routine';
 
-  // A plan is "active" if it exists AND has NOT been closed by a subsequent week analysis.
-  // Closed/missing plans show the "request" button so the user can ask for a fresh one.
-  const dietaActiva = weeklyPlans.dieta && !weeklyPlans.dieta.closed;
+  // Strings the AI receives when the user taps a card (kept identical to the
+  // legacy labels so the system prompt's pattern matching still triggers the
+  // weekly-plan flow). The visible card title/sub is decoupled below.
+  const qDieta  = lang === 'es' ? '🥗 Dieta de la semana'  : '🥗 Weekly Diet';
+  const qRutina = lang === 'es' ? '💪 Rutina de la semana' : '💪 Weekly Routine';
+  const isEs = lang === 'es';
+
+  // A plan is "active" if it exists AND has NOT been closed by a subsequent
+  // week analysis. Closed/missing plans show the "request" button so the
+  // user can ask for a fresh one.
+  const dietaActiva  = weeklyPlans.dieta  && !weeklyPlans.dieta.closed;
   const rutinaActiva = weeklyPlans.rutina && !weeklyPlans.rutina.closed;
 
-  const dietaBtn = dietaActiva
-    ? `<button class="qbtn qbtn-main" onclick="showWeeklyPlan('dieta')">${verDieta}</button>`
-    : `<button class="qbtn qbtn-main" onclick="sendQuick('${qDieta}')">${qDieta}</button>`;
+  // Inline SVG icons (matches the bottom-nav language: target-style plate
+  // for nutrition, dumbbell for training)
+  const PLATE_ICON    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>';
+  const DUMBBELL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"/><path d="M21 21l-1-1"/><path d="M3 3l1 1"/><path d="M18 22l4-4"/><path d="M2 6l4-4"/><path d="M3 10l7-7"/><path d="M14 21l7-7"/></svg>';
 
-  const rutinaBtn = rutinaActiva
-    ? `<button class="qbtn qbtn-main" onclick="showWeeklyPlan('rutina')">${verRutina}</button>`
-    : `<button class="qbtn qbtn-main" onclick="sendQuick('${qRutina}')">${qRutina}</button>`;
+  // Card text — explicit title + sub avoids the splitLabel heuristic getting
+  // confused by emoji prefixes ("🥗 Dieta de la semana" → bad split).
+  const dietaText  = dietaActiva
+    ? { title: isEs ? 'Ver mi dieta'  : 'View my diet',     sub: isEs ? 'plan de la semana' : "this week's plan" }
+    : { title: isEs ? 'Dieta'         : 'Diet',              sub: isEs ? 'de la semana'      : 'of the week' };
+  const rutinaText = rutinaActiva
+    ? { title: isEs ? 'Ver mi rutina' : 'View my routine',   sub: isEs ? 'plan de la semana' : "this week's plan" }
+    : { title: isEs ? 'Rutina'        : 'Routine',           sub: isEs ? 'de la semana'      : 'of the week' };
+
+  const dietaHandler  = dietaActiva  ? `showWeeklyPlan('dieta')`  : `sendQuick('${qDieta}')`;
+  const rutinaHandler = rutinaActiva ? `showWeeklyPlan('rutina')` : `sendQuick('${qRutina}')`;
+
+  const dietaBtn = `
+    <button class="qbtn-card is-dieta" onclick="${dietaHandler}">
+      <span class="qbtn-card-ico">${PLATE_ICON}</span>
+      <span class="qbtn-card-text">
+        <span class="qbtn-card-title">${dietaText.title}</span>
+        <span class="qbtn-card-sub">${dietaText.sub}</span>
+      </span>
+      <span class="qbtn-card-arrow">→</span>
+    </button>`;
+
+  const rutinaBtn = `
+    <button class="qbtn-card is-rutina" onclick="${rutinaHandler}">
+      <span class="qbtn-card-ico">${DUMBBELL_ICON}</span>
+      <span class="qbtn-card-text">
+        <span class="qbtn-card-title">${rutinaText.title}</span>
+        <span class="qbtn-card-sub">${rutinaText.sub}</span>
+      </span>
+      <span class="qbtn-card-arrow">→</span>
+    </button>`;
 
   container.innerHTML = dietaBtn + rutinaBtn;
   // Buttons just (re)rendered — their height (1 vs 2 lines on narrow
