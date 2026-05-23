@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260522-2155-dieta-synth-7days">
+<meta name="app-version" content="20260523-1100-onb-polish">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -539,16 +539,19 @@ h1 {
   margin-top: 10px;
   text-transform: uppercase;
 }
+/* Saltar link: lives ABOVE the bars on its own row, right-aligned.
+   (Was position:absolute top:12px — overlapped the rightmost bar.) */
 .progress-skip-link {
-  position: absolute;
-  top: 12px;
-  right: 22px;
-  font-size: 13px;
+  display: block;
+  text-align: right;
+  font-size: 12.5px;
   color: var(--muted);
   cursor: pointer;
   font-family: inherit;
-  padding: 4px 8px;
   text-decoration: none;
+  margin-bottom: 10px;
+  padding: 2px 0;
+  letter-spacing: 0.3px;
 }
 .progress-skip-link:hover { color: var(--text); }
 
@@ -638,7 +641,10 @@ body:has(.form-wrapper[style*="block"]) .home-wrapper { display: none !important
 }
 .onb-track .resumen-value { text-align: right !important; }
 
-/* Foto upload area: clean square with dotted brand-tinted border */
+/* Foto upload area: clean square with dotted brand-tinted border in the
+   empty state. Once the user picks a photo (previewFotoInicial sets
+   display:block on .foto-preview), the dashed shell vanishes and the
+   container collapses to fit the photo's natural aspect ratio. */
 .onb-track .foto-upload-area {
   aspect-ratio: 1 / 1;
   max-width: 240px;
@@ -650,6 +656,7 @@ body:has(.form-wrapper[style*="block"]) .home-wrapper { display: none !important
   position: relative;
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s;
+  overflow: hidden;
 }
 .onb-track .foto-upload-area:hover {
   border-color: rgba(124,106,255,0.55);
@@ -664,6 +671,27 @@ body:has(.form-wrapper[style*="block"]) .home-wrapper { display: none !important
   color: var(--muted);
   text-align: center;
   margin-top: 6px;
+}
+/* Photo-loaded state: kill the dashed frame + tint, let the container hug
+   the image's actual ratio instead of forcing a square. Detected via
+   :has() — when the placeholder has display:none (set by previewFotoInicial). */
+.onb-track .foto-upload-area:has(#foto-upload-placeholder[style*="none"]) {
+  aspect-ratio: auto;
+  max-width: 320px;
+  border: none;
+  background: none;
+  padding: 0;
+}
+.onb-track .foto-upload-area:has(#foto-upload-placeholder[style*="none"]):hover {
+  border: none;
+  background: none;
+}
+.onb-track .foto-preview {
+  width: auto;
+  max-width: 100%;
+  max-height: 380px;
+  object-fit: contain;
+  border-radius: 14px;
 }
 
 /* Hide the in-panel launch button — replaced by the floating bottom nav */
@@ -6023,6 +6051,8 @@ footer {
      continues to work without changes. The icon+label children are styled
      hidden (display:none) by the new CSS. -->
 <div class="progress-bar-container">
+  <!-- Saltar first so it stacks ABOVE the bars (right-aligned). -->
+  <a class="progress-skip-link" id="progress-skip-link" onclick="launchCoach()" data-es="Saltar" data-en="Skip">Saltar</a>
   <div class="progress-steps">
     <div class="progress-step active" id="ps1"></div>
     <div class="progress-step" id="ps2"></div>
@@ -6031,7 +6061,6 @@ footer {
     <div class="progress-step" id="ps5"></div>
   </div>
   <div class="progress-step-label" id="progress-step-label" data-es="PASO 1 DE 5" data-en="STEP 1 OF 5">PASO 1 DE 5</div>
-  <a class="progress-skip-link" id="progress-skip-link" onclick="launchCoach()" data-es="Saltar" data-en="Skip">Saltar</a>
 </div>
 
 
@@ -6745,10 +6774,10 @@ QUE SÍ SE VE</div>
             <label data-es="Lugar de entrenamiento" data-en="Training location">Lugar de entrenamiento</label>
             <select id="f-lugar">
               <option value="" data-es="— Seleccionar —" data-en="— Select —">— Seleccionar —</option>
-              <option value="gimnasio_completo" data-es="Gimnasio con equipamiento completo" data-en="Gym with full equipment">Gimnasio con equipamiento completo</option>
-              <option value="casa_sin_equipo" data-es="Casa — sin equipamiento" data-en="Home — no equipment">Casa — sin equipamiento</option>
-              <option value="casa_mancuernas" data-es="Casa — con mancuernas / bandas" data-en="Home — with dumbbells / bands">Casa — con mancuernas / bandas</option>
-              <option value="aire_libre" data-es="Al aire libre / calistenia" data-en="Outdoors / calisthenics">Al aire libre / calistenia</option>
+              <option value="gimnasio_completo" data-es="Gimnasio" data-en="Gym">Gimnasio</option>
+              <option value="casa_sin_equipo" data-es="Casa - sin equipamiento" data-en="Home - no equipment">Casa - sin equipamiento</option>
+              <option value="casa_mancuernas" data-es="Casa - con equipamiento" data-en="Home - with equipment">Casa - con equipamiento</option>
+              <option value="aire_libre" data-es="Aire libre / calistenia" data-en="Outdoors / calisthenics">Aire libre / calistenia</option>
               <option value="mixto" data-es="Mixto (gym + casa)" data-en="Mixed (gym + home)">Mixto (gym + casa)</option>
             </select>
           </div>
@@ -6773,12 +6802,12 @@ QUE SÍ SE VE</div>
         <div class="section-body">
           <div class="form-group full">
             <div class="chip-group" id="lesiones-chips">
-              <div class="chip" onclick="toggleChip(this,'lesion_rodilla')" data-es="🦵 Rodilla" data-en="🦵 Knee">🦵 Rodilla</div>
-              <div class="chip" onclick="toggleChip(this,'lesion_espalda')" data-es="🫀 Espalda baja" data-en="🫀 Lower back">🫀 Espalda baja</div>
-              <div class="chip" onclick="toggleChip(this,'lesion_hombro')" data-es="💪 Hombro" data-en="💪 Shoulder">💪 Hombro</div>
-              <div class="chip" onclick="toggleChip(this,'lesion_cuello')" data-es="🧠 Cuello / cervical" data-en="🧠 Neck / cervical">🧠 Cuello / cervical</div>
-              <div class="chip" onclick="toggleChip(this,'lesion_tobillo')" data-es="🦶 Tobillo" data-en="🦶 Ankle">🦶 Tobillo</div>
-              <div class="chip" onclick="toggleChip(this,'sin_lesiones')" data-es="✅ Sin lesiones" data-en="✅ No injuries">✅ Sin lesiones</div>
+              <div class="chip" onclick="toggleChip(this,'lesion_rodilla')" data-es="Rodilla" data-en="Knee">Rodilla</div>
+              <div class="chip" onclick="toggleChip(this,'lesion_espalda')" data-es="Espalda baja" data-en="Lower back">Espalda baja</div>
+              <div class="chip" onclick="toggleChip(this,'lesion_hombro')" data-es="Hombro" data-en="Shoulder">Hombro</div>
+              <div class="chip" onclick="toggleChip(this,'lesion_cuello')" data-es="Cuello / cervical" data-en="Neck / cervical">Cuello / cervical</div>
+              <div class="chip" onclick="toggleChip(this,'lesion_tobillo')" data-es="Tobillo" data-en="Ankle">Tobillo</div>
+              <div class="chip" onclick="toggleChip(this,'sin_lesiones')" data-es="Sin lesiones" data-en="No injuries">Sin lesiones</div>
             </div>
           </div>
         </div>
@@ -6802,12 +6831,12 @@ QUE SÍ SE VE</div>
         <div class="section-body">
           <div class="form-group full">
             <div class="chip-group" id="dieta-chips">
-              <div class="chip" onclick="toggleChip(this,'vegetariano')" data-es="🌿 Vegetariano" data-en="🌿 Vegetarian">🌿 Vegetariano</div>
-              <div class="chip" onclick="toggleChip(this,'vegano')" data-es="🌱 Vegano" data-en="🌱 Vegan">🌱 Vegano</div>
-              <div class="chip" onclick="toggleChip(this,'sin_gluten')" data-es="🌾 Sin gluten" data-en="🌾 Gluten-free">🌾 Sin gluten</div>
-              <div class="chip" onclick="toggleChip(this,'sin_lactosa')" data-es="🥛 Sin lactosa" data-en="🥛 Lactose-free">🥛 Sin lactosa</div>
-              <div class="chip" onclick="toggleChip(this,'keto')" data-es="🥩 Keto / bajo carbohidrato" data-en="🥩 Keto / low carb">🥩 Keto / bajo carbohidrato</div>
-              <div class="chip" onclick="toggleChip(this,'sin_restricciones')" data-es="✅ Sin restricciones" data-en="✅ No restrictions">✅ Sin restricciones</div>
+              <div class="chip" onclick="toggleChip(this,'vegetariano')" data-es="Vegetariano" data-en="Vegetarian">Vegetariano</div>
+              <div class="chip" onclick="toggleChip(this,'vegano')" data-es="Vegano" data-en="Vegan">Vegano</div>
+              <div class="chip" onclick="toggleChip(this,'sin_gluten')" data-es="Sin gluten" data-en="Gluten-free">Sin gluten</div>
+              <div class="chip" onclick="toggleChip(this,'sin_lactosa')" data-es="Sin lactosa" data-en="Lactose-free">Sin lactosa</div>
+              <div class="chip" onclick="toggleChip(this,'keto')" data-es="Keto / bajo carbohidrato" data-en="Keto / low carb">Keto / bajo carbohidrato</div>
+              <div class="chip" onclick="toggleChip(this,'sin_restricciones')" data-es="Sin restricciones" data-en="No restrictions">Sin restricciones</div>
             </div>
           </div>
           <!-- Kept in the DOM (hidden) so launchCoach() / saveProfile()
@@ -6864,11 +6893,11 @@ QUE SÍ SE VE</div>
         <div class="section-body">
           <div class="form-group full">
             <div class="chip-group" id="alergia-chips">
-              <div class="chip" onclick="toggleChip(this,'alergia_mani')" data-es="🥜 Maní / frutos secos" data-en="🥜 Peanuts / nuts">🥜 Maní / frutos secos</div>
-              <div class="chip" onclick="toggleChip(this,'alergia_mariscos')" data-es="🦐 Mariscos" data-en="🦐 Seafood">🦐 Mariscos</div>
-              <div class="chip" onclick="toggleChip(this,'alergia_huevo')" data-es="🥚 Huevo" data-en="🥚 Egg">🥚 Huevo</div>
-              <div class="chip" onclick="toggleChip(this,'alergia_soja')" data-es="🫘 Soja" data-en="🫘 Soy">🫘 Soja</div>
-              <div class="chip" onclick="toggleChip(this,'sin_alergias')" data-es="✅ Sin alergias" data-en="✅ No allergies">✅ Sin alergias</div>
+              <div class="chip" onclick="toggleChip(this,'alergia_mani')" data-es="Maní / frutos secos" data-en="Peanuts / nuts">Maní / frutos secos</div>
+              <div class="chip" onclick="toggleChip(this,'alergia_mariscos')" data-es="Mariscos" data-en="Seafood">Mariscos</div>
+              <div class="chip" onclick="toggleChip(this,'alergia_huevo')" data-es="Huevo" data-en="Egg">Huevo</div>
+              <div class="chip" onclick="toggleChip(this,'alergia_soja')" data-es="Soja" data-en="Soy">Soja</div>
+              <div class="chip" onclick="toggleChip(this,'sin_alergias')" data-es="Sin alergias" data-en="No allergies">Sin alergias</div>
             </div>
           </div>
         </div>
