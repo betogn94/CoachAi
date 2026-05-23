@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260523-1745-drawer-icon-match">
+<meta name="app-version" content="20260523-1830-safari-drawer-only">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -821,6 +821,34 @@ body.app-active:has(#home-wrapper[style*="block"]) .lang-toggle { display: flex;
 
 body.app-active #hamburger-btn { display: none !important; }
 body.app-active:has(#chat-wrapper[style*="block"]) #hamburger-btn { display: flex !important; }
+
+/* ===== Safari mobile browser mode =====
+   When the user is on Safari iOS in a regular tab (not the installed PWA),
+   the bottom-nav pill has visual issues: Safari's translucent URL bar
+   overlays scrolling content, so content "bleeds" behind the floating nav.
+   In that mode we swap to drawer-only navigation:
+     - Bottom nav hidden across the board
+     - Hamburger always visible (not just in Chat)
+     - Body padding-bottom shrinks (no bottom nav to reserve for)
+   The instant the user installs the app to home screen and opens it from the
+   icon, `display-mode: standalone` becomes true, the safari-browser class is
+   never added, and the bottom-nav UX comes back automatically. */
+html.safari-browser body.app-active .cai-bottom-nav,
+body.app-active.safari-browser .cai-bottom-nav { display: none !important; }
+
+html.safari-browser body.app-active #hamburger-btn,
+body.app-active.safari-browser #hamburger-btn { display: flex !important; }
+
+html.safari-browser body.app-active,
+body.app-active.safari-browser { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* In Safari browser mode the Feedback FAB drops back to its normal bottom
+   position — there's no bottom nav to clear, so the 94px lift would just
+   leave it floating awkwardly mid-card. */
+html.safari-browser body.app-active #feedback-fab,
+body.app-active.safari-browser #feedback-fab {
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px)) !important;
+}
 /* Reserve bottom padding only when the nav is showing so content above isn't
    covered. The nav itself occupies ~80px (pill ~48 + gap 4 + label ~14 + the
    14px from-bottom offset), so we reserve a safe 100px so the last card never
@@ -6099,6 +6127,32 @@ footer {
   .home-card-visual { height: 70px; }
 }
 </style>
+<script>
+// Detect Safari mobile in browser-mode (not installed PWA) and tag the body.
+// CSS uses body.safari-browser to swap the floating bottom nav for the side
+// drawer (with hamburger always visible). The bottom nav's visual quirks on
+// Safari mobile — content visible under it because the URL bar overlays
+// scrolling content — go away when we just don't show it.
+// Runs synchronously BEFORE the body renders so there's no flash of the
+// bottom-nav layout on Safari mobile users.
+(function () {
+  try {
+    var ua = navigator.userAgent || '';
+    var isMobileSafari = /Safari/.test(ua)
+      && /iPhone|iPad|iPod/.test(ua)
+      && !/Chrome|CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+    var isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+                     || window.navigator.standalone === true;
+    if (isMobileSafari && !isStandalone) {
+      // Add to <html> for early apply, body class is mirrored once DOM ready
+      document.documentElement.classList.add('safari-browser');
+      document.addEventListener('DOMContentLoaded', function () {
+        document.body.classList.add('safari-browser');
+      });
+    }
+  } catch (e) { /* never block boot on UA sniffing */ }
+})();
+</script>
 </head>
 <body>
 
