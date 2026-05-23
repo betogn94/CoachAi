@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260523-1100-onb-polish">
+<meta name="app-version" content="20260523-1620-bottom-nav-floating">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -122,10 +122,15 @@ header {
   padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
 }
 
-/* Feedback FAB pinned to bottom-right */
+/* Feedback FAB pinned to bottom-right, but lifted ABOVE the floating bottom
+   nav when that's visible (otherwise they overlap on iPhone). The nav
+   reserves ~72px of body padding-bottom; we add ~14px breathing room. */
 #feedback-fab {
   bottom: calc(18px + env(safe-area-inset-bottom)) !important;
   right: calc(16px + env(safe-area-inset-right)) !important;
+}
+body.app-active #feedback-fab {
+  bottom: calc(94px + env(safe-area-inset-bottom)) !important;
 }
 
 /* Landing screen (login) is a full-viewport fixed layer */
@@ -692,6 +697,131 @@ body:has(.form-wrapper[style*="block"]) .home-wrapper { display: none !important
   max-height: 380px;
   object-fit: contain;
   border-radius: 14px;
+}
+
+/* ===== BOTTOM NAV · Floating Crystal Pill =====
+   Replaces the legacy nav-drawer (hamburger + slide-in). Lives at the bottom
+   of every authenticated section (home / mi entreno / diario / progreso /
+   perfil). Hidden during landing, onboarding, and inside chat (chat has its
+   own fixed bottom input row). */
+.cai-bottom-nav {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  z-index: 90;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 4px;
+  padding: 0 16px;
+  pointer-events: none;
+}
+/* Solid backdrop band behind the floating pill, anchored to the viewport
+   bottom (not to the nav element). This guarantees no content scrolls past
+   the nav in either direction:
+   - In PWA standalone: covers the home-indicator safe area
+   - In Safari mobile browser: covers under the translucent URL bar too
+   Bottom 65% is fully opaque, top 35% fades to transparent so content
+   coming in from above dissolves smoothly. */
+.cai-bottom-nav::before {
+  content: '';
+  position: fixed;
+  left: 0; right: 0;
+  bottom: 0;
+  height: calc(140px + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
+  background: linear-gradient(to top,
+    var(--bg) 0%,
+    var(--bg) 65%,
+    rgba(8,8,16,0.55) 88%,
+    transparent 100%);
+  z-index: -1;
+}
+.cai-bottom-nav-pill {
+  pointer-events: auto;
+  position: relative;
+  display: flex;
+  padding: 5px;
+  width: 100%;
+  max-width: 360px;
+  border-radius: 100px;
+  /* Fully solid pill — content scrolling underneath gets hidden cleanly.
+     (Earlier 0.92 left 8% transparency which on small phones still leaked
+     a faint preview of cards passing under.) */
+  background: rgba(15,15,26,0.96);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow:
+    0 16px 40px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.cai-bottom-nav-thumb {
+  position: absolute;
+  top: 5px; bottom: 5px;
+  left: 5px;
+  width: calc((100% - 10px) / 6);
+  border-radius: 100px;
+  background: linear-gradient(135deg, rgba(124,106,255,0.30), rgba(46,207,181,0.16));
+  border: 1px solid rgba(124,106,255,0.45);
+  box-shadow:
+    0 0 18px rgba(124,106,255,0.30),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+  transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+}
+.cai-bottom-nav .nav-item {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  height: 38px;
+  background: none; border: 0;
+  cursor: pointer;
+  color: var(--muted);
+  transition: color 0.25s ease;
+  -webkit-tap-highlight-color: transparent;
+  /* Reset legacy .nav-item styles that came from the drawer */
+  padding: 0; gap: 0; border-radius: 0;
+}
+.cai-bottom-nav .nav-item:hover { background: none; color: var(--accent-bright); }
+.cai-bottom-nav .nav-item.active { color: #fff; background: none; }
+.cai-bottom-nav .nav-item-icon-bn {
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  color: inherit;
+}
+.cai-bottom-nav .nav-item-icon-bn svg { width: 18px; height: 18px; }
+.cai-bottom-nav-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 1.2px;
+  color: var(--accent-bright);
+  text-transform: uppercase;
+  pointer-events: none;
+  text-shadow: 0 0 8px rgba(124,106,255,0.30);
+}
+
+/* Bottom nav is OFF by default — JS adds .app-active to <body> in launchCoach
+   (and removes on logout/landing). This is more reliable than :has() selectors
+   inspecting inline styles, which can break on browsers without :has() and
+   are sensitive to the exact style attribute string. */
+.cai-bottom-nav { display: none; }
+body.app-active .cai-bottom-nav { display: flex; }
+/* Reserve bottom padding only when the nav is showing so content above isn't
+   covered. The nav itself occupies ~80px (pill ~48 + gap 4 + label ~14 + the
+   14px from-bottom offset), so we reserve a safe 100px so the last card never
+   slips under the nav. */
+body.app-active { padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
+/* Inside the chat the nav hides — chat has its own fixed input row + quick
+   btns. Also remove the body padding-bottom so the chat's height math
+   (calc(100dvh - 200px) for chat-messages) doesn't get pushed off-screen. */
+body.app-active:has(#chat-wrapper[style*="block"]) .cai-bottom-nav { display: none; }
+body.app-active:has(#chat-wrapper[style*="block"]) { padding-bottom: 0; }
+/* And during onboarding/edit profile (form-wrapper shows) the nav hides too. */
+body.app-active:has(.form-wrapper[style*="block"]) .cai-bottom-nav { display: none; }
+body.app-active:has(.form-wrapper[style*="block"]) { padding-bottom: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cai-bottom-nav-thumb { transition: none; }
 }
 
 /* Hide the in-panel launch button — replaced by the floating bottom nav */
@@ -5970,80 +6100,12 @@ footer {
       <button class="lang-btn active" onclick="setLang('es')">ES</button>
       <button class="lang-btn" onclick="setLang('en')">EN</button>
     </div>
-    <button class="hamburger-btn" id="hamburger-btn" onclick="openNav()" aria-label="Menú">
-      <span></span><span></span><span></span>
-    </button>
   </div>
 </header>
 
-<!-- NAV OVERLAY -->
+<!-- Hamburger + nav-drawer replaced by the floating bottom nav at the
+     end of <body>. Empty overlay element kept (legacy code references it). -->
 <div class="nav-overlay" id="nav-overlay" onclick="closeNav()"></div>
-
-<!-- NAV DRAWER -->
-<div class="nav-drawer" id="nav-drawer">
-  <div class="nav-drawer-header">
-    <div class="nav-drawer-logo">
-      <img src="logo.png" alt="COACHAI">
-    </div>
-    <button class="nav-close-btn" onclick="closeNav()">×</button>
-  </div>
-  <div class="nav-user-chip">
-    <div class="nav-user-avatar">
-      <img src="logo-icon.png" alt="">
-    </div>
-    <div>
-      <div class="nav-user-name" id="nav-user-name">—</div>
-      <div class="nav-user-goal" id="nav-user-goal">—</div>
-    </div>
-  </div>
-  <div class="nav-section">
-    <div class="nav-section-label">Navegación</div>
-    <div class="nav-item active" id="nav-inicio" onclick="showHome(); closeNav()">
-      <div class="nav-item-icon"><div class="nav-item-icon-inner">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11L12 4l8.5 7"/><path d="M5.5 10v9h13v-9"/><path d="M10 19v-5h4v5"/></svg>
-      </div></div>
-      <div><div class="nav-item-label">Inicio</div></div>
-    </div>
-    <div class="nav-item" id="nav-coach" onclick="showChat(); closeNav()">
-      <div class="nav-item-icon"><div class="nav-item-icon-inner">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5c0-2.485 2.015-4.5 4.5-4.5h5c2.485 0 4.5 2.015 4.5 4.5s-2.015 4.5-4.5 4.5h-4l-3 2.5v-2.5c-1.5-0.8-2.5-2.4-2.5-4.5z"/><path d="M11 17c0.6 1.6 2.1 2.5 4 2.5h2.5l2.5 2v-2c1.3-0.7 2-2 2-3.5"/></svg>
-      </div></div>
-      <div><div class="nav-item-label">Coach AI</div></div>
-    </div>
-    <div class="nav-item" id="nav-diario" onclick="showDiario(); closeNav()">
-      <div class="nav-item-icon"><div class="nav-item-icon-inner">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16"/><path d="M9 3v4"/><path d="M15 3v4"/><circle cx="12" cy="14.5" r="1.4" fill="currentColor"/></svg>
-      </div></div>
-      <div><div class="nav-item-label">Mi Alimentación</div></div>
-    </div>
-    <div class="nav-item" id="nav-entreno" onclick="showMiEntreno(); closeNav()">
-      <div class="nav-item-icon"><div class="nav-item-icon-inner">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"/><path d="M21 21l-1-1"/><path d="M3 3l1 1"/><path d="M18 22l4-4"/><path d="M2 6l4-4"/><path d="M3 10l7-7"/><path d="M14 21l7-7"/></svg>
-      </div></div>
-      <div><div class="nav-item-label">Mi Entreno</div></div>
-    </div>
-    <div class="nav-item" id="nav-progreso" onclick="showDashboard(); closeNav()">
-      <div class="nav-item-icon"><div class="nav-item-icon-inner">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17l4.5-4.5 3 3 7-7"/><path d="M14 8.5h4v4"/></svg>
-      </div></div>
-      <div><div class="nav-item-label">Progreso</div></div>
-    </div>
-    <div class="nav-item" id="nav-perfil" onclick="showPerfil(); closeNav()">
-      <div class="nav-item-icon"><div class="nav-item-icon-inner">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 19.5c0-3.59 2.91-6.5 6.5-6.5s6.5 2.91 6.5 6.5"/></svg>
-      </div></div>
-      <div><div class="nav-item-label">Perfil</div></div>
-    </div>
-  </div>
-  <div class="nav-drawer-footer">
-    <div class="nav-footer-brand">
-      <div class="nav-footer-pulse"></div>
-      <div class="nav-footer-brand-name">COACHAI</div>
-      <span class="nav-version-tag">v1.0</span>
-    </div>
-    <div class="nav-version">Entrenador Personal con IA · 24/7</div>
-  </div>
-</div>
 
 <!-- PROGRESS — 5 horizontal bars + "PASO X DE 5" label + Saltar link.
      The .progress-step elements keep their original ids (ps1-ps5) so the
@@ -8112,6 +8174,8 @@ async function handleEmailLogin() {
 
     document.getElementById('landing-wrapper').style.display = 'none';
     document.getElementById('main-header').style.display = 'flex';
+    // Show the floating bottom nav now that we're past the login gate
+    document.body.classList.add('app-active');
 
     if (result.isNew) {
       document.getElementById('hero-section').style.display = 'block';
@@ -9648,8 +9712,9 @@ async function launchCoach() {
   const migrationCoach = await migrateClientPreloadedPlans();
   window._migrationCoach = migrationCoach;   // read by the chat init below
 
-  // Show hamburger nav (replaces individual header buttons)
-  document.getElementById('hamburger-btn').style.display = 'flex';
+  // (Legacy: used to show the hamburger button. The hamburger was replaced by
+  // the floating bottom nav at the page bottom, which is always visible in
+  // authenticated views — no per-step show/hide needed.)
 
   document.getElementById('step5').classList.remove('visible');
   document.querySelector('.form-wrapper').style.display = 'none';
@@ -11695,9 +11760,16 @@ function renderHome() {
   ];
   const idx = new Date().getDay() % motivations.length;
   document.getElementById('home-motivation').textContent = motivations[idx];
-  // Update nav user info
-  document.getElementById('nav-user-name').textContent = p.nombre || '—';
-  document.getElementById('nav-user-goal').textContent = goalText;
+  // Legacy nav-drawer user chip (id="nav-user-name" / "nav-user-goal") was
+  // removed when we replaced the drawer with the floating bottom nav.
+  // Defensive checks here so showHome() doesn't blow up trying to write into
+  // null elements (an unhandled error here would short-circuit the rest of
+  // showHome — including setActiveNav('nav-inicio') — leaving the bottom-nav
+  // bubble stuck on the previously-active tab).
+  const navName = document.getElementById('nav-user-name');
+  if (navName) navName.textContent = p.nombre || '—';
+  const navGoal = document.getElementById('nav-user-goal');
+  if (navGoal) navGoal.textContent = goalText;
 }
 
 function getGreeting() {
@@ -11707,23 +11779,61 @@ function getGreeting() {
 // ============================
 // NAV DRAWER
 // ============================
+// Legacy drawer was replaced by the floating bottom nav. These two are kept
+// as no-ops so any leftover callers (older inline onclicks, etc.) don't 500.
 function openNav() {
-  document.getElementById('nav-overlay').classList.add('open');
-  document.getElementById('nav-drawer').classList.add('open');
-  document.body.style.overflow = 'hidden';
+  const drawer = document.getElementById('nav-drawer');
+  if (drawer) drawer.classList.add('open');
 }
-
 function closeNav() {
-  document.getElementById('nav-overlay').classList.remove('open');
-  document.getElementById('nav-drawer').classList.remove('open');
-  document.body.style.overflow = '';
+  const drawer = document.getElementById('nav-drawer');
+  if (drawer) drawer.classList.remove('open');
 }
 
+// setActiveNav: toggle the .active class on the matching tab AND slide the
+// brand thumb to that tab's slot in the bottom-nav pill + update the label.
+const _NAV_ORDER = ['nav-inicio', 'nav-coach', 'nav-diario', 'nav-entreno', 'nav-progreso', 'nav-perfil'];
+const _NAV_LABELS = {
+  'nav-inicio':   'INICIO',
+  'nav-coach':    'COACH AI',
+  'nav-diario':   'MI ALIMENTACIÓN',
+  'nav-entreno':  'MI ENTRENO',
+  'nav-progreso': 'PROGRESO',
+  'nav-perfil':   'PERFIL',
+};
 function setActiveNav(id) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   const el = document.getElementById(id);
   if (el) el.classList.add('active');
+
+  // Slide the indicator to the active tab's real pixel position. Was using
+  // `translateX(N * 100%)` (percentage of the thumb's own width) but iOS
+  // Safari intermittently de-synced that against the pill's `calc((100% -
+  // 10px) / 6)` width — the bubble would freeze on the last-visited tab
+  // even after the active class moved. Measuring the live tab position is
+  // bulletproof: rAF runs after layout, so the rect is reliable.
+  const thumb = document.getElementById('cai-bottom-nav-thumb');
+  requestAnimationFrame(() => {
+    if (!thumb || !el) return;
+    const pill = document.getElementById('cai-bottom-nav-pill');
+    if (!pill) return;
+    const pillRect = pill.getBoundingClientRect();
+    const tabRect  = el.getBoundingClientRect();
+    // Distance from the pill's inner-left (after its 5px padding) to the tab's left
+    const offset = tabRect.left - pillRect.left - 5;
+    thumb.style.transform = `translateX(${offset}px)`;
+  });
+
+  const labelEl = document.getElementById('cai-bottom-nav-label');
+  if (labelEl && _NAV_LABELS[id]) labelEl.textContent = _NAV_LABELS[id];
 }
+
+// Re-position the thumb on viewport resize / orientation change. The tab
+// widths shift, so the cached offset becomes wrong.
+window.addEventListener('resize', () => {
+  const active = document.querySelector('.cai-bottom-nav .nav-item.active');
+  if (active) setActiveNav(active.id);
+});
 
 function hideAllSections() {
   document.getElementById('chat-wrapper').style.display = 'none';
@@ -14717,6 +14827,7 @@ async function adminDeleteStudent() {
 function enterAsAdmin() {
   document.getElementById('landing-wrapper').style.display = 'none';
   document.getElementById('main-header').style.display = 'flex';
+  document.body.classList.add('app-active');
   hideAllSections();
   document.getElementById('wl-wrapper').style.display = 'block';
   document.getElementById('wl-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -14729,6 +14840,8 @@ function goToLanding() {
   if (fab) fab.style.display = 'none';
   document.getElementById('main-header').style.display = 'none';
   document.getElementById('landing-wrapper').style.display = 'flex';
+  // Hide the floating bottom nav when returning to the login screen
+  document.body.classList.remove('app-active');
 }
 
 // Apply white label to landing screen too
@@ -15076,6 +15189,45 @@ async function forceAppUpdate() {
   </div>
 </div>
 
+
+<!-- ============ BOTTOM NAV · Floating Crystal Pill ============ -->
+<nav class="cai-bottom-nav" id="cai-bottom-nav" role="navigation" aria-label="Navegación principal">
+  <div class="cai-bottom-nav-pill" id="cai-bottom-nav-pill">
+    <div class="cai-bottom-nav-thumb" id="cai-bottom-nav-thumb" aria-hidden="true"></div>
+
+    <button class="nav-item active" id="nav-inicio" onclick="showHome(); setActiveNav('nav-inicio')" aria-label="Inicio">
+      <span class="nav-item-icon-bn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg>
+      </span>
+    </button>
+    <button class="nav-item" id="nav-coach" onclick="showChat(); setActiveNav('nav-coach')" aria-label="Coach AI">
+      <span class="nav-item-icon-bn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-12 7l-5 1 1-5a8 8 0 1 1 16-3z"/></svg>
+      </span>
+    </button>
+    <button class="nav-item" id="nav-diario" onclick="showDiario(); setActiveNav('nav-diario')" aria-label="Mi Alimentación">
+      <span class="nav-item-icon-bn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>
+      </span>
+    </button>
+    <button class="nav-item" id="nav-entreno" onclick="showMiEntreno(); setActiveNav('nav-entreno')" aria-label="Mi Entreno">
+      <span class="nav-item-icon-bn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"/><path d="M21 21l-1-1"/><path d="M3 3l1 1"/><path d="M18 22l4-4"/><path d="M2 6l4-4"/><path d="M3 10l7-7"/><path d="M14 21l7-7"/></svg>
+      </span>
+    </button>
+    <button class="nav-item" id="nav-progreso" onclick="showDashboard(); setActiveNav('nav-progreso')" aria-label="Progreso">
+      <span class="nav-item-icon-bn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="4" y2="12"/><line x1="10" y1="20" x2="10" y2="6"/><line x1="16" y1="20" x2="16" y2="14"/><line x1="22" y1="20" x2="22" y2="9"/></svg>
+      </span>
+    </button>
+    <button class="nav-item" id="nav-perfil" onclick="showPerfil(); setActiveNav('nav-perfil')" aria-label="Perfil">
+      <span class="nav-item-icon-bn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </span>
+    </button>
+  </div>
+  <div class="cai-bottom-nav-label" id="cai-bottom-nav-label">INICIO</div>
+</nav>
 
 </body>
 </html>
