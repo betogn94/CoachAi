@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260525-1230-bowl-icon">
+<meta name="app-version" content="20260525-1330-alim-today-only">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -10538,52 +10538,52 @@ async function renderMiAlimentacion() {
   if (_alimEstado === null) await loadAlimentacionEstado();
   const estado = _alimEstado || {};
 
-  // Today's index — Spanish week starts Monday (0=Lun..6=Dom)
+  // Today's index — Spanish week starts Monday (0=Lun..6=Dom). If for some
+  // reason today isn't in the plan (older plans with <7 days), fall back to
+  // the first day so the user still sees something instead of an empty card.
   const todayJsDow = new Date().getDay();
   const todayIdx = todayJsDow === 0 ? 6 : todayJsDow - 1;
-  if (_alimExpandedDays.size === 0 && todayIdx < _alimDays.length) {
-    _alimExpandedDays.add(todayIdx);
-  }
+  const i = todayIdx < _alimDays.length ? todayIdx : 0;
+  const day = _alimDays[i];
 
-  container.innerHTML = _alimDays.map((day, i) => {
-    const isToday = i === todayIdx;
-    const isExpanded = _alimExpandedDays.has(i);
-    const cumplidaCount = day.meals.filter((m, j) => estado[`d${i}m${j}`]?.cumplido).length;
-    const allCumplidas = day.meals.length > 0 && cumplidaCount === day.meals.length;
-    const mealsHtml = day.meals.map((m, j) => {
-      const sk = `d${i}m${j}`;
-      const st = estado[sk] || {};
-      const cumplido = !!st.cumplido;
-      const customText = st.customText;
-      const customKcal = st.customKcal;
-      const showText = customText || m.content;
-      const showKcal = customText ? customKcal : m.kcal;
-      return `<div class="alim-meal${cumplido ? ' is-cumplida' : ''}${customText ? ' is-editada' : ''}">
-        <button class="alim-check" onclick="event.stopPropagation();toggleAlimComida(${i},${j})" type="button" aria-label="${lang==='es'?'Cumplido':'Done'}">${cumplido ? '✓' : ''}</button>
-        <div class="alim-meal-body">
-          <div class="alim-meal-name">${m.emoji} ${_esc(m.name)}${customText ? ' <span class="alim-edit-flag">· editada</span>' : ''}</div>
-          <div class="alim-meal-content">${_esc(showText)}</div>
-          ${showKcal != null ? `<div class="alim-meal-kcal">${showKcal} kcal</div>` : ''}
-        </div>
-        <button class="alim-edit-btn" onclick="event.stopPropagation();editAlimComida(${i},${j})" type="button" aria-label="${lang==='es'?'Editar':'Edit'}">✏️</button>
-      </div>`;
-    }).join('');
-
-    const headerMeta = `${day.meals.length} ${lang==='es'?'comidas':'meals'}${day.totalKcal ? ' · ' + day.totalKcal + ' kcal' : ''} · ${cumplidaCount}/${day.meals.length} ${lang==='es'?'cumplidas':'done'}`;
-    return `<div class="semana-card alim-day${allCumplidas ? ' is-done' : ''}${isExpanded ? ' is-expanded' : ''}" id="alim-day-${i}">
-      <div class="semana-header" onclick="toggleAlimDay(${i})">
-        <div class="semana-badge">${allCumplidas ? '✓' : `D${i+1}`}</div>
-        <div class="alim-day-info">
-          <div class="alim-day-name">${_esc(day.dayName)}${isToday ? ` · ${lang==='es'?'HOY':'TODAY'}` : ''}</div>
-          <div class="alim-day-meta">${headerMeta}</div>
-        </div>
-        <div class="semana-toggle">${isExpanded ? '▲' : '▼'}</div>
+  // iOS-Fitness-style minimal view: show ONLY today's card, always expanded.
+  // Skip the 7-day list. The other days are still tracked in state (each
+  // meal's d${i}m${j} key is per-day-per-meal) so when tomorrow rolls
+  // around, the user sees the next day fresh.
+  const cumplidaCount = day.meals.filter((m, j) => estado[`d${i}m${j}`]?.cumplido).length;
+  const allCumplidas = day.meals.length > 0 && cumplidaCount === day.meals.length;
+  const mealsHtml = day.meals.map((m, j) => {
+    const sk = `d${i}m${j}`;
+    const st = estado[sk] || {};
+    const cumplido = !!st.cumplido;
+    const customText = st.customText;
+    const customKcal = st.customKcal;
+    const showText = customText || m.content;
+    const showKcal = customText ? customKcal : m.kcal;
+    return `<div class="alim-meal${cumplido ? ' is-cumplida' : ''}${customText ? ' is-editada' : ''}">
+      <button class="alim-check" onclick="event.stopPropagation();toggleAlimComida(${i},${j})" type="button" aria-label="${lang==='es'?'Cumplido':'Done'}">${cumplido ? '✓' : ''}</button>
+      <div class="alim-meal-body">
+        <div class="alim-meal-name">${m.emoji} ${_esc(m.name)}${customText ? ' <span class="alim-edit-flag">· editada</span>' : ''}</div>
+        <div class="alim-meal-content">${_esc(showText)}</div>
+        ${showKcal != null ? `<div class="alim-meal-kcal">${showKcal} kcal</div>` : ''}
       </div>
-      <div class="alim-meal-list" id="alim-meal-list-${i}" style="display:${isExpanded ? 'block' : 'none'}">
-        ${mealsHtml}
-      </div>
+      <button class="alim-edit-btn" onclick="event.stopPropagation();editAlimComida(${i},${j})" type="button" aria-label="${lang==='es'?'Editar':'Edit'}">✏️</button>
     </div>`;
   }).join('');
+
+  const headerMeta = `${day.meals.length} ${lang==='es'?'comidas':'meals'}${day.totalKcal ? ' · ' + day.totalKcal + ' kcal' : ''} · ${cumplidaCount}/${day.meals.length} ${lang==='es'?'cumplidas':'done'}`;
+  container.innerHTML = `<div class="semana-card alim-day is-expanded${allCumplidas ? ' is-done' : ''}" id="alim-day-${i}">
+    <div class="semana-header">
+      <div class="semana-badge">${allCumplidas ? '✓' : 'HOY'}</div>
+      <div class="alim-day-info">
+        <div class="alim-day-name">${_esc(day.dayName)} · ${lang==='es'?'HOY':'TODAY'}</div>
+        <div class="alim-day-meta">${headerMeta}</div>
+      </div>
+    </div>
+    <div class="alim-meal-list" id="alim-meal-list-${i}" style="display:block">
+      ${mealsHtml}
+    </div>
+  </div>`;
 }
 
 function toggleAlimDay(i) {
