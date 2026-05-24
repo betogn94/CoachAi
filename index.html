@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260523-1945-chat-cards">
+<meta name="app-version" content="20260525-1230-bowl-icon">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6304,8 +6304,8 @@ footer {
     </div>
     <div class="nav-item" id="drawer-diario" onclick="showDiario(); setActiveNav('nav-diario'); closeNav()">
       <div class="nav-item-icon"><div class="nav-item-icon-inner">
-        <!-- Concentric circles — matches the Mi Alimentación icon used in the bottom nav -->
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>
+        <!-- Bowl con vapor — matchea con el ícono del bottom nav y del chat -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18a9 9 0 0 1-18 0z"/><path d="M9 4c0 1-1 2-1 3s1 2 1 3"/><path d="M14 4c0 1-1 2-1 3s1 2 1 3"/></svg>
       </div></div>
       <div><div class="nav-item-label">Mi Alimentación</div></div>
     </div>
@@ -10293,7 +10293,7 @@ function refreshQuickButtons() {
 
   // Inline SVG icons (matches the bottom-nav language: target-style plate
   // for nutrition, dumbbell for training)
-  const PLATE_ICON    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>';
+  const BOWL_ICON     = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18a9 9 0 0 1-18 0z"/><path d="M9 4c0 1-1 2-1 3s1 2 1 3"/><path d="M14 4c0 1-1 2-1 3s1 2 1 3"/></svg>';
   const DUMBBELL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"/><path d="M21 21l-1-1"/><path d="M3 3l1 1"/><path d="M18 22l4-4"/><path d="M2 6l4-4"/><path d="M3 10l7-7"/><path d="M14 21l7-7"/></svg>';
 
   // Card text — explicit title + sub avoids the splitLabel heuristic getting
@@ -10310,7 +10310,7 @@ function refreshQuickButtons() {
 
   const dietaBtn = `
     <button class="qbtn-card is-dieta" onclick="${dietaHandler}">
-      <span class="qbtn-card-ico">${PLATE_ICON}</span>
+      <span class="qbtn-card-ico">${BOWL_ICON}</span>
       <span class="qbtn-card-text">
         <span class="qbtn-card-title">${dietaText.title}</span>
         <span class="qbtn-card-sub">${dietaText.sub}</span>
@@ -15489,7 +15489,8 @@ async function forceAppUpdate() {
     </button>
     <button class="nav-item" id="nav-diario" onclick="showDiario(); setActiveNav('nav-diario')" aria-label="Mi Alimentación">
       <span class="nav-item-icon-bn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>
+        <!-- Bowl con vapor (line-icon, stroke 1.8 para nav chica) -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18a9 9 0 0 1-18 0z"/><path d="M9 4c0 1-1 2-1 3s1 2 1 3"/><path d="M14 4c0 1-1 2-1 3s1 2 1 3"/></svg>
       </span>
     </button>
     <button class="nav-item" id="nav-entreno" onclick="showMiEntreno(); setActiveNav('nav-entreno')" aria-label="Mi Entreno">
