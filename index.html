@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260525-1330-alim-today-only">
+<meta name="app-version" content="20260525-1530-mi-alim-meal-cards">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -947,6 +947,282 @@ body.app-active:has(.form-wrapper[style*="block"]) { padding-bottom: 0; }
   .qbtn-card-ico svg { width: 20px; height: 20px; }
   .qbtn-card-title { font-size: 14px; }
   .qbtn-card-sub { font-size: 10.5px; }
+}
+
+/* === MI ALIMENTACIÓN · Meal Cards (Crystal Depth) =====
+   Single-day focused view (matches the iOS-Fitness-style today-only flow
+   from earlier today). Header + hero summary + meal cards + empty state,
+   all using the same crystal-depth chrome that the rest of the app uses. */
+.cai-alim-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 10px;
+  padding: 14px 18px 8px;
+}
+.cai-alim-header-title {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 4px;
+}
+.cai-alim-header-ico {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(124,106,255,0.20), rgba(46,207,181,0.14));
+  border: 1px solid rgba(124,106,255,0.30);
+  color: var(--accent-bright);
+  display: flex; align-items: center; justify-content: center;
+}
+.cai-alim-header-ico svg { width: 16px; height: 16px; }
+.cai-alim-header-h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px; letter-spacing: 1.5px;
+  line-height: 1; margin: 0;
+  background: linear-gradient(135deg, #f0f0fa 0%, #b4a7ff 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.cai-alim-header-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  color: var(--muted);
+  letter-spacing: 1.2px;
+  margin-left: 38px;
+}
+
+.cai-alim-summary {
+  margin: 12px 18px;
+  padding: 18px;
+  background-color: rgba(20,20,32,0.55);
+  background-image:
+    linear-gradient(135deg, rgba(124,106,255,0.06) 0%, transparent 45%),
+    linear-gradient(225deg, rgba(46,207,181,0.04) 0%, transparent 45%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  box-shadow:
+    0 16px 50px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.09);
+}
+.cai-alim-summary-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; letter-spacing: 1.4px;
+  color: var(--accent-bright);
+  margin-bottom: 8px;
+}
+.cai-alim-summary-row {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  margin-bottom: 14px;
+}
+.cai-alim-summary-count {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 38px; line-height: 0.9; letter-spacing: 1px;
+  background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.cai-alim-summary-label {
+  font-size: 10.5px; color: var(--muted);
+  letter-spacing: 1px; margin-top: 2px;
+  text-transform: uppercase;
+}
+.cai-alim-summary-kcal {
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--muted2);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+.cai-alim-summary-kcal strong {
+  display: block;
+  font-family: 'Bebas Neue';
+  font-size: 24px;
+  color: var(--text);
+  font-weight: 400;
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+.cai-alim-summary-kcal strong .total {
+  color: var(--muted); font-size: 14px;
+}
+.cai-alim-progress {
+  height: 4px;
+  border-radius: 100px;
+  background: rgba(255,255,255,0.06);
+  overflow: hidden;
+}
+.cai-alim-progress-fill {
+  height: 100%;
+  background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%);
+  border-radius: 100px;
+  transition: width 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+  box-shadow: 0 0 8px rgba(124,106,255,0.45);
+}
+.cai-alim-progress-fill[data-empty="true"] { box-shadow: none; }
+
+.cai-alim-meals {
+  padding: 0 18px 24px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+.cai-meal {
+  padding: 14px;
+  display: flex; gap: 12px; align-items: stretch;
+  background-color: rgba(20,20,32,0.55);
+  background-image:
+    linear-gradient(135deg, rgba(124,106,255,0.06) 0%, transparent 45%),
+    linear-gradient(225deg, rgba(46,207,181,0.04) 0%, transparent 45%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  box-shadow:
+    0 8px 28px rgba(0,0,0,0.30),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  transition: opacity 0.25s ease;
+}
+.cai-meal.done { opacity: 0.78; }
+.cai-meal-rail {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.cai-meal-check {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1.5px solid rgba(255,255,255,0.18);
+  color: transparent;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.cai-meal-check:active { transform: scale(0.92); }
+.cai-meal-check.done {
+  background: var(--accent3);
+  border-color: var(--accent3);
+  color: var(--bg);
+}
+.cai-meal-check svg { width: 16px; height: 16px; }
+.cai-meal-hour {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 0.8px;
+  color: var(--muted2);
+}
+.cai-meal-body { flex: 1; min-width: 0; }
+.cai-meal-top {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.cai-meal-name {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px; font-weight: 600;
+  color: var(--text);
+  transition: color 0.2s ease, text-decoration 0.2s ease;
+}
+.cai-meal.done .cai-meal-name {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.cai-meal-kcal-chip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 100px;
+  background: rgba(46,207,181,0.10);
+  color: var(--accent3);
+  border: 1px solid rgba(46,207,181,0.25);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.cai-meal-detail {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+.cai-meal-edit {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px;
+  background: rgba(124,106,255,0.08);
+  border: 1px solid rgba(124,106,255,0.22);
+  border-radius: 8px;
+  color: var(--accent-bright);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10.5px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s cubic-bezier(0.18, 1.1, 0.4, 1.05);
+}
+.cai-meal-edit:active { transform: scale(0.96); }
+.cai-meal-edit svg { width: 11px; height: 11px; }
+
+.cai-alim-empty {
+  padding: 20px 18px;
+}
+.cai-alim-empty-card {
+  padding: 24px 20px;
+  background-color: rgba(20,20,32,0.55);
+  background-image:
+    linear-gradient(135deg, rgba(124,106,255,0.06) 0%, transparent 45%),
+    linear-gradient(225deg, rgba(46,207,181,0.04) 0%, transparent 45%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; gap: 14px;
+  box-shadow:
+    0 16px 50px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.09);
+}
+.cai-alim-empty-ico {
+  width: 64px; height: 64px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(124,106,255,0.20), rgba(46,207,181,0.14));
+  border: 1.5px solid rgba(124,106,255,0.35);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent-bright);
+  box-shadow: 0 0 24px rgba(124,106,255,0.20);
+}
+.cai-alim-empty-ico svg { width: 32px; height: 32px; }
+.cai-alim-empty-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px; letter-spacing: 1px;
+  line-height: 1; margin-bottom: 6px;
+  color: var(--text);
+}
+.cai-alim-empty-sub {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+  max-width: 280px;
+  margin: 0 auto;
+}
+.cai-alim-empty-cta {
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%);
+  border: 0;
+  border-radius: 12px;
+  color: white;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 15px; letter-spacing: 2.5px;
+  cursor: pointer;
+  box-shadow: 0 6px 28px rgba(124,106,255,0.32);
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-top: 6px;
+  transition: transform 0.2s cubic-bezier(0.18, 1.1, 0.4, 1.05);
+}
+.cai-alim-empty-cta:active { transform: scale(0.97); }
+.cai-alim-empty-cta svg { width: 16px; height: 16px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cai-alim-progress-fill,
+  .cai-meal-check,
+  .cai-meal-edit,
+  .cai-alim-empty-cta { transition: none; }
 }
 
 /* Hide the in-panel launch button — replaced by the floating bottom nav */
@@ -7769,38 +8045,71 @@ QUE SÍ SE VE</div>
 
 <!-- REGISTRO DIARIO -->
 <div class="diario-wrapper" id="diario-wrapper">
-  <div class="diario-header">
+
+  <!-- Page header: bowl icon + brand title + today-string + back button -->
+  <div class="cai-alim-header">
     <div>
-      <div class="diario-title" id="diario-title-text"><span class="diario-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h0a2 2 0 0 0 2-2V2"></path><line x1="5" y1="11" x2="5" y2="22"></line><path d="M21 15V2a5 3 0 0 0-5 3v7c0 1.1.9 2 2 2h3z"></path><line x1="18" y1="15" x2="18" y2="22"></line></svg></span><span>MI ALIMENTACIÓN</span></div>
+      <div class="cai-alim-header-title">
+        <div class="cai-alim-header-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18a9 9 0 0 1-18 0z"/><path d="M9 4c0 1-1 2-1 3s1 2 1 3"/><path d="M14 4c0 1-1 2-1 3s1 2 1 3"/></svg>
+        </div>
+        <h2 class="cai-alim-header-h2">MI ALIMENTACIÓN</h2>
+      </div>
+      <div class="cai-alim-header-sub" id="alim-header-sub">—</div>
     </div>
-    <button class="btn-back-chat" onclick="showHome()" id="diario-back-btn">← Inicio</button>
+    <button onclick="showHome()" id="diario-back-btn" style="padding:8px 14px;border-radius:10px;background:rgba(255,255,255,0.025);border:1px solid rgba(124,106,255,0.18);color:var(--accent-bright);font-family:'JetBrains Mono', monospace;font-size:10.5px;letter-spacing:1px;display:flex;align-items:center;gap:6px;cursor:pointer">← INICIO</button>
   </div>
 
-  <!-- Banner shown when the user has no active plan to register against -->
-  <div id="diario-no-plan-banner" style="display:none; margin-bottom:16px; padding:14px 18px; background:linear-gradient(135deg,rgba(124,106,255,0.12),rgba(46,207,181,0.06)); border:1px solid rgba(124,106,255,0.25); border-radius:12px;">
-    <div style="font-size:13px; line-height:1.5; color:var(--text);" id="diario-no-plan-text">
-      💡 <strong>Aún no tenés una dieta activa</strong> — pedile al coach tu plan de alimentación de la semana para tener una referencia contra qué comparar lo que comés.
-    </div>
-    <button onclick="showChat()" style="margin-top:10px; background:transparent; border:1px solid var(--accent); color:var(--accent-bright); padding:6px 14px; border-radius:6px; cursor:pointer; font-size:11px; letter-spacing:1.5px; font-family:'JetBrains Mono', monospace;" id="diario-no-plan-cta">→ IR AL CHAT</button>
-  </div>
-
-  <!-- Target macros header (shown when dieta has a Target line) -->
-  <div class="chart-card coach-card alim-target-card" id="alim-target-card" style="display:none; margin-bottom:14px">
+  <!-- Target macros header (shown when dieta has a Target line). Kept for
+       back-compat with parseDietaContenido's header output. -->
+  <div class="chart-card coach-card alim-target-card" id="alim-target-card" style="display:none; margin: 0 18px 12px;">
     <div class="alim-target-info" id="alim-target-info"></div>
   </div>
 
-  <!-- WEEK VIEW — días con comidas tildables (mirror Mi Entreno) -->
-  <div class="chart-card coach-card" style="margin-bottom:16px">
-    <div class="chart-card-header">
-      <div class="chart-card-title"><span class="chart-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line><line x1="8" y1="3" x2="8" y2="7"></line><line x1="16" y1="3" x2="16" y2="7"></line></svg></span><span>SEGUIMIENTO SEMANAL</span></div>
-    </div>
-    <div id="alim-days-container" style="padding:12px 16px 20px">
-      <div class="chart-empty" id="alim-empty">
-        <div class="chart-empty-icon">🥗</div>
-        <span>Tu plan de la semana va a aparecer acá día por día.</span>
+  <!-- Hero summary card (HOY · X/N + kcal done/total + progress bar) -->
+  <div class="cai-alim-summary" id="alim-summary" style="display:none">
+    <div class="cai-alim-summary-eyebrow" id="alim-summary-eyebrow">HOY</div>
+    <div class="cai-alim-summary-row">
+      <div>
+        <div class="cai-alim-summary-count" id="alim-summary-count">0/0</div>
+        <div class="cai-alim-summary-label" data-es="Comidas cumplidas" data-en="Meals done">Comidas cumplidas</div>
+      </div>
+      <div class="cai-alim-summary-kcal">
+        kcal
+        <strong>
+          <span id="alim-summary-done-kcal">0</span> <span class="total">/ <span id="alim-summary-total-kcal">0</span></span>
+        </strong>
       </div>
     </div>
+    <div class="cai-alim-progress">
+      <div class="cai-alim-progress-fill" id="alim-summary-progress" data-empty="true" style="width:0%"></div>
+    </div>
   </div>
+
+  <!-- Meals list — populated by renderMiAlimentacion() -->
+  <div class="cai-alim-meals" id="alim-meals-list"></div>
+
+  <!-- Empty state (when no dieta plan is active) -->
+  <div class="cai-alim-empty" id="alim-empty-state" style="display:none">
+    <div class="cai-alim-empty-card">
+      <div class="cai-alim-empty-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18a9 9 0 0 1-18 0z"/><path d="M9 4c0 1-1 2-1 3s1 2 1 3"/><path d="M14 4c0 1-1 2-1 3s1 2 1 3"/></svg>
+      </div>
+      <div>
+        <div class="cai-alim-empty-title" data-es="SIN DIETA ACTIVA" data-en="NO ACTIVE DIET">SIN DIETA ACTIVA</div>
+        <div class="cai-alim-empty-sub" data-es="Pedile a tu coach el plan de la semana y empezá a tildar comidas día por día." data-en="Ask your coach for the weekly plan and start checking meals day by day.">Pedile a tu coach el plan de la semana y empezá a tildar comidas día por día.</div>
+      </div>
+      <button class="cai-alim-empty-cta" onclick="showChat()">
+        <span data-es="HABLAR CON EL COACH" data-en="TALK TO COACH">HABLAR CON EL COACH</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Legacy id kept to satisfy any other code path that still references it
+       (e.g. _alimDirtyDays sync flow that does `document.getElementById('alim-days-container')`).
+       Hidden — not used by the new render. -->
+  <div id="alim-days-container" style="display:none"></div>
 </div>
 
 <!-- Edit comida modal -->
@@ -10491,16 +10800,32 @@ async function syncProgresoDiarioForDay(dayIdx) {
   catch (e) { console.error('[CoachAI] sync progreso_diario:', e); }
 }
 
+// Default meal hours used in the new meal-card "rail" — falls back to '' if
+// the meal name doesn't match (e.g. "Snack 2" or coach-defined extras).
+const _ALIM_MEAL_HOURS = {
+  desayuno: '08:30', almuerzo: '13:00', merienda: '17:00', cena: '21:00',
+  'pre-entreno': '17:30', 'post-entreno': '19:30', colacion: '10:30', snack: '16:00',
+};
+
 async function renderMiAlimentacion() {
-  const container = document.getElementById('alim-days-container');
+  const mealsList = document.getElementById('alim-meals-list');
+  const emptyState = document.getElementById('alim-empty-state');
+  const summary = document.getElementById('alim-summary');
+  const headerSub = document.getElementById('alim-header-sub');
   const targetCard = document.getElementById('alim-target-card');
   const targetInfo = document.getElementById('alim-target-info');
-  if (!container) return;
+  if (!mealsList) return;
+
+  // Always update the page subtitle ("Lunes · hoy") regardless of state
+  const todayName = new Date().toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', { weekday: 'long' });
+  if (headerSub) headerSub.textContent = `${todayName.charAt(0).toUpperCase() + todayName.slice(1)} · ${lang === 'es' ? 'hoy' : 'today'}`;
+
+  const showFilled = () => { if (emptyState) emptyState.style.display = 'none'; if (summary) summary.style.display = 'block'; mealsList.style.display = 'flex'; };
+  const showEmpty  = () => { if (emptyState) emptyState.style.display = 'block'; if (summary) summary.style.display = 'none'; mealsList.style.display = 'none'; if (targetCard) targetCard.style.display = 'none'; };
 
   const dietaPlan = weeklyPlans && weeklyPlans.dieta;
   if (!dietaPlan || dietaPlan.closed) {
-    container.innerHTML = `<div class="chart-empty" id="alim-empty"><div class="chart-empty-icon">🥗</div><span>${lang === 'es' ? 'Sin dieta activa todavía. Pedile a CoachAI tu plan en el chat para empezar a tildar comidas día por día.' : 'No active diet yet. Ask CoachAI for your weekly plan in the chat.'}</span></div>`;
-    if (targetCard) targetCard.style.display = 'none';
+    showEmpty();
     _alimDays = null; _alimHeader = null;
     return;
   }
@@ -10516,7 +10841,12 @@ async function renderMiAlimentacion() {
   _alimDays = parsed.days;
   _alimHeader = parsed.header;
 
-  // Target header
+  if (!_alimDays || _alimDays.length === 0) {
+    showEmpty();
+    return;
+  }
+
+  // Target header (when the dieta has a "TOTAL ESTIMADO: Xkcal …" footer)
   if (targetCard && targetInfo) {
     if (_alimHeader && _alimHeader.targetKcal) {
       targetInfo.textContent = `🎯 ${_alimHeader.targetKcal} kcal · P:${_alimHeader.targetProt||'—'}g · C:${_alimHeader.targetCarbs||'—'}g · G:${_alimHeader.targetFat||'—'}g`;
@@ -10524,14 +10854,6 @@ async function renderMiAlimentacion() {
     } else {
       targetCard.style.display = 'none';
     }
-  }
-
-  if (!_alimDays || _alimDays.length === 0) {
-    // synthesizePlainTextDieta above already handles the coach-pasted case
-    // by repeating the meal list across 7 days; if we still got no days,
-    // the contenido is truly unparseable. Show the soft empty state.
-    container.innerHTML = `<div class="chart-empty"><div class="chart-empty-icon">🥗</div><span>${lang === 'es' ? 'No pudimos parsear la dieta. Avisanos para ajustar el formato.' : 'Could not parse the diet. Let us know to adjust the format.'}</span></div>`;
-    return;
   }
 
   // Load state from supabase if not yet
@@ -10546,44 +10868,59 @@ async function renderMiAlimentacion() {
   const i = todayIdx < _alimDays.length ? todayIdx : 0;
   const day = _alimDays[i];
 
-  // iOS-Fitness-style minimal view: show ONLY today's card, always expanded.
-  // Skip the 7-day list. The other days are still tracked in state (each
-  // meal's d${i}m${j} key is per-day-per-meal) so when tomorrow rolls
-  // around, the user sees the next day fresh.
-  const cumplidaCount = day.meals.filter((m, j) => estado[`d${i}m${j}`]?.cumplido).length;
-  const allCumplidas = day.meals.length > 0 && cumplidaCount === day.meals.length;
-  const mealsHtml = day.meals.map((m, j) => {
-    const sk = `d${i}m${j}`;
-    const st = estado[sk] || {};
+  // Stats for the hero summary
+  let doneCount = 0, doneKcal = 0, totalKcal = 0;
+  day.meals.forEach((m, j) => {
+    const st = estado[`d${i}m${j}`] || {};
+    const kcal = st.customText ? (st.customKcal || 0) : (m.kcal || 0);
+    totalKcal += kcal;
+    if (st.cumplido) { doneCount++; doneKcal += kcal; }
+  });
+
+  // Update summary card
+  document.getElementById('alim-summary-eyebrow').textContent = `${lang==='es'?'HOY':'TODAY'} · ${day.dayName}`;
+  document.getElementById('alim-summary-count').textContent = `${doneCount}/${day.meals.length}`;
+  document.getElementById('alim-summary-done-kcal').textContent = doneKcal;
+  document.getElementById('alim-summary-total-kcal').textContent = totalKcal;
+  const progress = document.getElementById('alim-summary-progress');
+  const pct = day.meals.length ? Math.round((doneCount / day.meals.length) * 100) : 0;
+  progress.style.width = pct + '%';
+  if (doneCount === 0) progress.setAttribute('data-empty', 'true');
+  else progress.removeAttribute('data-empty');
+
+  // Render each meal as a crystal-depth card with check rail + edit pill
+  const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  const EDIT_SVG  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+
+  mealsList.innerHTML = day.meals.map((m, j) => {
+    const st = estado[`d${i}m${j}`] || {};
     const cumplido = !!st.cumplido;
-    const customText = st.customText;
-    const customKcal = st.customKcal;
-    const showText = customText || m.content;
-    const showKcal = customText ? customKcal : m.kcal;
-    return `<div class="alim-meal${cumplido ? ' is-cumplida' : ''}${customText ? ' is-editada' : ''}">
-      <button class="alim-check" onclick="event.stopPropagation();toggleAlimComida(${i},${j})" type="button" aria-label="${lang==='es'?'Cumplido':'Done'}">${cumplido ? '✓' : ''}</button>
-      <div class="alim-meal-body">
-        <div class="alim-meal-name">${m.emoji} ${_esc(m.name)}${customText ? ' <span class="alim-edit-flag">· editada</span>' : ''}</div>
-        <div class="alim-meal-content">${_esc(showText)}</div>
-        ${showKcal != null ? `<div class="alim-meal-kcal">${showKcal} kcal</div>` : ''}
-      </div>
-      <button class="alim-edit-btn" onclick="event.stopPropagation();editAlimComida(${i},${j})" type="button" aria-label="${lang==='es'?'Editar':'Edit'}">✏️</button>
-    </div>`;
+    const showText = st.customText || m.content;
+    const showKcal = st.customText ? st.customKcal : m.kcal;
+    const hour = _ALIM_MEAL_HOURS[m.key] || '';
+    return `
+      <div class="cai-meal${cumplido ? ' done' : ''}">
+        <div class="cai-meal-rail">
+          <button class="cai-meal-check${cumplido ? ' done' : ''}" onclick="event.stopPropagation();toggleAlimComida(${i},${j})" type="button" aria-label="${lang==='es'?'Marcar':'Mark'} ${_esc(m.name)}">${cumplido ? CHECK_SVG : ''}</button>
+          ${hour ? `<div class="cai-meal-hour">${hour}</div>` : ''}
+        </div>
+        <div class="cai-meal-body">
+          <div class="cai-meal-top">
+            <div class="cai-meal-name">${_esc(m.name)}</div>
+            ${showKcal != null ? `<span class="cai-meal-kcal-chip">${showKcal} kcal</span>` : ''}
+          </div>
+          <div class="cai-meal-detail">${_esc(showText)}${st.customText ? ' <em style="opacity:.7;font-style:normal">· editada</em>' : ''}</div>
+          <button class="cai-meal-edit" onclick="event.stopPropagation();editAlimComida(${i},${j})" type="button">${EDIT_SVG}<span>${lang==='es'?'Editar':'Edit'}</span></button>
+        </div>
+      </div>`;
   }).join('');
 
-  const headerMeta = `${day.meals.length} ${lang==='es'?'comidas':'meals'}${day.totalKcal ? ' · ' + day.totalKcal + ' kcal' : ''} · ${cumplidaCount}/${day.meals.length} ${lang==='es'?'cumplidas':'done'}`;
-  container.innerHTML = `<div class="semana-card alim-day is-expanded${allCumplidas ? ' is-done' : ''}" id="alim-day-${i}">
-    <div class="semana-header">
-      <div class="semana-badge">${allCumplidas ? '✓' : 'HOY'}</div>
-      <div class="alim-day-info">
-        <div class="alim-day-name">${_esc(day.dayName)} · ${lang==='es'?'HOY':'TODAY'}</div>
-        <div class="alim-day-meta">${headerMeta}</div>
-      </div>
-    </div>
-    <div class="alim-meal-list" id="alim-meal-list-${i}" style="display:block">
-      ${mealsHtml}
-    </div>
-  </div>`;
+  showFilled();
+
+  // Legacy compat: the old #alim-days-container is hidden (see HTML) but if
+  // any other code path queries it, leave an empty stub so no nulls bubble.
+  const legacy = document.getElementById('alim-days-container');
+  if (legacy) legacy.innerHTML = '';
 }
 
 function toggleAlimDay(i) {
