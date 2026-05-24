@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout main)",
+      "Bash(git pull origin main)",
+      "Bash(git add -A)",
+      "Bash(git add *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git commit -m *)",
+      "Bash(git push origin main)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"C:/Users/Usuario/Desktop/coachai\" && git add -A && if ! git diff --cached --quiet; then git commit -m \"auto update\" && git push origin main; fi",
+            "shell": "bash",
+            "timeout": 30,
+            "statusMessage": "Syncing to main..."
+          }
+        ]
+      }
+    ]
+  }
+}

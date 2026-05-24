@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260525-1530-mi-alim-meal-cards">
+<meta name="app-version" content="20260524-2100-chat-dieta-msg-update">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -8552,12 +8552,16 @@ function buildPlanReadyNotification(tipo) {
   const titleEn = isRutina ? '💪 Your weekly routine is ready'      : '🥗 Your weekly meal plan is ready';
   const bodyEs  = isRutina
     ? `La armé personalizada para vos. Pasala a revisar en <a onclick="showMiEntreno();return false" style="cursor:pointer;color:var(--accent-bright);text-decoration:underline;font-weight:700">Mi Entreno</a> — la tenés organizada día por día, podés marcar tus entrenos cumplidos y cargar tu peso por serie.`
-    : `La armé con tus gustos y restricciones. Pasala a revisar en <a onclick="showDiario();return false" style="cursor:pointer;color:var(--accent-bright);text-decoration:underline;font-weight:700">Mi Alimentación</a> — la tenés organizada día por día, podés tildar cada comida cumplida o editarla si comiste otra cosa.`;
+    : `La armé con tus gustos y restricciones. En <a onclick="showDiario();return false" style="cursor:pointer;color:var(--accent-bright);text-decoration:underline;font-weight:700">Mi Alimentación</a> tenés las comidas de <strong>hoy</strong> para tildar cumplidas o editarlas si comiste otra cosa.`;
   const bodyEn  = isRutina
     ? `I built it custom for you. Check it out in <a onclick="showMiEntreno();return false" style="cursor:pointer;color:var(--accent-bright);text-decoration:underline;font-weight:700">My Training</a> — organized day by day, ready to track completed workouts and per-set weights.`
-    : `I built it around your preferences. Check it out in <a onclick="showDiario();return false" style="cursor:pointer;color:var(--accent-bright);text-decoration:underline;font-weight:700">My Nutrition</a> — organized day by day, tick each meal as done or edit if you ate something else.`;
-  const noteEs  = `📍 También podés acceder desde tu <a onclick="showPerfil();return false" style="cursor:pointer;color:var(--accent2);text-decoration:underline">Perfil</a>.`;
-  const noteEn  = `📍 You can also access it from your <a onclick="showPerfil();return false" style="cursor:pointer;color:var(--accent2);text-decoration:underline">Profile</a>.`;
+    : `I built it around your preferences. In <a onclick="showDiario();return false" style="cursor:pointer;color:var(--accent-bright);text-decoration:underline;font-weight:700">My Nutrition</a> you'll find <strong>today's</strong> meals to tick off as done or edit if you ate something else.`;
+  const noteEs  = isRutina
+    ? `📍 También podés acceder desde tu <a onclick="showPerfil();return false" style="cursor:pointer;color:var(--accent2);text-decoration:underline">Perfil</a>.`
+    : `📍 ¿Querés ver tu dieta de la semana completa? Está en tu <a onclick="showPerfil();return false" style="cursor:pointer;color:var(--accent2);text-decoration:underline">Perfil</a>.`;
+  const noteEn  = isRutina
+    ? `📍 You can also access it from your <a onclick="showPerfil();return false" style="cursor:pointer;color:var(--accent2);text-decoration:underline">Profile</a>.`
+    : `📍 Want to see the whole week at once? It's in your <a onclick="showPerfil();return false" style="cursor:pointer;color:var(--accent2);text-decoration:underline">Profile</a>.`;
   const title = lang === 'es' ? titleEs : titleEn;
   const body  = lang === 'es' ? bodyEs  : bodyEn;
   const note  = lang === 'es' ? noteEs  : noteEn;
@@ -10345,11 +10349,11 @@ async function launchCoach() {
       const welcomeHtml = isEs
         ? `${nombreCliente ? '¡Hola ' + nombreCliente + '!' : '¡Hola!'} 👋 Veo que venís migrada de <strong>${coach}</strong> — ya cargó tu rutina + dieta de esta semana. Las podés revisar acá:<br><br>` +
           `💪 <a href="#" onclick="showMiEntreno();return false" style="color:var(--accent-bright)">Mi Entreno</a> — tu rutina de la semana día por día<br>` +
-          `🥗 <a href="#" onclick="showDiario();return false" style="color:var(--accent-bright)">Mi Alimentación</a> — tu plan nutricional<br><br>` +
+          `🥗 <a href="#" onclick="showDiario();return false" style="color:var(--accent-bright)">Mi Alimentación</a> — las comidas de hoy (semana completa en tu <a href="#" onclick="showPerfil();return false" style="color:var(--accent-bright)">Perfil</a>)<br><br>` +
           `Cuando tengas dudas, quieras ajustar algo, o necesites mi ayuda, escribime acá nomás. ¡Vamos por todo! 🚀`
         : `${nombreCliente ? 'Hi ' + nombreCliente + '!' : 'Hi!'} 👋 I see you're coming over from <strong>${coach}</strong> — he loaded your routine + diet for this week. You can review them here:<br><br>` +
           `💪 <a href="#" onclick="showMiEntreno();return false" style="color:var(--accent-bright)">My Training</a> — your weekly routine day by day<br>` +
-          `🥗 <a href="#" onclick="showDiario();return false" style="color:var(--accent-bright)">My Nutrition</a> — your meal plan<br><br>` +
+          `🥗 <a href="#" onclick="showDiario();return false" style="color:var(--accent-bright)">My Nutrition</a> — today's meals (full week in your <a href="#" onclick="showPerfil();return false" style="color:var(--accent-bright)">Profile</a>)<br><br>` +
           `When you have questions, want to adjust anything, or need my help — just write here. Let's go! 🚀`;
       // addMessage(content, type, skipPersistFlag) — we DO want to persist this
       // so the user sees it again on subsequent logins. Skip the AI welcome too.
