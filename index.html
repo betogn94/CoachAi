@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260524-2100-chat-dieta-msg-update">
+<meta name="app-version" content="20260524-2200-mi-entreno-today-only">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -1224,6 +1224,268 @@ body.app-active:has(.form-wrapper[style*="block"]) { padding-bottom: 0; }
   .cai-meal-edit,
   .cai-alim-empty-cta { transition: none; }
 }
+
+/* ======================================================================
+   MI ENTRENO — same crystal-depth language as Mi Alimentación
+   ====================================================================== */
+
+/* HERO card — today's day with full exercise list */
+.cai-ent-hero {
+  margin: 12px 18px;
+  padding: 18px;
+  background-color: rgba(20,20,32,0.55);
+  background-image:
+    linear-gradient(135deg, rgba(124,106,255,0.06) 0%, transparent 45%),
+    linear-gradient(225deg, rgba(46,207,181,0.04) 0%, transparent 45%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  box-shadow:
+    0 16px 50px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.09);
+  transition: opacity 0.25s ease;
+}
+.cai-ent-hero.done { opacity: 0.85; }
+.cai-ent-hero-top {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 10px; margin-bottom: 14px;
+}
+.cai-ent-hero-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; letter-spacing: 1.4px;
+  color: var(--accent-bright);
+  margin-bottom: 6px;
+}
+.cai-ent-hero-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26px; letter-spacing: 1px; line-height: 1;
+  background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.cai-ent-hero-sub {
+  font-size: 11.5px; color: var(--muted);
+  margin-top: 6px; line-height: 1.5;
+}
+.cai-ent-hero-check {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1.5px solid rgba(255,255,255,0.18);
+  color: transparent;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+.cai-ent-hero-check:active { transform: scale(0.92); }
+.cai-ent-hero-check.done {
+  background: var(--accent3);
+  border-color: var(--accent3);
+  color: var(--bg);
+}
+.cai-ent-hero-check svg { width: 18px; height: 18px; }
+.cai-ent-hero-ex-list {
+  display: flex; flex-direction: column; gap: 10px;
+}
+.cai-ent-ex {
+  padding: 12px 14px;
+  background: rgba(0,0,0,0.22);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 12px;
+}
+.cai-ent-ex-top {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 10px; margin-bottom: 4px;
+}
+.cai-ent-ex-name {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13.5px; font-weight: 600;
+  color: var(--text);
+}
+.cai-ent-ex-detail {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.4px;
+  padding: 3px 8px;
+  border-radius: 100px;
+  background: rgba(46,207,181,0.10);
+  color: var(--accent3);
+  border: 1px solid rgba(46,207,181,0.25);
+  flex-shrink: 0; white-space: nowrap;
+}
+.cai-ent-ex-info-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 4px;
+  padding: 4px 9px;
+  background: rgba(124,106,255,0.08);
+  border: 1px solid rgba(124,106,255,0.22);
+  border-radius: 8px;
+  color: var(--accent-bright);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.cai-ent-ex-note {
+  font-size: 11px; color: var(--muted);
+  margin-top: 6px; line-height: 1.45;
+  font-style: italic;
+}
+.cai-ent-series {
+  margin-top: 10px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.cai-ent-series-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 1px;
+  color: var(--muted2);
+  margin-bottom: 2px;
+}
+.cai-ent-serie-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.cai-ent-serie-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--muted);
+  letter-spacing: 0.4px;
+  min-width: 48px;
+}
+.cai-ent-serie-input {
+  flex: 1;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 7px 10px;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  outline: none;
+  text-align: center;
+  transition: border-color 0.15s ease;
+  min-width: 0;
+}
+.cai-ent-serie-input:focus { border-color: var(--accent); }
+.cai-ent-serie-unit {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--muted);
+}
+.cai-ent-serie-saved {
+  font-size: 11px; color: var(--accent3);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  min-width: 12px;
+}
+.cai-ent-serie-saved.show { opacity: 1; }
+
+/* "RESTO DE LA SEMANA" card — contains sub-cards for other routine days */
+.cai-ent-other {
+  margin: 0 18px 24px;
+  padding: 16px 16px 14px;
+  background-color: rgba(20,20,32,0.55);
+  background-image:
+    linear-gradient(135deg, rgba(124,106,255,0.06) 0%, transparent 45%),
+    linear-gradient(225deg, rgba(46,207,181,0.04) 0%, transparent 45%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  box-shadow:
+    0 8px 28px rgba(0,0,0,0.30),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.cai-ent-other-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; letter-spacing: 1.4px;
+  color: var(--accent-bright);
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+.cai-ent-other-list {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.cai-ent-subcard {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(0,0,0,0.22);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 12px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.18s cubic-bezier(0.18, 1.1, 0.4, 1.05), border-color 0.15s ease, background 0.15s ease;
+}
+.cai-ent-subcard:hover,
+.cai-ent-subcard:active {
+  border-color: rgba(124,106,255,0.30);
+  background: rgba(124,106,255,0.05);
+}
+.cai-ent-subcard:active { transform: scale(0.985); }
+.cai-ent-subcard.rest { cursor: default; }
+.cai-ent-subcard.rest:hover { border-color: rgba(255,255,255,0.05); background: rgba(0,0,0,0.22); }
+.cai-ent-subcard-left {
+  display: flex; align-items: center; gap: 12px;
+  min-width: 0; flex: 1;
+}
+.cai-ent-subcard-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; letter-spacing: 0.6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(124,106,255,0.10);
+  color: var(--accent-bright);
+  border: 1px solid rgba(124,106,255,0.25);
+  flex-shrink: 0;
+}
+.cai-ent-subcard.rest .cai-ent-subcard-badge {
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+  border-color: rgba(255,255,255,0.10);
+}
+.cai-ent-subcard-info { min-width: 0; }
+.cai-ent-subcard-name {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 600;
+  color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cai-ent-subcard-day {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; letter-spacing: 0.5px;
+  color: var(--muted2);
+  margin-top: 2px;
+}
+.cai-ent-subcard-arrow {
+  color: var(--muted2);
+  flex-shrink: 0;
+}
+.cai-ent-subcard-arrow svg { width: 14px; height: 14px; }
+.cai-ent-subcard.rest .cai-ent-subcard-arrow { display: none; }
+
+/* Override chip — shown when user clicked another day */
+.cai-ent-override-chip {
+  margin: 0 18px 8px;
+  padding: 10px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px;
+  background: rgba(124,106,255,0.08);
+  border: 1px solid rgba(124,106,255,0.25);
+  border-radius: 10px;
+  font-size: 11.5px;
+  color: var(--text);
+}
+.cai-ent-override-chip span { font-family: 'DM Sans', sans-serif; }
+.cai-ent-override-chip button {
+  background: transparent; border: 1px solid rgba(124,106,255,0.35);
+  color: var(--accent-bright);
+  padding: 4px 9px; border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.6px;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.cai-ent-override-chip button:active { transform: scale(0.97); }
 
 /* Hide the in-panel launch button — replaced by the floating bottom nav */
 .onb-track .btn-launch { display: none !important; }
@@ -7776,38 +8038,73 @@ QUE SÍ SE VE</div>
 </div>
 
 <!-- MI ENTRENO — current-week training tracker (client: complete + log weights only) -->
-<div class="dashboard-wrapper" id="mi-entreno-wrapper">
-  <div class="dash-header">
-    <div class="dash-title" id="mi-entreno-title">
-      <span class="diario-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"></path><path d="M21 21l-1-1"></path><path d="M3 3l1 1"></path><path d="M18 22l4-4"></path><path d="M2 6l4-4"></path><path d="M3 10l7-7"></path><path d="M14 21l7-7"></path></svg></span>
-      <span>MI ENTRENO</span>
+<div class="diario-wrapper" id="mi-entreno-wrapper">
+
+  <!-- Page header: dumbbell icon + brand title + today-string + back button -->
+  <div class="cai-alim-header">
+    <div>
+      <div class="cai-alim-header-title">
+        <div class="cai-alim-header-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"></path><path d="M21 21l-1-1"></path><path d="M3 3l1 1"></path><path d="M18 22l4-4"></path><path d="M2 6l4-4"></path><path d="M3 10l7-7"></path><path d="M14 21l7-7"></path></svg>
+        </div>
+        <h2 class="cai-alim-header-h2">MI ENTRENO</h2>
+      </div>
+      <div class="cai-alim-header-sub" id="ent-header-sub">—</div>
     </div>
-    <button class="btn-back-chat" onclick="showHome()" id="entreno-back-btn">← Inicio</button>
+    <button onclick="showHome()" id="entreno-back-btn" style="padding:8px 14px;border-radius:10px;background:rgba(255,255,255,0.025);border:1px solid rgba(124,106,255,0.18);color:var(--accent-bright);font-family:'JetBrains Mono', monospace;font-size:10.5px;letter-spacing:1px;display:flex;align-items:center;gap:6px;cursor:pointer">← INICIO</button>
   </div>
 
-  <!-- Adherence summary -->
-  <div class="chart-card coach-card" id="entreno-summary-card" style="display:none">
-    <div class="chart-card-header">
-      <div class="chart-card-title"><span class="chart-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></span><span id="entreno-summary-title">TU SEMANA</span></div>
+  <!-- Hero summary card (ESTA SEMANA · X/N días + adherencia bar) -->
+  <div class="cai-alim-summary" id="ent-summary" style="display:none">
+    <div class="cai-alim-summary-eyebrow" id="ent-summary-eyebrow">ESTA SEMANA</div>
+    <div class="cai-alim-summary-row">
+      <div>
+        <div class="cai-alim-summary-count" id="ent-summary-count">0/0</div>
+        <div class="cai-alim-summary-label" data-es="Días entrenados" data-en="Days trained">Días entrenados</div>
+      </div>
+      <div class="cai-alim-summary-kcal">
+        <span data-es="hoy" data-en="today">hoy</span>
+        <strong id="ent-summary-today">—</strong>
+      </div>
     </div>
-    <div id="entreno-summary-body" style="padding:8px 20px 18px">
-      <div class="entreno-progress-track"><div class="entreno-progress-fill" id="entreno-progress-fill"></div></div>
-      <div class="entreno-progress-label" id="entreno-progress-label">0 de 0 días completados</div>
-    </div>
-  </div>
-
-  <!-- Empty state -->
-  <div class="chart-card coach-card" id="entreno-empty" style="display:none">
-    <div style="padding:36px 24px;text-align:center">
-      <div style="font-size:30px;margin-bottom:10px;opacity:.5">🏋️</div>
-      <div style="font-size:14px;color:var(--text);font-weight:600;margin-bottom:6px" id="entreno-empty-title">Todavía no tenés una rutina activa</div>
-      <div style="font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:16px" id="entreno-empty-desc">Pedile a tu coach la rutina de la semana en el chat y va a aparecer acá organizada día por día.</div>
-      <button onclick="showChat()" style="background:transparent;border:1px solid var(--accent);color:var(--accent-bright);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:11px;letter-spacing:1.5px;font-family:'JetBrains Mono', monospace;" id="entreno-empty-cta">→ IR AL CHAT</button>
+    <div class="cai-alim-progress">
+      <div class="cai-alim-progress-fill" id="ent-summary-progress" data-empty="true" style="width:0%"></div>
     </div>
   </div>
 
-  <!-- Days accordion -->
-  <div id="entreno-days"></div>
+  <!-- Swap override chip (shown when user clicked a different day from the "rest of week" card) -->
+  <div id="ent-override-chip" class="cai-ent-override-chip" style="display:none">
+    <span id="ent-override-chip-text">—</span>
+    <button onclick="resetEntOverride()" type="button">↺ <span data-es="volver a hoy" data-en="back to today">volver a hoy</span></button>
+  </div>
+
+  <!-- HERO: today's day card with full exercise list + weight inputs -->
+  <div id="ent-hero" style="display:none"></div>
+
+  <!-- "RESTO DE LA SEMANA" card with sub-cards for other days -->
+  <div id="ent-other-card" style="display:none"></div>
+
+  <!-- Empty state (when no rutina plan is active) -->
+  <div class="cai-alim-empty" id="ent-empty-state" style="display:none">
+    <div class="cai-alim-empty-card">
+      <div class="cai-alim-empty-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"></path><path d="M21 21l-1-1"></path><path d="M3 3l1 1"></path><path d="M18 22l4-4"></path><path d="M2 6l4-4"></path><path d="M3 10l7-7"></path><path d="M14 21l7-7"></path></svg>
+      </div>
+      <div>
+        <div class="cai-alim-empty-title" data-es="SIN RUTINA ACTIVA" data-en="NO ACTIVE ROUTINE">SIN RUTINA ACTIVA</div>
+        <div class="cai-alim-empty-sub" data-es="Pedile a tu coach la rutina de la semana y empezá a tildar días entrenados." data-en="Ask your coach for the weekly routine and start ticking trained days.">Pedile a tu coach la rutina de la semana y empezá a tildar días entrenados.</div>
+      </div>
+      <button class="cai-alim-empty-cta" onclick="showChat()">
+        <span data-es="HABLAR CON EL COACH" data-en="TALK TO COACH">HABLAR CON EL COACH</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Legacy ids kept hidden so any other code path that still references them doesn't crash -->
+  <div id="entreno-days" style="display:none"></div>
+  <div id="entreno-summary-card" style="display:none"><div id="entreno-progress-fill" style="display:none"></div><div id="entreno-progress-label" style="display:none"></div></div>
+  <div id="entreno-empty" style="display:none"></div>
 </div>
 
 <!-- BETA FEEDBACK — floating button + modal -->
@@ -13260,126 +13557,404 @@ async function showMiEntreno() {
   // the section "half-scrolled". scrollToTop() forces 0 via three different
   // APIs inside a rAF, which works consistently across iOS Safari / Chrome / etc.
   scrollToTop();
+  // Reset efímero day-override so re-entering always lands on today
+  _entOverrideIdx = null;
   renderMiEntreno();                 // instant paint from localStorage cache
   await hydrateEntrenoFromSupabase(); // then refresh from durable source
   renderMiEntreno();
   setActiveNav('nav-entreno');
 }
 
-function renderMiEntreno() {
-  const daysEl = document.getElementById('entreno-days');
-  const emptyEl = document.getElementById('entreno-empty');
-  const summaryEl = document.getElementById('entreno-summary-card');
-  const rutina = weeklyPlans.rutina;
+// =========================================================================
+// MI ENTRENO — today-only view (parallel to Mi Alimentación)
+//
+// Architecture:
+//   1. HERO card  → today's routine day (or REST hero if today is a rest day)
+//   2. RESTO DE LA SEMANA card → sub-cards for every OTHER routine day,
+//      plus one consolidated REST sub-card listing rest weekdays.
+//   3. Tap a sub-card → swap the hero to that day (efímero, only visual).
+//      A chip appears: "Mostrando Día X · ↺ volver a hoy"
+//
+// Day-to-weekday mapping rules (in order of preference):
+//   a) Routine labels contain weekday names ("LUNES — PUSH") → match directly.
+//   b) Generic labels ("Día 1, Día 2...") + user picked specific days in
+//      onboarding → map sequentially (1st training day = Día 1, etc.)
+//   c) No user days known → fall back: assign non-rest days to weekdays
+//      starting from Monday in order.
+// =========================================================================
 
-  // Empty state: no active routine (none delivered or current one is closed)
-  if (!rutina || !rutina.contenido || rutina.closed) {
-    daysEl.innerHTML = '';
-    summaryEl.style.display = 'none';
-    emptyEl.style.display = 'block';
-    return;
+const _ENT_WEEKDAYS_ES = ['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+const _ENT_WEEKDAYS_ES_LABEL = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+
+// Strip "Día N · " and weekday prefix from a routine label so the visual
+// chrome (badge + weekday subtitle) doesn't duplicate what's already shown.
+// "Día 1 · Lunes · Pecho/Tríceps" → "Pecho/Tríceps"
+function _entCleanLabel(rawLabel) {
+  if (!rawLabel) return '';
+  let s = String(rawLabel);
+  s = s.replace(/^d[ií]a\s*\d+\s*[·\-—:]\s*/i, '');
+  for (const wd of _ENT_WEEKDAYS_ES) {
+    const re = wd === 'miercoles' ? /^mi[eé]rcoles\s*[·\-—:]\s*/i
+             : wd === 'sabado'   ? /^s[aá]bado\s*[·\-—:]\s*/i
+             : new RegExp(`^${wd}\\s*[·\\-—:]\\s*`, 'i');
+    s = s.replace(re, '');
   }
+  return s.trim() || rawLabel;
+}
 
+function _entNormalizeDay(d) {
+  const map = { lunes:'lunes', martes:'martes', 'miércoles':'miercoles', miercoles:'miercoles',
+                jueves:'jueves', viernes:'viernes', 'sábado':'sabado', sabado:'sabado', domingo:'domingo',
+                monday:'lunes', tuesday:'martes', wednesday:'miercoles', thursday:'jueves',
+                friday:'viernes', saturday:'sabado', sunday:'domingo' };
+  return map[String(d || '').toLowerCase().trim()] || '';
+}
+
+function buildTrainingDayMapping() {
+  const rutina = weeklyPlans && weeklyPlans.rutina;
+  if (!rutina || !rutina.contenido || rutina.closed) return null;
   const days = parseRutinaContenido(rutina.contenido);
-  if (!days.length) {
-    daysEl.innerHTML = '';
-    summaryEl.style.display = 'none';
-    emptyEl.style.display = 'block';
-    return;
-  }
-  emptyEl.style.display = 'none';
-  summaryEl.style.display = 'block';
+  if (!days.length) return null;
 
-  const state = getEntrenoWeekState();
+  // User-selected weekdays from onboarding (array, normalized)
+  const userDays = Array.isArray(currentUser?.dias_entreno)
+    ? currentUser.dias_entreno.map(_entNormalizeDay).filter(Boolean)
+    : [];
+
+  // Detect today's weekday (Mon-Sun → 0..6)
+  const todayJsDow = new Date().getDay();
+  const todayWdIdx = todayJsDow === 0 ? 6 : todayJsDow - 1;
+  const todayWdName = _ENT_WEEKDAYS_ES[todayWdIdx];
+
+  // Detect if labels contain weekday names — ONLY consider non-rest days.
+  // Rest day labels often mention weekdays ("Descanso: Sábado y domingo…")
+  // and would otherwise pollute the training-day mapping.
+  const hasWeekdayLabels = days.some(d => {
+    if (d.isRest || !d.label) return false;
+    return _ENT_WEEKDAYS_ES.some(wd => new RegExp(`\\b${wd}\\b`, 'i').test(d.label)
+      || (wd === 'miercoles' && /miércoles/i.test(d.label))
+      || (wd === 'sabado' && /sábado/i.test(d.label)));
+  });
+
+  const weekdayToRoutineIdx = {};
+  if (hasWeekdayLabels) {
+    days.forEach((d, idx) => {
+      if (d.isRest || !d.label) return;        // never map rest days as training weekdays
+      for (const wd of _ENT_WEEKDAYS_ES) {
+        const re = wd === 'miercoles' ? /\bmi[eé]rcoles\b/i
+                 : wd === 'sabado'   ? /\bs[aá]bado\b/i
+                 : new RegExp(`\\b${wd}\\b`, 'i');
+        if (re.test(d.label)) { weekdayToRoutineIdx[wd] = idx; break; }
+      }
+    });
+  } else if (userDays.length) {
+    // Generic "Día N" — map non-rest routine days to userDays in order
+    const nonRestIdxs = days.map((d, idx) => ({ d, idx })).filter(x => !x.d.isRest).map(x => x.idx);
+    userDays.forEach((wd, i) => {
+      if (nonRestIdxs[i] !== undefined) weekdayToRoutineIdx[wd] = nonRestIdxs[i];
+    });
+  } else {
+    // No user days known — assign non-rest days to weekdays starting Monday
+    let cursor = 0;
+    days.forEach((d, idx) => {
+      if (!d.isRest && cursor < _ENT_WEEKDAYS_ES.length) {
+        weekdayToRoutineIdx[_ENT_WEEKDAYS_ES[cursor]] = idx;
+        cursor++;
+      }
+    });
+  }
+
+  const routineIdxToWeekday = {};
+  Object.entries(weekdayToRoutineIdx).forEach(([wd, idx]) => { routineIdxToWeekday[idx] = wd; });
+
+  const trainingWeekdays = new Set(Object.keys(weekdayToRoutineIdx));
+  const restWeekdays = _ENT_WEEKDAYS_ES.filter(w => !trainingWeekdays.has(w));
+
+  const todayRoutineIdx = weekdayToRoutineIdx[todayWdName];
+  const isTodayRest = todayRoutineIdx === undefined;
+
+  return {
+    days,
+    todayWdIdx, todayWdName,
+    todayRoutineIdx, isTodayRest,
+    weekdayToRoutineIdx, routineIdxToWeekday,
+    trainingWeekdays: [...trainingWeekdays],
+    restWeekdays,
+  };
+}
+
+// Efímero — only this session, never persisted
+let _entOverrideIdx = null;
+
+function selectEntDay(routineIdx) {
+  _entOverrideIdx = routineIdx;
+  renderMiEntreno();
+  // Scroll the hero into view so the user sees the swap immediately
+  setTimeout(() => {
+    const hero = document.getElementById('ent-hero');
+    if (hero) hero.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 50);
+}
+
+function resetEntOverride() {
+  _entOverrideIdx = null;
+  renderMiEntreno();
+}
+
+function renderMiEntreno() {
+  const hero = document.getElementById('ent-hero');
+  const otherCard = document.getElementById('ent-other-card');
+  const emptyState = document.getElementById('ent-empty-state');
+  const summary = document.getElementById('ent-summary');
+  const headerSub = document.getElementById('ent-header-sub');
+  const overrideChip = document.getElementById('ent-override-chip');
+  if (!hero) return;
+
+  // Always update the page subtitle ("Lunes · hoy")
+  const todayName = new Date().toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', { weekday: 'long' });
+  if (headerSub) headerSub.textContent = `${todayName.charAt(0).toUpperCase() + todayName.slice(1)} · ${lang === 'es' ? 'hoy' : 'today'}`;
+
+  const mapping = buildTrainingDayMapping();
   const esc = (typeof _esc === 'function') ? _esc : (x => String(x));
 
-  daysEl.innerHTML = days.map((day, i) => {
-    const done = !!state.completed[i];
-    const restCls = day.isRest ? ' rest' : '';
-    const doneCls = done ? ' completed' : '';
-    const badgeTxt = day.isRest ? (lang === 'es' ? 'OFF' : 'OFF') : `D${i + 1}`;
+  // Empty state — no active rutina
+  if (!mapping) {
+    hero.style.display = 'none';
+    if (otherCard) otherCard.style.display = 'none';
+    if (summary) summary.style.display = 'none';
+    if (overrideChip) overrideChip.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'block';
+    _entOverrideIdx = null;
+    return;
+  }
+  if (emptyState) emptyState.style.display = 'none';
 
-    const body = day.isRest
-      ? `<div class="entreno-rest-body">${lang === 'es'
-          ? 'Día de descanso planificado. Recuperás, crecés y prevenís lesiones — también es parte del programa. Marcalo como cumplido si respetaste el descanso.'
-          : 'Planned rest day. Recovery is part of the program. Mark it done if you respected the rest.'}</div>`
-      : `<div class="entreno-ex-list">${day.exercises.map((ex, j) => {
-          const nSeries = parseSeriesCount(ex.detail);
-          const seriesRows = [];
-          for (let s = 1; s <= nSeries; s++) {
-            const sk = serieKey(i, j, s);
-            const sv = state.weights[sk] || '';
-            seriesRows.push(`<div class="entreno-serie-row">
-              <span class="entreno-serie-label">${lang === 'es' ? 'Serie' : 'Set'} ${s}</span>
-              <input class="entreno-serie-input" type="text" inputmode="decimal"
-                     value="${esc(sv)}" placeholder="0"
-                     maxlength="6"
-                     oninput="onEntrenoWeight(${i},${j},${s},this)"
-                     aria-label="${lang === 'es' ? 'Peso serie' : 'Set weight'} ${s} — ${esc(ex.name)}">
-              <span class="entreno-serie-unit">kg</span>
-              <span class="entreno-serie-saved" id="ews-${sk}">✓</span>
-            </div>`);
-          }
-          // Escape exercise name for the JS string literal inside onclick (escape backslashes and apostrophes)
-          const exNameSafe = String(ex.name).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-          return `<div class="entreno-ex">
-            <div class="entreno-ex-top">
-              <div class="entreno-ex-name">${esc(ex.name)}</div>
-              ${ex.detail ? `<div class="entreno-ex-detail">${esc(ex.detail)}</div>` : ''}
-            </div>
-            <button class="entreno-ex-info-btn" onclick="event.stopPropagation();showEjercicioModal('${exNameSafe}')" type="button">ℹ️ ${lang === 'es' ? 'Cómo se hace' : 'How to do it'}</button>
-            ${ex.note ? `<div class="entreno-ex-note">${esc(ex.note)}</div>` : ''}
-            <div class="entreno-series">
-              <div class="entreno-series-title">${lang === 'es' ? `Peso por serie (${nSeries})` : `Weight per set (${nSeries})`}</div>
-              ${seriesRows.join('')}
-            </div>
-          </div>`;
-        }).join('')}</div>`;
-
-    return `<div class="semana-card entreno-day${restCls}${doneCls}" id="entreno-day-${i}">
-      <div class="semana-header" onclick="toggleEntrenoDay(${i})">
-        <div class="semana-badge">${badgeTxt}</div>
-        <div class="entreno-day-info">
-          <div class="entreno-day-name">${esc(day.label)}</div>
-          <div class="entreno-day-sub">${day.isRest
-            ? (lang === 'es' ? 'Descanso' : 'Rest')
-            : `${day.exercises.length} ${lang === 'es' ? 'ejercicios' : 'exercises'}`}</div>
-        </div>
-        <button class="entreno-check${done ? ' done' : ''}" id="entreno-check-${i}"
-                onclick="event.stopPropagation();toggleEntrenoDone(${i})"
-                aria-label="${lang === 'es' ? 'Marcar día como completado' : 'Mark day complete'}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-        </button>
-        <div class="semana-chevron">▼</div>
-      </div>
-      <div class="semana-body">${body}</div>
-    </div>`;
-  }).join('');
-
-  updateEntrenoSummary(days);
-}
-
-function updateEntrenoSummary(days) {
   const state = getEntrenoWeekState();
-  const total = days.length;
-  const done = days.reduce((n, _d, i) => n + (state.completed[i] ? 1 : 0), 0);
-  const pct = total ? Math.round((done / total) * 100) : 0;
-  const fill = document.getElementById('entreno-progress-fill');
-  const label = document.getElementById('entreno-progress-label');
-  if (fill) fill.style.width = pct + '%';
-  if (label) label.textContent = lang === 'es'
-    ? `${done} de ${total} días completados`
-    : `${done} of ${total} days completed`;
+
+  // Update SUMMARY card (X/N días entrenados esta semana)
+  const totalTraining = mapping.trainingWeekdays.length || mapping.days.filter(d => !d.isRest).length;
+  // Count completed only for routine days that are mapped to a weekday (i.e. actual training days)
+  const trainingRoutineIdxs = Object.values(mapping.weekdayToRoutineIdx);
+  const doneCount = trainingRoutineIdxs.reduce((n, idx) => n + (state.completed[idx] ? 1 : 0), 0);
+  const pct = totalTraining ? Math.round((doneCount / totalTraining) * 100) : 0;
+  if (summary) {
+    summary.style.display = 'block';
+    document.getElementById('ent-summary-count').textContent = `${doneCount}/${totalTraining}`;
+    const todayLabel = mapping.isTodayRest
+      ? (lang === 'es' ? 'Descanso' : 'Rest')
+      : `Día ${trainingRoutineIdxs.indexOf(mapping.todayRoutineIdx) + 1}`;
+    document.getElementById('ent-summary-today').textContent = todayLabel;
+    const eyebrow = document.getElementById('ent-summary-eyebrow');
+    if (eyebrow) eyebrow.textContent = lang === 'es' ? 'ESTA SEMANA' : 'THIS WEEK';
+    const progress = document.getElementById('ent-summary-progress');
+    if (progress) {
+      progress.style.width = pct + '%';
+      if (doneCount === 0) progress.setAttribute('data-empty', 'true');
+      else progress.removeAttribute('data-empty');
+    }
+  }
+
+  // Decide which day to render as hero
+  let displayIdx;
+  if (_entOverrideIdx !== null && mapping.days[_entOverrideIdx]) {
+    displayIdx = _entOverrideIdx;
+  } else if (!mapping.isTodayRest) {
+    displayIdx = mapping.todayRoutineIdx;
+  } else {
+    displayIdx = null; // rest hero
+  }
+
+  // Override chip
+  if (overrideChip) {
+    if (_entOverrideIdx !== null && _entOverrideIdx !== mapping.todayRoutineIdx) {
+      const swapDay = mapping.days[_entOverrideIdx];
+      const swapLabel = swapDay ? (swapDay.isRest
+        ? (lang === 'es' ? 'descanso' : 'rest')
+        : `${esc(swapDay.label)}`)
+        : '—';
+      document.getElementById('ent-override-chip-text').innerHTML = lang === 'es'
+        ? `Mostrando <strong>${swapLabel}</strong> en lugar de hoy`
+        : `Showing <strong>${swapLabel}</strong> instead of today`;
+      overrideChip.style.display = 'flex';
+    } else {
+      overrideChip.style.display = 'none';
+    }
+  }
+
+  // === HERO ===
+  hero.style.display = 'block';
+  if (displayIdx === null) {
+    // REST HERO
+    hero.innerHTML = `
+      <div class="cai-ent-hero">
+        <div class="cai-ent-hero-top">
+          <div>
+            <div class="cai-ent-hero-eyebrow">${lang==='es'?'HOY · DESCANSO':'TODAY · REST'}</div>
+            <div class="cai-ent-hero-title">${lang==='es'?'Día de recuperación':'Recovery day'}</div>
+            <div class="cai-ent-hero-sub">${lang==='es'
+              ? 'Recuperás, crecés y prevenís lesiones. Si tenés ganas de moverte, podés elegir un día de la rutina abajo.'
+              : 'Recovery, growth, injury prevention. If you feel like moving, pick a routine day below.'}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  } else {
+    const day = mapping.days[displayIdx];
+    const done = !!state.completed[displayIdx];
+    const isHeroToday = (displayIdx === mapping.todayRoutineIdx);
+    const dayNumberInTraining = Object.values(mapping.weekdayToRoutineIdx).indexOf(displayIdx) + 1;
+    const dayBadge = dayNumberInTraining > 0 ? `DÍA ${dayNumberInTraining}` : '';
+    const cleanLabel = day.isRest ? day.label : _entCleanLabel(day.label);
+    const eyebrow = isHeroToday
+      ? (day.isRest
+          ? `${lang==='es'?'HOY · DESCANSO':'TODAY · REST'}`
+          : `${lang==='es'?'HOY':'TODAY'} · ${dayBadge}`)
+      : (day.isRest ? (lang==='es'?'DESCANSO':'REST') : dayBadge);
+
+    if (day.isRest) {
+      hero.innerHTML = `
+        <div class="cai-ent-hero${done ? ' done' : ''}">
+          <div class="cai-ent-hero-top">
+            <div>
+              <div class="cai-ent-hero-eyebrow">${eyebrow}</div>
+              <div class="cai-ent-hero-title">${lang==='es'?'Descanso':'Rest'}</div>
+              <div class="cai-ent-hero-sub">${lang==='es'
+                ? 'Recuperás, crecés y prevenís lesiones — también es parte del programa.'
+                : 'Recovery is part of the program — rest, grow, prevent injuries.'}</div>
+            </div>
+            <button class="cai-ent-hero-check${done ? ' done' : ''}"
+                    onclick="toggleEntrenoDone(${displayIdx})"
+                    type="button"
+                    aria-label="${lang==='es'?'Marcar día cumplido':'Mark day done'}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+          </div>
+        </div>
+      `;
+    } else {
+      const exHtml = day.exercises.map((ex, j) => {
+        const nSeries = parseSeriesCount(ex.detail);
+        const seriesRows = [];
+        for (let s = 1; s <= nSeries; s++) {
+          const sk = serieKey(displayIdx, j, s);
+          const sv = state.weights[sk] || '';
+          seriesRows.push(`<div class="cai-ent-serie-row">
+            <span class="cai-ent-serie-label">${lang === 'es' ? 'Serie' : 'Set'} ${s}</span>
+            <input class="cai-ent-serie-input" type="text" inputmode="decimal"
+                   value="${esc(sv)}" placeholder="0" maxlength="6"
+                   oninput="onEntrenoWeight(${displayIdx},${j},${s},this)"
+                   aria-label="${lang === 'es' ? 'Peso serie' : 'Set weight'} ${s} — ${esc(ex.name)}">
+            <span class="cai-ent-serie-unit">kg</span>
+            <span class="cai-ent-serie-saved" id="ews-${sk}">✓</span>
+          </div>`);
+        }
+        const exNameSafe = String(ex.name).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        return `<div class="cai-ent-ex">
+          <div class="cai-ent-ex-top">
+            <div class="cai-ent-ex-name">${esc(ex.name)}</div>
+            ${ex.detail ? `<div class="cai-ent-ex-detail">${esc(ex.detail)}</div>` : ''}
+          </div>
+          <button class="cai-ent-ex-info-btn" onclick="event.stopPropagation();showEjercicioModal('${exNameSafe}')" type="button">ℹ️ ${lang === 'es' ? 'Cómo se hace' : 'How to do it'}</button>
+          ${ex.note ? `<div class="cai-ent-ex-note">${esc(ex.note)}</div>` : ''}
+          <div class="cai-ent-series">
+            <div class="cai-ent-series-title">${lang === 'es' ? `PESO POR SERIE (${nSeries})` : `WEIGHT PER SET (${nSeries})`}</div>
+            ${seriesRows.join('')}
+          </div>
+        </div>`;
+      }).join('');
+
+      hero.innerHTML = `
+        <div class="cai-ent-hero${done ? ' done' : ''}">
+          <div class="cai-ent-hero-top">
+            <div style="min-width:0">
+              <div class="cai-ent-hero-eyebrow">${eyebrow}</div>
+              <div class="cai-ent-hero-title">${esc(cleanLabel)}</div>
+              <div class="cai-ent-hero-sub">${day.exercises.length} ${lang==='es'?'ejercicios':'exercises'}</div>
+            </div>
+            <button class="cai-ent-hero-check${done ? ' done' : ''}"
+                    onclick="toggleEntrenoDone(${displayIdx})"
+                    type="button"
+                    aria-label="${lang==='es'?'Marcar entreno cumplido':'Mark workout done'}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+          </div>
+          <div class="cai-ent-hero-ex-list">${exHtml}</div>
+        </div>
+      `;
+    }
+  }
+
+  // === RESTO DE LA SEMANA ===
+  // Sub-cards for every routine day NOT being shown as hero, plus one consolidated REST sub-card.
+  if (otherCard) {
+    const subCards = [];
+    mapping.days.forEach((d, idx) => {
+      if (idx === displayIdx) return;
+      if (d.isRest) return; // rest days from the routine itself are folded into the consolidated rest sub-card below
+      const wd = mapping.routineIdxToWeekday[idx];
+      const wdLabel = wd ? _ENT_WEEKDAYS_ES_LABEL[_ENT_WEEKDAYS_ES.indexOf(wd)] : '';
+      const dayNumber = Object.values(mapping.weekdayToRoutineIdx).indexOf(idx) + 1;
+      const badge = dayNumber > 0 ? `DÍA ${dayNumber}` : '·';
+      const subLabel = _entCleanLabel(d.label) || d.label;
+      const subMeta = wdLabel
+        ? `${wdLabel} · ${d.exercises.length} ${lang==='es'?'ej.':'ex.'}`
+        : `${d.exercises.length} ${lang==='es'?'ej.':'ex.'}`;
+      subCards.push(`
+        <div class="cai-ent-subcard" onclick="selectEntDay(${idx})" role="button" tabindex="0">
+          <div class="cai-ent-subcard-left">
+            <div class="cai-ent-subcard-badge">${badge}</div>
+            <div class="cai-ent-subcard-info">
+              <div class="cai-ent-subcard-name">${esc(subLabel)}</div>
+              <div class="cai-ent-subcard-day">${subMeta}</div>
+            </div>
+          </div>
+          <div class="cai-ent-subcard-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+      `);
+    });
+
+    // Consolidated REST sub-card — always shown if there are rest weekdays.
+    // Non-interactive: it's purely informational ("these are your off days").
+    if (mapping.restWeekdays.length) {
+      const restWdLabels = mapping.restWeekdays
+        .map(w => _ENT_WEEKDAYS_ES_LABEL[_ENT_WEEKDAYS_ES.indexOf(w)])
+        .join(' · ');
+      subCards.push(`
+        <div class="cai-ent-subcard rest">
+          <div class="cai-ent-subcard-left">
+            <div class="cai-ent-subcard-badge">${lang==='es'?'OFF':'OFF'}</div>
+            <div class="cai-ent-subcard-info">
+              <div class="cai-ent-subcard-name">${lang==='es'?'Descanso':'Rest'}</div>
+              <div class="cai-ent-subcard-day">${restWdLabels}</div>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    if (subCards.length) {
+      otherCard.style.display = 'block';
+      otherCard.innerHTML = `
+        <div class="cai-ent-other">
+          <div class="cai-ent-other-title">${lang==='es'?'RESTO DE LA SEMANA':'REST OF THE WEEK'}</div>
+          <div class="cai-ent-other-list">${subCards.join('')}</div>
+        </div>
+      `;
+    } else {
+      otherCard.style.display = 'none';
+    }
+  }
 }
 
-function toggleEntrenoDay(i) {
-  const card = document.getElementById('entreno-day-' + i);
-  if (!card) return;
-  const wasOpen = card.classList.contains('open');
-  // Accordion: only one open at a time
-  document.querySelectorAll('#entreno-days .semana-card.open').forEach(c => c.classList.remove('open'));
-  if (!wasOpen) card.classList.add('open');
+// Back-compat shim — old summary card no longer rendered, but other code paths
+// (e.g. toggleEntrenoDone) call updateEntrenoSummary(). Re-route to the new render.
+function updateEntrenoSummary(_days) {
+  renderMiEntreno();
 }
+
+function toggleEntrenoDay(_i) { /* no-op — accordion removed in today-only view */ }
 
 function toggleEntrenoDone(i) {
   const rutina = weeklyPlans.rutina;
@@ -13398,10 +13973,6 @@ function toggleEntrenoDone(i) {
   saveEntrenoWeekState(state);
 
   const isDone = !!state.completed[i];
-  const card = document.getElementById('entreno-day-' + i);
-  const check = document.getElementById('entreno-check-' + i);
-  if (check) check.classList.toggle('done', isDone);
-  if (card) card.classList.toggle('completed', isDone);
 
   // Mirror to dias_entrenados so the Progreso training ring reflects it.
   // Rest days count for adherence in Mi Entreno but are NOT "trained days".
@@ -13410,7 +13981,8 @@ function toggleEntrenoDone(i) {
     mirrorTrainedDay(dateStr, isDone, state);
   }
 
-  if (days.length) updateEntrenoSummary(days);
+  // Re-render the today-only view to reflect the new done state (hero check + summary count)
+  renderMiEntreno();
 }
 
 let _entrenoWeightTimers = {};
