@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260525-1900-cierre-data-pipeline">
+<meta name="app-version" content="20260525-1910-home-greeting-no-emoji">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -13190,12 +13190,14 @@ function renderHome() {
   const nameEl = document.getElementById('home-name');
   if (nameEl) nameEl.textContent = (p.nombre || (isEs?'Atleta':'Athlete')).toUpperCase();
 
+  // Goal labels in Home are plain — emojis kept in Perfil header where the
+  // subtitle has more space and less visual competition.
   const goalLabels = {
-    definir: isEs?'🔥 Definir':'🔥 Cut',
-    ganar_musculo: isEs?'💪 Ganar músculo':'💪 Build muscle',
-    mantener: isEs?'⚖️ Mantener':'⚖️ Maintain'
+    definir:       isEs ? 'Definir'       : 'Cut',
+    ganar_musculo: isEs ? 'Ganar músculo' : 'Build muscle',
+    mantener:      isEs ? 'Mantener'      : 'Maintain'
   };
-  const goalText = goalLabels[p.objetivo] || (p.selections?.objetivo ? goalLabels[p.selections.objetivo] : null) || (isEs?'🎯 Tu objetivo':'🎯 Your goal');
+  const goalText = goalLabels[p.objetivo] || (p.selections?.objetivo ? goalLabels[p.selections.objetivo] : null) || (isEs ? 'Tu objetivo' : 'Your goal');
   const greetingMap = (() => {
     const h = new Date().getHours();
     if (isEs) return h < 12 ? 'Buen día' : (h < 19 ? 'Buenas tardes' : 'Buenas noches');
