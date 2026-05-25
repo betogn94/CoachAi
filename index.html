@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260525-2200-seguimiento-semanal-redesign">
+<meta name="app-version" content="20260525-2300-seguimiento-feedback-fixes">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -7594,6 +7594,25 @@ footer {
    harmless if accidentally reintroduced).
    ════════════════════════════════════════════════════════════════════════ */
 
+/* Eyebrow now lives INSIDE the wrapper card. Padding placement gives it
+   breathing room from the top edge without doubling the card's own padding. */
+.cai-home-semanas .cai-home-semanas-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; letter-spacing: 1.4px;
+  color: var(--accent-bright);
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+/* Neutralise the legacy `.semana-card.activa` teal border — that rule
+   (line ~5237) used to paint a green outline around the current week,
+   which now reads as visual noise around the editorial analysis card.
+   Active state is already communicated by the "En curso" pill and the
+   auto-open body, so we don't need a chrome change too. */
+.cai-home-semanas .semana-card.activa {
+  border-color: rgba(255,255,255,0.08);
+}
+
 /* ── SEMANA CARDS ──────────────────────────────────────────────────── */
 .cai-home-semanas .semana-card {
   position: relative;
@@ -7826,7 +7845,9 @@ footer {
   font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted);
 }
 
-/* CTA Cerrar semana (override legacy) */
+/* CTA Cerrar semana (override legacy). Removed the inline icon — with
+   the text wrapping to 2 lines on narrow viewports, the icon-on-left +
+   text-center combo read as misaligned. Text alone is unambiguous. */
 .cai-home-semanas .btn-cerrar-semana {
   margin-top: 16px; width: 100%; padding: 14px 16px;
   background: linear-gradient(135deg, rgba(124,106,255,.18), rgba(91,159,255,.16), rgba(46,207,181,.18));
@@ -7834,14 +7855,17 @@ footer {
   color: #fff;
   font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
   letter-spacing: 0;
-  display: flex; align-items: center; justify-content: center; gap: 10px;
+  text-align: center;
+  display: block;
   cursor: pointer;
   transition: transform .15s ease, box-shadow .2s ease;
   position: relative; overflow: hidden;
   min-height: 48px;
+  line-height: 1.35;
   box-shadow: none;
   text-transform: none;
 }
+.cai-home-semanas .btn-cerrar-semana svg { display: none; }
 .cai-home-semanas .btn-cerrar-semana:hover {
   transform: translateY(-1px);
   box-shadow: 0 14px 30px -10px rgba(91,159,255,.45);
@@ -7903,10 +7927,12 @@ footer {
 }
 .cai-home-semanas .semana-analisis-title {
   display: flex; align-items: center; gap: 8px;
-  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .16em;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .12em;
   color: #2ecfb5; text-transform: uppercase;
   margin: 6px 0 12px;
+  white-space: nowrap; /* keep "CARTA DEL COACH" on a single line */
 }
+.cai-home-semanas .semana-analisis-title svg { flex-shrink: 0; }
 .cai-home-semanas .semana-analisis h1, .cai-home-semanas .semana-analisis h2 {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 22px; line-height: 1.05; letter-spacing: .02em;
@@ -7930,13 +7956,23 @@ footer {
 
 /* ── MODAL CIERRE — premium dashboard ─────────────────────────────── */
 .cierre-overlay .cierre-card {
-  background: rgba(20,20,32,0.85);
+  /* Override legacy violet border + reduce padding so the modal feels
+     compact instead of edge-to-edge on mobile. Constrained max-height +
+     internal scroll prevents the photos+stats stack from filling the
+     viewport when the user has a small screen. */
+  background: rgba(20,20,32,0.92);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 18px 16px;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   -webkit-backdrop-filter: blur(28px) saturate(140%);
           backdrop-filter: blur(28px) saturate(140%);
 }
 .cierre-header {
   display: flex; align-items: center; gap: 12px;
-  padding: 18px 4px 0;
+  padding: 4px 4px 0;
   margin-bottom: 0;
 }
 .cierre-header .ico {
@@ -8017,8 +8053,9 @@ footer {
 .cierre-overlay .cierre-photo.upload .frame {
   background: linear-gradient(180deg, rgba(124,106,255,.06), rgba(46,207,181,.04));
   border: 1.5px dashed rgba(180,167,255,.4);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
   cursor: pointer;
+  padding: 14px 10px;
   transition: border-color .2s, background .2s;
 }
 .cierre-overlay .cierre-photo.upload .frame:hover { border-color: rgba(180,167,255,.7); background: linear-gradient(180deg, rgba(124,106,255,.10), rgba(46,207,181,.06)); }
@@ -8369,14 +8406,19 @@ footer {
     </button>
   </div>
 
-  <!-- Wide hero card: SEGUIMIENTO SEMANAL — same crystal-depth wide-card style -->
+  <!-- Wide hero card: SEGUIMIENTO SEMANAL — eyebrow is a sibling INSIDE the
+       crystal-depth wrapper so it's part of the card chrome. #semanas-container
+       stays as a clean inner div (renderSemanas overwrites its innerHTML). -->
   <div class="cai-home-section">
-    <div class="cai-home-section-title" data-es="SEGUIMIENTO SEMANAL" data-en="WEEKLY TRACKING">SEGUIMIENTO SEMANAL</div>
-    <div id="semanas-container" class="cai-home-semanas">
-      <div class="cai-home-semanas-empty" id="semanas-empty"
-           data-es="Tus semanas cerradas aparecerán acá con tu análisis IA y comparativa de fotos."
-           data-en="Your closed weeks will appear here with AI analysis and photo comparison.">
-        Tus semanas cerradas aparecerán acá con tu análisis IA y comparativa de fotos.
+    <div class="cai-home-semanas">
+      <div class="cai-home-semanas-eyebrow"
+           data-es="SEGUIMIENTO SEMANAL" data-en="WEEKLY TRACKING">SEGUIMIENTO SEMANAL</div>
+      <div id="semanas-container">
+        <div class="cai-home-semanas-empty" id="semanas-empty"
+             data-es="Tus semanas cerradas aparecerán acá con tu análisis IA y comparativa de fotos."
+             data-en="Your closed weeks will appear here with AI analysis and photo comparison.">
+          Tus semanas cerradas aparecerán acá con tu análisis IA y comparativa de fotos.
+        </div>
       </div>
     </div>
   </div>
@@ -9154,12 +9196,17 @@ footer {
 <div class="cierre-overlay" id="cierre-overlay">
   <div class="cierre-card coach-card">
 
-    <!-- HEADER: brand icon + title + dynamic sub line (populated by openCierreSemana) -->
+    <!-- HEADER: brand icon (calendar with check = "week wrapped") + title +
+         dynamic sub line. Calendar-check reads more clearly than the previous
+         flag icon, which Design flagged as unintuitive. -->
     <div class="cierre-header">
       <div class="ico">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="url(#grad-brand)"
              stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M5 4v17"/><path d="M5 5h11l-2 3.5L16 12H5"/>
+          <rect x="3" y="5" width="18" height="16" rx="2"/>
+          <path d="M3 10h18"/>
+          <path d="M8 3v4M16 3v4"/>
+          <path d="m9 16 2 2 4-4"/>
         </svg>
       </div>
       <div>
