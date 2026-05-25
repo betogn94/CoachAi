@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260525-1800-home-ring-gradient">
+<meta name="app-version" content="20260525-1900-cierre-data-pipeline">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11487,35 +11487,50 @@ function _alimSaveDebounced() {
   }, ALIM_SAVE_DEBOUNCE);
 }
 
-// Map day index (0=Mon..6=Sun) to actual date string in the ISO week of the
-// dieta plan, so progreso_diario gets the right `fecha` per meal.
+// Map day index (0=Mon..6=Sun) to actual real-world date string.
+//
+// IMPORTANT — anchor to the CURRENT week (Monday of today's ISO week), NOT to
+// the dieta plan's semana_iso. The plan might be older than the current ISO
+// week (user requested it last week; calendar already rolled over to next
+// Monday). The "today-only" Mi Alim view always shows today's slot, so when
+// the user tildes a meal they are recording "I ate this TODAY" — regardless
+// of which ISO week the plan was generated for. Anchoring to plan.semana_iso
+// would silently write the tildes to last week's date, completely breaking
+// the weekly cierre stats (the row falls outside the current range).
 function alimDateForDayIdx(i) {
-  const wk = alimWeekKey();
-  const m = wk.match(/^(\d{4})-W(\d+)$/);
-  if (!m) return getTodayKey();
-  const year = parseInt(m[1]); const week = parseInt(m[2]);
-  // ISO 8601: week 1 contains Jan 4. Find Monday of week 1, then offset.
-  const jan4 = new Date(year, 0, 4);
-  const jan4Dow = jan4.getDay() || 7;
-  const wk1Mon = new Date(jan4); wk1Mon.setDate(jan4.getDate() - jan4Dow + 1);
-  const target = new Date(wk1Mon); target.setDate(wk1Mon.getDate() + (week - 1) * 7 + i);
+  // Find Monday of the current REAL week (local time), then offset by i days.
+  const today = new Date();
+  const dow = today.getDay() || 7; // 1=Mon..7=Sun
+  const mon = new Date(today);
+  mon.setDate(today.getDate() - dow + 1);
+  mon.setHours(12, 0, 0, 0);
+  const target = new Date(mon);
+  target.setDate(mon.getDate() + i);
   return formatLocalDate(target);
 }
 
 // Sync the day's progreso_diario row from current alimentacion state.
 // Sums kcal across all meals tildadas (planned kcal for unedited, customKcal
 // for edited). Writes the effective text per meal to the 4 fixed columns.
+// Macros (proteinas_g, carbos_g, grasas_g) are estimated proportionally:
+// the dieta plan only tracks macros at the daily-target header level (not per
+// meal), so we approximate consumed macros as targetMacro × (kcal consumed /
+// kcal planned for the day). This gives the weekly cierre realistic averages
+// instead of always-null. Edited meals (customText) keep their kcal but reuse
+// the same proportional model since we don't know their macro split either.
 async function syncProgresoDiarioForDay(dayIdx) {
   if (!currentUser || !sbClient || !_alimDays) return;
   const day = _alimDays[dayIdx];
   if (!day) return;
   const fecha = alimDateForDayIdx(dayIdx);
   let totalKcal = 0;
+  let plannedKcal = 0;
   const cols = { desayuno: null, almuerzo: null, merienda: null, cena: null };
   let hasAny = false;
   for (let j = 0; j < day.meals.length; j++) {
     const meal = day.meals[j];
     const st = _alimEstado[`d${dayIdx}m${j}`] || {};
+    plannedKcal += (meal.kcal || 0);
     if (!st.cumplido) continue;
     hasAny = true;
     const text = (st.customText || meal.content) || null;
@@ -11525,11 +11540,21 @@ async function syncProgresoDiarioForDay(dayIdx) {
       cols[meal.key] = text;
     }
   }
+  // Macro estimate from daily header targets + kcal ratio. If header is
+  // missing (older dieta plans without TOTAL ESTIMADO footer) we fall back
+  // to null so we don't fabricate numbers from nothing.
+  let prot = null, carbs = null, fat = null;
+  if (hasAny && _alimHeader && plannedKcal > 0) {
+    const ratio = Math.min(totalKcal / plannedKcal, 1.5);  // clamp wild edits
+    if (_alimHeader.targetProt)  prot  = Math.round(_alimHeader.targetProt  * ratio);
+    if (_alimHeader.targetCarbs) carbs = Math.round(_alimHeader.targetCarbs * ratio);
+    if (_alimHeader.targetFat)   fat   = Math.round(_alimHeader.targetFat   * ratio);
+  }
   const data = {
     desayuno: cols.desayuno, almuerzo: cols.almuerzo,
     merienda: cols.merienda, cena: cols.cena,
     calorias_consumidas: hasAny ? totalKcal : null,
-    proteinas_g: null, carbos_g: null, grasas_g: null,
+    proteinas_g: prot, carbos_g: carbs, grasas_g: fat,
   };
   try { await saveDiarioToSupabase(data, fecha); }
   catch (e) { console.error('[CoachAI] sync progreso_diario:', e); }
@@ -12477,11 +12502,19 @@ function formatDateShort(dateStr) {
 function computeWeekStats(logs, range) {
   const wLogs = logs.filter(l => l.fecha >= range.start && l.fecha <= range.end);
   const trained = wLogs.filter(l => l.entreno === true).length;
-  const withCal = wLogs.filter(l => l.calorias_consumidas > 0);
-  const avgCal = withCal.length ? Math.round(withCal.reduce((s, l) => s + l.calorias_consumidas, 0) / withCal.length) : null;
-  const withProt = wLogs.filter(l => l.proteinas_g > 0);
-  const avgProt = withProt.length ? Math.round(withProt.reduce((s, l) => s + l.proteinas_g, 0) / withProt.length) : null;
-  return { trained, avgCal, avgProt, totalLogs: wLogs.length, wLogs };
+  const avg = (field) => {
+    const rows = wLogs.filter(l => l[field] > 0);
+    return rows.length ? Math.round(rows.reduce((s, l) => s + l[field], 0) / rows.length) : null;
+  };
+  return {
+    trained,
+    avgCal:   avg('calorias_consumidas'),
+    avgProt:  avg('proteinas_g'),
+    avgCarbs: avg('carbos_g'),
+    avgFat:   avg('grasas_g'),
+    totalLogs: wLogs.length,
+    wLogs,
+  };
 }
 
 async function loadCierresSemanales() {
@@ -12624,15 +12657,38 @@ function openCierreSemana(weekNum) {
   cierreActualWeekNum = weekNum;
   const createdAt = currentUser.created_at || new Date().toISOString();
   const range = getWeekRange(createdAt, weekNum);
+  // Ensure _alimHeader is populated before computing stats — without it, the
+  // modal can't show target macros (kcal/proteína) as denominators. Mi Alim
+  // sets it on render, but the user might open cierre straight from Home
+  // without ever opening Mi Alim this session.
+  if (!_alimHeader && weeklyPlans?.dieta?.contenido && typeof parseDietaContenido === 'function') {
+    try {
+      const parsed = parseDietaContenido(weeklyPlans.dieta.contenido);
+      _alimHeader = parsed.header || null;
+      if (!_alimDays || _alimDays.length === 0) _alimDays = parsed.days || [];
+    } catch (e) { console.warn('[cierre] dieta parse for header:', e); }
+  }
   const stats = computeWeekStats(recentDiario, range);
 
   document.getElementById('cierre-sub').textContent =
     `Semana ${weekNum} · ${formatDateShort(range.start)} al ${formatDateShort(range.end)}`;
 
+  // Show planned days as denominator when known so "3" reads as "3/4" — the
+  // user sees adherence at a glance instead of having to remember their goal.
+  const _plannedDays = (currentUser?.dias_entreno && currentUser.dias_entreno.length) || 0;
+  const trainedCell = _plannedDays ? `${stats.trained}/${_plannedDays}` : `${stats.trained}`;
+  const _tgtKcal = _alimHeader?.targetKcal;
+  const kcalCell = stats.avgCal
+    ? (_tgtKcal ? `${stats.avgCal}/${_tgtKcal}` : `${stats.avgCal}`)
+    : '—';
+  const _tgtProt = _alimHeader?.targetProt;
+  const protCell = stats.avgProt
+    ? (_tgtProt ? `${stats.avgProt}/${_tgtProt}g` : `${stats.avgProt}g`)
+    : '—';
   document.getElementById('cierre-stats-grid').innerHTML = `
-    <div class="cierre-stat"><div class="cierre-stat-val">${stats.trained}</div><div class="cierre-stat-label">${lang==='es'?'Días entrenados':'Training days'}</div></div>
-    <div class="cierre-stat"><div class="cierre-stat-val">${stats.avgCal || '—'}</div><div class="cierre-stat-label">${lang==='es'?'Kcal promedio/día':'Avg kcal/day'}</div></div>
-    <div class="cierre-stat"><div class="cierre-stat-val">${stats.avgProt ? stats.avgProt + 'g' : '—'}</div><div class="cierre-stat-label">${lang==='es'?'Proteína prom.':'Avg protein'}</div></div>
+    <div class="cierre-stat"><div class="cierre-stat-val">${trainedCell}</div><div class="cierre-stat-label">${lang==='es'?'Días entrenados':'Training days'}</div></div>
+    <div class="cierre-stat"><div class="cierre-stat-val">${kcalCell}</div><div class="cierre-stat-label">${lang==='es'?'Kcal promedio/día':'Avg kcal/day'}</div></div>
+    <div class="cierre-stat"><div class="cierre-stat-val">${protCell}</div><div class="cierre-stat-label">${lang==='es'?'Proteína prom.':'Avg protein'}</div></div>
     <div class="cierre-stat"><div class="cierre-stat-val">${stats.totalLogs}/7</div><div class="cierre-stat-label">${lang==='es'?'Días registrados':'Logged days'}</div></div>
   `;
 
@@ -12969,39 +13025,73 @@ async function generateWeeklyAnalysis(nombre, weekNum, stats, objetivo, language
           : `\n\nPROGRESS PHOTO ATTACHED: Use the image as supporting visual context only. You may mention general observations about posture, symmetry, or visible changes. Do NOT estimate body fat percentage, make medical diagnoses, or precise physical claims. Numeric data is the primary analysis source.`)
       : '';
 
+  // ── Enrich context: planned vs actual ──────────────────────────────────
+  // The bare stats ("X trained of 7") aren't enough — the AI needs to know
+  // the user's planned target to judge adherence properly. We also pass body
+  // weight + dieta macro targets so it can make grounded inferences about
+  // caloric deficit/surplus instead of guessing what "average" looks like.
+  const plannedDays = (currentUser?.dias_entreno && currentUser.dias_entreno.length) || null;
+  const peso       = currentUser?.peso || null;
+  const altura     = currentUser?.altura || null;
+  const tgtKcal    = _alimHeader?.targetKcal || null;
+  const tgtProt    = _alimHeader?.targetProt || null;
+  const tgtCarbs   = _alimHeader?.targetCarbs || null;
+  const tgtFat     = _alimHeader?.targetFat || null;
+  const adherencia = (stats.trained != null && plannedDays)
+    ? Math.round((stats.trained / plannedDays) * 100) + '%'
+    : null;
+  // Per-week history for trend context (only meaningful from week 2 onwards)
+  const prevSummary = (weekNum > 1 && Array.isArray(cierresSemanales))
+    ? cierresSemanales
+        .filter(c => c.semana_num < weekNum && c.stats)
+        .sort((a, b) => a.semana_num - b.semana_num)
+        .map(c => `Sem ${c.semana_num}: ${c.stats.trained || 0} entrenos${c.stats.avgCal ? `, ${c.stats.avgCal} kcal prom` : ''}${c.stats.avgProt ? `, ${c.stats.avgProt}g prot prom` : ''}`)
+        .join('\n')
+    : '';
+
   const textContent = isEs
     ? `Generá el análisis de la Semana ${weekNum} del cliente ${nombre}.
 
-DATOS DE LA SEMANA:
-- Días entrenados: ${stats.trained} de 7
-- Calorías promedio: ${stats.avgCal ? stats.avgCal + ' kcal/día' : 'no registradas'}
-- Proteína promedio: ${stats.avgProt ? stats.avgProt + 'g/día' : 'no registrada'}
-- Días con registro completo: ${stats.totalLogs}/7
-- Objetivo del cliente: ${objetivo}
+PERFIL DEL CLIENTE:
+- Objetivo: ${objetivo || 'no especificado'}
+${peso  ? `- Peso actual: ${peso} kg\n` : ''}${altura ? `- Altura: ${altura} cm\n` : ''}- Plan: ${plannedDays ? `${plannedDays} días/semana de entreno` : 'sin plan de días'}
+${tgtKcal ? `- Target diario: ${tgtKcal} kcal · P:${tgtProt||'—'}g · C:${tgtCarbs||'—'}g · G:${tgtFat||'—'}g\n` : ''}
+DATOS DE LA SEMANA ${weekNum}:
+- Entrenos cumplidos: ${stats.trained}${plannedDays ? `/${plannedDays} planeados (${adherencia} adherencia)` : ' de 7 posibles'}
+- Calorías consumidas: ${stats.avgCal ? `${stats.avgCal} kcal/día prom${tgtKcal ? ` (target ${tgtKcal}, ${stats.avgCal < tgtKcal ? 'déficit' : stats.avgCal > tgtKcal ? 'superávit' : 'on target'} de ${Math.abs(stats.avgCal - tgtKcal)} kcal/día)` : ''}` : 'no registradas'}
+- Proteína: ${stats.avgProt ? `${stats.avgProt}g/día prom${tgtProt ? ` (target ${tgtProt}g)` : ''}` : 'no registrada'}
+- Carbos: ${stats.avgCarbs ? `${stats.avgCarbs}g/día prom${tgtCarbs ? ` (target ${tgtCarbs}g)` : ''}` : 'no registrados'}
+- Grasas: ${stats.avgFat ? `${stats.avgFat}g/día prom${tgtFat ? ` (target ${tgtFat}g)` : ''}` : 'no registradas'}
+- Días con registro de comidas: ${stats.totalLogs}/7
 - Número de semana en el proceso: ${weekNum}
-
+${prevSummary ? `\nHISTORIAL DE SEMANAS ANTERIORES:\n${prevSummary}\n` : ''}
 Escribí un análisis de 4-5 párrafos que:
-1. Evalúe honestamente el rendimiento de la semana con los datos reales
-2. Haga inferencias físicas basadas en evidencia: si mantuvo déficit y entrenó → está perdiendo grasa y se debería ver más definido respecto al inicio; si no cumplió → ser honesto pero constructivo
-3. Si es semana 2 o más, referencié el progreso acumulado desde el inicio
-4. Terminé con 2-3 objetivos concretos y alcanzables para la próxima semana
+1. Evalúe honestamente el rendimiento de la semana con los datos reales (mencioná los números específicos: adherencia, kcal vs target, etc.)
+2. Hagá inferencias físicas basadas en evidencia: si mantuvo déficit y entrenó → está perdiendo grasa y se debería ver más definido; si comió por arriba del target sin entrenar → ganando peso; si protein bajo → riesgo de perder músculo. Sé honesto pero constructivo
+3. Si es semana 2 o más, referencé el progreso/regresión vs semanas anteriores (mejoró la adherencia? Bajó el promedio de kcal?)
+4. Terminá con 2-3 objetivos concretos y alcanzables para la próxima semana, basados en lo que faltó esta
 Usá los datos reales, sé específico con los números.${photoInstructions}`
     : `Generate the Week ${weekNum} analysis for client ${nombre}.
 
-WEEK DATA:
-- Training days: ${stats.trained} of 7
-- Average calories: ${stats.avgCal ? stats.avgCal + ' kcal/day' : 'not logged'}
-- Average protein: ${stats.avgProt ? stats.avgProt + 'g/day' : 'not logged'}
-- Days with complete log: ${stats.totalLogs}/7
-- Client goal: ${objetivo}
+CLIENT PROFILE:
+- Goal: ${objetivo || 'unspecified'}
+${peso  ? `- Current weight: ${peso} kg\n` : ''}${altura ? `- Height: ${altura} cm\n` : ''}- Plan: ${plannedDays ? `${plannedDays} training days/week` : 'no day plan'}
+${tgtKcal ? `- Daily target: ${tgtKcal} kcal · P:${tgtProt||'—'}g · C:${tgtCarbs||'—'}g · F:${tgtFat||'—'}g\n` : ''}
+WEEK ${weekNum} DATA:
+- Trained: ${stats.trained}${plannedDays ? `/${plannedDays} planned (${adherencia} adherence)` : ' of 7 possible'}
+- Calories: ${stats.avgCal ? `${stats.avgCal} kcal/day avg${tgtKcal ? ` (target ${tgtKcal}, ${stats.avgCal < tgtKcal ? 'deficit' : stats.avgCal > tgtKcal ? 'surplus' : 'on target'} of ${Math.abs(stats.avgCal - tgtKcal)} kcal/day)` : ''}` : 'not logged'}
+- Protein: ${stats.avgProt ? `${stats.avgProt}g/day avg${tgtProt ? ` (target ${tgtProt}g)` : ''}` : 'not logged'}
+- Carbs: ${stats.avgCarbs ? `${stats.avgCarbs}g/day avg${tgtCarbs ? ` (target ${tgtCarbs}g)` : ''}` : 'not logged'}
+- Fat: ${stats.avgFat ? `${stats.avgFat}g/day avg${tgtFat ? ` (target ${tgtFat}g)` : ''}` : 'not logged'}
+- Days with food log: ${stats.totalLogs}/7
 - Week number in the process: ${weekNum}
-
+${prevSummary ? `\nPRIOR WEEKS HISTORY:\n${prevSummary}\n` : ''}
 Write a 4-5 paragraph analysis that:
-1. Honestly evaluates weekly performance with real data
-2. Makes evidence-based physical inferences: if they maintained deficit and trained → losing fat and should look more defined vs start; if not → be honest but constructive
-3. If week 2+, reference accumulated progress since day 1
-4. End with 2-3 concrete, achievable goals for next week
-Use the real numbers, be specific.${photoInstructions}`;
+1. Honestly evaluates weekly performance with real data (cite specific numbers: adherence %, kcal vs target, etc.)
+2. Makes evidence-based physical inferences: deficit + training → losing fat / will look more defined; surplus + no training → gaining weight; low protein → muscle loss risk. Be honest but constructive
+3. If week 2+, reference progress/regression vs prior weeks (better adherence? lower avg kcal?)
+4. End with 2-3 concrete, achievable goals for next week, based on what was missing this week
+Use real numbers, be specific.${photoInstructions}`;
 
   // Build multimodal content: include initial + current photo when both exist
   // for comparison; otherwise include whichever single photo is available; or
@@ -14231,6 +14321,24 @@ async function mirrorTrainedDay(dateStr, add, stateAfter) {
     }
   } catch (e) {
     console.warn('dias_entrenados mirror failed:', e);
+  }
+
+  // ALSO mirror to progreso_diario.entreno so the weekly cierre (which reads
+  // from `recentDiario` → progreso_diario table) counts trained days correctly.
+  // Without this, computeWeekStats undercounts because the new Mi Entreno only
+  // writes to dias_entrenados — the legacy progreso_diario.entreno column
+  // never gets touched. Symptom: cierre semanal shows "0 días entrenados"
+  // even if the user marked every workout done.
+  try {
+    const stillUsedForDate = !add
+      ? Object.values((stateAfter && stateAfter.completed) || {}).includes(dateStr)
+      : true;
+    await sbClient.from('progreso_diario').upsert(
+      { usuario_id: uid, fecha: dateStr, entreno: add || stillUsedForDate },
+      { onConflict: 'usuario_id,fecha' }
+    );
+  } catch (e) {
+    console.warn('progreso_diario.entreno mirror failed:', e);
   }
 }
 
