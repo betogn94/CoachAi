@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260525-2030-cierre-back-label">
+<meta name="app-version" content="20260525-2100-kcal-icon-macro-ring">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -7811,7 +7811,27 @@ footer {
       <div class="cai-home-card-top">
         <div class="cai-home-card-eyebrow" data-es="CALORÍAS HOY" data-en="CALORIES TODAY">CALORÍAS HOY</div>
         <div class="cai-home-card-ico ico-kcal">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4-1 7-4.6 7-9 0-3-2-5-3-7-1-2-3-3-3-3s-1 2-1 4c0 1.5-2 1.5-2 0 0-1 0-3 1-4-3 1-6 4-6 9 0 4 3 8 7 10z"/></svg>
+          <!-- Macro-ring icon (Design): 3 concentric arcs = protein/carbs/fat
+               progress. Stroke 1.6, literal colors per layer (not currentColor)
+               since each arc uses a different brand color. Gradient id is
+               namespaced (cal-ring-home) so it won't collide if reused. -->
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" aria-label="Calorías hoy">
+            <defs>
+              <linearGradient id="cal-ring-home" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%"  stop-color="#b4a7ff"/>
+                <stop offset="100%" stop-color="#7c6aff"/>
+              </linearGradient>
+            </defs>
+            <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,.10)"/>
+            <circle cx="12" cy="12" r="9" stroke="url(#cal-ring-home)"
+                    stroke-dasharray="38 56" transform="rotate(-90 12 12)"/>
+            <circle cx="12" cy="12" r="6" stroke="rgba(255,255,255,.10)"/>
+            <circle cx="12" cy="12" r="6" stroke="#5b9fff"
+                    stroke-dasharray="22 38" transform="rotate(-90 12 12)"/>
+            <circle cx="12" cy="12" r="3" stroke="rgba(255,255,255,.10)"/>
+            <circle cx="12" cy="12" r="3" stroke="#2ecfb5"
+                    stroke-dasharray="12 19" transform="rotate(-90 12 12)"/>
+          </svg>
         </div>
       </div>
       <div class="cai-home-kcal-num"><strong id="home-kcal-done">0</strong><span id="home-kcal-target"></span></div>
