@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260525-1700-home-app-dashboard">
+<meta name="app-version" content="20260525-1800-home-ring-gradient">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -1769,6 +1769,10 @@ button.cai-home-card:hover { border-color: rgba(124,106,255,0.20); }
   color: var(--muted);
   line-height: 1.55;
 }
+
+/* Seguimiento Semanal inside Home keeps its original legacy styling —
+   the inner semana-card chrome lives in the .semana-card / .semana-header
+   block elsewhere in this stylesheet. Wrapper still has crystal-depth bg. */
 
 @media (max-width: 380px) {
   .cai-home-card { min-height: 152px; padding: 12px 12px 10px; }
@@ -7732,12 +7736,24 @@ footer {
   <!-- HERO: ENTRENOS DE LA SEMANA — ring widget (informational only, NOT a shortcut) -->
   <div class="cai-home-hero" id="home-hero-entrenos">
     <div class="cai-home-hero-ring">
+      <!-- SVG gradient defs reused for both the ring fill and the dumbbell icon
+           below, so progress-arc + icon share the same purple→blue→teal sweep
+           that the X/N number already uses (CSS background-clip:text). -->
+      <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <defs>
+          <linearGradient id="home-ring-grad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#7c6aff"/>
+            <stop offset="50%" stop-color="#5b9fff"/>
+            <stop offset="100%" stop-color="#2ecfb5"/>
+          </linearGradient>
+        </defs>
+      </svg>
       <svg viewBox="0 0 124 124" class="cai-home-ring-svg">
         <circle class="cai-home-ring-track" cx="62" cy="62" r="48"/>
         <circle class="cai-home-ring-fill" id="home-ring-fill" cx="62" cy="62" r="48" stroke-dasharray="301.6" stroke-dashoffset="301.6"/>
       </svg>
       <div class="cai-home-ring-center">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"/><path d="M21 21l-1-1"/><path d="M3 3l1 1"/><path d="M18 22l4-4"/><path d="M2 6l4-4"/><path d="M3 10l7-7"/><path d="M14 21l7-7"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="url(#home-ring-grad)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"/><path d="M21 21l-1-1"/><path d="M3 3l1 1"/><path d="M18 22l4-4"/><path d="M2 6l4-4"/><path d="M3 10l7-7"/><path d="M14 21l7-7"/></svg>
       </div>
     </div>
     <div class="cai-home-hero-info">
@@ -13136,10 +13152,10 @@ async function renderHomeRing() {
   if (ring) {
     ring.style.strokeDasharray = circ;
     ring.style.strokeDashoffset = circ * (1 - pct);
-    const strokeColor = pct >= 1 ? '#2ecfb5' : pct > 0 ? '#b4a7ff' : '#2a2a42';
-    ring.style.stroke = strokeColor;
-    const glowColor = pct >= 1 ? 'rgba(46,207,181,0.7)' : pct > 0 ? 'rgba(180,167,255,0.55)' : 'rgba(0,0,0,0)';
-    ring.style.filter = `drop-shadow(0 0 6px ${glowColor})`;
+    // Ring + dumbbell share the same brand gradient as the X/N number.
+    // When pct=0 there's nothing to draw so the gradient is invisible anyway.
+    ring.style.stroke = 'url(#home-ring-grad)';
+    ring.style.filter = pct > 0 ? 'drop-shadow(0 0 6px rgba(124,106,255,0.45))' : 'none';
   }
   const doneEl = document.getElementById('home-ring-done');
   const targetEl = document.getElementById('home-ring-target');
