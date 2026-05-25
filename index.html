@@ -22,12 +22,12 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260525-1500-mi-entreno-collapsible-hero">
+<meta name="app-version" content="20260525-1700-home-app-dashboard">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #080810;
+  --bg: #04040a;
   --surface: #0f0f1a;
   --surface2: #161625;
   --border: #1e1e32;
@@ -69,21 +69,18 @@ body::after {
   transition: background 0.5s ease;
 }
 
-/* Shared ambient backdrop: athletic photo + dark overlay + brand orbs.
-   Applied to onboarding (.form-wrapper) and to the main app sections
-   (Mi Día, Progreso, Perfil) for a unified aesthetic. The body::after is
-   already position:fixed so it stays in the viewport while scrolling.
-   `background-attachment:scroll` (default) avoids iOS Safari quirks. */
-body:has(:is(.form-wrapper, #diario-wrapper, #dashboard-wrapper, #perfil-wrapper, #wl-wrapper, #mi-entreno-wrapper)[style*="block"])::after {
+/* Shared ambient backdrop: clean near-black with subtle brand orbs.
+   Applied to onboarding (.form-wrapper), home, and the main app sections
+   (Mi Alimentación, Mi Entreno, Perfil) for a unified aesthetic. The gym
+   photo background was removed per the "app feel, not landing page" pivot —
+   we keep just the soft purple/teal radial accents so the depth cards still
+   pop without competing with photographic noise. */
+body:has(:is(.form-wrapper, #home-wrapper, #diario-wrapper, #dashboard-wrapper, #perfil-wrapper, #wl-wrapper, #mi-entreno-wrapper)[style*="block"])::after {
   top: 0; left: 0; width: 100%; height: 100%;
   background:
-    radial-gradient(ellipse 55% 45% at 18% 12%, rgba(124,106,255,0.20) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 40% at 82% 80%, rgba(46,207,181,0.14) 0%, transparent 60%),
-    linear-gradient(180deg, rgba(7,7,20,0.85) 0%, rgba(7,7,20,0.92) 60%, rgba(7,7,20,0.97) 100%),
-    url('https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=900&q=85');
-  background-size: cover;
-  background-position: center 30%;
-  background-repeat: no-repeat;
+    radial-gradient(ellipse 55% 45% at 18% 12%, rgba(124,106,255,0.10) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 82% 80%, rgba(46,207,181,0.07) 0%, transparent 60%),
+    #04040a;
 }
 
 body > * { position: relative; z-index: 1; }
@@ -758,7 +755,7 @@ body:has(.form-wrapper[style*="block"]) .home-wrapper { display: none !important
   position: absolute;
   top: 5px; bottom: 5px;
   left: 5px;
-  width: calc((100% - 10px) / 6);
+  width: calc((100% - 10px) / 5);
   border-radius: 100px;
   background: linear-gradient(135deg, rgba(124,106,255,0.30), rgba(46,207,181,0.16));
   border: 1px solid rgba(124,106,255,0.45);
@@ -1503,6 +1500,290 @@ body.app-active:has(.form-wrapper[style*="block"]) { padding-bottom: 0; }
 .cai-ent-subcard.rest .cai-ent-subcard-arrow { display: none; }
 
 /* ======================================================================
+   HOME (app dashboard) — crystal-depth, same language as Mi Alim
+   ====================================================================== */
+
+.home-app-wrapper { padding-top: 2px; }
+
+/* HERO ring card — ENTRENAMIENTOS X/N this week (informational only) */
+.cai-home-hero {
+  margin: 12px 18px;
+  padding: 18px;
+  display: flex; align-items: center; gap: 18px;
+  background-color: rgba(20,20,32,0.55);
+  background-image:
+    linear-gradient(135deg, rgba(124,106,255,0.10) 0%, transparent 45%),
+    linear-gradient(225deg, rgba(46,207,181,0.05) 0%, transparent 45%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  box-shadow:
+    0 16px 50px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.09);
+}
+.cai-home-hero-ring {
+  position: relative;
+  width: 124px; height: 124px;
+  flex-shrink: 0;
+}
+.cai-home-ring-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.cai-home-ring-track { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 10; }
+.cai-home-ring-fill {
+  fill: none; stroke-width: 10; stroke-linecap: round;
+  stroke: var(--accent);
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.32, 0.72, 0, 1), stroke 0.3s ease;
+  filter: drop-shadow(0 0 6px rgba(124,106,255,0.55));
+}
+.cai-home-ring-center {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent-bright);
+}
+.cai-home-ring-center svg { width: 28px; height: 28px; }
+.cai-home-hero-info { flex: 1; min-width: 0; }
+.cai-home-hero-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; letter-spacing: 1.4px;
+  color: var(--accent-bright);
+  margin-bottom: 6px;
+}
+.cai-home-hero-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 56px; line-height: 0.95;
+  letter-spacing: 1px;
+  color: var(--accent-bright);
+}
+.cai-home-hero-num #home-ring-done {
+  background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.cai-home-hero-num #home-ring-target { color: var(--text); }
+.cai-home-hero-sep { color: var(--muted); padding: 0 6px; }
+.cai-home-hero-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px; font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--text);
+  margin-top: 4px;
+}
+.cai-home-hero-sub {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* 2-col grid for the action cards (shortcuts + chart + chat) */
+.cai-home-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 10px 18px;
+}
+.cai-home-card {
+  position: relative;
+  padding: 14px 14px 12px;
+  background-color: rgba(20,20,32,0.55);
+  background-image:
+    linear-gradient(135deg, rgba(124,106,255,0.06) 0%, transparent 45%),
+    linear-gradient(225deg, rgba(46,207,181,0.04) 0%, transparent 45%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  box-shadow:
+    0 8px 28px rgba(0,0,0,0.30),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  display: flex; flex-direction: column; align-items: flex-start;
+  text-align: left;
+  min-height: 168px;
+  color: var(--text);
+  font-family: inherit;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.18s cubic-bezier(0.18, 1.1, 0.4, 1.05), border-color 0.15s ease;
+}
+button.cai-home-card { cursor: pointer; }
+button.cai-home-card:active { transform: scale(0.985); }
+button.cai-home-card:hover { border-color: rgba(124,106,255,0.20); }
+.cai-home-card-top {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  width: 100%;
+  margin-bottom: 6px;
+}
+.cai-home-card-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; letter-spacing: 1.4px;
+  color: var(--accent-bright);
+}
+.cai-home-card-ico {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(124,106,255,0.30);
+  background: rgba(124,106,255,0.08);
+  color: var(--accent-bright);
+  flex-shrink: 0;
+}
+.cai-home-card-ico svg { width: 16px; height: 16px; }
+.cai-home-card-ico.ico-alim,
+.cai-home-card-ico.ico-chat {
+  border-color: rgba(46,207,181,0.30);
+  background: rgba(46,207,181,0.08);
+  color: var(--accent3);
+}
+.cai-home-card-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px; letter-spacing: 1px; line-height: 1.0;
+  color: var(--text);
+  margin-top: 4px;
+}
+.cai-home-card-title-grad {
+  background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.cai-home-card-body {
+  flex: 1;
+  margin-top: 8px;
+  font-size: 12px; color: var(--muted);
+  line-height: 1.5;
+  width: 100%;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.cai-home-card-body-row {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px;
+}
+.cai-home-card-body-row svg { width: 14px; height: 14px; color: var(--accent3); flex-shrink: 0; }
+.cai-home-card-cta {
+  margin-top: 10px;
+  align-self: flex-end;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(124,106,255,0.30);
+  color: var(--accent-bright);
+  background: transparent;
+}
+.cai-home-card-cta svg { width: 14px; height: 14px; }
+.cai-home-card-alim .cai-home-card-cta,
+.cai-home-card-chat .cai-home-card-cta {
+  border-color: rgba(46,207,181,0.30);
+  color: var(--accent3);
+}
+
+/* Kcal card — chart by meal type */
+.cai-home-card-kcal { min-height: 200px; }
+.cai-home-kcal-num {
+  font-family: 'Bebas Neue', sans-serif;
+  line-height: 1.0;
+  margin-top: 4px;
+}
+.cai-home-kcal-num strong {
+  font-size: 28px;
+  letter-spacing: 0.5px;
+  font-weight: 400;
+  background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.cai-home-kcal-num span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.6px;
+  color: var(--muted2);
+  margin-left: 4px;
+  text-transform: uppercase;
+  display: block;
+  margin-top: 4px;
+}
+.cai-home-kcal-chart {
+  margin-top: 12px;
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  height: 60px;
+  padding-bottom: 18px;
+  position: relative;
+}
+.cai-home-kcal-bar-col {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  height: 100%;
+  position: relative;
+}
+.cai-home-kcal-bar-track {
+  width: 100%;
+  height: 100%;
+  display: flex; align-items: flex-end;
+  background: rgba(255,255,255,0.03);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.cai-home-kcal-bar-fill {
+  width: 100%;
+  background: linear-gradient(180deg, #5b9fff 0%, #7c6aff 100%);
+  border-radius: 4px 4px 0 0;
+  transition: height 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.cai-home-kcal-bar-fill.done {
+  background: linear-gradient(180deg, #2ecfb5 0%, #5b9fff 100%);
+  box-shadow: 0 0 6px rgba(46,207,181,0.35);
+}
+.cai-home-kcal-bar-label {
+  position: absolute; bottom: -16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8.5px; letter-spacing: 0.4px;
+  color: var(--muted2);
+  white-space: nowrap;
+}
+
+/* SEGUIMIENTO SEMANAL — wide hero card wrapping renderSemanas output */
+.cai-home-section { margin: 14px 18px 24px; }
+.cai-home-section-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; letter-spacing: 1.4px;
+  color: var(--accent-bright);
+  padding: 0 4px;
+  margin-bottom: 10px;
+}
+.cai-home-semanas {
+  padding: 16px;
+  background-color: rgba(20,20,32,0.55);
+  background-image:
+    linear-gradient(135deg, rgba(124,106,255,0.06) 0%, transparent 45%),
+    linear-gradient(225deg, rgba(46,207,181,0.04) 0%, transparent 45%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  box-shadow:
+    0 8px 28px rgba(0,0,0,0.30),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.cai-home-semanas-empty {
+  padding: 18px 8px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+@media (max-width: 380px) {
+  .cai-home-card { min-height: 152px; padding: 12px 12px 10px; }
+  .cai-home-card-title { font-size: 19px; }
+  .cai-home-hero-num { font-size: 48px; }
+  .cai-home-hero-ring { width: 100px; height: 100px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cai-home-card,
+  .cai-home-ring-fill,
+  .cai-home-kcal-bar-fill { transition: none; }
+}
+
+/* ======================================================================
    PERFIL — crystal-depth, same language as Mi Alimentación / Mi Entreno
    ====================================================================== */
 
@@ -1711,6 +1992,64 @@ body.app-active:has(.form-wrapper[style*="block"]) { padding-bottom: 0; }
 .cai-perfil-transform-date {
   font-size: 10.5px; color: var(--muted);
   margin-top: 2px;
+}
+
+/* Foto Inicio inline CTA (only when user hasn't uploaded a 'inicio' photo) */
+.cai-perfil-foto-inicio {
+  padding: 16px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  text-align: center;
+}
+.cai-perfil-foto-inicio-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; letter-spacing: 1.4px;
+  color: var(--accent-bright);
+  margin-bottom: 8px;
+}
+.cai-perfil-foto-inicio-intro {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin-bottom: 12px;
+}
+.cai-perfil-foto-inicio img {
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: 12px;
+  margin: 8px 0 12px;
+  background: rgba(255,255,255,0.03);
+}
+.cai-perfil-foto-inicio-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(124,106,255,0.08);
+  border: 1px solid rgba(124,106,255,0.30);
+  border-radius: 10px;
+  color: var(--accent-bright);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px; letter-spacing: 1px;
+  cursor: pointer;
+  margin-bottom: 6px;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.18s cubic-bezier(0.18, 1.1, 0.4, 1.05);
+}
+.cai-perfil-foto-inicio-btn:active { transform: scale(0.97); }
+.cai-perfil-foto-inicio-btn svg { width: 14px; height: 14px; }
+.cai-perfil-foto-inicio-primary {
+  background: linear-gradient(135deg, rgba(46,207,181,0.20), rgba(46,207,181,0.10));
+  border-color: rgba(46,207,181,0.40);
+  color: var(--accent3);
+}
+.cai-perfil-foto-inicio-secondary {
+  background: transparent;
+}
+.cai-perfil-foto-inicio-status {
+  font-size: 11.5px;
+  color: var(--muted2);
+  margin-top: 8px;
+  min-height: 14px;
 }
 
 /* ÚLTIMO ANÁLISIS — crystal card with analysis preview */
@@ -7324,12 +7663,6 @@ footer {
       </div></div>
       <div><div class="nav-item-label">Mi Entreno</div></div>
     </div>
-    <div class="nav-item" id="drawer-progreso" onclick="showDashboard(); setActiveNav('nav-progreso'); closeNav()">
-      <div class="nav-item-icon"><div class="nav-item-icon-inner">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17l4.5-4.5 3 3 7-7"/><path d="M14 8.5h4v4"/></svg>
-      </div></div>
-      <div><div class="nav-item-label">Progreso</div></div>
-    </div>
     <div class="nav-item" id="drawer-perfil" onclick="showPerfil(); setActiveNav('nav-perfil'); closeNav()">
       <div class="nav-item-icon"><div class="nav-item-icon-inner">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 19.5c0-3.59 2.91-6.5 6.5-6.5s6.5 2.91 6.5 6.5"/></svg>
@@ -7381,450 +7714,109 @@ footer {
 </div>
 
 <!-- HOME SCREEN -->
-<div class="home-wrapper" id="home-wrapper">
+<div class="diario-wrapper home-app-wrapper" id="home-wrapper">
 
-  <!-- ── HERO ─────────────────────────────────────────── -->
-  <div class="home-hero">
-
-    <!-- Cinematic gym photo backdrop (overlays handled via CSS) -->
-    <div class="hero-bg-top"></div>
-    <div class="hero-bg-fade"></div>
-
-
-    <!-- Content -->
-    <div class="home-hero-content">
-
-      <div class="home-eyebrow-row">
-        <div class="pulse-dot"></div>
-        <span>AI · WELLNESS · 24/7</span>
+  <!-- Page header: greeting + name + back-to-chat shortcut on the right -->
+  <div class="cai-alim-header">
+    <div>
+      <div class="cai-alim-header-title">
+        <div class="cai-alim-header-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
+        </div>
+        <h2 class="cai-alim-header-h2" id="home-name">HOLA</h2>
       </div>
-
-      <!-- Warm personal greeting -->
-      <div class="home-hero-greeting">
-        <span id="home-greeting">Hola</span><span class="hero-greeting-sep">,&nbsp;</span><span id="home-name" class="hero-greeting-name">ATLETA</span><span class="hero-greeting-sep">&nbsp;·&nbsp;</span><span class="hero-greeting-sub">Sigamos construyendo</span>
-      </div>
-
-      <!-- Emotional headline — static, aspirational -->
-      <h1 class="home-hero-title">
-        TU MEJOR<span class="hero-title-line2">VERSIÓN.</span>
-      </h1>
-
-      <!-- Goal chip -->
-      <div class="home-goal-chip" id="home-goal-chip">Tu objetivo</div>
-
-      <!-- Motivation text -->
-      <p class="home-hero-sub" id="home-motivation">Acompañamiento inteligente para transformar tu cuerpo y mantener la constancia.</p>
-
-      <!-- Primary CTA -->
-      <div class="home-hero-cta-wrap">
-        <button class="btn-home-cta" onclick="showChat(); setActiveNav('nav-coach')">
-          HABLAR CON MI COACH <span class="btn-home-cta-arrow">→</span>
-        </button>
-      </div>
-
-      <!-- Social proof -->
-      <div class="home-hero-proof">
-        <span>Guiado por IA</span>
-        <span class="hero-proof-dot">·</span>
-        <span>100% personalizado</span>
-        <span class="hero-proof-dot">·</span>
-        <span>24/7</span>
-      </div>
-
+      <div class="cai-alim-header-sub" id="home-greeting-sub">—</div>
     </div>
   </div>
 
-  <!-- ── FEATURE CARDS — cinematic split layout ────────── -->
-  <div class="home-section-header">
-    <div class="home-section-eyebrow">¿POR QUÉ COACH AI?</div>
-  </div>
-  <div class="home-feature-cards">
-
-    <div class="home-fcard fcard-ai">
-      <div class="home-fcard-visual-zone">
-        <!-- Chat conversation illustration -->
-        <svg class="home-fcard-svg" viewBox="0 0 400 160" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
-          <!-- Coach bubble — left -->
-          <rect x="20" y="18" width="210" height="44" rx="14" fill="rgba(124,106,255,0.2)" stroke="rgba(124,106,255,0.3)" stroke-width="1"/>
-          <rect x="20" y="58" width="16" height="16" rx="4" fill="rgba(124,106,255,0.2)"/>
-          <text x="36" y="36" font-family="system-ui,sans-serif" font-size="12" fill="rgba(255,255,255,0.78)">¿Cómo fue tu entreno?</text>
-          <text x="36" y="53" font-family="system-ui,sans-serif" font-size="10.5" fill="rgba(255,255,255,0.38)">Coach AI · ahora</text>
-          <!-- User bubble — right -->
-          <rect x="150" y="78" width="230" height="44" rx="14" fill="rgba(46,207,181,0.14)" stroke="rgba(46,207,181,0.24)" stroke-width="1"/>
-          <text x="166" y="96" font-family="system-ui,sans-serif" font-size="12" fill="rgba(255,255,255,0.82)">Excelente. Me sentí fuerte</text>
-          <text x="166" y="113" font-family="system-ui,sans-serif" font-size="10.5" fill="rgba(255,255,255,0.38)">Tú · hace un momento</text>
-          <!-- Typing indicator -->
-          <rect x="20" y="132" width="76" height="24" rx="12" fill="rgba(124,106,255,0.11)" stroke="rgba(124,106,255,0.2)" stroke-width="1"/>
-          <circle cx="42" cy="144" r="3.5" fill="rgba(124,106,255,0.65)"/>
-          <circle cx="55" cy="144" r="3.5" fill="rgba(124,106,255,0.42)"/>
-          <circle cx="68" cy="144" r="3.5" fill="rgba(124,106,255,0.24)"/>
-        </svg>
-      </div>
-      <div class="home-fcard-inner">
-        <div class="home-fcard-tag">IA CONVERSACIONAL</div>
-        <div class="home-fcard-headline">UN COACH
-DISPONIBLE 24/7</div>
-        <p class="home-fcard-desc">Hacé tus preguntas, ajustá tu plan y recibí orientación personalizada en tiempo real — todos los días.</p>
+  <!-- HERO: ENTRENOS DE LA SEMANA — ring widget (informational only, NOT a shortcut) -->
+  <div class="cai-home-hero" id="home-hero-entrenos">
+    <div class="cai-home-hero-ring">
+      <svg viewBox="0 0 124 124" class="cai-home-ring-svg">
+        <circle class="cai-home-ring-track" cx="62" cy="62" r="48"/>
+        <circle class="cai-home-ring-fill" id="home-ring-fill" cx="62" cy="62" r="48" stroke-dasharray="301.6" stroke-dashoffset="301.6"/>
+      </svg>
+      <div class="cai-home-ring-center">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"/><path d="M21 21l-1-1"/><path d="M3 3l1 1"/><path d="M18 22l4-4"/><path d="M2 6l4-4"/><path d="M3 10l7-7"/><path d="M14 21l7-7"/></svg>
       </div>
     </div>
-
-    <div class="home-fcard fcard-prog">
-      <div class="home-fcard-visual-zone">
-        <!-- Progress chart — neon purple→cyan, reference aesthetic -->
-        <svg class="home-fcard-svg" viewBox="0 0 400 160" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
-          <defs>
-            <linearGradient id="line-grad-p" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stop-color="#7c6aff"/>
-              <stop offset="55%" stop-color="#5b9fff"/>
-              <stop offset="100%" stop-color="#2ecfb5"/>
-            </linearGradient>
-            <linearGradient id="area-p" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="rgba(124,106,255,0.38)"/>
-              <stop offset="100%" stop-color="rgba(46,207,181,0.0)"/>
-            </linearGradient>
-            <filter id="line-glow-p">
-              <feGaussianBlur stdDeviation="4" result="b"/>
-              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-            <filter id="dot-glow-p">
-              <feGaussianBlur stdDeviation="5" result="b"/>
-              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-
-          <!-- Grid — horizontal -->
-          <line x1="30" y1="128" x2="390" y2="128" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
-          <line x1="30" y1="98"  x2="390" y2="98"  stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
-          <line x1="30" y1="68"  x2="390" y2="68"  stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
-          <line x1="30" y1="38"  x2="390" y2="38"  stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
-          <!-- Grid — vertical -->
-          <line x1="140" y1="28" x2="140" y2="136" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-          <line x1="255" y1="28" x2="255" y2="136" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-          <line x1="370" y1="28" x2="370" y2="136" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-
-          <!-- Area fill -->
-          <path d="M30 118 C80 114 108 108 160 100 C210 92 240 78 285 62 C325 48 348 36 390 26 L390 128 L30 128 Z" fill="url(#area-p)"/>
-
-          <!-- Glow layer under line -->
-          <path d="M30 118 C80 114 108 108 160 100 C210 92 240 78 285 62 C325 48 348 36 390 26" stroke="url(#line-grad-p)" stroke-width="8" stroke-linecap="round" fill="none" opacity="0.3" filter="url(#line-glow-p)"/>
-          <!-- Sharp line on top -->
-          <path d="M30 118 C80 114 108 108 160 100 C210 92 240 78 285 62 C325 48 348 36 390 26" stroke="url(#line-grad-p)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-
-          <!-- Data points -->
-          <circle cx="30"  cy="118" r="5" fill="#7c6aff" opacity="0.7" filter="url(#dot-glow-p)"/>
-          <circle cx="30"  cy="118" r="3" fill="#9a8bff"/>
-
-          <circle cx="160" cy="100" r="5" fill="#6ba8ff" opacity="0.75" filter="url(#dot-glow-p)"/>
-          <circle cx="160" cy="100" r="3" fill="#88c0ff"/>
-
-          <circle cx="285" cy="62" r="5" fill="#2ecfb5" opacity="0.8" filter="url(#dot-glow-p)"/>
-          <circle cx="285" cy="62" r="3" fill="#50e0ca"/>
-
-          <!-- Final point — prominent halo -->
-          <circle cx="390" cy="26" r="14" fill="rgba(46,207,181,0.1)"/>
-          <circle cx="390" cy="26" r="7"  fill="#2ecfb5" opacity="0.75" filter="url(#dot-glow-p)"/>
-          <circle cx="390" cy="26" r="4.5" fill="#2ecfb5"/>
-          <circle cx="390" cy="26" r="2"  fill="white" opacity="0.9"/>
-
-          <!-- Title -->
-          <text x="30" y="20" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="rgba(255,255,255,0.45)" letter-spacing="0.6">PROGRESO MENSUAL</text>
-
-          <!-- Badge -->
-          <rect x="296" y="7" width="70" height="20" rx="10" fill="rgba(46,207,181,0.12)" stroke="rgba(46,207,181,0.38)" stroke-width="1"/>
-          <text x="331" y="21" font-family="system-ui,sans-serif" font-size="9.5" font-weight="700" fill="rgba(46,207,181,0.95)" text-anchor="middle">↑ +12.4%</text>
-
-          <!-- Week labels -->
-          <text x="30"  y="148" font-family="system-ui,sans-serif" font-size="10" fill="rgba(255,255,255,0.28)" text-anchor="middle">SEM 1</text>
-          <text x="160" y="148" font-family="system-ui,sans-serif" font-size="10" fill="rgba(255,255,255,0.28)" text-anchor="middle">SEM 2</text>
-          <text x="285" y="148" font-family="system-ui,sans-serif" font-size="10" fill="rgba(255,255,255,0.28)" text-anchor="middle">SEM 3</text>
-          <text x="390" y="148" font-family="system-ui,sans-serif" font-size="10" fill="rgba(46,207,181,0.82)" text-anchor="middle">SEM 4</text>
-        </svg>
-      </div>
-      <div class="home-fcard-inner">
-        <div class="home-fcard-tag">SEGUIMIENTO VISUAL</div>
-        <div class="home-fcard-headline">EL PROGRESO
-QUE SÍ SE VE</div>
-        <p class="home-fcard-desc">Métricas, fotos y análisis semanal que muestran tu transformación real. Ver el cambio sostiene la motivación.</p>
-      </div>
+    <div class="cai-home-hero-info">
+      <div class="cai-home-hero-eyebrow" data-es="ENTRENAMIENTOS" data-en="WORKOUTS">ENTRENAMIENTOS</div>
+      <div class="cai-home-hero-num"><span id="home-ring-done">0</span><span class="cai-home-hero-sep">/</span><span id="home-ring-target">0</span></div>
+      <div class="cai-home-hero-label" data-es="COMPLETADOS" data-en="COMPLETED">COMPLETADOS</div>
+      <div class="cai-home-hero-sub" data-es="esta semana" data-en="this week">esta semana</div>
     </div>
-
   </div>
 
-  <!-- ── JOURNEY FLOW — connected circles with thin-line icons ── -->
-  <div class="home-journey">
-    <div class="hj-step">
-      <div class="hj-circle">
-        <div class="hj-circle-inner">
-          <svg class="hj-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="8" r="3.5"/>
-            <path d="M5.5 19.5c0-3.59 2.91-6.5 6.5-6.5s6.5 2.91 6.5 6.5"/>
-          </svg>
+  <!-- Row 1: shortcut cards (Próxima comida + Hoy toca) -->
+  <div class="cai-home-grid">
+    <button class="cai-home-card cai-home-card-alim" onclick="showDiario(); setActiveNav('nav-diario')" type="button">
+      <div class="cai-home-card-top">
+        <div class="cai-home-card-eyebrow" data-es="PRÓXIMA COMIDA" data-en="NEXT MEAL">PRÓXIMA COMIDA</div>
+        <div class="cai-home-card-ico ico-alim">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18a9 9 0 0 1-18 0z"/><path d="M9 4c0 1-1 2-1 3s1 2 1 3"/><path d="M14 4c0 1-1 2-1 3s1 2 1 3"/></svg>
         </div>
       </div>
-      <div class="hj-label">Onboarding</div>
-    </div>
-    <svg class="hj-arrow" viewBox="0 0 24 24" aria-hidden="true">
-      <defs>
-        <linearGradient id="hj-grad-1" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stop-color="#7c6aff"/>
-          <stop offset="100%" stop-color="#2ecfb5"/>
-        </linearGradient>
-      </defs>
-      <path d="M7 4 L17 12 L7 20 Z" fill="url(#hj-grad-1)"/>
-    </svg>
-    <div class="hj-step">
-      <div class="hj-circle">
-        <div class="hj-circle-inner">
-          <svg class="hj-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 11.5c0-2.485 2.015-4.5 4.5-4.5h5c2.485 0 4.5 2.015 4.5 4.5s-2.015 4.5-4.5 4.5h-4l-3 2.5v-2.5c-1.5-0.8-2.5-2.4-2.5-4.5z"/>
-            <path d="M11 17c0.6 1.6 2.1 2.5 4 2.5h2.5l2.5 2v-2c1.3-0.7 2-2 2-3.5"/>
-          </svg>
+      <div class="cai-home-card-title" id="home-prox-meal-name">—</div>
+      <div class="cai-home-card-body" id="home-prox-meal-detail"></div>
+      <div class="cai-home-card-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+    </button>
+
+    <button class="cai-home-card cai-home-card-entreno" onclick="showMiEntreno(); setActiveNav('nav-entreno')" type="button">
+      <div class="cai-home-card-top">
+        <div class="cai-home-card-eyebrow" data-es="HOY TOCA" data-en="TODAY'S FOCUS">HOY TOCA</div>
+        <div class="cai-home-card-ico ico-entreno">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"/><path d="M21 21l-1-1"/><path d="M3 3l1 1"/><path d="M18 22l4-4"/><path d="M2 6l4-4"/><path d="M3 10l7-7"/><path d="M14 21l7-7"/></svg>
         </div>
       </div>
-      <div class="hj-label">Chat Coach</div>
-    </div>
-    <svg class="hj-arrow" viewBox="0 0 24 24" aria-hidden="true">
-      <defs>
-        <linearGradient id="hj-grad-2" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stop-color="#7c6aff"/>
-          <stop offset="100%" stop-color="#2ecfb5"/>
-        </linearGradient>
-      </defs>
-      <path d="M7 4 L17 12 L7 20 Z" fill="url(#hj-grad-2)"/>
-    </svg>
-    <div class="hj-step">
-      <div class="hj-circle">
-        <div class="hj-circle-inner">
-          <svg class="hj-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="4" y="5" width="16" height="15" rx="2"/>
-            <path d="M4 10h16"/>
-            <path d="M9 3v4"/>
-            <path d="M15 3v4"/>
-            <circle cx="12" cy="14.5" r="1.4" fill="currentColor"/>
-          </svg>
-        </div>
-      </div>
-      <div class="hj-label">Mi Alimentación</div>
-    </div>
-    <svg class="hj-arrow" viewBox="0 0 24 24" aria-hidden="true">
-      <defs>
-        <linearGradient id="hj-grad-3" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stop-color="#7c6aff"/>
-          <stop offset="100%" stop-color="#2ecfb5"/>
-        </linearGradient>
-      </defs>
-      <path d="M7 4 L17 12 L7 20 Z" fill="url(#hj-grad-3)"/>
-    </svg>
-    <div class="hj-step">
-      <div class="hj-circle">
-        <div class="hj-circle-inner">
-          <svg class="hj-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3.5 17l4.5-4.5 3 3 7-7"/>
-            <path d="M14 8.5h4v4"/>
-          </svg>
-        </div>
-      </div>
-      <div class="hj-label">Progreso</div>
-    </div>
+      <div class="cai-home-card-title cai-home-card-title-grad" id="home-hoy-toca-name">—</div>
+      <div class="cai-home-card-body" id="home-hoy-toca-detail"></div>
+      <div class="cai-home-card-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+    </button>
   </div>
 
-  <!-- ── HOW IT WORKS — number-led, no icons ───────────── -->
-  <div class="home-section-header">
-    <div class="home-section-eyebrow">PROCESO</div>
-    <div class="home-section-title">CÓMO FUNCIONA</div>
+  <!-- Row 2: kcal chart (informational) + coach chat shortcut -->
+  <div class="cai-home-grid">
+    <div class="cai-home-card cai-home-card-kcal" id="home-kcal-card">
+      <div class="cai-home-card-top">
+        <div class="cai-home-card-eyebrow" data-es="CALORÍAS HOY" data-en="CALORIES TODAY">CALORÍAS HOY</div>
+        <div class="cai-home-card-ico ico-kcal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4-1 7-4.6 7-9 0-3-2-5-3-7-1-2-3-3-3-3s-1 2-1 4c0 1.5-2 1.5-2 0 0-1 0-3 1-4-3 1-6 4-6 9 0 4 3 8 7 10z"/></svg>
+        </div>
+      </div>
+      <div class="cai-home-kcal-num"><strong id="home-kcal-done">0</strong><span id="home-kcal-target"></span></div>
+      <div class="cai-home-kcal-chart" id="home-kcal-bars"></div>
+    </div>
+
+    <button class="cai-home-card cai-home-card-chat" onclick="showChat(); setActiveNav('nav-coach')" type="button">
+      <div class="cai-home-card-top">
+        <div class="cai-home-card-eyebrow" data-es="COACH AI" data-en="COACH AI">COACH AI</div>
+        <div class="cai-home-card-ico ico-chat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 0 1-.9-3.8A8.38 8.38 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5z"/></svg>
+        </div>
+      </div>
+      <div class="cai-home-card-title" data-es="CONSULTA" data-en="ASK">CONSULTA</div>
+      <div class="cai-home-card-title cai-home-card-title-grad" data-es="LO QUE NECESITES" data-en="ANYTHING YOU NEED">LO QUE NECESITES</div>
+      <div class="cai-home-card-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+    </button>
   </div>
-  <div class="home-steps">
-    <div class="home-step">
-      <div class="home-step-num">01</div>
-      <div class="home-step-body">
-        <div class="home-step-title">REGISTRÁ TU DÍA</div>
-        <div class="home-step-desc">Cargá tus comidas en Mi Alimentación y tus entrenos en Mi Entreno.</div>
-      </div>
-    </div>
-    <div class="home-step">
-      <div class="home-step-num">02</div>
-      <div class="home-step-body">
-        <div class="home-step-title">SEGUÍ TU PROGRESO</div>
-        <div class="home-step-desc">Visualizá tu evolución semanal con métricas reales.</div>
-      </div>
-    </div>
-    <div class="home-step">
-      <div class="home-step-num">03</div>
-      <div class="home-step-body">
-        <div class="home-step-title">RECIBÍ ANÁLISIS IA</div>
-        <div class="home-step-desc">Tu coach analiza tus datos y te da guía personalizada.</div>
-      </div>
-    </div>
-    <div class="home-step">
-      <div class="home-step-num">04</div>
-      <div class="home-step-body">
-        <div class="home-step-title">VISUALIZÁ TU TRANSFORMACIÓN</div>
-        <div class="home-step-desc">Subí fotos de progreso y celebrá tu cambio real.</div>
+
+  <!-- Wide hero card: SEGUIMIENTO SEMANAL — same crystal-depth wide-card style -->
+  <div class="cai-home-section">
+    <div class="cai-home-section-title" data-es="SEGUIMIENTO SEMANAL" data-en="WEEKLY TRACKING">SEGUIMIENTO SEMANAL</div>
+    <div id="semanas-container" class="cai-home-semanas">
+      <div class="cai-home-semanas-empty" id="semanas-empty"
+           data-es="Tus semanas cerradas aparecerán acá con tu análisis IA y comparativa de fotos."
+           data-en="Your closed weeks will appear here with AI analysis and photo comparison.">
+        Tus semanas cerradas aparecerán acá con tu análisis IA y comparativa de fotos.
       </div>
     </div>
   </div>
 
-  <!-- ── EXPLORE NAV — gradient visual headers ─────────── -->
-  <div class="home-nav-section" style="margin-top:48px">
-    <div class="home-section-label">EXPLORAR</div>
-    <div class="home-cards-grid">
-
-      <div class="home-card" onclick="showDiario(); setActiveNav('nav-diario')">
-        <div class="home-card-visual cv-diario">
-          <svg viewBox="0 0 400 100" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="ec-diario" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#aa64ff"/>
-                <stop offset="100%" stop-color="#2ecfb5"/>
-              </linearGradient>
-              <filter id="ec-diario-glow"><feGaussianBlur stdDeviation="4.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-              <filter id="ec-diario-soft"><feGaussianBlur stdDeviation="8"/></filter>
-            </defs>
-            <circle cx="200" cy="50" r="40" fill="rgba(170,100,255,0.18)" filter="url(#ec-diario-soft)"/>
-            <rect x="125" y="10" width="150" height="80" rx="12" stroke="rgba(255,255,255,0.22)" stroke-width="1" fill="rgba(255,255,255,0.025)"/>
-            <rect x="125" y="10" width="150" height="16" rx="12" fill="rgba(124,106,255,0.32)"/>
-            <text x="200" y="21" fill="rgba(255,255,255,0.85)" font-family="system-ui,sans-serif" font-size="7" text-anchor="middle" letter-spacing="2" font-weight="600">MAYO 2026</text>
-            <g fill="rgba(255,255,255,0.32)">
-              <circle cx="145" cy="40" r="2.5"/><circle cx="167" cy="40" r="2.5"/><circle cx="189" cy="40" r="2.5"/><circle cx="211" cy="40" r="2.5"/><circle cx="233" cy="40" r="2.5"/><circle cx="255" cy="40" r="2.5"/>
-              <circle cx="145" cy="56" r="2.5"/><circle cx="167" cy="56" r="2.5"/><circle cx="211" cy="56" r="2.5"/><circle cx="233" cy="56" r="2.5"/><circle cx="255" cy="56" r="2.5"/>
-              <circle cx="145" cy="72" r="2.5"/><circle cx="167" cy="72" r="2.5"/><circle cx="189" cy="72" r="2.5"/><circle cx="211" cy="72" r="2.5"/><circle cx="233" cy="72" r="2.5"/><circle cx="255" cy="72" r="2.5"/>
-            </g>
-            <circle cx="189" cy="56" r="10" fill="url(#ec-diario)" filter="url(#ec-diario-glow)"/>
-            <text x="189" y="59" fill="#fff" font-family="system-ui,sans-serif" font-size="9" font-weight="800" text-anchor="middle">20</text>
-          </svg>
-        </div>
-        <div class="home-card-body">
-          <div class="home-card-title">MI ALIMENTACIÓN</div>
-          <div class="home-card-desc">Registrá tus comidas del día.</div>
-        </div>
-      </div>
-
-      <div class="home-card" onclick="showMiEntreno(); setActiveNav('nav-entreno')">
-        <div class="home-card-visual cv-entreno">
-          <svg viewBox="0 0 400 100" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="ec-entreno" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#aa64ff"/>
-                <stop offset="100%" stop-color="#2ecfb5"/>
-              </linearGradient>
-              <filter id="ec-entreno-glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-              <filter id="ec-entreno-soft"><feGaussianBlur stdDeviation="9"/></filter>
-            </defs>
-            <circle cx="200" cy="50" r="42" fill="rgba(124,106,255,0.18)" filter="url(#ec-entreno-soft)"/>
-            <g stroke="url(#ec-entreno)" stroke-width="6" stroke-linecap="round" filter="url(#ec-entreno-glow)">
-              <line x1="150" y1="50" x2="250" y2="50"/>
-              <line x1="150" y1="36" x2="150" y2="64"/>
-              <line x1="138" y1="42" x2="138" y2="58"/>
-              <line x1="250" y1="36" x2="250" y2="64"/>
-              <line x1="262" y1="42" x2="262" y2="58"/>
-            </g>
-            <circle cx="200" cy="50" r="5" fill="#fff"/>
-          </svg>
-        </div>
-        <div class="home-card-body">
-          <div class="home-card-title">MI ENTRENO</div>
-          <div class="home-card-desc">Tu rutina de la semana, día por día.</div>
-        </div>
-      </div>
-
-      <div class="home-card" onclick="showDashboard(); setActiveNav('nav-progreso')">
-        <div class="home-card-visual cv-progreso">
-          <svg viewBox="0 0 400 100" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="ec-prog-line" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stop-color="#aa64ff"/>
-                <stop offset="50%" stop-color="#5b9fff"/>
-                <stop offset="100%" stop-color="#2ecfb5"/>
-              </linearGradient>
-              <linearGradient id="ec-prog-area" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="rgba(124,106,255,0.55)"/>
-                <stop offset="100%" stop-color="rgba(46,207,181,0)"/>
-              </linearGradient>
-              <filter id="ec-prog-glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-            </defs>
-            <g stroke="rgba(255,255,255,0.10)" stroke-width="0.6">
-              <line x1="20" y1="28" x2="380" y2="28"/>
-              <line x1="20" y1="55" x2="380" y2="55"/>
-              <line x1="20" y1="82" x2="380" y2="82"/>
-            </g>
-            <path d="M20 82 Q100 80 170 60 T380 18 L380 95 L20 95 Z" fill="url(#ec-prog-area)"/>
-            <path d="M20 82 Q100 80 170 60 T380 18" stroke="url(#ec-prog-line)" stroke-width="3.2" stroke-linecap="round" filter="url(#ec-prog-glow)" fill="none"/>
-            <circle cx="100" cy="80" r="3.5" fill="#aa64ff" filter="url(#ec-prog-glow)"/>
-            <circle cx="170" cy="60" r="4" fill="#5b9fff" filter="url(#ec-prog-glow)"/>
-            <circle cx="275" cy="40" r="4" fill="#5b9fff" filter="url(#ec-prog-glow)"/>
-            <circle cx="380" cy="18" r="6" fill="#2ecfb5" filter="url(#ec-prog-glow)"/>
-          </svg>
-        </div>
-        <div class="home-card-body">
-          <div class="home-card-title">PROGRESO</div>
-          <div class="home-card-desc">Seguí tu evolución semanal.</div>
-        </div>
-      </div>
-
-      <div class="home-card" onclick="showChat(); setActiveNav('nav-coach')">
-        <div class="home-card-visual cv-coach">
-          <svg viewBox="0 0 400 100" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <filter id="ec-coach-glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-              <linearGradient id="ec-coach-b1" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stop-color="rgba(124,106,255,0.45)"/>
-                <stop offset="100%" stop-color="rgba(170,100,255,0.32)"/>
-              </linearGradient>
-              <linearGradient id="ec-coach-b2" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stop-color="rgba(46,207,181,0.32)"/>
-                <stop offset="100%" stop-color="rgba(91,159,255,0.40)"/>
-              </linearGradient>
-            </defs>
-            <rect x="30" y="16" width="180" height="30" rx="15" fill="url(#ec-coach-b1)" stroke="rgba(170,100,255,0.65)" stroke-width="1"/>
-            <circle cx="52" cy="31" r="3" fill="#fff" filter="url(#ec-coach-glow)"/>
-            <circle cx="66" cy="31" r="3" fill="rgba(255,255,255,0.7)"/>
-            <circle cx="80" cy="31" r="3" fill="rgba(255,255,255,0.4)"/>
-            <text x="155" y="34.5" fill="rgba(255,255,255,0.85)" font-family="system-ui,sans-serif" font-size="9" text-anchor="middle" font-weight="500">Coach AI</text>
-            <rect x="190" y="56" width="180" height="30" rx="15" fill="url(#ec-coach-b2)" stroke="rgba(46,207,181,0.7)" stroke-width="1"/>
-            <text x="280" y="75" fill="rgba(255,255,255,0.95)" font-family="system-ui,sans-serif" font-size="10" text-anchor="middle" font-weight="500">Excelente sesión</text>
-            <circle cx="358" cy="71" r="3" fill="#2ecfb5" filter="url(#ec-coach-glow)"/>
-          </svg>
-        </div>
-        <div class="home-card-body">
-          <div class="home-card-title">COACH AI</div>
-          <div class="home-card-desc">Análisis y orientación personalizada.</div>
-        </div>
-      </div>
-
-      <!-- PROVISIONAL: Perfil card hidden so Explorar shows 4 cards in a clean
-           grid. Re-show this (remove the inline display:none) when a new
-           section/feature is added so the grid stays visually balanced.
-           Perfil is still fully accessible from the nav drawer. -->
-      <div class="home-card" onclick="showPerfil(); setActiveNav('nav-perfil')" style="display:none">
-        <div class="home-card-visual cv-perfil">
-          <svg viewBox="0 0 400 100" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="ec-perfil" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#aa64ff"/>
-                <stop offset="100%" stop-color="#2ecfb5"/>
-              </linearGradient>
-              <filter id="ec-perfil-glow"><feGaussianBlur stdDeviation="4.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-            </defs>
-            <circle cx="200" cy="50" r="46" stroke="rgba(170,100,255,0.32)" stroke-width="0.8"/>
-            <circle cx="200" cy="50" r="34" stroke="rgba(170,100,255,0.45)" stroke-width="1"/>
-            <circle cx="200" cy="50" r="24" stroke="url(#ec-perfil)" stroke-width="2.2" filter="url(#ec-perfil-glow)"/>
-            <circle cx="200" cy="42" r="6.5" fill="url(#ec-perfil)" filter="url(#ec-perfil-glow)"/>
-            <path d="M187 60c0-7 5.8-13 13-13s13 5.8 13 13" fill="url(#ec-perfil)" opacity="0.85" filter="url(#ec-perfil-glow)"/>
-            <circle cx="150" cy="50" r="3" fill="#aa64ff" filter="url(#ec-perfil-glow)"/>
-            <circle cx="250" cy="50" r="3" fill="#2ecfb5" filter="url(#ec-perfil-glow)"/>
-            <circle cx="200" cy="4" r="3" fill="#5b9fff" filter="url(#ec-perfil-glow)"/>
-            <circle cx="200" cy="96" r="3" fill="#7c6aff" filter="url(#ec-perfil-glow)"/>
-          </svg>
-        </div>
-        <div class="home-card-body">
-          <div class="home-card-title">PERFIL</div>
-          <div class="home-card-desc">Tu transformación y estadísticas.</div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
+  <!-- Legacy ids preserved (hidden) so any caller that still references them doesn't crash.
+       nav-user-name + nav-user-goal already exist in the nav drawer, so we don't duplicate them here. -->
+  <div id="home-goal-chip" style="display:none"></div>
+  <div id="home-motivation" style="display:none"></div>
 </div>
 
 <!-- HERO -->
@@ -8319,7 +8311,7 @@ QUE SÍ SE VE</div>
     <div class="cai-perfil-plan-list" id="perfil-plan-list"></div>
   </div>
 
-  <!-- TRANSFORMACIÓN VISUAL — photo gallery -->
+  <!-- TRANSFORMACIÓN VISUAL — photo gallery + foto-inicio CTA when not yet uploaded -->
   <div class="cai-perfil-section">
     <div class="cai-perfil-section-title" data-es="TRANSFORMACIÓN VISUAL" data-en="VISUAL TRANSFORMATION">TRANSFORMACIÓN VISUAL</div>
     <div class="cai-perfil-transform" id="perfil-transform-body">
@@ -8329,6 +8321,36 @@ QUE SÍ SE VE</div>
         Tus fotos de progreso aparecerán acá ✨
       </div>
       <div class="cai-perfil-transform-scroll" id="perfil-transform-scroll" style="display:none"></div>
+
+      <!-- Foto Inicio inline CTA (was its own card in the old Progreso section).
+           Only shown when the user has not yet uploaded a 'inicio' photo.
+           Hidden by default; renderFotoInicioCard() flips display when ready. -->
+      <div class="cai-perfil-foto-inicio" id="foto-inicio-card" style="display:none">
+        <div class="cai-perfil-foto-inicio-eyebrow"
+             data-es="TU PUNTO DE INICIO" data-en="YOUR STARTING POINT">TU PUNTO DE INICIO</div>
+        <div class="cai-perfil-foto-inicio-intro" id="foto-inicio-intro"
+             data-es="Cargá tu foto de inicio para empezar tu transformación visual. ⚠ Se puede cargar una sola vez."
+             data-en="Upload your starting photo to begin your visual transformation. ⚠ Can be uploaded only once.">
+          Cargá tu foto de inicio para empezar tu transformación visual. ⚠ Se puede cargar una sola vez.
+        </div>
+        <input type="file" accept="image/*" id="foto-inicio-input" style="display:none" onchange="onFotoInicioPick(event)">
+        <img id="foto-inicio-preview" src="" alt="preview" style="display:none">
+        <div id="foto-inicio-actions-initial">
+          <button class="cai-perfil-foto-inicio-btn" onclick="document.getElementById('foto-inicio-input').click()" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span data-es="ELEGIR FOTO DE FRENTE" data-en="PICK FRONT-FACING PHOTO">ELEGIR FOTO DE FRENTE</span>
+          </button>
+        </div>
+        <div id="foto-inicio-actions-confirm" style="display:none">
+          <button class="cai-perfil-foto-inicio-btn cai-perfil-foto-inicio-secondary" onclick="document.getElementById('foto-inicio-input').click()" type="button">
+            <span data-es="↺ Elegir otra" data-en="↺ Pick another">↺ Elegir otra</span>
+          </button>
+          <button class="cai-perfil-foto-inicio-btn cai-perfil-foto-inicio-primary" id="foto-inicio-confirm-btn" onclick="confirmFotoInicio()" type="button">
+            <span data-es="✓ Confirmar como foto de inicio" data-en="✓ Confirm as starting photo">✓ Confirmar como foto de inicio</span>
+          </button>
+        </div>
+        <div id="foto-inicio-status" class="cai-perfil-foto-inicio-status"></div>
+      </div>
     </div>
   </div>
 
@@ -8415,115 +8437,8 @@ QUE SÍ SE VE</div>
 </div>
 
 
-<!-- DASHBOARD -->
-<div class="dashboard-wrapper" id="dashboard-wrapper">
-  <div class="dash-header">
-    <div class="dash-title" id="dash-title-text">📊 MI PROGRESO</div>
-    <button class="btn-back-chat" onclick="showHome()" id="dash-back-btn">← Inicio</button>
-  </div>
+<!-- DASHBOARD REMOVED — content moved to Home (entrenos ring, kcal, seguimiento semanal) and Perfil (plan rutina+dieta) -->
 
-  <!-- FOTO DE PUNTO DE INICIO (solo si el alumno no la cargó en el onboarding · una única vez) -->
-  <div class="chart-card coach-card" id="foto-inicio-card" style="display:none">
-    <div class="chart-card-header">
-      <div class="chart-card-title"><span class="chart-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></span><span>TU PUNTO DE INICIO</span></div>
-    </div>
-    <div style="padding:14px 16px 18px">
-      <div id="foto-inicio-intro" style="font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:14px">
-        Todavía no cargaste tu <strong style="color:var(--text)">foto de punto de inicio</strong>. Podés agregarla ahora para ver tu evolución semana a semana. ⚠️ <strong style="color:var(--text)">Se puede cargar una sola vez</strong>: una vez que la confirmes, no se puede cambiar.
-      </div>
-      <input type="file" accept="image/*" id="foto-inicio-input" style="display:none" onchange="onFotoInicioPick(event)">
-      <img id="foto-inicio-preview" src="" alt="preview" style="display:none;width:100%;max-height:340px;object-fit:contain;border-radius:12px;margin-bottom:14px;background:rgba(255,255,255,0.03)">
-      <div id="foto-inicio-actions-initial">
-        <button class="btn-subir-foto" onclick="document.getElementById('foto-inicio-input').click()">📷 Elegir foto de frente</button>
-      </div>
-      <div id="foto-inicio-actions-confirm" style="display:none">
-        <button class="btn-subir-foto" onclick="document.getElementById('foto-inicio-input').click()">↺ Elegir otra</button>
-        <button class="btn-subir-foto" id="foto-inicio-confirm-btn" style="background:rgba(46,207,181,0.22);margin-top:8px" onclick="confirmFotoInicio()">✓ Confirmar como foto de inicio</button>
-      </div>
-      <div id="foto-inicio-status" style="font-size:12px;color:var(--muted2);text-align:center;margin-top:10px"></div>
-    </div>
-  </div>
-
-  <!-- PLAN SEMANAL COACHÁI -->
-  <div class="chart-card coach-card plan-collapsed" id="plan-semanal-card">
-    <div class="chart-card-header">
-      <div class="chart-card-title"><span class="chart-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z"></path><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><line x1="8" y1="11" x2="16" y2="11"></line><line x1="8" y1="15" x2="13" y2="15"></line></svg></span><span>MI PLANIFICACIÓN</span></div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <span id="plan-semanal-week" style="font-size:11px;color:var(--muted);letter-spacing:0.5px"></span>
-        <button class="plan-toggle-btn" id="plan-toggle-btn" onclick="togglePlanCard()">Ver detalle ▼</button>
-      </div>
-    </div>
-    <div class="plan-semanal-summary" id="plan-semanal-summary">
-      <div class="plan-summary-row" id="plan-summary-rutina">
-        <span class="plan-summary-badge">RUTINA</span>
-        <span id="plan-summary-rutina-text" style="color:var(--muted);font-size:12px">—</span>
-      </div>
-      <div class="plan-summary-row" id="plan-summary-dieta">
-        <span class="plan-summary-badge" style="color:var(--accent3);background:rgba(46,207,181,0.1)">DIETA</span>
-        <span id="plan-summary-dieta-text" style="color:var(--muted);font-size:12px">—</span>
-      </div>
-    </div>
-    <div class="plan-semanal-tabs">
-      <button class="plan-tab-btn active" onclick="switchPlanTab('rutina')">💪 RUTINA</button>
-      <button class="plan-tab-btn" onclick="switchPlanTab('dieta')">🥗 DIETA</button>
-    </div>
-    <div id="plan-tab-rutina" class="plan-tab-content active">
-      <div class="plan-empty">No hay rutina entregada esta semana.<br><small>Pedísela a CoachAI desde el chat.</small></div>
-    </div>
-    <div id="plan-tab-dieta" class="plan-tab-content">
-      <div class="plan-empty">No hay dieta entregada esta semana.<br><small>Pedísela a CoachAI desde el chat.</small></div>
-    </div>
-  </div>
-
-  <!-- RESUMEN DE ADHERENCIA -->
-  <div class="chart-card coach-card" id="adherencia-card">
-    <div class="chart-card-header">
-      <div class="chart-card-title"><span class="chart-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="4" y2="12"></line><line x1="10" y1="20" x2="10" y2="6"></line><line x1="16" y1="20" x2="16" y2="14"></line><line x1="22" y1="20" x2="22" y2="9"></line></svg></span><span>RESUMEN DE ADHERENCIA</span></div>
-      <span id="adherencia-week-label" style="font-size:11px;color:var(--muted);letter-spacing:0.5px"></span>
-    </div>
-    <div class="adherencia-grid">
-      <div class="adherencia-widget" id="adherencia-ring-widget">
-        <div class="adherencia-widget-title">Entrenos esta semana</div>
-        <div class="ring-wrap">
-          <svg width="124" height="124" viewBox="0 0 124 124">
-            <circle class="ring-track" cx="62" cy="62" r="48"/>
-            <circle class="ring-fill" id="ring-fill-circle" cx="62" cy="62" r="48"
-              stroke="var(--accent)" stroke-dasharray="301.6" stroke-dashoffset="301.6"/>
-          </svg>
-          <div class="ring-center">
-            <span class="ring-num" id="ring-num-text">–</span>
-            <span class="ring-label" id="ring-label-text">entrenos</span>
-          </div>
-        </div>
-        <div class="ring-stats">
-          <span class="ring-stat" id="ring-pct-text"></span>
-          <span class="ring-stat-sep" id="ring-sep">·</span>
-          <span class="ring-stat-goal" id="ring-meta-text"></span>
-        </div>
-      </div>
-      <div class="adherencia-widget" id="adherencia-bars-widget">
-        <div class="adherencia-widget-title">Calorías esta semana</div>
-        <div class="kcal-bars-wrap">
-          <div class="kcal-bars-row" id="kcal-bars-row"></div>
-          <div class="kcal-bars-avg" id="kcal-bars-avg"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SEMANAS DE PROGRESO -->
-  <div class="chart-card coach-card">
-    <div class="chart-card-header">
-      <div class="chart-card-title"><span class="chart-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line><line x1="8" y1="3" x2="8" y2="7"></line><line x1="16" y1="3" x2="16" y2="7"></line></svg></span><span>SEGUIMIENTO SEMANAL</span></div>
-    </div>
-    <div id="semanas-container" style="padding:12px 16px 20px">
-      <div class="chart-empty" id="semanas-empty">
-        <div class="chart-empty-icon">📅</div>
-        <span>Los registros semanales aparecerán acá</span>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- MI ENTRENO — current-week training tracker (client: complete + log weights only) -->
 <div class="diario-wrapper" id="mi-entreno-wrapper">
@@ -9789,6 +9704,21 @@ function setLang(l) {
   applyLangToDashboard(l);
   applyLangToWhiteLabel(l);
   applyLangToHeader(l);
+  // Re-render dynamic sections so labels populated by JS (not via data-es/data-en
+  // attrs) pick up the new language — Home greeting, ring labels, Mi Entreno
+  // hero, Perfil header sub, etc.
+  if (typeof renderHome === 'function' && document.getElementById('home-wrapper')?.style.display === 'block') {
+    try { renderHome(); } catch (e) {}
+  }
+  if (typeof renderMiEntreno === 'function' && document.getElementById('mi-entreno-wrapper')?.style.display === 'block') {
+    try { renderMiEntreno(); } catch (e) {}
+  }
+  if (typeof renderMiAlimentacion === 'function' && document.getElementById('diario-wrapper')?.style.display === 'block') {
+    try { renderMiAlimentacion(); } catch (e) {}
+  }
+  if (typeof renderPerfil === 'function' && document.getElementById('perfil-wrapper')?.style.display === 'block') {
+    try { renderPerfil(); } catch (e) {}
+  }
 }
 
 function applyLangToHeader(l) {
@@ -12548,8 +12478,11 @@ async function loadCierresSemanales() {
 
 async function renderSemanas() {
   const container = document.getElementById('semanas-container');
+  // The empty-state node lives INSIDE the container so it gets overwritten
+  // when we paint the weeks. Defensive lookup + null guards keep repeat
+  // renders (Home renders → closeWeek → renderDashboard) from crashing.
   const empty = document.getElementById('semanas-empty');
-  if (!currentUser) return;
+  if (!container || !currentUser) return;
 
   const createdAt = currentUser.created_at || new Date().toISOString();
   const currentWeek = getWeekNum(createdAt);
@@ -12565,8 +12498,8 @@ async function renderSemanas() {
   const weeks = [];
   for (let w = currentWeek; w >= 1; w--) weeks.push(w);
 
-  if (weeks.length === 0) { empty.style.display = 'flex'; return; }
-  empty.style.display = 'none';
+  if (weeks.length === 0) { if (empty) empty.style.display = 'flex'; return; }
+  if (empty) empty.style.display = 'none';
 
   container.innerHTML = weeks.map(w => {
     const range = getWeekRange(createdAt, w);
@@ -13136,40 +13069,228 @@ function scrollToTop() {
   });
 }
 
+// renderHome — paints the new app-style dashboard. Synchronous first paint
+// from cached state (currentUser + weeklyPlans + _alimDays); then we kick off
+// the async data refreshers in parallel for the network-dependent widgets
+// (ring + kcal bars + seguimiento semanal).
 function renderHome() {
   const p = loadProfile();
   if (!p) return;
-  const greeting = getGreeting();
-  document.getElementById('home-greeting').textContent = greeting;
-  document.getElementById('home-name').textContent = (p.nombre || 'Atleta').toUpperCase();
+  const isEs = lang === 'es';
+
+  // ── Header ─────────────────────────────────────────────
+  // Replaces the old landing-style greeting block. The new header mirrors
+  // the cai-alim-header pattern: brand title with name + sub-line with goal.
+  const nameEl = document.getElementById('home-name');
+  if (nameEl) nameEl.textContent = (p.nombre || (isEs?'Atleta':'Athlete')).toUpperCase();
+
   const goalLabels = {
-    definir: '🔥 Definir',
-    ganar_musculo: '💪 Ganar músculo',
-    mantener: '⚖️ Mantener'
+    definir: isEs?'🔥 Definir':'🔥 Cut',
+    ganar_musculo: isEs?'💪 Ganar músculo':'💪 Build muscle',
+    mantener: isEs?'⚖️ Mantener':'⚖️ Maintain'
   };
-  const goalText = goalLabels[p.objetivo] || (p.selections?.objetivo ? goalLabels[p.selections.objetivo] : null) || '🎯 Mi objetivo';
-  document.getElementById('home-goal-chip').textContent = goalText;
-  const motivations = [
-    'La constancia es lo que transforma el cuerpo. Estás en el camino correcto.',
-    'Cada día que registrás es un paso más cerca de tu objetivo.',
-    'Tu coach está listo para acompañarte hoy. ¿Empezamos?',
-    'El progreso real se construye día a día, sin apuros.',
-    'Enfocate en el proceso — los resultados llegan solos.',
-    'Hoy es un buen día para ser constante.',
-    'Tu mejor versión se construye con hábitos, no con perfección.'
-  ];
-  const idx = new Date().getDay() % motivations.length;
-  document.getElementById('home-motivation').textContent = motivations[idx];
-  // Legacy nav-drawer user chip (id="nav-user-name" / "nav-user-goal") was
-  // removed when we replaced the drawer with the floating bottom nav.
-  // Defensive checks here so showHome() doesn't blow up trying to write into
-  // null elements (an unhandled error here would short-circuit the rest of
-  // showHome — including setActiveNav('nav-inicio') — leaving the bottom-nav
-  // bubble stuck on the previously-active tab).
+  const goalText = goalLabels[p.objetivo] || (p.selections?.objetivo ? goalLabels[p.selections.objetivo] : null) || (isEs?'🎯 Tu objetivo':'🎯 Your goal');
+  const greetingMap = (() => {
+    const h = new Date().getHours();
+    if (isEs) return h < 12 ? 'Buen día' : (h < 19 ? 'Buenas tardes' : 'Buenas noches');
+    return h < 12 ? 'Good morning' : (h < 19 ? 'Good afternoon' : 'Good evening');
+  })();
+  const subEl = document.getElementById('home-greeting-sub');
+  if (subEl) subEl.textContent = `${greetingMap} · ${goalText}`;
+
+  // Legacy ids the old drawer/feature cards used to read — kept defensive.
   const navName = document.getElementById('nav-user-name');
   if (navName) navName.textContent = p.nombre || '—';
   const navGoal = document.getElementById('nav-user-goal');
   if (navGoal) navGoal.textContent = goalText;
+  const goalChip = document.getElementById('home-goal-chip');
+  if (goalChip) goalChip.textContent = goalText;
+
+  // ── Widgets (each is fault-isolated so one failure doesn't block the rest) ──
+  try { renderHomeProximaComida(); }  catch (e) { console.warn('[home] prox comida:', e); }
+  try { renderHomeHoyToca(); }        catch (e) { console.warn('[home] hoy toca:', e); }
+  try { renderHomeKcalChart(); }      catch (e) { console.warn('[home] kcal:', e); }
+  // Network-dependent widgets
+  renderHomeRing().catch(e => console.warn('[home] ring:', e));
+  // Re-use the existing renderSemanas — it writes to #semanas-container which
+  // we kept in the new HTML, so it works as-is.
+  if (typeof renderSemanas === 'function') {
+    renderSemanas().catch(e => console.warn('[home] semanas:', e));
+  }
+}
+
+// Ring widget for "ENTRENAMIENTOS X/N". Mirrors the logic in renderAdherencia
+// but writes to the new home-* IDs so we don't fight over the same DOM as the
+// (about-to-be-removed) dashboard.
+async function renderHomeRing() {
+  if (!currentUser) return;
+  const range = getISOWeekRange();
+  const trainedRows = await loadThisWeekTraining(range.start, range.end);
+  const completed = trainedRows.length;
+  const target = (currentUser.dias_entreno && currentUser.dias_entreno.length > 0)
+    ? currentUser.dias_entreno.length
+    : 4;
+  const pct = Math.min(completed / target, 1);
+  const circ = 2 * Math.PI * 48;  // r = 48
+  const ring = document.getElementById('home-ring-fill');
+  if (ring) {
+    ring.style.strokeDasharray = circ;
+    ring.style.strokeDashoffset = circ * (1 - pct);
+    const strokeColor = pct >= 1 ? '#2ecfb5' : pct > 0 ? '#b4a7ff' : '#2a2a42';
+    ring.style.stroke = strokeColor;
+    const glowColor = pct >= 1 ? 'rgba(46,207,181,0.7)' : pct > 0 ? 'rgba(180,167,255,0.55)' : 'rgba(0,0,0,0)';
+    ring.style.filter = `drop-shadow(0 0 6px ${glowColor})`;
+  }
+  const doneEl = document.getElementById('home-ring-done');
+  const targetEl = document.getElementById('home-ring-target');
+  if (doneEl) doneEl.textContent = completed;
+  if (targetEl) targetEl.textContent = target;
+}
+
+// Próxima comida — finds the next non-cumplida meal of TODAY from _alimDays.
+// If all done → "Día completo ✓"; if no plan → "Sin plan activo".
+function renderHomeProximaComida() {
+  const isEs = lang === 'es';
+  const nameEl = document.getElementById('home-prox-meal-name');
+  const detailEl = document.getElementById('home-prox-meal-detail');
+  if (!nameEl) return;
+
+  if (!_alimDays || _alimDays.length === 0) {
+    nameEl.textContent = isEs ? 'Sin plan' : 'No plan';
+    if (detailEl) detailEl.innerHTML = `<div class="cai-home-card-body-row" style="color:var(--muted2)">${isEs?'Pedile tu dieta al coach':'Ask your coach for a plan'}</div>`;
+    return;
+  }
+
+  const todayJsDow = new Date().getDay();
+  const todayIdx = todayJsDow === 0 ? 6 : todayJsDow - 1;
+  const day = _alimDays[todayIdx < _alimDays.length ? todayIdx : 0];
+  if (!day || !day.meals?.length) {
+    nameEl.textContent = isEs ? 'Sin comidas' : 'No meals';
+    if (detailEl) detailEl.innerHTML = '';
+    return;
+  }
+
+  const estado = _alimEstado || {};
+  const dayIdx = _alimDays.indexOf(day);
+  const next = day.meals.find((m, j) => !estado[`d${dayIdx}m${j}`]?.cumplido);
+
+  if (!next) {
+    nameEl.textContent = isEs ? '¡Día completo!' : 'All done!';
+    if (detailEl) detailEl.innerHTML = `<div class="cai-home-card-body-row" style="color:var(--accent3)">✓ ${isEs?'Tildaste todas las comidas de hoy':'All meals checked off today'}</div>`;
+    return;
+  }
+
+  nameEl.textContent = next.name.toUpperCase();
+  // Show up to 2 ingredient bullets, stripping leading kcal-style annotations
+  const lines = String(next.content || '').split(/\n|·/).map(s => s.trim()).filter(Boolean);
+  const bullets = lines.slice(0, 2).map(l => `
+    <div class="cai-home-card-body-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/></svg>
+      <span>${_esc(l)}</span>
+    </div>
+  `).join('');
+  if (detailEl) detailEl.innerHTML = bullets || `<div class="cai-home-card-body-row" style="color:var(--muted2)">${_esc(next.content || '')}</div>`;
+}
+
+// Hoy toca — uses the same buildTrainingDayMapping helper we built for Mi Entreno.
+// Shows "ESPALDA Y BÍCEPS" or "DESCANSO" depending on today.
+function renderHomeHoyToca() {
+  const isEs = lang === 'es';
+  const nameEl = document.getElementById('home-hoy-toca-name');
+  const detailEl = document.getElementById('home-hoy-toca-detail');
+  if (!nameEl) return;
+
+  if (typeof buildTrainingDayMapping !== 'function') {
+    nameEl.textContent = '—';
+    return;
+  }
+  const mapping = buildTrainingDayMapping();
+  if (!mapping) {
+    nameEl.textContent = isEs ? 'Sin rutina' : 'No routine';
+    if (detailEl) detailEl.innerHTML = `<div class="cai-home-card-body-row" style="color:var(--muted2)">${isEs?'Pedile tu rutina al coach':'Ask your coach for a routine'}</div>`;
+    return;
+  }
+
+  if (mapping.isTodayRest) {
+    nameEl.textContent = isEs ? 'DESCANSO' : 'REST';
+    if (detailEl) detailEl.innerHTML = `<div class="cai-home-card-body-row" style="color:var(--muted)">${isEs?'Día de recuperación':'Recovery day'}</div>`;
+    return;
+  }
+
+  const todayDay = mapping.days[mapping.todayRoutineIdx];
+  const dayNum = Object.values(mapping.weekdayToRoutineIdx).indexOf(mapping.todayRoutineIdx) + 1;
+  const cleanLabel = (typeof _entCleanLabel === 'function') ? _entCleanLabel(todayDay.label) : todayDay.label;
+  nameEl.textContent = (cleanLabel || todayDay.label).toUpperCase();
+  if (detailEl) detailEl.innerHTML = `
+    <div class="cai-home-card-body-row" style="color:var(--muted)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/></svg>
+      <span>${dayNum > 0 ? `${isEs?'Día':'Day'} ${dayNum}` : ''} · ${todayDay.exercises.length} ${isEs?'ej.':'ex.'}</span>
+    </div>
+  `;
+}
+
+// Kcal hoy — bars by meal type (Desayuno · Almuerzo · Merienda · Cena, etc.).
+// "Done" bars (meal already checked) get the teal/blue gradient + glow;
+// "Pending" bars get a softer violet so the user sees both consumed + planned.
+function renderHomeKcalChart() {
+  const isEs = lang === 'es';
+  const doneEl = document.getElementById('home-kcal-done');
+  const targetEl = document.getElementById('home-kcal-target');
+  const chart = document.getElementById('home-kcal-bars');
+  if (!chart) return;
+
+  if (!_alimDays || _alimDays.length === 0) {
+    if (doneEl) doneEl.textContent = '0';
+    if (targetEl) targetEl.textContent = isEs ? '/ sin plan' : '/ no plan';
+    chart.innerHTML = `<div style="color:var(--muted2);font-size:11px;text-align:center;width:100%;align-self:center">${isEs?'Sin dieta activa':'No active diet'}</div>`;
+    return;
+  }
+
+  const todayJsDow = new Date().getDay();
+  const todayIdx = todayJsDow === 0 ? 6 : todayJsDow - 1;
+  const day = _alimDays[todayIdx < _alimDays.length ? todayIdx : 0];
+  if (!day) return;
+  const dayIdx = _alimDays.indexOf(day);
+  const estado = _alimEstado || {};
+
+  let doneKcal = 0, totalKcal = 0;
+  const bars = day.meals.map((m, j) => {
+    const st = estado[`d${dayIdx}m${j}`] || {};
+    const k = st.customText ? (st.customKcal || 0) : (m.kcal || 0);
+    totalKcal += k;
+    if (st.cumplido) doneKcal += k;
+    return { name: m.name, kcal: k, done: !!st.cumplido };
+  });
+  // Use plan target if present, else fall back to sum of planned meals
+  const target = (_alimHeader?.targetKcal) || totalKcal || 0;
+  if (doneEl) doneEl.textContent = doneKcal.toLocaleString(isEs ? 'es-AR' : 'en-US');
+  if (targetEl) targetEl.textContent = target ? `/ ${target.toLocaleString(isEs?'es-AR':'en-US')} ${isEs?'KCAL':'KCAL'}` : '';
+
+  const maxKcal = Math.max(...bars.map(b => b.kcal), 1);
+  // Short labels for x-axis: first 3 letters of meal name
+  const shortLabel = (name) => {
+    const lower = String(name).toLowerCase();
+    if (lower.startsWith('des')) return 'DES';
+    if (lower.startsWith('alm')) return 'ALM';
+    if (lower.startsWith('mer')) return 'MER';
+    if (lower.startsWith('cena')) return 'CEN';
+    if (lower.startsWith('col')) return 'COL';
+    if (lower.startsWith('pre')) return 'PRE';
+    if (lower.startsWith('post')) return 'POST';
+    if (lower.startsWith('snack')) return 'SNK';
+    return name.slice(0, 3).toUpperCase();
+  };
+  chart.innerHTML = bars.map(b => {
+    const pct = b.kcal > 0 ? Math.round((b.kcal / maxKcal) * 100) : 4;
+    return `
+      <div class="cai-home-kcal-bar-col" title="${b.name}: ${b.kcal} kcal">
+        <div class="cai-home-kcal-bar-track">
+          <div class="cai-home-kcal-bar-fill${b.done ? ' done' : ''}" style="height:${pct}%"></div>
+        </div>
+        <div class="cai-home-kcal-bar-label">${shortLabel(b.name)}</div>
+      </div>
+    `;
+  }).join('');
 }
 
 function getGreeting() {
@@ -13200,13 +13321,13 @@ function closeNav() {
 
 // setActiveNav: toggle the .active class on the matching tab AND slide the
 // brand thumb to that tab's slot in the bottom-nav pill + update the label.
-const _NAV_ORDER = ['nav-inicio', 'nav-coach', 'nav-diario', 'nav-entreno', 'nav-progreso', 'nav-perfil'];
+// 5-tab nav (Progreso removed — its content moved to Home + Perfil).
+const _NAV_ORDER = ['nav-inicio', 'nav-coach', 'nav-diario', 'nav-entreno', 'nav-perfil'];
 const _NAV_LABELS = {
   'nav-inicio':   'INICIO',
   'nav-coach':    'COACH AI',
   'nav-diario':   'MI ALIMENTACIÓN',
   'nav-entreno':  'MI ENTRENO',
-  'nav-progreso': 'PROGRESO',
   'nav-perfil':   'PERFIL',
 };
 function setActiveNav(id) {
@@ -13245,7 +13366,11 @@ window.addEventListener('resize', () => {
 
 function hideAllSections() {
   document.getElementById('chat-wrapper').style.display = 'none';
-  document.getElementById('dashboard-wrapper').style.display = 'none';
+  // dashboard-wrapper was removed in the Progreso-merge refactor — defensive
+  // lookup so legacy paths don't break (some callers still call hideAllSections
+  // before the new render flow runs).
+  const _dash = document.getElementById('dashboard-wrapper');
+  if (_dash) _dash.style.display = 'none';
   document.getElementById('wl-wrapper').style.display = 'none';
   document.getElementById('diario-wrapper').style.display = 'none';
   document.getElementById('home-wrapper').style.display = 'none';
@@ -13479,6 +13604,11 @@ async function renderPerfil() {
   ]);
   renderPerfilTransform(fotos, cierres);
   renderPerfilAnalisis(cierres);
+  // Foto Inicio prompt — only renders the CTA when the user hasn't uploaded
+  // a 'inicio' photo yet. Moved here from the (now-deleted) Progreso section.
+  if (typeof renderFotoInicioCard === 'function') {
+    renderFotoInicioCard().catch(() => {});
+  }
 }
 
 // "Mi información" card — populates the discreet collapsed header
@@ -13656,15 +13786,11 @@ function goToPlanDetail(tipo) {
   }, 200);
 }
 
+// Back-compat: the old "Progreso" section was removed in the 5-tab nav refactor.
+// Its contents (entrenos ring, kcal chart, seguimiento semanal) now live in Home
+// + Perfil. Callers that still invoke showDashboard() are routed there.
 function showDashboard() {
-  trackEvent('section_view', { section: 'progreso' });
-  hideAllSections();
-  document.getElementById('dashboard-wrapper').style.display = 'block';
-  // Reset viewport via scrollToTop() helper — scrollIntoView+smooth was
-  // unreliable in iOS PWA standalone (same bug as the other show* functions).
-  scrollToTop();
-  renderDashboard();
-  setActiveNav('nav-progreso');
+  showHome();
 }
 
 // ============================
@@ -14657,11 +14783,33 @@ function showChat() {
 }
 
 async function renderDashboard() {
+  // The Progreso section was eliminated and its widgets moved to Home + Perfil.
+  // Some legacy callers (closeWeek flow, etc.) still invoke renderDashboard()
+  // to refresh cached recent diario + the seguimiento semanal cards. We keep
+  // the data refresh + delegate the rendering to whichever surfaces still
+  // consume those IDs. renderAdherencia / renderPlanSemanalCard now write to
+  // hidden/non-existent IDs and short-circuit gracefully.
   recentDiario = await loadRecentDiario().catch(() => recentDiario);
-  renderPlanSemanalCard();
-  renderAdherencia().catch(console.error);
-  renderSemanas().catch(console.error);
-  renderFotoInicioCard().catch(console.error);
+  if (typeof renderPlanSemanalCard === 'function') {
+    try { renderPlanSemanalCard(); } catch (e) {}
+  }
+  if (typeof renderAdherencia === 'function') {
+    renderAdherencia().catch(() => {});
+  }
+  if (typeof renderSemanas === 'function') {
+    renderSemanas().catch(() => {});
+  }
+  if (typeof renderFotoInicioCard === 'function') {
+    renderFotoInicioCard().catch(() => {});
+  }
+  // Re-render the new Home widgets that depend on the freshly-loaded
+  // recentDiario (kcal chart in particular).
+  if (typeof renderHomeKcalChart === 'function') {
+    try { renderHomeKcalChart(); } catch (e) {}
+  }
+  if (typeof renderHomeRing === 'function') {
+    renderHomeRing().catch(() => {});
+  }
 }
 
 function getISOWeekRange(date = new Date()) {
@@ -14697,6 +14845,12 @@ async function loadThisWeekCalories(start, end) {
 
 async function renderAdherencia() {
   if (!currentUser) return;
+  // After the Progreso → Home/Perfil merge, the legacy adherencia DOM (ring +
+  // bars + weekLabel) was removed. If the elements aren't present, nothing to
+  // render — short-circuit so legacy callers (closeWeek, renderDashboard) are
+  // safe.
+  if (!document.getElementById('ring-fill-circle')) return;
+
   const range  = getISOWeekRange();
   const today  = getTodayKey();
 
@@ -17032,11 +17186,6 @@ async function forceAppUpdate() {
     <button class="nav-item" id="nav-entreno" onclick="showMiEntreno(); setActiveNav('nav-entreno')" aria-label="Mi Entreno">
       <span class="nav-item-icon-bn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"/><path d="M21 21l-1-1"/><path d="M3 3l1 1"/><path d="M18 22l4-4"/><path d="M2 6l4-4"/><path d="M3 10l7-7"/><path d="M14 21l7-7"/></svg>
-      </span>
-    </button>
-    <button class="nav-item" id="nav-progreso" onclick="showDashboard(); setActiveNav('nav-progreso')" aria-label="Progreso">
-      <span class="nav-item-icon-bn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="4" y2="12"/><line x1="10" y1="20" x2="10" y2="6"/><line x1="16" y1="20" x2="16" y2="14"/><line x1="22" y1="20" x2="22" y2="9"/></svg>
       </span>
     </button>
     <button class="nav-item" id="nav-perfil" onclick="showPerfil(); setActiveNav('nav-perfil')" aria-label="Perfil">
