@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260525-2300-seguimiento-feedback-fixes">
+<meta name="app-version" content="20260525-2330-card-default-collapsed">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -7647,11 +7647,19 @@ footer {
   display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
 }
 .cai-home-semanas .semana-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-family: 'Bebas Neue', sans-serif;
   font-size: 22px; letter-spacing: 0.08em;
   color: #2ecfb5;
-  line-height: 1;
-  background: transparent; border: 0; padding: 0;
+  /* Bebas Neue's metric ascent leaves a large invisible top-padding inside
+     the glyph box. Setting line-height to match font-size + tiny padding
+     keeps the text mathematically centered inside the pill-shaped chip
+     instead of sitting lower-left. */
+  line-height: 22px;
+  background: transparent; border: 0;
+  padding: 2px 0 0 0;
 }
 .cai-home-semanas .semana-card.cerrada .semana-badge { color: var(--muted); }
 .cai-home-semanas .semana-dates {
@@ -7717,10 +7725,12 @@ footer {
 }
 .cai-home-semanas .semana-card.open .semana-chevron { transform: rotate(180deg); color: #fff; }
 
-/* Strip de 7 días (collapsed · en curso) */
+/* Strip de 7 días (collapsed · en curso). Extra top padding pushes the
+   day-bars + counter off the divider line above (which is the header's
+   bottom edge) so it doesn't read as touching. */
 .cai-home-semanas .semana-strip {
   display: flex; gap: 6px; align-items: center;
-  padding: 0 18px 16px;
+  padding: 14px 18px 16px;
 }
 .cai-home-semanas .semana-strip-days { display: flex; gap: 6px; flex: 1; }
 .cai-home-semanas .semana-strip-day {
@@ -7740,10 +7750,11 @@ footer {
 .cai-home-semanas .semana-strip-summary .num .den { color: #54526e; -webkit-text-fill-color: #54526e; }
 .cai-home-semanas .semana-strip-summary .label { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #54526e; margin-top: 2px; letter-spacing: .08em; }
 
-/* Thumbnail card (collapsed · cerrada) */
+/* Thumbnail card (collapsed · cerrada). Matches strip's top padding so both
+   variants breathe the same way from the header divider. */
 .cai-home-semanas .semana-thumb {
   display: flex; gap: 14px; align-items: center;
-  padding: 0 18px 16px;
+  padding: 14px 18px 16px;
 }
 .cai-home-semanas .semana-thumb-photo {
   width: 54px; height: 54px; border-radius: 12px;
@@ -13221,7 +13232,10 @@ async function renderSemanas() {
     const cierre = cierres.find(c => c.semana_num === w);
     const stats = computeWeekStats(recentDiario, range);
     const isCurrent = w === currentWeek;
-    const isOpen = isCurrent;
+    // Default to collapsed for both states (current + past). Compact-first
+    // reads cleaner; users tap the chevron to expand the full timeline /
+    // photo comparison / analysis when they want details.
+    const isOpen = false;
     const isEs = lang === 'es';
     const trainedTarget = (currentUser?.dias_entreno?.length || selectedDias.length || 3);
 
