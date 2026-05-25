@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260525-1910-home-greeting-no-emoji">
+<meta name="app-version" content="20260525-1930-login-bg-match-app">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6133,10 +6133,11 @@ footer {
   position: fixed;
   inset: 0;
   z-index: 999;
+  /* Match the in-app section bg (body::after) so login → app transition feels
+     seamless. Subtle violet+teal orbs over the near-black brand base. */
   background:
-    radial-gradient(ellipse 60% 50% at 25% 20%, rgba(124,106,255,0.13) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(46,207,181,0.10) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(170,100,255,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 55% 45% at 18% 12%, rgba(124,106,255,0.10) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 82% 80%, rgba(46,207,181,0.07) 0%, transparent 60%),
     var(--bg);
   display: flex;
   flex-direction: column;
