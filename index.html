@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260525-1945-chat-plan-cta-routes-perfil">
+<meta name="app-version" content="20260525-2010-mi-entreno-reps-tracking">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -1380,7 +1380,7 @@ body.app-active:has(.form-wrapper[style*="block"]) { padding-bottom: 0; }
   margin-bottom: 2px;
 }
 .cai-ent-serie-row {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 6px;
 }
 .cai-ent-serie-label {
   font-family: 'JetBrains Mono', monospace;
@@ -1388,24 +1388,37 @@ body.app-active:has(.form-wrapper[style*="block"]) { padding-bottom: 0; }
   letter-spacing: 0.4px;
   min-width: 48px;
 }
+/* Each input + its unit chip is a sub-group inside the row. reps + peso
+   sit side by side, sharing the horizontal space that previously belonged
+   to the single weight input. The × separator between them telegraphs the
+   "reps por peso" mental model gym users already have. */
+.cai-ent-serie-field {
+  display: flex; align-items: center; gap: 4px;
+  flex: 1; min-width: 0;
+}
 .cai-ent-serie-input {
-  flex: 1;
+  flex: 1; min-width: 0;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 8px;
-  padding: 7px 10px;
+  padding: 7px 6px;
   color: var(--text);
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
   outline: none;
   text-align: center;
   transition: border-color 0.15s ease;
-  min-width: 0;
 }
 .cai-ent-serie-input:focus { border-color: var(--accent); }
 .cai-ent-serie-unit {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px; color: var(--muted);
+  font-size: 9.5px; color: var(--muted2);
+  letter-spacing: 0.4px;
+}
+.cai-ent-serie-times {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--muted2);
+  padding: 0 2px;
 }
 .cai-ent-serie-saved {
   font-size: 11px; color: var(--accent3);
@@ -14259,12 +14272,13 @@ function loadEntrenoAll() {
   try { return JSON.parse(localStorage.getItem(LS_ENTRENO) || '{}'); } catch (e) { return {}; }
 }
 function getEntrenoWeekState() {
-  if (!currentUser) return { completed: {}, weights: {} };
+  if (!currentUser) return { completed: {}, weights: {}, reps: {} };
   const all = loadEntrenoAll();
   const wk = entrenoWeekKey();
-  const s = (all[currentUser.id] && all[currentUser.id][wk]) || { completed: {}, weights: {} };
+  const s = (all[currentUser.id] && all[currentUser.id][wk]) || { completed: {}, weights: {}, reps: {} };
   if (!s.completed) s.completed = {};
   if (!s.weights) s.weights = {};
+  if (!s.reps) s.reps = {};  // added in the reps-tracking refactor; old rows lack it
   return s;
 }
 function writeEntrenoLocal(state) {
@@ -14385,6 +14399,12 @@ function sanitizeWeight(v) {
   if (parts.length > 2) s = parts[0] + '.' + parts.slice(1).join('');
   // cap to a sane gym range length (e.g. 999.5)
   return s.slice(0, 6);
+}
+
+// Reps are always whole numbers (no half-reps). Strip everything that isn't
+// a digit. Cap at 3 chars so "100" fits but a misclick can't explode.
+function sanitizeReps(v) {
+  return String(v == null ? '' : v).replace(/[^\d]/g, '').slice(0, 3);
 }
 
 async function showMiEntreno() {
@@ -14707,13 +14727,27 @@ function renderMiEntreno() {
         for (let s = 1; s <= nSeries; s++) {
           const sk = serieKey(displayIdx, j, s);
           const sv = state.weights[sk] || '';
+          const sr = state.reps[sk] || '';
+          // Dual-input row: [reps] × [peso] kg ✓ — sharing the space that
+          // used to hold a single weight input. Both fields share the same
+          // ews-{sk} indicator since they belong to the same serie.
           seriesRows.push(`<div class="cai-ent-serie-row">
             <span class="cai-ent-serie-label">${lang === 'es' ? 'Serie' : 'Set'} ${s}</span>
-            <input class="cai-ent-serie-input" type="text" inputmode="decimal"
-                   value="${esc(sv)}" placeholder="0" maxlength="6"
-                   oninput="onEntrenoWeight(${displayIdx},${j},${s},this)"
-                   aria-label="${lang === 'es' ? 'Peso serie' : 'Set weight'} ${s} — ${esc(ex.name)}">
-            <span class="cai-ent-serie-unit">kg</span>
+            <span class="cai-ent-serie-field">
+              <input class="cai-ent-serie-input" type="text" inputmode="numeric"
+                     value="${esc(sr)}" placeholder="0" maxlength="3"
+                     oninput="onEntrenoReps(${displayIdx},${j},${s},this)"
+                     aria-label="${lang === 'es' ? 'Repeticiones serie' : 'Set reps'} ${s} — ${esc(ex.name)}">
+              <span class="cai-ent-serie-unit">${lang === 'es' ? 'reps' : 'reps'}</span>
+            </span>
+            <span class="cai-ent-serie-times">×</span>
+            <span class="cai-ent-serie-field">
+              <input class="cai-ent-serie-input" type="text" inputmode="decimal"
+                     value="${esc(sv)}" placeholder="0" maxlength="6"
+                     oninput="onEntrenoWeight(${displayIdx},${j},${s},this)"
+                     aria-label="${lang === 'es' ? 'Peso serie' : 'Set weight'} ${s} — ${esc(ex.name)}">
+              <span class="cai-ent-serie-unit">kg</span>
+            </span>
             <span class="cai-ent-serie-saved" id="ews-${sk}">✓</span>
           </div>`);
         }
@@ -14893,6 +14927,32 @@ function onEntrenoWeight(dayIdx, exIdx, serie, inputEl) {
   _entrenoWeightTimers[k] = setTimeout(() => {
     const state = getEntrenoWeekState();
     if (clean) state.weights[k] = clean; else delete state.weights[k];
+    saveEntrenoWeekState(state);
+    const saved = document.getElementById('ews-' + k);
+    if (saved) {
+      saved.classList.add('show');
+      setTimeout(() => saved.classList.remove('show'), 1200);
+    }
+  }, 500);
+}
+
+// Sibling handler for the reps field. Same debounce + state-merge pattern as
+// onEntrenoWeight; writes to state.reps[serieKey] instead of state.weights.
+// Sharing the ews-{k} "saved ✓" indicator with the weight input is intentional
+// — there's one indicator per serie row and both inputs feed the same row.
+let _entrenoRepsTimers = {};
+function onEntrenoReps(dayIdx, exIdx, serie, inputEl) {
+  const k = serieKey(dayIdx, exIdx, serie);
+  const clean = sanitizeReps(inputEl && inputEl.value != null ? inputEl.value : '');
+  if (inputEl && inputEl.value !== clean) {
+    const pos = clean.length;
+    inputEl.value = clean;
+    try { inputEl.setSelectionRange(pos, pos); } catch (e) {}
+  }
+  clearTimeout(_entrenoRepsTimers[k]);
+  _entrenoRepsTimers[k] = setTimeout(() => {
+    const state = getEntrenoWeekState();
+    if (clean) state.reps[k] = clean; else delete state.reps[k];
     saveEntrenoWeekState(state);
     const saved = document.getElementById('ews-' + k);
     if (saved) {
