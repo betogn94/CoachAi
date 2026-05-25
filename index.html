@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260525-2100-kcal-icon-macro-ring">
+<meta name="app-version" content="20260525-2200-seguimiento-semanal-redesign">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -7583,6 +7583,511 @@ footer {
   .home-cards-grid { gap: 10px; }
   .home-card-visual { height: 70px; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   SEGUIMIENTO SEMANAL v2 — Design handoff (crystal-depth, mobile-first)
+   ════════════════════════════════════════════════════════════════════════
+   These rules override the legacy .semana-* and .cierre-* declarations
+   that appear earlier in this stylesheet via cascade order. Pure visual —
+   no JS handler names or DOM ids changed. The legacy rules are kept in
+   place for safety (no DOM uses the orphan ones anymore but they're
+   harmless if accidentally reintroduced).
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── SEMANA CARDS ──────────────────────────────────────────────────── */
+.cai-home-semanas .semana-card {
+  position: relative;
+  background: rgba(20,20,32,0.55);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 22px;
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+          backdrop-filter: blur(24px) saturate(140%);
+  box-shadow:
+    0 30px 60px -20px rgba(0,0,0,0.7),
+    0 8px 24px -12px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  margin-bottom: 14px;
+  overflow: hidden;
+  transition: background .2s ease;
+}
+.cai-home-semanas .semana-card::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent 30%);
+}
+.cai-home-semanas .semana-card.cerrada { background: rgba(15,15,24,0.55); }
+
+.cai-home-semanas .semana-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 18px;
+  cursor: pointer;
+  min-height: 64px;
+  position: relative;
+}
+.cai-home-semanas .semana-header-row {
+  display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
+}
+.cai-home-semanas .semana-badge {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px; letter-spacing: 0.08em;
+  color: #2ecfb5;
+  line-height: 1;
+  background: transparent; border: 0; padding: 0;
+}
+.cai-home-semanas .semana-card.cerrada .semana-badge { color: var(--muted); }
+.cai-home-semanas .semana-dates {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; letter-spacing: 0.10em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin: 0;
+}
+.cai-home-semanas .semana-card.cerrada .semana-dates { color: #54526e; }
+
+/* Status pill */
+.cai-home-semanas .semana-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 5px 10px; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  white-space: nowrap;
+  font-weight: normal;
+}
+.cai-home-semanas .semana-status.en-curso {
+  color: #b4a7ff;
+  border-color: rgba(124,106,255,0.35);
+  background: rgba(124,106,255,0.10);
+}
+.cai-home-semanas .semana-status.en-curso::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: #b4a7ff; box-shadow: 0 0 10px #b4a7ff;
+}
+.cai-home-semanas .semana-status.cerrada {
+  color: #2ecfb5;
+  border-color: rgba(46,207,181,0.35);
+  background: rgba(46,207,181,0.08);
+}
+.cai-home-semanas .semana-status.cerrada::before {
+  content: ""; width: 11px; height: 8px;
+  border-left: 1.8px solid #2ecfb5;
+  border-bottom: 1.8px solid #2ecfb5;
+  transform: rotate(-45deg);
+}
+
+/* Chips inside collapsed cards */
+.cai-home-semanas .semana-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase;
+  padding: 4px 9px; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+}
+.cai-home-semanas .semana-chip.good { color: #2ecfb5; border-color: rgba(46,207,181,.35); background: rgba(46,207,181,.08); }
+.cai-home-semanas .semana-chip.warn { color: #ff6b6b; border-color: rgba(255,107,107,.35); background: rgba(255,107,107,.08); }
+
+.cai-home-semanas .semana-chevron {
+  width: 28px; height: 28px; display: grid; place-items: center;
+  color: var(--muted);
+  transition: transform .25s ease;
+  font-size: 0;
+}
+.cai-home-semanas .semana-card.open .semana-chevron { transform: rotate(180deg); color: #fff; }
+
+/* Strip de 7 días (collapsed · en curso) */
+.cai-home-semanas .semana-strip {
+  display: flex; gap: 6px; align-items: center;
+  padding: 0 18px 16px;
+}
+.cai-home-semanas .semana-strip-days { display: flex; gap: 6px; flex: 1; }
+.cai-home-semanas .semana-strip-day {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;
+}
+.cai-home-semanas .semana-strip-day .d { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #54526e; letter-spacing: .08em; }
+.cai-home-semanas .semana-strip-day .bar { width: 100%; height: 6px; border-radius: 3px; background: rgba(255,255,255,.05); }
+.cai-home-semanas .semana-strip-day.trained .bar { background: linear-gradient(90deg, #7c6aff, #5b9fff); }
+.cai-home-semanas .semana-strip-day.rest    .bar { background: rgba(255,107,107,.35); }
+.cai-home-semanas .semana-strip-summary { text-align: right; padding-left: 10px; }
+.cai-home-semanas .semana-strip-summary .num {
+  font-family: 'Bebas Neue', sans-serif; font-size: 24px; line-height: 1;
+  background: linear-gradient(135deg, #7c6aff, #5b9fff, #2ecfb5);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.cai-home-semanas .semana-strip-summary .num .den { color: #54526e; -webkit-text-fill-color: #54526e; }
+.cai-home-semanas .semana-strip-summary .label { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #54526e; margin-top: 2px; letter-spacing: .08em; }
+
+/* Thumbnail card (collapsed · cerrada) */
+.cai-home-semanas .semana-thumb {
+  display: flex; gap: 14px; align-items: center;
+  padding: 0 18px 16px;
+}
+.cai-home-semanas .semana-thumb-photo {
+  width: 54px; height: 54px; border-radius: 12px;
+  background: linear-gradient(180deg, #1a1830, #0c0b1a);
+  border: 1px solid rgba(255,255,255,0.08);
+  flex: 0 0 54px;
+  background-size: cover; background-position: center;
+  position: relative; overflow: hidden;
+}
+.cai-home-semanas .semana-thumb-photo.empty {
+  background:
+    repeating-linear-gradient(135deg, rgba(255,255,255,.04) 0 8px, rgba(255,255,255,.015) 8px 16px),
+    linear-gradient(180deg, #1a1830, #0c0b1a);
+  display: grid; place-items: center; color: #54526e;
+}
+.cai-home-semanas .semana-thumb-info { flex: 1; min-width: 0; }
+.cai-home-semanas .semana-thumb-stats { display: flex; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
+.cai-home-semanas .semana-thumb-stats span {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: var(--muted); letter-spacing: .08em;
+}
+
+/* Body — only when .open */
+.cai-home-semanas .semana-body { display: none; padding: 0; }
+.cai-home-semanas .semana-card.open .semana-body { display: block; padding: 0 18px 18px; }
+
+/* Stat strip inside expanded card */
+.cai-home-semanas .semana-statbar {
+  display: flex; gap: 12px; align-items: stretch;
+  padding: 12px 0; margin-bottom: 16px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.cai-home-semanas .semana-statbar .stat { flex: 1; }
+.cai-home-semanas .semana-statbar .stat .num {
+  font-family: 'Bebas Neue', sans-serif; font-size: 22px; line-height: 1; color: #fff;
+}
+.cai-home-semanas .semana-statbar .stat .num.grad {
+  background: linear-gradient(135deg, #7c6aff, #5b9fff, #2ecfb5);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.cai-home-semanas .semana-statbar .stat .num .den { color: #54526e; font-size: 14px; -webkit-text-fill-color: #54526e; }
+.cai-home-semanas .semana-statbar .stat .label {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .12em;
+  color: #54526e; text-transform: uppercase; margin-top: 4px;
+}
+.cai-home-semanas .semana-statbar .sep { width: 1px; background: rgba(255,255,255,0.08); }
+
+/* Timeline (expanded · en curso) */
+.cai-home-semanas .semana-timeline { position: relative; padding-left: 4px; }
+.cai-home-semanas .semana-timeline::before {
+  content: ""; position: absolute; left: 18px; top: 8px; bottom: 8px; width: 1.5px;
+  background: linear-gradient(180deg,
+    rgba(124,106,255,.5),
+    rgba(46,207,181,.4) 60%,
+    rgba(255,255,255,.04) 90%);
+}
+.cai-home-semanas .semana-tl-row {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 10px 0; position: relative;
+}
+.cai-home-semanas .semana-tl-row.future { opacity: .45; }
+.cai-home-semanas .semana-tl-dot {
+  width: 30px; flex: 0 0 30px; display: flex; justify-content: center; align-self: flex-start;
+  padding-top: 4px;
+}
+.cai-home-semanas .semana-tl-dot span {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: rgba(255,255,255,.08);
+  box-shadow: 0 0 0 4px #0a0a14;
+}
+.cai-home-semanas .semana-tl-row.trained .semana-tl-dot span {
+  background: linear-gradient(135deg, #7c6aff, #2ecfb5);
+  box-shadow: 0 0 0 4px #0a0a14, 0 0 14px rgba(124,106,255,.35);
+}
+.cai-home-semanas .semana-tl-row.rest .semana-tl-dot span {
+  background: rgba(255,107,107,.5);
+  box-shadow: 0 0 0 4px #0a0a14;
+}
+.cai-home-semanas .semana-tl-body { flex: 1; min-width: 0; }
+.cai-home-semanas .semana-tl-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.cai-home-semanas .semana-tl-date {
+  font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: .04em;
+  color: #fff;
+}
+.cai-home-semanas .semana-tl-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.cai-home-semanas .semana-tl-status.trained { color: #b4a7ff; }
+.cai-home-semanas .semana-tl-status.rest    { color: var(--muted); }
+.cai-home-semanas .semana-tl-meal { font-size: 13px; color: var(--muted); line-height: 1.45; margin-top: 4px; }
+.cai-home-semanas .semana-tl-kcal {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 6px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted);
+}
+
+/* CTA Cerrar semana (override legacy) */
+.cai-home-semanas .btn-cerrar-semana {
+  margin-top: 16px; width: 100%; padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(124,106,255,.18), rgba(91,159,255,.16), rgba(46,207,181,.18));
+  border: 1px solid rgba(180,167,255,.4); border-radius: 14px;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+  letter-spacing: 0;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .2s ease;
+  position: relative; overflow: hidden;
+  min-height: 48px;
+  box-shadow: none;
+  text-transform: none;
+}
+.cai-home-semanas .btn-cerrar-semana:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px -10px rgba(91,159,255,.45);
+}
+
+/* Transformación visual — before/after slider hint */
+.cai-home-semanas .semana-transformacion { margin-top: 18px; margin-bottom: 18px; }
+.cai-home-semanas .semana-transf-header {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .16em;
+  color: #b4a7ff; text-transform: uppercase; margin-bottom: 10px;
+}
+.cai-home-semanas .semana-transf-compare {
+  position: relative; height: 200px; border-radius: 18px; overflow: hidden;
+  cursor: pointer;
+  background: #0c0b1a;
+}
+.cai-home-semanas .semana-transf-compare img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+}
+.cai-home-semanas .semana-transf-compare .after {
+  position: absolute; inset: 0 0 0 52%;
+  border-left: 2px solid rgba(180,167,255,.6);
+  overflow: hidden;
+}
+.cai-home-semanas .semana-transf-compare .after img { left: -52%; width: 217%; }
+.cai-home-semanas .semana-transf-compare .lbl {
+  position: absolute; font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  letter-spacing: .10em; text-transform: uppercase;
+  background: rgba(0,0,0,.45); padding: 3px 7px; border-radius: 6px;
+  color: #fff;
+}
+.cai-home-semanas .semana-transf-compare .lbl.l { left: 10px; bottom: 10px; }
+.cai-home-semanas .semana-transf-compare .lbl.r { right: 10px; bottom: 10px; color: #b4a7ff; }
+.cai-home-semanas .semana-transf-compare .handle {
+  position: absolute; left: 52%; top: 50%; transform: translate(-50%,-50%);
+  width: 34px; height: 34px; border-radius: 50%;
+  background: rgba(7,7,20,.85);
+  border: 1.5px solid rgba(180,167,255,.7);
+  display: grid; place-items: center;
+  box-shadow: 0 0 24px rgba(124,106,255,.5);
+  color: #b4a7ff;
+}
+
+/* Análisis — editorial coach letter */
+.cai-home-semanas .semana-analisis {
+  margin-top: 16px;
+  padding: 18px 18px 20px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(124,106,255,.06), rgba(46,207,181,.04));
+  border: 1px solid rgba(255,255,255,0.08);
+  position: relative;
+}
+.cai-home-semanas .semana-analisis::before {
+  content: "“";
+  position: absolute; top: -12px; left: 14px;
+  font-family: 'Bebas Neue', sans-serif; font-size: 60px; line-height: 1;
+  color: rgba(180,167,255,.35);
+}
+.cai-home-semanas .semana-analisis-title {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .16em;
+  color: #2ecfb5; text-transform: uppercase;
+  margin: 6px 0 12px;
+}
+.cai-home-semanas .semana-analisis h1, .cai-home-semanas .semana-analisis h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px; line-height: 1.05; letter-spacing: .02em;
+  background: linear-gradient(135deg, #7c6aff, #5b9fff, #2ecfb5);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0 0 10px;
+}
+.cai-home-semanas .semana-analisis p, .cai-home-semanas .semana-analisis li {
+  font-size: 13.5px; line-height: 1.6; color: #cfcde0;
+}
+.cai-home-semanas .semana-analisis strong { color: #fff; font-weight: 600; }
+.cai-home-semanas .semana-analisis hr { border: 0; border-top: 1px solid rgba(255,255,255,.08); margin: 14px 0; }
+.cai-home-semanas .semana-analisis-footer {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 14px; padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  letter-spacing: .12em; color: var(--muted); text-transform: uppercase;
+}
+
+/* ── MODAL CIERRE — premium dashboard ─────────────────────────────── */
+.cierre-overlay .cierre-card {
+  background: rgba(20,20,32,0.85);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+          backdrop-filter: blur(28px) saturate(140%);
+}
+.cierre-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 18px 4px 0;
+  margin-bottom: 0;
+}
+.cierre-header .ico {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: rgba(124,106,255,.10); border: 1px solid rgba(180,167,255,.35);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.cierre-overlay .cierre-title {
+  font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: .06em;
+  line-height: 1; color: #fff;
+  margin: 0;
+}
+.cierre-overlay .cierre-sub {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .14em;
+  color: var(--muted); text-transform: uppercase; margin: 6px 0 0;
+}
+.cierre-overlay .cierre-stats {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  margin-top: 18px; margin-bottom: 0;
+}
+.cierre-overlay .cierre-stat {
+  position: relative;
+  background: rgba(20,20,32,0.55);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+          backdrop-filter: blur(24px) saturate(140%);
+  padding: 16px 14px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  text-align: left;
+}
+.cierre-overlay .cierre-stat.grad {
+  background: linear-gradient(135deg, rgba(124,106,255,.18), rgba(46,207,181,.12));
+}
+.cierre-overlay .cierre-stat .label {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .16em;
+  color: #54526e; text-transform: uppercase;
+}
+.cierre-overlay .cierre-stat .num {
+  font-family: 'Bebas Neue', sans-serif; font-size: 36px; line-height: 1;
+  margin-top: 6px; color: #fff;
+  font-weight: normal;
+}
+.cierre-overlay .cierre-stat .num.grad-text {
+  background: linear-gradient(135deg, #7c6aff, #5b9fff, #2ecfb5);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.cierre-overlay .cierre-stat .num .den { color: #54526e; font-size: 20px; -webkit-text-fill-color: #54526e; }
+.cierre-overlay .cierre-stat .sub {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: var(--muted); margin-top: 4px;
+  min-height: 12px;
+}
+
+.cierre-photos-eyebrow {
+  display: flex; align-items: center; gap: 8px; margin-top: 22px; margin-bottom: 10px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .16em;
+  color: #b4a7ff; text-transform: uppercase;
+}
+.cierre-overlay .cierre-photos {
+  display: flex; gap: 12px; margin-top: 0; margin-bottom: 0;
+}
+.cierre-overlay .cierre-photo { flex: 1; }
+.cierre-overlay .cierre-photo .cap {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .16em;
+  color: #54526e; margin-bottom: 6px; text-align: center; text-transform: uppercase;
+}
+.cierre-overlay .cierre-photo .frame {
+  aspect-ratio: 3/4; border-radius: 14px; overflow: hidden;
+  background: linear-gradient(180deg, #1a1830, #0c0b1a);
+  border: 1px solid rgba(255,255,255,0.08);
+  background-size: cover; background-position: center;
+  display: block;
+  position: relative;
+}
+.cierre-overlay .cierre-photo.upload .frame {
+  background: linear-gradient(180deg, rgba(124,106,255,.06), rgba(46,207,181,.04));
+  border: 1.5px dashed rgba(180,167,255,.4);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.cierre-overlay .cierre-photo.upload .frame:hover { border-color: rgba(180,167,255,.7); background: linear-gradient(180deg, rgba(124,106,255,.10), rgba(46,207,181,.06)); }
+.cierre-overlay .cierre-photo .frame .frame-empty-ico {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  color: #54526e;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .12em;
+  width: 100%; height: 100%;
+  justify-content: center;
+  text-transform: uppercase;
+}
+.cierre-overlay .cierre-photo .upload-ico {
+  width: 54px; height: 54px; border-radius: 50%;
+  background: linear-gradient(135deg, rgba(124,106,255,.20), rgba(46,207,181,.20));
+  border: 1px solid rgba(180,167,255,.4);
+  display: grid; place-items: center;
+}
+.cierre-overlay .cierre-photo .upload-cta { text-align: center; padding: 0 10px; }
+.cierre-overlay .cierre-photo .upload-cta .t { font-family: 'Bebas Neue', sans-serif; font-size: 16px; color: #fff; letter-spacing: .04em; }
+.cierre-overlay .cierre-photo .upload-cta .s { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #2ecfb5; margin-top: 4px; letter-spacing: .16em; }
+.cierre-overlay .cierre-photo #cierre-foto-preview {
+  width: 100%; height: 100%; object-fit: cover; border-radius: inherit;
+}
+
+/* CTA principal Generar análisis (override legacy) */
+.cierre-overlay .btn-generar-analisis {
+  margin-top: 22px; width: 100%; padding: 16px;
+  background: linear-gradient(135deg, #7c6aff, #5b9fff, #2ecfb5);
+  border: 0; border-radius: 16px;
+  color: #06121a; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700;
+  letter-spacing: 0;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  box-shadow:
+    0 18px 40px -14px rgba(91,159,255,.55),
+    inset 0 1px 0 rgba(255,255,255,.4);
+  cursor: pointer;
+  min-height: 52px;
+  transition: transform .15s ease;
+  text-transform: none;
+}
+.cierre-overlay .btn-generar-analisis:hover { transform: translateY(-1px); }
+.cierre-overlay .btn-generar-analisis:disabled { opacity: .7; cursor: wait; transform: none; }
+
+/* CTA Cerrar (secundario) */
+.cierre-overlay .btn-cierre-cerrar {
+  margin-top: 10px; width: 100%; padding: 13px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: .14em;
+  text-transform: uppercase;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  cursor: pointer;
+  min-height: 44px;
+}
+.cierre-overlay .btn-cierre-cerrar:hover { color: #fff; border-color: rgba(255,255,255,.18); }
+
+/* Mobile fine-tune (375px) */
+@media (max-width: 420px) {
+  .cai-home-semanas .semana-header { padding: 14px 16px; }
+  .cai-home-semanas .semana-strip, .cai-home-semanas .semana-thumb { padding: 0 16px 14px; }
+  .cai-home-semanas .semana-card.open .semana-body { padding: 0 16px 16px; }
+  .cai-home-semanas .semana-statbar { gap: 8px; }
+  .cai-home-semanas .semana-statbar .stat .num { font-size: 20px; }
+  .cierre-overlay .cierre-stat .num { font-size: 32px; }
+  .cierre-overlay .cierre-title { font-size: 24px; }
+  .cai-home-semanas .semana-transf-compare { height: 180px; }
+}
 </style>
 <script>
 // Detect Safari mobile in browser-mode (not installed PWA) and tag the body.
@@ -7612,6 +8117,19 @@ footer {
 </script>
 </head>
 <body>
+
+<!-- Shared SVG <defs> for icons that reference brand gradients by id.
+     Lives at document level so any <use href="#grad-brand"/> or stroke
+     reference resolves regardless of where the consumer SVG is mounted. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="grad-brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#7c6aff"/>
+      <stop offset="50%"  stop-color="#5b9fff"/>
+      <stop offset="100%" stop-color="#2ecfb5"/>
+    </linearGradient>
+  </defs>
+</svg>
 
 
 <!-- HEADER -->
@@ -8635,36 +9153,80 @@ footer {
 <!-- CIERRE DE SEMANA -->
 <div class="cierre-overlay" id="cierre-overlay">
   <div class="cierre-card coach-card">
-    <div class="cierre-title">🏁 CIERRE DE SEMANA</div>
-    <div class="cierre-sub" id="cierre-sub">Resumen de tu semana</div>
-    <div class="cierre-stats-grid" id="cierre-stats-grid"></div>
 
-    <div style="font-size:13px;color:var(--muted);margin-bottom:10px;text-align:center" id="cierre-foto-prompt">
-      📸 Compará tu evolución
+    <!-- HEADER: brand icon + title + dynamic sub line (populated by openCierreSemana) -->
+    <div class="cierre-header">
+      <div class="ico">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="url(#grad-brand)"
+             stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 4v17"/><path d="M5 5h11l-2 3.5L16 12H5"/>
+        </svg>
+      </div>
+      <div>
+        <div class="cierre-title" data-es="CIERRE DE SEMANA" data-en="WEEK CLOSURE">CIERRE DE SEMANA</div>
+        <div class="cierre-sub" id="cierre-sub">—</div>
+      </div>
     </div>
-    <div class="cierre-foto-compare">
-      <div class="cierre-foto-col">
-        <div class="cierre-foto-caption" id="cierre-foto-caption-inicial">PUNTO DE INICIO</div>
-        <div class="cierre-foto-slot" id="cierre-foto-inicial-slot">
-          <div class="cierre-foto-icon">📷</div>
-          <div class="cierre-foto-hint" id="cierre-foto-inicial-empty">Sin foto inicial</div>
+
+    <!-- Stats grid — innerHTML rebuilt every openCierreSemana() with the
+         4 stat cards (Días entrenados / Kcal · día / Proteína prom / Días registrados). -->
+    <div class="cierre-stats" id="cierre-stats-grid"></div>
+
+    <!-- "Compará tu evolución" header (kept legacy id for setLang re-render) -->
+    <div class="cierre-photos-eyebrow" id="cierre-foto-prompt">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/>
+      </svg>
+      <span data-es="COMPARÁ TU EVOLUCIÓN" data-en="COMPARE YOUR EVOLUTION">COMPARÁ TU EVOLUCIÓN</span>
+    </div>
+
+    <div class="cierre-photos">
+      <!-- Starting-point photo (filled async by openCierreSemana via innerHTML on #cierre-foto-inicial-slot) -->
+      <div class="cierre-photo">
+        <div class="cap" id="cierre-foto-caption-inicial" data-es="PUNTO DE INICIO" data-en="STARTING POINT">PUNTO DE INICIO</div>
+        <div class="frame" id="cierre-foto-inicial-slot">
+          <div class="frame-empty-ico">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/>
+            </svg>
+            <div id="cierre-foto-inicial-empty" data-es="Sin foto inicial" data-en="No initial photo">Sin foto inicial</div>
+          </div>
         </div>
       </div>
-      <div class="cierre-foto-col">
-        <div class="cierre-foto-caption" id="cierre-foto-caption-actual">ESTA SEMANA</div>
-        <div class="cierre-foto-slot is-upload" id="cierre-foto-upload-slot">
-          <input type="file" accept="image/*" id="cierre-foto-input" onchange="previewCierreFoto(event)">
+
+      <!-- Upload slot — clicking the <label> opens the file input, picking a photo
+           flips display of #cierre-foto-placeholder / #cierre-foto-preview via
+           the existing previewCierreFoto handler. -->
+      <div class="cierre-photo upload">
+        <div class="cap" id="cierre-foto-caption-actual" data-es="ESTA SEMANA" data-en="THIS WEEK">ESTA SEMANA</div>
+        <label class="frame" for="cierre-foto-input" id="cierre-foto-upload-slot">
           <div id="cierre-foto-placeholder">
-            <div class="cierre-foto-icon">📷</div>
-            <div class="cierre-foto-hint" id="cierre-foto-upload-hint">Subí tu foto<br><strong>Opcional</strong></div>
+            <div class="upload-ico">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="url(#grad-brand)"
+                   stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/>
+              </svg>
+            </div>
+            <div class="upload-cta">
+              <div class="t" id="cierre-foto-upload-hint" data-es="SUBÍ TU FOTO" data-en="UPLOAD PHOTO">SUBÍ TU FOTO</div>
+              <div class="s" data-es="OPCIONAL" data-en="OPTIONAL">OPCIONAL</div>
+            </div>
           </div>
           <img id="cierre-foto-preview" src="" alt="preview" style="display:none">
-        </div>
+        </label>
+        <input type="file" accept="image/*" id="cierre-foto-input" onchange="previewCierreFoto(event)" style="display:none">
       </div>
     </div>
 
     <button class="btn-generar-analisis" id="btn-generar-analisis" onclick="ejecutarCierreSemana()">
-      ✨ Generar análisis de mi semana
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 4v4M12 16v4M4 12h4M16 12h4"/>
+        <path d="M12 9 13 11l2 1-2 1-1 2-1-2-2-1 2-1 1-2z" fill="currentColor" stroke="none"/>
+      </svg>
+      <span id="btn-generar-analisis-text" data-es="Generar análisis de mi semana" data-en="Generate my week analysis">Generar análisis de mi semana</span>
     </button>
 
     <!-- Shown when the analysis generated successfully but cierres_semanales
@@ -8677,7 +9239,7 @@ footer {
 
     <div class="cierre-analisis-result" id="cierre-analisis-result"></div>
 
-    <button class="btn-cierre-back" id="btn-cierre-back" onclick="closeCierrePanel()"
+    <button class="btn-cierre-cerrar" id="btn-cierre-back" onclick="closeCierrePanel()"
             data-es="← Cerrar" data-en="← Close">← Cerrar</button>
   </div>
 </div>
@@ -11204,12 +11766,18 @@ function removeTyping() {
 function formatResponse(text) {
   // CRITICAL: escape HTML chars FIRST so the AI cannot smuggle <script> or
   // <img onerror> into the chat output. Markdown transforms below only emit
-  // our own safe tags (<strong>, <em>, <li>, <br>, <ul>) — `$1` is now
-  // guaranteed to be plain text without raw `<`/`>`/`"`.
+  // our own safe tags (<strong>, <em>, <li>, <br>, <ul>, <h1>, <h2>) — `$1`
+  // is now guaranteed to be plain text without raw `<`/`>`/`"`.
+  // Note: # and ## become <h2> (not <h1>) on purpose — the default browser
+  // <h1> sizing is too large for a chat bubble, and the cierre's "carta del
+  // coach" CSS targets `.semana-analisis h1, h2` together to give them the
+  // brand gradient treatment.
   return String(text || '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h2>$1</h2>')
     .replace(/^### (.+)$/gm, '<strong style="display:block;margin-top:10px;color:var(--accent-bright)">$1</strong>')
     .replace(/^- (.+)$/gm, '<li>$1</li>')
     .replace(/(<li>[\s\S]*?<\/li>)+/g, m => `<ul>${m}</ul>`)
@@ -12607,85 +13175,220 @@ async function renderSemanas() {
     const stats = computeWeekStats(recentDiario, range);
     const isCurrent = w === currentWeek;
     const isOpen = isCurrent;
+    const isEs = lang === 'es';
+    const trainedTarget = (currentUser?.dias_entreno?.length || selectedDias.length || 3);
 
-    const trainedChip = `<span class="semana-chip ${stats.trained >= (selectedDias.length || 3) ? 'good' : stats.trained > 0 ? '' : 'warn'}">${stats.trained} ${lang==='es'?'días entrenados':'training days'}</span>`;
-    const calChip = stats.avgCal ? `<span class="semana-chip">${stats.avgCal} kcal/día</span>` : '';
-    const statusBadge = cierre
-      ? `<span class="semana-status cerrada">✓ ${lang==='es'?'Cerrada':'Closed'}</span>`
+    // ── Status pill (chevron-friendly, no emoji) ──────────────────────
+    const statusPill = cierre
+      ? `<span class="semana-status cerrada">${isEs?'Cerrada':'Closed'}</span>`
       : isCurrent
-        ? `<span class="semana-status en-curso">${lang==='es'?'En curso':'In progress'}</span>`
-        : `<span class="semana-status" style="color:var(--muted)">${lang==='es'?'Sin cerrar':'Open'}</span>`;
+        ? `<span class="semana-status en-curso">${isEs?'En curso':'In progress'}</span>`
+        : `<span class="semana-status">${isEs?'Sin cerrar':'Open'}</span>`;
 
+    // ── Header (unified for both states) ──────────────────────────────
+    const headerHtml = `
+      <div class="semana-header" onclick="toggleSemana(${w})">
+        <div class="semana-header-row">
+          <div class="semana-badge">SEM ${String(w).padStart(2,'0')}</div>
+          <div class="semana-dates">${formatDateShort(range.start)} → ${formatDateShort(range.end)}</div>
+        </div>
+        ${statusPill}
+        <div class="semana-chevron">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m6 9 6 6 6-6"/>
+          </svg>
+        </div>
+      </div>`;
+
+    // ── COLLAPSED SUMMARY ─────────────────────────────────────────────
+    // En curso → strip of 7 day-bars (trained / rest / future / idle)
+    // Cerrada  → thumbnail of foto_url + stats inline
+    let collapsedHtml = '';
+    if (!cierre) {
+      const days = ['L','M','M','J','V','S','D'];
+      const dayState = [];
+      const now = new Date();
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(range.start + 'T12:00:00'); d.setDate(d.getDate() + i);
+        if (d > now) { dayState.push('future'); continue; }
+        const dStr = formatLocalDate(d);
+        const log = stats.wLogs.find(l => l.fecha === dStr);
+        if (!log) { dayState.push('idle'); continue; }
+        dayState.push(log.entreno === true ? 'trained' : log.entreno === false ? 'rest' : 'idle');
+      }
+      collapsedHtml = `
+        <div class="semana-strip">
+          <div class="semana-strip-days">
+            ${dayState.map((st,i) => `
+              <div class="semana-strip-day ${st}">
+                <div class="d">${days[i]}</div>
+                <div class="bar"></div>
+              </div>`).join('')}
+          </div>
+          <div class="semana-strip-summary">
+            <div class="num">${stats.trained}<span class="den">/${trainedTarget}</span></div>
+            <div class="label">${isEs?'ENTRENADOS':'TRAINED'}</div>
+          </div>
+        </div>`;
+    } else {
+      const photoBg = cierre.foto_url ? `style="background-image:url('${cierre.foto_url}')"` : '';
+      const photoEmpty = cierre.foto_url ? '' : 'empty';
+      const photoInner = cierre.foto_url ? '' : `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/>
+        </svg>`;
+      collapsedHtml = `
+        <div class="semana-thumb" onclick="toggleSemana(${w})">
+          <div class="semana-thumb-photo ${photoEmpty}" ${photoBg}>${photoInner}</div>
+          <div class="semana-thumb-info">
+            <div class="semana-thumb-stats">
+              <span>${stats.trained}/${trainedTarget} ${isEs?'ENT':'TRAIN'}</span>
+              ${stats.avgCal ? `<span>· ${(stats.avgCal/1000).toFixed(1)}K KCAL</span>` : ''}
+              ${stats.wLogs.length ? `<span>· ${stats.wLogs.length}/7 LOG</span>` : ''}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ── EXPANDED BODY ─────────────────────────────────────────────────
     let bodyHtml = '';
 
-    // Photo comparison (only if cierre has photo and we have initial)
+    // Stat-bar (3 mini stats)
+    bodyHtml += `
+      <div class="semana-statbar">
+        <div class="stat">
+          <div class="num grad">${stats.trained}<span class="den">/${trainedTarget}</span></div>
+          <div class="label">${isEs?'ENTRENADOS':'TRAINED'}</div>
+        </div>
+        <div class="sep"></div>
+        <div class="stat">
+          <div class="num">${stats.avgCal != null ? stats.avgCal : '—'}</div>
+          <div class="label">${isEs?'KCAL/DÍA':'KCAL/DAY'}</div>
+        </div>
+        <div class="sep"></div>
+        <div class="stat">
+          <div class="num">${stats.wLogs.length}<span class="den">/7</span></div>
+          <div class="label">${isEs?'DÍAS LOG':'LOGS'}</div>
+        </div>
+      </div>`;
+
+    // Transformación visual (before/after slider) — only when cerrada + both photos
     if (cierre?.foto_url && fotoInicial) {
       bodyHtml += `
         <div class="semana-transformacion">
-          <div class="semana-transf-header">📸 ${lang==='es'?'TRANSFORMACIÓN VISUAL':'VISUAL TRANSFORMATION'}</div>
-          <div class="semana-transf-grid">
-            <div class="semana-transf-card" onclick="openLightbox('${fotoInicial.url_foto}')">
-              <div class="semana-transf-label">INICIO</div>
-              <img src="${fotoInicial.url_foto}" alt="Foto inicial" loading="lazy">
-            </div>
-            <div class="semana-transf-vs">→</div>
-            <div class="semana-transf-card semana-transf-card--current" onclick="openLightbox('${cierre.foto_url}')">
-              <div class="semana-transf-label">SEMANA ${w}</div>
+          <div class="semana-transf-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/>
+            </svg>
+            ${isEs?'TRANSFORMACIÓN':'TRANSFORMATION'}
+          </div>
+          <div class="semana-transf-compare" onclick="openLightbox('${cierre.foto_url}')">
+            <img src="${fotoInicial.url_foto}" alt="Inicio" loading="lazy">
+            <div class="lbl l">INICIO</div>
+            <div class="after">
               <img src="${cierre.foto_url}" alt="Semana ${w}" loading="lazy">
+            </div>
+            <div class="lbl r">SEM ${String(w).padStart(2,'0')}</div>
+            <div class="handle">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round">
+                <path d="m9 6-3 6 3 6"/><path d="m15 6 3 6-3 6"/>
+              </svg>
             </div>
           </div>
         </div>`;
     }
 
-    // AI analysis — `cierre.analisis` is AI-generated text. Even though Claude
-    // is unlikely to emit raw HTML, prompt-injection from user inputs (name,
-    // comidas) could coerce it. Render through formatResponse which escapes
-    // first and then applies the same markdown-lite treatment as chat replies.
+    // AI analysis — editorial "Carta del Coach". formatResponse handles escape +
+    // markdown-lite (same path as chat). Regenerate button preserved.
     if (cierre?.analisis) {
       bodyHtml += `
         <div class="semana-analisis">
-          <div class="semana-analisis-title">📊 ${lang==='es'?'ANÁLISIS DE LA SEMANA':'WEEK ANALYSIS'}</div>
+          <div class="semana-analisis-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 20V8M9 20V4M14 20v-9M19 20v-4M3 20h18"/>
+            </svg>
+            ${isEs?'CARTA DEL COACH':'COACH LETTER'}
+          </div>
           ${formatResponse(cierre.analisis)}
-          <button onclick="regenerarAnalisisSemana(${w})" id="btn-regen-${w}" style="margin-top:12px; background:transparent; border:1px solid rgba(124,106,255,0.4); color:var(--accent-bright); padding:6px 12px; border-radius:6px; cursor:pointer; font-size:10px; letter-spacing:1.5px; font-family:'JetBrains Mono', monospace;">
-            🔁 ${lang==='es'?'REGENERAR ANÁLISIS':'REGENERATE ANALYSIS'}
-          </button>
+          <div class="semana-analisis-footer">
+            <span>CoachAI · ${formatDateShort(cierre.fecha_fin || range.end)}</span>
+            <button onclick="regenerarAnalisisSemana(${w})" id="btn-regen-${w}"
+              style="margin-left:auto;background:transparent;border:1px solid rgba(180,167,255,.4);color:#b4a7ff;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:10px;letter-spacing:.12em;font-family:'JetBrains Mono',monospace;">
+              ${isEs?'REGENERAR':'REGENERATE'}
+            </button>
+          </div>
         </div>`;
     }
 
-    // Daily logs for this week — escape every user-typed string
-    if (stats.wLogs.length > 0) {
-      bodyHtml += `<div class="semana-logs">`;
+    // Timeline (vertical day-by-day, en curso only)
+    if (!cierre && stats.wLogs.length > 0) {
+      bodyHtml += `<div class="semana-timeline">`;
       bodyHtml += stats.wLogs.map(l => {
         const comidas = [l.desayuno, l.almuerzo, l.merienda, l.cena].filter(Boolean).join(' · ');
-        const entreno = l.entreno === true ? `💪 ${l.ejercicios_realizados || (lang==='es'?'Entrenó':'Trained')}` : l.entreno === false ? (lang==='es'?'❌ Descanso':'❌ Rest') : '';
-        return `<div class="semana-log-item">
-          <div class="semana-log-date">${_esc(formatDateShort(l.fecha))}</div>
-          ${comidas ? `<div>${_esc(comidas.slice(0, 80))}${comidas.length > 80 ? '...' : ''}</div>` : ''}
-          ${entreno ? `<div>${_esc(entreno)}</div>` : ''}
-          ${l.calorias_consumidas ? `<div>📊 ${_esc(String(l.calorias_consumidas))} kcal</div>` : ''}
-        </div>`;
+        const isTrained = l.entreno === true;
+        const isRest    = l.entreno === false;
+        const rowClass  = isTrained ? 'trained' : isRest ? 'rest' : '';
+        const statusHtml = isTrained
+          ? `<span class="semana-tl-status trained">
+               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                 <path d="M6.5 6.5l11 11"/><path d="M21 21l-1-1"/><path d="M3 3l1 1"/><path d="M18 22l4-4"/><path d="M2 6l4-4"/><path d="M3 10l7-7"/><path d="M14 21l7-7"/>
+               </svg>
+               ${isEs?'ENTRENÓ':'TRAINED'}
+             </span>`
+          : isRest
+          ? `<span class="semana-tl-status rest">
+               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                 <path d="M20 14a8 8 0 1 1-9.4-9.6A6.5 6.5 0 0 0 20 14Z"/>
+               </svg>
+               ${isEs?'DESCANSO':'REST'}
+             </span>`
+          : '';
+
+        return `
+          <div class="semana-tl-row ${rowClass}">
+            <div class="semana-tl-dot"><span></span></div>
+            <div class="semana-tl-body">
+              <div class="semana-tl-head">
+                <div class="semana-tl-date">${_esc(formatDateShort(l.fecha)).toUpperCase()}</div>
+                ${statusHtml}
+              </div>
+              ${comidas ? `<div class="semana-tl-meal">${_esc(comidas.slice(0,80))}${comidas.length>80?'…':''}</div>` : ''}
+              ${l.calorias_consumidas ? `
+                <div class="semana-tl-kcal">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/></svg>
+                  ${_esc(String(l.calorias_consumidas))} kcal
+                </div>` : ''}
+            </div>
+          </div>`;
       }).join('');
       bodyHtml += `</div>`;
-    } else {
-      bodyHtml += `<div style="padding:16px 18px;font-size:12px;color:var(--muted)">${lang==='es'?'Sin registros diarios esta semana.':'No daily logs this week.'}</div>`;
+    } else if (!cierre) {
+      bodyHtml += `<div style="padding:16px 0;font-size:12px;color:var(--muted)">${isEs?'Sin registros diarios esta semana.':'No daily logs this week.'}</div>`;
     }
 
-    // Close week button (current week only, no cierre yet)
+    // CTA Cerrar semana — only current open week
     if (isCurrent && !cierre) {
-      bodyHtml += `<button class="btn-cerrar-semana" onclick="openCierreSemana(${w})">🏁 ${lang==='es'?'Cerrar semana y ver mi análisis':'Close week & see my analysis'}</button>`;
+      bodyHtml += `
+        <button class="btn-cerrar-semana" onclick="openCierreSemana(${w})">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 4v17"/><path d="M5 5h11l-2 3.5L16 12H5"/>
+          </svg>
+          ${isEs?'Cerrar semana y ver mi análisis':'Close week & see my analysis'}
+        </button>`;
     }
 
     return `
-      <div class="semana-card ${isCurrent ? 'activa' : ''} ${isOpen ? 'open' : ''}" id="semana-card-${w}">
-        <div class="semana-header" onclick="toggleSemana(${w})">
-          <div class="semana-badge">SEM ${w}</div>
-          <div class="semana-header-info">
-            <div class="semana-dates">${formatDateShort(range.start)} → ${formatDateShort(range.end)}</div>
-            <div class="semana-chips">${trainedChip}${calChip}</div>
-          </div>
-          ${statusBadge}
-          <div class="semana-chevron">▼</div>
-        </div>
+      <div class="semana-card ${isCurrent ? 'activa' : ''} ${cierre ? 'cerrada' : ''} ${isOpen ? 'open' : ''}" id="semana-card-${w}">
+        ${headerHtml}
+        ${collapsedHtml}
         <div class="semana-body">${bodyHtml}</div>
       </div>`;
   }).join('');
@@ -12721,26 +13424,53 @@ function openCierreSemana(weekNum) {
   }
   const stats = computeWeekStats(recentDiario, range);
 
+  const isEs = lang === 'es';
   document.getElementById('cierre-sub').textContent =
-    `Semana ${weekNum} · ${formatDateShort(range.start)} al ${formatDateShort(range.end)}`;
+    `${isEs?'SEMANA':'WEEK'} ${String(weekNum).padStart(2,'0')} · ${formatDateShort(range.start)} — ${formatDateShort(range.end)}`;
 
   // Show planned days as denominator when known so "3" reads as "3/4" — the
   // user sees adherence at a glance instead of having to remember their goal.
+  // The first card uses the brand gradient ("grad" variant) to anchor visually;
+  // adherence % goes in the .sub line under the number.
   const _plannedDays = (currentUser?.dias_entreno && currentUser.dias_entreno.length) || 0;
-  const trainedCell = _plannedDays ? `${stats.trained}/${_plannedDays}` : `${stats.trained}`;
   const _tgtKcal = _alimHeader?.targetKcal;
-  const kcalCell = stats.avgCal
-    ? (_tgtKcal ? `${stats.avgCal}/${_tgtKcal}` : `${stats.avgCal}`)
-    : '—';
   const _tgtProt = _alimHeader?.targetProt;
-  const protCell = stats.avgProt
-    ? (_tgtProt ? `${stats.avgProt}/${_tgtProt}g` : `${stats.avgProt}g`)
+  const adherenciaPct = _plannedDays
+    ? Math.round((stats.trained / _plannedDays) * 100)
+    : null;
+  const trainedNum = _plannedDays
+    ? `${stats.trained}<span class="den">/${_plannedDays}</span>`
+    : `${stats.trained}`;
+  const kcalNum = stats.avgCal != null
+    ? (_tgtKcal ? `${stats.avgCal}<span class="den">/${_tgtKcal}</span>` : `${stats.avgCal}`)
     : '—';
+  const protNum = stats.avgProt != null
+    ? (_tgtProt ? `${stats.avgProt}<span class="den">/${_tgtProt}g</span>` : `${stats.avgProt}g`)
+    : '—';
+  const protPct = (stats.avgProt && _tgtProt)
+    ? Math.round((stats.avgProt / _tgtProt) * 100) + '%'
+    : '';
   document.getElementById('cierre-stats-grid').innerHTML = `
-    <div class="cierre-stat"><div class="cierre-stat-val">${trainedCell}</div><div class="cierre-stat-label">${lang==='es'?'Días entrenados':'Training days'}</div></div>
-    <div class="cierre-stat"><div class="cierre-stat-val">${kcalCell}</div><div class="cierre-stat-label">${lang==='es'?'Kcal promedio/día':'Avg kcal/day'}</div></div>
-    <div class="cierre-stat"><div class="cierre-stat-val">${protCell}</div><div class="cierre-stat-label">${lang==='es'?'Proteína prom.':'Avg protein'}</div></div>
-    <div class="cierre-stat"><div class="cierre-stat-val">${stats.totalLogs}/7</div><div class="cierre-stat-label">${lang==='es'?'Días registrados':'Logged days'}</div></div>
+    <div class="cierre-stat grad">
+      <div class="label">${isEs?'DÍAS ENTRENADOS':'TRAINING DAYS'}</div>
+      <div class="num grad-text">${trainedNum}</div>
+      <div class="sub">${adherenciaPct != null ? adherenciaPct + '% ' + (isEs?'adherencia':'adherence') : ''}</div>
+    </div>
+    <div class="cierre-stat">
+      <div class="label">${isEs?'KCAL · DÍA':'KCAL/DAY'}</div>
+      <div class="num">${kcalNum}</div>
+      <div class="sub">${isEs?'prom. semana':'weekly avg'}</div>
+    </div>
+    <div class="cierre-stat">
+      <div class="label">${isEs?'PROTEÍNA PROM':'PROTEIN AVG'}</div>
+      <div class="num">${protNum}</div>
+      <div class="sub">${protPct}</div>
+    </div>
+    <div class="cierre-stat">
+      <div class="label">${isEs?'DÍAS REGISTRADOS':'LOGGED DAYS'}</div>
+      <div class="num">${stats.totalLogs}<span class="den">/7</span></div>
+      <div class="sub">${isEs?'logs de comida':'meal logs'}</div>
+    </div>
   `;
 
   document.getElementById('cierre-analisis-result').style.display = 'none';
@@ -12762,22 +13492,34 @@ function openCierreSemana(weekNum) {
   // If there's an analysis still running (user closed the modal mid-flight
   // and reopened), reflect that in the button instead of leaving it idle —
   // otherwise a tap silently no-ops because cierreInflight is still true.
+  // We target the inner span (btn-generar-analisis-text) so the SVG icon is
+  // preserved across state changes.
   const generarBtn = document.getElementById('btn-generar-analisis');
+  const generarTxt = document.getElementById('btn-generar-analisis-text');
   if (cierreInflight) {
     generarBtn.disabled = true;
-    generarBtn.textContent = lang === 'es' ? '⏳ Análisis en curso...' : '⏳ Analysis in progress...';
+    if (generarTxt) generarTxt.textContent = isEs ? '⏳ Análisis en curso...' : '⏳ Analysis in progress...';
   } else {
     generarBtn.disabled = false;
-    generarBtn.textContent = lang === 'es' ? '✨ Generar análisis de mi semana' : '✨ Generate my week analysis';
+    if (generarTxt) generarTxt.textContent = isEs ? 'Generar análisis de mi semana' : 'Generate my week analysis';
   }
 
-  // Reset & async-fill the baseline ("punto de inicio") slot
+  // Reset & async-fill the baseline ("punto de inicio") slot. Empty state =
+  // dashed frame placeholder; populated = full-bleed img that fills .frame.
   const inicialSlot = document.getElementById('cierre-foto-inicial-slot');
-  inicialSlot.innerHTML = `<div class="cierre-foto-icon">📷</div><div class="cierre-foto-hint">${lang==='es'?'Sin foto inicial':'No initial photo'}</div>`;
+  const _emptyInicialMarkup = `
+    <div class="frame-empty-ico">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/>
+      </svg>
+      <div>${isEs?'Sin foto inicial':'No initial photo'}</div>
+    </div>`;
+  inicialSlot.innerHTML = _emptyInicialMarkup;
   loadFotosProgreso().then(fotos => {
     const baseline = pickBaselinePhoto(fotos);
     if (baseline) {
-      inicialSlot.innerHTML = `<img src="${baseline.url_foto}" alt="Foto inicial">`;
+      inicialSlot.innerHTML = `<img src="${baseline.url_foto}" alt="Foto inicial" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;
     }
   }).catch(err => console.error('Could not load baseline photo for cierre:', err));
 
@@ -12835,10 +13577,17 @@ async function ejecutarCierreSemana() {
   cierreInflight = true;
 
   const btn = document.getElementById('btn-generar-analisis');
+  // Helper: update the button's text without destroying its inline SVG icon.
+  // The button now contains an SVG + a <span id="btn-generar-analisis-text">,
+  // so we mutate the span rather than the button itself.
+  const _setBtnTxt = (s) => {
+    const t = document.getElementById('btn-generar-analisis-text');
+    if (t) t.textContent = s; else btn.textContent = s;
+  };
   const result = document.getElementById('cierre-analisis-result');
   const retryBanner = document.getElementById('cierre-retry-banner');
   btn.disabled = true;
-  btn.textContent = lang === 'es' ? 'Analizando...' : 'Analyzing...';
+  _setBtnTxt(lang === 'es' ? 'Analizando...' : 'Analyzing...');
   if (retryBanner) retryBanner.style.display = 'none';
 
   try {
@@ -12880,14 +13629,14 @@ async function ejecutarCierreSemana() {
 
     if (!analisis) {
       btn.disabled = false;
-      btn.textContent = lang === 'es' ? 'Error — intentá de nuevo' : 'Error — try again';
+      _setBtnTxt(lang === 'es' ? 'Error — intentá de nuevo' : 'Error — try again');
       return;
     }
 
     // SUCCESS — show analysis. Subsequent persistence/refresh failures must not flip UI to error.
     result.textContent = analisis;
     result.style.display = 'block';
-    btn.textContent = lang === 'es' ? '✓ Análisis guardado' : '✓ Analysis saved';
+    _setBtnTxt(lang === 'es' ? '✓ Análisis guardado' : '✓ Analysis saved');
 
     // Cache for retry path BEFORE attempting the upsert. If the upsert throws,
     // retryCierreSave() reuses these values without re-calling Claude.
@@ -12908,7 +13657,7 @@ async function ejecutarCierreSemana() {
       await renderSemanas();
     } catch(e) {
       console.error('Post-analysis save/refresh failed (analysis still shown):', e);
-      btn.textContent = lang === 'es' ? '⚠ Análisis no guardado' : '⚠ Analysis not saved';
+      _setBtnTxt(lang === 'es' ? '⚠ Análisis no guardado' : '⚠ Analysis not saved');
       if (retryBanner) {
         document.getElementById('cierre-retry-text').textContent = lang === 'es'
           ? '⚠ Análisis generado pero no se pudo guardar en la base. Tocá para reintentar.'
