@@ -10046,12 +10046,32 @@ footer {
     } else {
       try { slug = localStorage.getItem(LS_PREVIEW_TENANT); } catch (e) {}
     }
-    // Sentinels to clear the preview
+    // Sentinels to clear the preview — used to explicitly downgrade to
+    // CoachAI default during testing. Without one of these, we fall
+    // through to the TEMPORARY default-to-KING block below.
     if (slug === 'clear' || slug === 'default' || slug === 'coachai-default') {
       try { localStorage.removeItem(LS_PREVIEW_TENANT); } catch (e) {}
       return;
     }
-    if (!slug) return;
+    // ────────────────────────────────────────────────────────────────
+    // TEMPORARY (2026-05-26 night): paint EVERY first visit in KING.
+    //
+    // Tonight every new invite Beto sends goes to a Jesús client. The
+    // tenant routing for ?tenant=jesus works end-to-end, but if anything
+    // upstream silently fails (Gmail strips the querystring, a clienta
+    // copy-pastes the URL without it, a share-link drops it, etc.) we
+    // want the FAILURE MODE to still be the KING landing — never the
+    // CoachAI default. Tomorrow when the routing is fully confirmed
+    // bulletproof, REMOVE this fallback so visitors with no tenant info
+    // see CoachAI default again.
+    //
+    // Trade-off accepted: existing CoachAI users (forozco2, farfan…,
+    // jesusbabot2) will see ~500ms of KING on the landing before the
+    // async resolvePreviewTenant figures out their actual tenant and
+    // calls applyTenantBranding to flip back. Beto explicitly OK'd it
+    // ("la gente que ingrese hoy es toda de KING").
+    // ────────────────────────────────────────────────────────────────
+    if (!slug) slug = 'jesus';
     // Hardcoded synchronous palettes for each whitelabel. Must match the
     // colors in the tenant's branding_config so the post-fetch overlay is
     // a no-op (or just adds the logos / manifest / etc.). Bonus: when the
@@ -20376,18 +20396,28 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // Detect platform so we can show the right A2HS instructions when there's no
-// native install prompt available (iOS Safari, desktop Safari, in-app browsers).
+// native install prompt available (iOS Safari, iOS Chrome, desktop Safari,
+// in-app browsers, etc.). iOS gets split into safari/chrome because the
+// share button lives in different spots: Safari = bottom-center, Chrome =
+// top-right next to URL bar. Wrong instructions there = user gives up.
 function detectPwaPlatform() {
   const ua = navigator.userAgent || '';
   const isIOS = /iPad|iPhone|iPod/.test(ua)
              || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPadOS 13+
   const isAndroid = /Android/.test(ua);
-  const isChrome = /Chrome|CriOS/.test(ua) && !/Edg|OPR|SamsungBrowser/.test(ua);
-  const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS|OPR/.test(ua);
-  const isFirefox = /Firefox|FxiOS/.test(ua);
-  const isInApp = /FBAN|FBAV|Instagram|Line|WhatsApp|MicroMessenger/i.test(ua);
+  const isInApp = /FBAN|FBAV|Instagram|Line|WhatsApp|MicroMessenger/i.test(ua)
+               // Gmail's WKWebView: iOS UA without "Safari/" version token.
+               // Real Mobile Safari always ships a Safari/<version> token.
+               || (isIOS && !/Safari\//.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua));
   if (isInApp) return 'inapp';
-  if (isIOS) return 'ios';
+  if (isIOS) {
+    // Chrome iOS — CriOS token. Top-right share button.
+    if (/CriOS/.test(ua)) return 'ios-chrome';
+    // Firefox iOS / Edge iOS — no PWA install support → treat as in-app
+    if (/FxiOS|EdgiOS/.test(ua)) return 'inapp';
+    // Safari iOS — bottom-center share button. The default iOS bucket.
+    return 'ios-safari';
+  }
   if (isAndroid) return 'android';
   return 'desktop';
 }
@@ -20399,16 +20429,26 @@ function pwaModalContent(platform) {
                   + '<path fill="currentColor" d="M12 2.5a1 1 0 0 1 .7.3l3.5 3.5a1 1 0 0 1-1.4 1.4L13 5.9V15a1 1 0 1 1-2 0V5.9L9.2 7.7a1 1 0 1 1-1.4-1.4l3.5-3.5a1 1 0 0 1 .7-.3Z"/>'
                   + '<path fill="currentColor" d="M5 11a2 2 0 0 1 2-2h2a1 1 0 1 1 0 2H7v9h10v-9h-2a1 1 0 1 1 0-2h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-9Z"/>'
                   + '</svg>';
-  if (platform === 'ios') {
+  if (platform === 'ios-safari') {
     return {
-      title: 'Instalar en iPhone / iPad',
-      body: '<p>Para usar CoachAI como una app, tenés que agregarla a tu pantalla de inicio desde <strong>Safari</strong>:</p>'
+      title: 'Instalar en iPhone (Safari)',
+      body: '<p>Para usar CoachAI como una app desde tu pantalla de inicio:</p>'
           + '<ol>'
-          + '<li>Tocá el botón <strong>Compartir</strong> ' + shareIcon + ' abajo de la pantalla.</li>'
+          + '<li>Tocá el botón <strong>Compartir</strong> ' + shareIcon + ' <strong>abajo en el centro</strong> de la pantalla.</li>'
           + '<li>Deslizá y elegí <strong>"Agregar a pantalla de inicio"</strong>.</li>'
           + '<li>Tocá <strong>Agregar</strong> arriba a la derecha.</li>'
           + '</ol>'
-          + '<p style="margin-top:14px;color:#6c6c80;font-size:12.5px;">Si estás viendo esto desde Chrome o Instagram, abrí el link en Safari primero.</p>'
+    };
+  }
+  if (platform === 'ios-chrome') {
+    return {
+      title: 'Instalar en iPhone (Chrome)',
+      body: '<p>Para usar CoachAI como una app desde tu pantalla de inicio:</p>'
+          + '<ol>'
+          + '<li>Tocá el botón <strong>Compartir</strong> ' + shareIcon + ' <strong>arriba a la derecha</strong>, al lado de la barra de dirección.</li>'
+          + '<li>Deslizá y elegí <strong>"Agregar a pantalla de inicio"</strong>.</li>'
+          + '<li>Tocá <strong>Agregar</strong> arriba a la derecha.</li>'
+          + '</ol>'
     };
   }
   if (platform === 'android') {
@@ -20426,10 +20466,10 @@ function pwaModalContent(platform) {
   if (platform === 'inapp') {
     return {
       title: 'Abrí CoachAI en tu navegador',
-      body: '<p>Estás viendo CoachAI dentro de otra app (Instagram, Facebook, etc.). Para instalarla:</p>'
+      body: '<p>Estás viendo CoachAI dentro de otra app (Gmail, Instagram, Facebook, etc.) y desde acá no se puede instalar. Para instalarla:</p>'
           + '<ol>'
           + '<li>Tocá el menú <strong>⋮</strong> o <strong>•••</strong> arriba a la derecha.</li>'
-          + '<li>Elegí <strong>"Abrir en el navegador"</strong> (Safari en iPhone, Chrome en Android).</li>'
+          + '<li>Elegí <strong>"Abrir en Safari"</strong> o <strong>"Abrir en Chrome"</strong> (ambos funcionan en iPhone).</li>'
           + '<li>Una vez ahí, volvé a tocar <strong>Instalar CoachAI</strong>.</li>'
           + '</ol>'
     };
@@ -20573,6 +20613,155 @@ async function forceAppUpdate() {
   window.location.replace(url.toString());
 }
 
+</script>
+
+<!-- ============================================================
+     In-app browser banner.
+     ============================================================
+     PWA install (Add to Home Screen) on iOS is supported in:
+       • Safari iOS — share button at the BOTTOM of the screen
+       • Chrome iOS — share button at the TOP-RIGHT next to URL bar
+     But NOT in:
+       • Gmail iOS WKWebView (the common email-tap path)
+       • Facebook / Instagram / Twitter / Line in-app browsers
+       • Firefox iOS (no install support as of late 2024)
+       • Edge iOS
+     This banner targets the second bucket. Detection signature:
+     either a known in-app UA string, OR the absence of "Safari/"
+     version token from a Mobile Safari-like UA (Gmail's signature).
+     CriOS (Chrome iOS) is intentionally EXCLUDED — Chrome iOS users
+     CAN install, the landing's "Instalar CoachAI Pro" button + modal
+     give them the right top-right-share-button instructions.
+     CSS vars → auto-themes per tenant. Session-dismissible. ====== -->
+<style>
+#in-app-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 2000;
+  display: none;
+  padding: 10px 14px 12px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent3) 100%);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+#in-app-banner.active { display: block; animation: in-app-slide 0.32s cubic-bezier(0.18, 1.1, 0.4, 1.05); }
+@keyframes in-app-slide {
+  from { transform: translateY(-110%); }
+  to   { transform: translateY(0); }
+}
+.in-app-banner-row {
+  display: flex; align-items: center; gap: 10px;
+  max-width: 600px; margin: 0 auto;
+}
+.in-app-banner-icon { font-size: 18px; flex-shrink: 0; }
+.in-app-banner-text { flex: 1; font-size: 12.5px; line-height: 1.35; color: #fff; }
+.in-app-banner-text strong { color: #fff; font-weight: 700; }
+.in-app-banner-actions {
+  display: flex; gap: 6px; flex-shrink: 0; flex-wrap: nowrap;
+}
+.in-app-banner-btn {
+  padding: 6px 10px; border-radius: 100px;
+  font-size: 11.5px; font-weight: 600;
+  background: rgba(255,255,255,0.96); color: var(--accent);
+  border: none; cursor: pointer; white-space: nowrap;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.in-app-banner-btn:active { transform: scale(0.96); }
+.in-app-banner-close {
+  background: transparent; border: none;
+  color: rgba(255,255,255,0.85); font-size: 18px; line-height: 1;
+  padding: 4px 6px; cursor: pointer; flex-shrink: 0;
+}
+.in-app-banner-feedback {
+  max-width: 600px; margin: 6px auto 0;
+  font-size: 11px; color: rgba(255,255,255,0.92);
+  text-align: center; min-height: 13px;
+}
+@media (max-width: 420px) {
+  .in-app-banner-text { font-size: 11.5px; }
+  .in-app-banner-btn { padding: 5px 9px; font-size: 11px; }
+}
+</style>
+
+<div id="in-app-banner" role="alert" aria-live="polite">
+  <div class="in-app-banner-row">
+    <span class="in-app-banner-icon" aria-hidden="true">📱</span>
+    <div class="in-app-banner-text">
+      Para instalar la app, abrí esto en <strong>Safari</strong> o <strong>Chrome</strong>.
+    </div>
+    <div class="in-app-banner-actions">
+      <button type="button" class="in-app-banner-btn" id="in-app-copy" onclick="inAppCopyUrl()">Copiar link</button>
+    </div>
+    <button type="button" class="in-app-banner-close" aria-label="Cerrar" onclick="inAppDismiss()">×</button>
+  </div>
+  <div class="in-app-banner-feedback" id="in-app-feedback" aria-live="polite"></div>
+</div>
+
+<script>
+(function(){
+  // Detection runs at boot. We only show the banner once per session
+  // (sessionStorage flag set on dismiss or after a successful copy).
+  function isIOS() {
+    return /iPhone|iPad|iPod/.test(navigator.userAgent);
+  }
+  function isInAppBrowser() {
+    if (!isIOS()) return false;
+    var ua = navigator.userAgent;
+    // Chrome iOS supports PWA install (top-right share button) — do NOT
+    // surface the banner there. The landing's install modal handles it.
+    if (/CriOS/.test(ua)) return false;
+    // Browsers without PWA install support OR known in-app browsers
+    // (FB, IG, Twitter, Line, Firefox iOS, Edge iOS) — banner them
+    if (/FxiOS|EdgiOS|FBAV|FBAN|Twitter|Instagram|Line\//.test(ua)) return true;
+    // WKWebView without the Safari/ version token = generic in-app
+    // browser (Gmail iOS lives in this bucket). Real Mobile Safari
+    // always ships "Safari/<version>" in its UA, so the absence is a
+    // strong signal of a non-Safari WKWebView with no install path.
+    if (!/Safari\//.test(ua)) return true;
+    return false;
+  }
+  function show() {
+    var el = document.getElementById('in-app-banner');
+    if (el) el.classList.add('active');
+  }
+  // Public functions used by inline onclick handlers
+  window.inAppDismiss = function(){
+    var el = document.getElementById('in-app-banner');
+    if (el) el.classList.remove('active');
+    try { sessionStorage.setItem('coachai_inapp_dismissed','1'); } catch(e){}
+  };
+  window.inAppCopyUrl = function(){
+    var url = window.location.href;
+    var fb = document.getElementById('in-app-feedback');
+    function ok(){ if (fb) fb.textContent = '✓ Link copiado — pegalo en Safari'; }
+    function fail(){ if (fb) fb.textContent = 'No se pudo copiar — el link es: ' + url; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(ok, fail);
+    } else {
+      // Fallback for older WebViews
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = url; ta.setAttribute('readonly','');
+        ta.style.position = 'absolute'; ta.style.left = '-9999px';
+        document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+        ok();
+      } catch(e) { fail(); }
+    }
+  };
+  function init() {
+    if (!isInAppBrowser()) return;
+    try { if (sessionStorage.getItem('coachai_inapp_dismissed') === '1') return; } catch(e){}
+    show();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
 </script>
 
 <div class="landing-wrapper" id="landing-wrapper">

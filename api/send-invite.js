@@ -224,6 +224,16 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
             </td>
           </tr>
 
+          <!-- iOS install hint — Gmail/FB/IG in-app browsers can't install
+               a PWA; the user needs to open the link in Safari or Chrome. -->
+          <tr>
+            <td bgcolor="#ffffff" style="background:#ffffff;padding:0 32px 12px;">
+              <div style="font-size:12px;color:#5a5a70;line-height:1.55;text-align:center;padding:10px 14px;background:#fff8e8;border:1px solid #f0d28a;border-radius:8px;">
+                📌 <strong style="color:#1c1c2e;">Desde iPhone</strong>, copiá este link y abrilo en <strong style="color:#1c1c2e;">Safari</strong> o <strong style="color:#1c1c2e;">Chrome</strong> para poder instalar la app en tu pantalla de inicio.
+              </div>
+            </td>
+          </tr>
+
           <!-- CTA -->
           <tr>
             <td align="center" bgcolor="#ffffff" style="background:#ffffff;padding:0 32px 26px;">
