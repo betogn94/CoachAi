@@ -280,6 +280,20 @@ body.theme-king .onb-track .step-panel textarea:focus {
 }
 body.theme-king .onb-track .step-panel input::placeholder,
 body.theme-king .onb-track .step-panel textarea::placeholder { color: var(--muted) !important; }
+/* iOS Safari renders <select> with native chrome that paints over the
+   right edge of the border, making it look "missing a piece". Strip
+   the native appearance and paint our own coral chevron via background
+   so the border renders cleanly across all platforms. */
+body.theme-king .onb-track .step-panel select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23FF4F7B' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 14px !important;
+  padding-right: 38px !important;
+}
 
 /* Chip groups (objetivo, comidas, restricciones, etc) */
 body.theme-king .chip {
@@ -369,14 +383,24 @@ body.theme-king .onb-next-btn *,
 body.theme-king .btn-next,
 body.theme-king .btn-next * { color: #fff !important; }
 
-/* Foto inicial upload (step 5) — dashed violet → dashed coral */
-body.theme-king .onb-track .foto-upload-area {
+/* Foto inicial upload (step 5) — dashed violet → dashed coral.
+   Scope to the EMPTY state only (placeholder visible) so the loaded
+   state — which removes the dashed border via :has() — isn't fought
+   back into existence by our overrides. */
+body.theme-king .onb-track .foto-upload-area:not(:has(#foto-upload-placeholder[style*="none"])) {
   border: 2px dashed rgba(255,79,123,0.40) !important;
   background: rgba(255,79,123,0.04) !important;
 }
-body.theme-king .onb-track .foto-upload-area:hover {
+body.theme-king .onb-track .foto-upload-area:not(:has(#foto-upload-placeholder[style*="none"])):hover {
   border-color: rgba(255,79,123,0.65) !important;
   background: rgba(255,79,123,0.08) !important;
+}
+/* When the photo has been loaded, no border / no tint — let the image
+   sit clean. The base CSS already does this via :has(); we just have to
+   not stomp on it with our overrides. */
+body.theme-king .onb-track .foto-upload-area:has(#foto-upload-placeholder[style*="none"]) {
+  border: none !important;
+  background: none !important;
 }
 body.theme-king .onb-track .foto-upload-icon { color: var(--accent) !important; opacity: 0.8 !important; }
 body.theme-king .onb-track .foto-upload-label { color: var(--muted) !important; }
@@ -19195,10 +19219,20 @@ window.addEventListener('DOMContentLoaded', () => {
   // iterate on the onboarding theme from a phone without creating a
   // throwaway DB user. Strips the param from the URL after read and
   // wipes the session so tryAutoLogin can't yank us back to home.
+  // Preview is persisted in localStorage so refreshes during a preview
+  // session stay on the onboarding form. Pass ?onboarding=clear (or visit
+  // the regular landing via ?logout=1 without the preview flag) to exit.
+  const LS_PREVIEW_ONB = 'coachai_preview_onboarding_v1';
   let _previewOnboarding = false;
   try {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('onboarding') === 'preview') {
+    const onbParam = params.get('onboarding');
+    if (onbParam === 'preview') {
+      localStorage.setItem(LS_PREVIEW_ONB, '1');
+    } else if (onbParam === 'clear' || onbParam === 'off') {
+      localStorage.removeItem(LS_PREVIEW_ONB);
+    }
+    if (localStorage.getItem(LS_PREVIEW_ONB) === '1') {
       _previewOnboarding = true;
       localStorage.removeItem(LS_SESSION);
       document.getElementById('landing-wrapper').style.display = 'none';
@@ -19206,13 +19240,8 @@ window.addEventListener('DOMContentLoaded', () => {
       document.querySelector('.progress-bar-container').style.display = 'block';
       document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
       document.querySelector('.step-panel')?.classList.add('active');
-      // Hide the back button on step 1 (no previous step)
       const backBtn = document.getElementById('onb-back-btn');
       if (backBtn) backBtn.classList.add('hidden');
-      // Initialize the slider state so morphOnboardingHeight + arrow
-      // visibility match what the normal onboarding flow would produce.
-      // Without this, the viewport height stays uncontrolled and the
-      // panel floats with a big cream gap below it before the buttons.
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           try {
@@ -19221,6 +19250,10 @@ window.addEventListener('DOMContentLoaded', () => {
           } catch (e) { console.warn('[preview] init slider:', e); }
         });
       });
+    }
+    // Strip the param so the URL stays clean — the localStorage flag
+    // is what keeps the preview alive across refreshes.
+    if (onbParam) {
       const url = new URL(window.location.href);
       url.searchParams.delete('onboarding');
       window.history.replaceState({}, '', url.toString());
