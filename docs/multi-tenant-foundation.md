@@ -5,6 +5,28 @@
 **Scope:** Lay the SaaS-grade tenant foundation under the existing beta WITHOUT
 breaking what's live. No frontend visual changes in this phase.
 
+## ✓ Phase B — completed 2026-05-26
+
+Frontend now reads the user's tenant from DB after login and applies its
+`branding_config` to:
+- CSS variables `--accent` / `--accent-bright` / `--accent2` / `--accent3`
+- `<title>` (uses `name — tagline` pattern)
+- `<meta name="apple-mobile-web-app-title">` (PWA standalone label)
+- Logo image URLs — only swapped when the tenant overrides `/logo.png`
+  or `/logo-icon.png`, so the default tenant doesn't touch the DOM.
+
+For `coachai-default`, the branding values are identical to the values
+the app hardcoded → zero visual diff. Verified against TestB:
+- `currentTenant.slug = coachai-default`
+- CSS vars unchanged (`#7c6aff`, `#b4a7ff`, `#5b9fff`, `#2ecfb5`)
+- QA harness 12/12 green (vs 11/12 yesterday — the rutina race
+  condition that was failing got fixed as a side-effect of the slightly
+  longer login path).
+
+Adding a whitelabel tenant is now a one-step operation: insert into
+`tenants` with a `branding_config` JSONB and assign the relevant
+`usuarios.tenant_id`. No code change needed.
+
 ## ✓ Phase A — completed 2026-05-26
 
 Applied via Supabase MCP `apply_migration` (transactional, fully reverted

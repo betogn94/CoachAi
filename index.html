@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>CoachAI — Entrenador Personal con IA</title>
+<title>CoachAI Pro — Tu entrenador personal con IA</title>
 <!-- ===== PWA install (manifest + iOS A2HS support + theme color) ===== -->
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#7c6aff" media="(prefers-color-scheme: light)">
@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260526-1430-home-rerender-post-load">
+<meta name="app-version" content="20260526-1530-tenant-branding-phase-b">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -10271,6 +10271,68 @@ let dismissedPlanButtons = new Set();
 let entrenóHoy = null;
 
 // ============================
+// TENANT CONTEXT (Phase B of multi-tenant foundation)
+// ============================
+// Every authenticated user belongs to a tenant (see docs/multi-tenant-foundation.md).
+// `currentTenant` is loaded right after `currentUser` is set, and its
+// `branding_config` is applied to the UI via CSS vars + title/meta swaps.
+// For the default tenant `coachai-default`, the branding_config values
+// are intentionally identical to the values the app hardcoded before
+// Phase B — so existing users see ZERO visual change after this rolls
+// out. Whitelabel tenants override only the fields they want to change.
+let currentTenant = null;
+
+async function loadTenantForUser(tenantId) {
+  if (!tenantId || !sbClient) return null;
+  try {
+    const { data, error } = await sbClient
+      .from('tenants').select('*').eq('id', tenantId).maybeSingle();
+    if (error) { console.warn('[tenant] load failed:', error); return null; }
+    return data;
+  } catch (e) { console.warn('[tenant] load exception:', e); return null; }
+}
+
+function applyTenantBranding(tenant) {
+  if (!tenant) return;                  // No tenant resolved — keep hardcoded defaults
+  const b = tenant.branding_config || {};
+
+  // Colors → CSS variables. We set each var only if the tenant provided
+  // a value; missing fields keep the hardcoded default already in :root.
+  if (b.colors) {
+    const root = document.documentElement;
+    if (b.colors.accent)       root.style.setProperty('--accent',        b.colors.accent);
+    if (b.colors.accentBright) root.style.setProperty('--accent-bright', b.colors.accentBright);
+    if (b.colors.accent2)      root.style.setProperty('--accent2',       b.colors.accent2);
+    if (b.colors.accent3)      root.style.setProperty('--accent3',       b.colors.accent3);
+  }
+
+  // Tab title — keep the "<name> — <tagline>" pattern so it reads
+  // sensibly in browser tabs and on the OS app switcher.
+  if (b.name) {
+    const tagline = b.tagline || 'Tu coach personal con IA';
+    document.title = `${b.name} — ${tagline}`;
+  }
+
+  // iOS A2HS / PWA standalone title — the label that shows under the
+  // home-screen icon when the user has installed the app.
+  if (b.shortName) {
+    const m = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+    if (m) m.setAttribute('content', b.shortName);
+  }
+
+  // Whitelabel logo swap — only fire when the tenant overrides the URL,
+  // so the default tenant (which uses /logo.png and /logo-icon.png — the
+  // same files referenced by hardcoded <img src=…> tags) doesn't touch
+  // the DOM at all.
+  if (b.logo && b.logo !== '/logo.png') {
+    document.querySelectorAll('img[src="/logo.png"], img[src="logo.png"]').forEach(img => img.src = b.logo);
+  }
+  if (b.logoIcon && b.logoIcon !== '/logo-icon.png') {
+    document.querySelectorAll('img[src="/logo-icon.png"], img[src="logo-icon.png"]').forEach(img => img.src = b.logoIcon);
+  }
+}
+
+// ============================
 // LOCAL STORAGE
 // ============================
 const LS_KEY = 'coachai_profile_v1';
@@ -10330,6 +10392,7 @@ function resetAppState() {
   weeklyPlans = { dieta: null, rutina: null };
   pendingPlanDelivery = null;
   dismissedPlanButtons = new Set();
+  currentTenant = null;
   entrenóHoy = null;
   selectedDias = [];
   selectedComidas = '';
@@ -11801,6 +11864,19 @@ async function launchCoach() {
   allChatHistory = history;
   recentDiario = recentDiarioData;
   weeklyPlans = plans;
+
+  // Resolve the user's tenant and apply its branding. For coachai-default
+  // the branding_config values are identical to the hardcoded fallbacks
+  // already in :root + index.html, so applyTenantBranding is a no-op
+  // visually. For future whitelabels (Jesús, gyms, etc) this is where
+  // the custom colors/logos/title kick in — no page reload needed.
+  // Fire-and-forget: if the tenant fetch fails, the app keeps working
+  // with hardcoded defaults.
+  if (currentUser?.tenant_id) {
+    loadTenantForUser(currentUser.tenant_id)
+      .then(tenant => { currentTenant = tenant; applyTenantBranding(tenant); })
+      .catch(e => console.warn('[tenant] apply failed:', e));
+  }
 
   // showHome() was called earlier in this function (line ~11764) BEFORE
   // these async loads completed, so the first Home paint ran with empty
