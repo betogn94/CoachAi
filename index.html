@@ -10054,24 +10054,27 @@ footer {
       return;
     }
     // ────────────────────────────────────────────────────────────────
-    // TEMPORARY (2026-05-26 night): paint EVERY first visit in KING.
+    // TEMPORARY (2026-05-26 night): FORCE KING for every login screen.
     //
-    // Tonight every new invite Beto sends goes to a Jesús client. The
-    // tenant routing for ?tenant=jesus works end-to-end, but if anything
-    // upstream silently fails (Gmail strips the querystring, a clienta
-    // copy-pastes the URL without it, a share-link drops it, etc.) we
-    // want the FAILURE MODE to still be the KING landing — never the
-    // CoachAI default. Tomorrow when the routing is fully confirmed
-    // bulletproof, REMOVE this fallback so visitors with no tenant info
-    // see CoachAI default again.
+    // Tonight every new invite Beto sends is for a Jesús client. Beto
+    // explicitly asked to "always paint the login KING" so there's zero
+    // margin for error if anything upstream fails (?tenant param
+    // stripped by Gmail, copy-paste loses it, screenshot OCR loses it,
+    // user types the URL from memory, etc.).
     //
-    // Trade-off accepted: existing CoachAI users (forozco2, farfan…,
-    // jesusbabot2) will see ~500ms of KING on the landing before the
-    // async resolvePreviewTenant figures out their actual tenant and
-    // calls applyTenantBranding to flip back. Beto explicitly OK'd it
-    // ("la gente que ingrese hoy es toda de KING").
+    // Override is unconditional — ignores any ?tenant param AND any
+    // LS_PREVIEW_TENANT value. The post-login path is what flips the
+    // user to their actual tenant: applyTenantBranding runs after
+    // launchCoach() with the user's tenants row, and its non-bodyClass
+    // cleanup block (see function below) strips the theme-king class
+    // + KING-applied CSS vars when the user is on coachai-default.
+    //
+    // Tomorrow morning (2026-05-27): DELETE this single-line override
+    // so the script falls back to the conditional `!slug` / known-slug
+    // behavior again. Marked TEMPORARY in lowercase too so a `grep
+    // TEMPORARY` finds it.
     // ────────────────────────────────────────────────────────────────
-    if (!slug) slug = 'jesus';
+    slug = 'jesus';
     // Hardcoded synchronous palettes for each whitelabel. Must match the
     // colors in the tenant's branding_config so the post-fetch overlay is
     // a no-op (or just adds the logos / manifest / etc.). Bonus: when the
@@ -12282,6 +12285,25 @@ function applyTenantBranding(tenant) {
     if (b.bodyClass === 'theme-king' && typeof wrapKingSelects === 'function') {
       try { wrapKingSelects(); } catch (e) {}
     }
+  } else {
+    // No bodyClass on the incoming tenant → strip any whitelabel class
+    // that might have been applied SYNCHRONOUSLY at first paint and
+    // reset the KING-applied inline CSS vars on <html> so :root defaults
+    // take over. This matters because the temporary night-fallback in
+    // the inline script at the top of <body> paints theme-king + KING
+    // vars on EVERY login — without this cleanup, an existing CoachAI
+    // user logging in would stay stuck in the cream/coral overlay
+    // forever after login. Keep SYNC_VARS in sync with the THEMES
+    // object in that script. Removing tomorrow when the night-fallback
+    // is reverted is safe too (this becomes a defensive no-op).
+    document.body.classList.remove('theme-king');
+    var SYNC_VARS = [
+      '--bg','--surface','--surface2','--border',
+      '--accent','--accent-bright','--accent2','--accent3',
+      '--text','--muted','--muted2','--success'
+    ];
+    var rootEl = document.documentElement;
+    SYNC_VARS.forEach(function(v){ rootEl.style.removeProperty(v); });
   }
 
   // Colors → CSS variables. We set each var only if the tenant provided
