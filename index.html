@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260526-0230-chat-cleanup">
+<meta name="app-version" content="20260526-0245-plan-btn-instant-hide">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11785,6 +11785,19 @@ function sendQuick(text) {
   sendMessage();
 }
 
+// Quick-button variant for plan requests (dieta / rutina). Hides the matching
+// button BEFORE the AI replies so the chat footer reflows immediately — the
+// user gets visual confirmation that the request is in flight. We use the
+// existing pendingPlanDelivery flag (set by sendToAI on user message detection
+// anyway) so refreshQuickButtons can suppress the button while we wait. If the
+// AI request fails, the catch block clears the flag + refreshes, restoring
+// the button so the user can retry.
+function sendQuickPlan(tipo, text) {
+  pendingPlanDelivery = tipo;
+  refreshQuickButtons();
+  sendQuick(text);
+}
+
 function handleKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 }
@@ -11984,6 +11997,12 @@ async function sendToAI(userMessage, isFirst = false) {
       conversationHistory.pop();
       todayConversation.pop();
     }
+    // If the user had triggered a plan request (button click), the button was
+    // hidden optimistically — restore it so they can retry.
+    if (pendingPlanDelivery) {
+      pendingPlanDelivery = null;
+      refreshQuickButtons();
+    }
   }
 
   sendBtn.disabled = false;
@@ -12015,12 +12034,14 @@ function refreshQuickButtons() {
   // A plan is "active" if it exists AND has NOT been closed by a subsequent
   // week analysis. Once active, we DROP the button entirely (the user already
   // got the plan; the chat-area should free up for conversation, and the plan
-  // remains accessible from Perfil). Closed/missing plans still show the
-  // "request" button so the user can ask for a fresh one. If only one button
-  // remains, .qbtn-card:only-child caps its width so the centered container
-  // doesn't stretch it edge-to-edge.
-  const dietaActiva  = weeklyPlans.dieta  && !weeklyPlans.dieta.closed;
-  const rutinaActiva = weeklyPlans.rutina && !weeklyPlans.rutina.closed;
+  // remains accessible from Perfil). We ALSO drop the button immediately when
+  // the request is in flight (pendingPlanDelivery === tipo) so the user gets
+  // instant visual feedback on tap — without waiting for the AI to respond.
+  // Closed/missing plans still show the "request" button so the user can ask
+  // for a fresh one. If only one button remains, .qbtn-card:only-child caps
+  // its width so the centered container doesn't stretch it edge-to-edge.
+  const dietaActiva  = (weeklyPlans.dieta  && !weeklyPlans.dieta.closed)  || pendingPlanDelivery === 'dieta';
+  const rutinaActiva = (weeklyPlans.rutina && !weeklyPlans.rutina.closed) || pendingPlanDelivery === 'rutina';
 
   // Inline SVG icons (matches the bottom-nav language: target-style plate
   // for nutrition, dumbbell for training)
@@ -12031,7 +12052,7 @@ function refreshQuickButtons() {
   const rutinaText = { title: isEs ? 'Rutina' : 'Routine', sub: isEs ? 'de la semana' : 'of the week' };
 
   const dietaBtn = dietaActiva ? '' : `
-    <button class="qbtn-card is-dieta" onclick="sendQuick('${qDieta}')">
+    <button class="qbtn-card is-dieta" onclick="sendQuickPlan('dieta', '${qDieta}')">
       <span class="qbtn-card-ico">${BOWL_ICON}</span>
       <span class="qbtn-card-text">
         <span class="qbtn-card-title">${dietaText.title}</span>
@@ -12041,7 +12062,7 @@ function refreshQuickButtons() {
     </button>`;
 
   const rutinaBtn = rutinaActiva ? '' : `
-    <button class="qbtn-card is-rutina" onclick="sendQuick('${qRutina}')">
+    <button class="qbtn-card is-rutina" onclick="sendQuickPlan('rutina', '${qRutina}')">
       <span class="qbtn-card-ico">${DUMBBELL_ICON}</span>
       <span class="qbtn-card-text">
         <span class="qbtn-card-title">${rutinaText.title}</span>
