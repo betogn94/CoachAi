@@ -38,10 +38,24 @@ function tenantEmailTheme(slug) {
       bodyBg:         '#FDF7F8',
       cardBorder:     'rgba(255,79,123,0.20)',
       cardShadow:     'rgba(255,79,123,0.14)',
-      // Hero band gradient (3-stop): bright → coral → coral-deep
-      gradient:       'linear-gradient(135deg,#FF6B95 0%,#FF4F7B 50%,#E03A6F 100%)',
-      gradientFallback: '#FF4F7B',
-      // CTA button (2-stop): coral → coral-deep
+      // Hero band gradient — IMPORTANT: the COACHAI Pro wordmark logo
+      // itself is in coral (the brand co-branding decision recolored the
+      // wordmark for KING). Putting the coral wordmark on a vivid coral
+      // gradient makes it nearly invisible. So we soften the hero into
+      // a cream → light-rose wash that mirrors the app's own --bg +
+      // --surface2 palette + the PWA-install icon background — both
+      // already battle-tested for legibility of coral marks. The 3-stop
+      // gradient keeps a sense of depth without saturating to a level
+      // where the logo disappears.
+      gradient:       'linear-gradient(135deg,#FFF6F9 0%,#FFE7EE 50%,#FFD7E4 100%)',
+      gradientFallback: '#FFE7EE',
+      // Tagline ("TU COACH PERSONAL CON IA") sits below the wordmark on
+      // the hero. The default uses rgba(255,255,255,0.95) (white on the
+      // dark violet hero); on the new cream hero we need a dark-ish
+      // coral so it reads with AA contrast against the soft bg.
+      taglineColor:   '#7a2842',
+      // CTA button (2-stop): coral → coral-deep — kept VIVID coral
+      // because the white CTA text needs the high-contrast dark bg.
       gradientCta:    'linear-gradient(135deg,#FF4F7B 0%,#E03A6F 100%)',
       ctaFallback:    '#FF4F7B',
       ctaShadow:      'rgba(255,79,123,0.30)',
@@ -71,6 +85,8 @@ function tenantEmailTheme(slug) {
     cardShadow:     'rgba(124,106,255,0.10)',
     gradient:       'linear-gradient(135deg,#7c6aff 0%,#5b9fff 50%,#2ecfb5 100%)',
     gradientFallback: '#7c6aff',
+    // Default tagline uses near-white on the dark violet hero — kept as-is
+    taglineColor:   'rgba(255,255,255,0.95)',
     gradientCta:    'linear-gradient(135deg,#7c6aff 0%,#5b9fff 100%)',
     ctaFallback:    '#7c6aff',
     ctaShadow:      'rgba(124,106,255,0.28)',
@@ -151,7 +167,7 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
           <tr>
             <td align="center" bgcolor="${theme.gradientFallback}" style="background:${theme.gradientFallback};background:${theme.gradient};padding:36px 24px 30px;text-align:center;">
               <img src="${theme.logoUrl}" alt="CoachAI Pro" width="280" style="display:block;width:280px;max-width:78%;height:auto;margin:0 auto 10px;border:0;outline:none;text-decoration:none;">
-              <div style="font-size:12.5px;color:rgba(255,255,255,0.95);letter-spacing:2px;text-transform:uppercase;font-weight:600;margin-top:6px;">Tu coach personal con IA</div>
+              <div style="font-size:12.5px;color:${theme.taglineColor};letter-spacing:2px;text-transform:uppercase;font-weight:600;margin-top:6px;">Tu coach personal con IA</div>
             </td>
           </tr>
 
