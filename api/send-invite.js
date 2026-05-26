@@ -17,7 +17,25 @@ const ALLOWED_ORIGINS = [
   'https://coach-ai-pearl.vercel.app',
 ];
 
-function buildEmail({ nombre, invitadoPor }) {
+// Whitelist of tenant slugs we accept in the body. We DON'T blindly stuff
+// arbitrary input into the URL — that would let a malformed admin payload
+// inject querystrings into the CTA link. Anything not on this list falls
+// back to no querystring (CoachAI default landing).
+const VALID_TENANT_SLUGS = new Set(['coachai-default', 'jesus']);
+
+function buildEmail({ nombre, invitadoPor, tenantSlug }) {
+  // Pass-through tenant info only if it's a known slug AND not the default
+  // (the default landing is what we'd hit without the param, so adding
+  // ?tenant=coachai-default would be redundant noise).
+  const safeTenantSlug =
+    typeof tenantSlug === 'string' && VALID_TENANT_SLUGS.has(tenantSlug) && tenantSlug !== 'coachai-default'
+      ? tenantSlug
+      : null;
+  // Build the URL the CTA + every link in the email points to. With a
+  // whitelabel tenant we append ?tenant=<slug> so the invitee's first
+  // tap on the email shows them the branded landing instead of the
+  // generic CoachAI one — they see the right brand BEFORE typing email.
+  const appUrl = safeTenantSlug ? `${APP_URL}/?tenant=${encodeURIComponent(safeTenantSlug)}` : APP_URL;
   // Strip HTML angle brackets + the Unicode replacement char (U+FFFD = "?")
   // + C0/C1 control chars. Real admin-panel submissions are always clean UTF-8;
   // this is a defensive sanitizer for malformed test calls / weird inputs.
@@ -133,7 +151,7 @@ function buildEmail({ nombre, invitadoPor }) {
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td align="center" bgcolor="#7c6aff" style="background:#7c6aff;background:${gradientCta};border-radius:100px;box-shadow:0 6px 20px rgba(124,106,255,0.28);">
-                    <a href="${APP_URL}" target="_blank" style="display:inline-block;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;letter-spacing:0.8px;padding:16px 40px;border-radius:100px;">
+                    <a href="${appUrl}" target="_blank" style="display:inline-block;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;letter-spacing:0.8px;padding:16px 40px;border-radius:100px;">
                       ENTRAR A COACHAI &rarr;
                     </a>
                   </td>
@@ -150,7 +168,7 @@ function buildEmail({ nombre, invitadoPor }) {
                   <td style="padding:14px 18px;">
                     <div style="font-size:10.5px;font-weight:700;color:#1ba88f;letter-spacing:1.6px;text-transform:uppercase;margin-bottom:6px;">Cómo entrar</div>
                     <div style="font-size:13.5px;color:#2c4a40;line-height:1.65;">
-                      Ingresá a <a href="${APP_URL}" style="color:#1ba88f;text-decoration:none;font-weight:600;">coachaipro.ai</a> con <strong style="color:#1c1c2e;">este mismo email</strong>. Sin clave, sin formularios largos — la app te reconoce.
+                      Ingresá a <a href="${appUrl}" style="color:#1ba88f;text-decoration:none;font-weight:600;">coachaipro.ai</a> con <strong style="color:#1c1c2e;">este mismo email</strong>. Sin clave, sin formularios largos — la app te reconoce.
                     </div>
                   </td>
                 </tr>
@@ -176,7 +194,7 @@ function buildEmail({ nombre, invitadoPor }) {
             <td bgcolor="#ffffff" style="background:#ffffff;padding:18px 32px 22px;border-top:1px solid rgba(124,106,255,0.14);">
               <div style="font-size:11px;color:#9494a8;line-height:1.55;text-align:center;">
                 Recibiste este mail porque te invitamos a la beta cerrada de CoachAI.<br>
-                <a href="${APP_URL}" style="color:#7c6aff;text-decoration:none;">coachaipro.ai</a>
+                <a href="${appUrl}" style="color:#7c6aff;text-decoration:none;">coachaipro.ai</a>
               </div>
             </td>
           </tr>
@@ -201,7 +219,7 @@ Eso es CoachAI. Y te queremos como uno de los primeros en probarla.
 🤖 Coach AI 24/7 en el bolsillo
 📊 Progreso real medido semana a semana
 
-→ ENTRAR A COACHAI: ${APP_URL}
+→ ENTRAR A COACHAI: ${appUrl}
 
 Cómo entrar: ingresá a coachaipro.ai con este mismo email. Sin clave, sin formularios — la app te reconoce.
 
@@ -209,7 +227,7 @@ Cómo entrar: ingresá a coachaipro.ai con este mismo email. Sin clave, sin form
 
 Te esperamos.
 — Equipo CoachAI
-${APP_URL}`;
+${appUrl}`;
 
   return { subject, html, text };
 }
@@ -233,14 +251,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { email, nombre, invitadoPor } = req.body || {};
+    const { email, nombre, invitadoPor, tenantSlug } = req.body || {};
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return res.status(400).json({ error: 'invalid_email' });
     }
     const cleanEmail = email.trim().toLowerCase();
 
     const resend = new Resend(apiKey);
-    const { subject, html, text } = buildEmail({ nombre, invitadoPor });
+    const { subject, html, text } = buildEmail({ nombre, invitadoPor, tenantSlug });
 
     const FROM = process.env.RESEND_FROM || 'CoachAI <onboarding@resend.dev>';
     const REPLY_TO = process.env.RESEND_REPLY_TO; // optional

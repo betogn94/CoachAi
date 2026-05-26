@@ -11133,6 +11133,18 @@ footer {
           <input id="beta-inv-email" class="beta-inv-input" placeholder="email@ejemplo.com" maxlength="120" inputmode="email">
           <button class="beta-inv-add" onclick="betaAddInvitado()">+ Invitar</button>
         </div>
+        <!-- Tenant selector — which whitelabel the invitee belongs to. Default
+             is CoachAI Pro (default). Whitelabel clients (Jesús → KING etc.)
+             get assigned to their tenant_slug at registration time; the
+             invite mail's CTA URL also carries ?tenant=<slug> so the landing
+             paints in their brand BEFORE they type their email. -->
+        <div class="beta-tenant-row" style="display:flex;align-items:center;gap:10px;margin-top:8px;font-size:12.5px;color:var(--muted)">
+          <span style="white-space:nowrap">Tenant:</span>
+          <select id="beta-inv-tenant" class="beta-inv-input" style="flex:1;cursor:pointer">
+            <option value="coachai-default" selected>CoachAI Pro · default</option>
+            <option value="jesus">CoachAI Pro · KING (Jesús)</option>
+          </select>
+        </div>
         <!-- Cliente migrada: toggle + 2 textareas para precargar rutina/dieta del coach.
              Al completar el onboarding la clienta encuentra su plan ya cargado en Mi Entreno + Mi Alimentación. -->
         <label class="beta-migrada-toggle" style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none">
@@ -11307,9 +11319,12 @@ async function loginOrRegister(email, nombre) {
   // applies to NEW signups so we never lock out anyone who already onboarded.
   if (existing) { currentUser = existing; return { isNew: false, user: existing }; }
 
-  // Closed beta: a brand-new email must be on the invite allowlist.
+  // Closed beta: a brand-new email must be on the invite allowlist. We also
+  // pull `tenant_slug` so the new usuarios row inherits the tenant the
+  // admin chose at invite time (whitelabel clients land on their own
+  // tenant from the very first session).
   const { data: invite } = await sbClient
-    .from('beta_invitados').select('email').eq('email', email).maybeSingle();
+    .from('beta_invitados').select('email,tenant_slug').eq('email', email).maybeSingle();
   if (!invite) {
     return { notInvited: true };
   }
@@ -11322,7 +11337,20 @@ async function loginOrRegister(email, nombre) {
     return { betaFull: true };
   }
 
-  const { data: newUser, error } = await sbClient.from('usuarios').insert([{ email, nombre }]).select().single();
+  // Resolve the invite's tenant_slug → tenants.id so the new user gets the
+  // right tenant. If the slug is missing or doesn't resolve we fall back to
+  // letting the DB default fire (the usuarios.tenant_id DEFAULT is wired to
+  // default_tenant_id() → coachai-default), so failure here is non-fatal.
+  let inviteTenantId = null;
+  if (invite.tenant_slug && invite.tenant_slug !== 'coachai-default') {
+    const { data: tnt } = await sbClient
+      .from('tenants').select('id').eq('slug', invite.tenant_slug).maybeSingle();
+    if (tnt && tnt.id) inviteTenantId = tnt.id;
+  }
+  const insertRow = { email, nombre };
+  if (inviteTenantId) insertRow.tenant_id = inviteTenantId;
+
+  const { data: newUser, error } = await sbClient.from('usuarios').insert([insertRow]).select().single();
   if (error) throw error;
   currentUser = newUser;
   return { isNew: true, user: newUser };
@@ -18929,6 +18957,11 @@ async function betaAddInvitado() {
   const coachName  = isMigrada ? document.getElementById('beta-inv-coach').value.trim() : '';
   const preRutina  = isMigrada ? document.getElementById('beta-inv-pre-rutina').value.trim() : '';
   const preDieta   = isMigrada ? document.getElementById('beta-inv-pre-dieta').value.trim() : '';
+  // Tenant the invitee will be assigned to at registration. Defaults to
+  // 'coachai-default' if the dropdown isn't present (defensive — older code
+  // paths and tests don't always render it).
+  const tenantSel  = document.getElementById('beta-inv-tenant');
+  const tenantSlug = (tenantSel && tenantSel.value) || 'coachai-default';
   try {
     const invitadoPor = currentUser?.email || 'admin';
     const { error } = await sbClient.from('beta_invitados')
@@ -18936,6 +18969,7 @@ async function betaAddInvitado() {
         email,
         nombre: nombre || null,
         invitado_por: invitadoPor,
+        tenant_slug: tenantSlug,
         migrada_de_coach: coachName || null,
         pre_rutina: preRutina || null,
         pre_dieta:  preDieta  || null,
@@ -18952,7 +18986,7 @@ async function betaAddInvitado() {
       const resp = await fetch('/api/send-invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, nombre: nombre || null, invitadoPor })
+        body: JSON.stringify({ email, nombre: nombre || null, invitadoPor, tenantSlug })
       });
       if (resp.ok) {
         mailStatus = ' · mail enviado 📬';
@@ -18975,6 +19009,10 @@ async function betaAddInvitado() {
     document.getElementById('beta-inv-pre-rutina').value = '';
     document.getElementById('beta-inv-pre-dieta').value = '';
     document.getElementById('beta-inv-migrada-fields').style.display = 'none';
+    // Reset tenant dropdown back to default so a follow-up invite doesn't
+    // silently inherit the previous one's tenant.
+    const tenantResetSel = document.getElementById('beta-inv-tenant');
+    if (tenantResetSel) tenantResetSel.value = 'coachai-default';
     await loadBetaPanel();
   } catch (e) {
     msg.textContent = 'Error de conexión.'; msg.classList.add('err');
