@@ -330,29 +330,42 @@ body.theme-king .objetivo-card.selected {
 body.theme-king .objetivo-title { color: var(--text) !important; }
 body.theme-king .objetivo-sub { color: var(--muted) !important; }
 
-/* Nav buttons (← Volver / Siguiente →) */
+/* Nav buttons. The onboarding uses .onb-back-btn / .onb-next-btn (NOT
+   the generic .btn-back/.btn-next which live elsewhere). Both classes
+   are overridden here. */
+body.theme-king .onb-back-btn,
 body.theme-king .btn-back {
-  background: transparent !important;
+  background: var(--surface) !important;
   border: 1px solid var(--border) !important;
   color: var(--muted) !important;
+  -webkit-backdrop-filter: none !important;
+          backdrop-filter: none !important;
+  box-shadow: 0 1px 2px rgba(26,26,38,0.04) !important;
 }
+body.theme-king .onb-back-btn:hover,
 body.theme-king .btn-back:hover {
+  background: var(--surface) !important;
   border-color: var(--accent) !important;
   color: var(--accent) !important;
 }
+body.theme-king .onb-next-btn,
 body.theme-king .btn-next {
-  background: linear-gradient(135deg, var(--accent-bright), var(--accent), var(--accent3)) !important;
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
   color: #fff !important;
   box-shadow: 0 6px 18px rgba(255,79,123,0.32) !important;
 }
+body.theme-king .onb-next-btn:hover,
 body.theme-king .btn-next:hover {
-  box-shadow: 0 8px 24px rgba(255,79,123,0.42) !important;
+  box-shadow: 0 10px 28px rgba(255,79,123,0.45) !important;
 }
+body.theme-king .onb-next-btn:disabled,
 body.theme-king .btn-next:disabled {
   opacity: 0.4 !important;
   box-shadow: none !important;
 }
-/* Make sure descendant spans/svg inside btn-next don't inherit dark text */
+/* Make sure descendant spans/svg inside the next button don't inherit dark text */
+body.theme-king .onb-next-btn,
+body.theme-king .onb-next-btn *,
 body.theme-king .btn-next,
 body.theme-king .btn-next * { color: #fff !important; }
 
@@ -19177,8 +19190,45 @@ window.addEventListener('DOMContentLoaded', () => {
   // Phase C subdomain routing. Awaited so the branding lands before
   // tryAutoLogin potentially navigates to home.
   resolvePreviewTenant().catch(console.error);
+  // Dev convenience: visiting ?onboarding=preview forces the multi-step
+  // form visible immediately, skipping landing + auto-login. Lets us
+  // iterate on the onboarding theme from a phone without creating a
+  // throwaway DB user. Strips the param from the URL after read and
+  // wipes the session so tryAutoLogin can't yank us back to home.
+  let _previewOnboarding = false;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('onboarding') === 'preview') {
+      _previewOnboarding = true;
+      localStorage.removeItem(LS_SESSION);
+      document.getElementById('landing-wrapper').style.display = 'none';
+      document.querySelector('.form-wrapper').style.display = 'block';
+      document.querySelector('.progress-bar-container').style.display = 'block';
+      document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+      document.querySelector('.step-panel')?.classList.add('active');
+      // Hide the back button on step 1 (no previous step)
+      const backBtn = document.getElementById('onb-back-btn');
+      if (backBtn) backBtn.classList.add('hidden');
+      // Initialize the slider state so morphOnboardingHeight + arrow
+      // visibility match what the normal onboarding flow would produce.
+      // Without this, the viewport height stays uncontrolled and the
+      // panel floats with a big cream gap below it before the buttons.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          try {
+            if (typeof initOnboardingPanels === 'function') initOnboardingPanels();
+            if (typeof morphOnboardingHeight === 'function') morphOnboardingHeight();
+          } catch (e) { console.warn('[preview] init slider:', e); }
+        });
+      });
+      const url = new URL(window.location.href);
+      url.searchParams.delete('onboarding');
+      window.history.replaceState({}, '', url.toString());
+    }
+  } catch (e) { console.warn('[preview] onboarding:', e); }
   // Persistent login: if this device logged in before, resume automatically.
-  tryAutoLogin().catch(console.error);
+  // (Skipped in onboarding-preview mode so the form stays on screen.)
+  if (!_previewOnboarding) tryAutoLogin().catch(console.error);
 
   // ===== PWA install =====
   // Register the service worker so the app can be installed + show a branded
