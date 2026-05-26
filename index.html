@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260526-0345-scope-drawer-css">
+<meta name="app-version" content="20260526-0500-coachai-pro-logo">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6158,17 +6158,15 @@ footer {
   overflow-y: auto;
 }
 
-/* Landing top: show only the TEXT portion of the official logo via CSS crop */
+/* Landing top: render the full COACHAI Pro wordmark logo (PRO baked in). */
 .landing-logo {
   display: block;
-  width: 200px;
-  height: 60px;
+  width: 260px;
+  height: 56px;
   margin: 0 auto 8px;
   background-image: url('logo.png');
-  /* logo.png is 1700x386 (cropped tight). Text starts at x≈530 */
-  /* Scale by height: 60/386 = 0.1554 → full image becomes 264 x 60 */
-  background-size: 264px 60px;
-  background-position: -68px 0;
+  background-size: contain;
+  background-position: center;
   background-repeat: no-repeat;
   text-indent: -9999px;
   overflow: hidden;
