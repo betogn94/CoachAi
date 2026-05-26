@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260526-1330-rutina-parser-bullets">
+<meta name="app-version" content="20260526-1400-alim-target-redesign">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -5555,11 +5555,57 @@ footer {
 }
 
 /* ============ MI ALIMENTACIÓN — week view (mirror Mi Entreno) ============ */
-.alim-target-card { padding: 12px 16px; }
-.alim-target-info {
-  font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.8px;
-  color: var(--accent-bright); text-align: center;
+/* Daily-target card — KCAL + macros. Crystal-depth chrome matches
+   .cai-alim-summary below it (so the two cards sit together as a unit),
+   and the 4-stat grid inside reuses the same recipe as the seguimiento
+   semanal statbar: Bebas number + mono eyebrow + 1px vertical dividers. */
+.alim-target-card {
+  margin: 0 18px 12px;
+  padding: 14px 16px 12px;
+  background-color: rgba(20,20,32,0.55);
+  background-image:
+    linear-gradient(135deg, rgba(124,106,255,0.06) 0%, transparent 45%),
+    linear-gradient(225deg, rgba(46,207,181,0.04) 0%, transparent 45%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  box-shadow:
+    0 16px 50px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.09);
 }
+.alim-target-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; letter-spacing: 1.4px;
+  color: var(--accent-bright);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+.alim-target-stats { display: flex; gap: 10px; align-items: stretch; }
+.alim-target-stats .stat { flex: 1; text-align: center; }
+.alim-target-stats .stat .num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px; line-height: 1;
+  color: #fff; letter-spacing: 0.5px;
+}
+.alim-target-stats .stat .num.grad {
+  background: linear-gradient(135deg, #7c6aff, #5b9fff, #2ecfb5);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.alim-target-stats .stat .num .suf {
+  color: #54526e;
+  font-size: 14px;
+  margin-left: 1px;
+  -webkit-text-fill-color: #54526e;
+}
+.alim-target-stats .stat .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: .12em;
+  color: #54526e; text-transform: uppercase;
+  margin-top: 4px;
+}
+.alim-target-stats .sep { width: 1px; background: rgba(255,255,255,0.08); }
 .alim-day { transition: background 0.2s; }
 .alim-day.is-done { border-color: rgba(46,207,181,0.32); }
 .alim-day.is-done .semana-badge { background: rgba(46,207,181,0.18); color: var(--accent3); border-color: rgba(46,207,181,0.45); }
@@ -9486,9 +9532,12 @@ footer {
     <button onclick="showHome()" id="diario-back-btn" style="padding:8px 14px;border-radius:10px;background:rgba(255,255,255,0.025);border:1px solid rgba(124,106,255,0.18);color:var(--accent-bright);font-family:'JetBrains Mono', monospace;font-size:10.5px;letter-spacing:1px;display:flex;align-items:center;gap:6px;cursor:pointer">← INICIO</button>
   </div>
 
-  <!-- Target macros header (shown when dieta has a Target line). Kept for
-       back-compat with parseDietaContenido's header output. -->
-  <div class="chart-card coach-card alim-target-card" id="alim-target-card" style="display:none; margin: 0 18px 12px;">
+  <!-- Daily target card — 4-stat grid (KCAL · PROTE · CARBOS · GRASA) with
+       crystal-depth chrome. Populated by renderMiAlimentacion() from the
+       parseDietaContenido header. Inline style only carries the initial
+       hidden state; visual styling lives entirely in the .alim-target-card
+       CSS rule (avoids inheriting padding/margin from legacy chart-card). -->
+  <div class="alim-target-card" id="alim-target-card" style="display:none">
     <div class="alim-target-info" id="alim-target-info"></div>
   </div>
 
@@ -12355,9 +12404,30 @@ async function renderMiAlimentacion() {
   }
 
   // Target header (when the dieta has a "TOTAL ESTIMADO: Xkcal …" footer)
+  // Renders a 4-stat grid (KCAL · PROTE · CARBOS · GRASA) inside the
+  // crystal-depth card. Each stat shows the daily target as a big Bebas
+  // number + small mono label. KCAL gets the brand gradient treatment;
+  // macros are plain white with a muted "g" suffix.
   if (targetCard && targetInfo) {
     if (_alimHeader && _alimHeader.targetKcal) {
-      targetInfo.textContent = `🎯 ${_alimHeader.targetKcal} kcal · P:${_alimHeader.targetProt||'—'}g · C:${_alimHeader.targetCarbs||'—'}g · G:${_alimHeader.targetFat||'—'}g`;
+      const dash = '—';
+      const isEs = lang === 'es';
+      const fmt = (v) => (v != null ? String(v) : dash);
+      const macro = (v) => v != null
+        ? `${v}<span class="suf">g</span>`
+        : dash;
+      targetInfo.innerHTML = `
+        <div class="alim-target-eyebrow">${isEs ? 'TUS OBJETIVOS DIARIOS' : 'YOUR DAILY TARGETS'}</div>
+        <div class="alim-target-stats">
+          <div class="stat"><div class="num grad">${fmt(_alimHeader.targetKcal)}</div><div class="label">KCAL</div></div>
+          <div class="sep"></div>
+          <div class="stat"><div class="num">${macro(_alimHeader.targetProt)}</div><div class="label">${isEs ? 'PROTE' : 'PROTEIN'}</div></div>
+          <div class="sep"></div>
+          <div class="stat"><div class="num">${macro(_alimHeader.targetCarbs)}</div><div class="label">${isEs ? 'CARBOS' : 'CARBS'}</div></div>
+          <div class="sep"></div>
+          <div class="stat"><div class="num">${macro(_alimHeader.targetFat)}</div><div class="label">${isEs ? 'GRASA' : 'FAT'}</div></div>
+        </div>
+      `;
       targetCard.style.display = 'block';
     } else {
       targetCard.style.display = 'none';
