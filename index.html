@@ -10015,6 +10015,77 @@ footer {
 </head>
 <body>
 
+<!-- ============================================================
+     SYNCHRONOUS pre-paint tenant resolution.
+     ============================================================
+     The async resolvePreviewTenant() at the bottom of the file fires a
+     Supabase round-trip (~400-700ms) before it can apply the tenant
+     branding. During that window the landing renders in the default
+     theme — a Jesús-invitee tapping the email link sees the violet
+     CoachAI landing for half a second before it flips to KING. Worse,
+     fast users click INGRESAR before the branding lands and never
+     see KING on the login at all.
+     This inline script runs BEFORE the body's first paint. It reads
+     ?tenant=<slug> from the URL or localStorage, and if it matches a
+     known whitelabel slug, applies the CSS-overlay body class + the
+     bare-minimum CSS vars synchronously — no DB call required. The
+     async resolve later overlays the rest (logos, manifest, full
+     branding_config) on top, but the page never paints in default.
+     Known whitelabel slugs are hardcoded so we don't need DB for the
+     first paint. Adding a new whitelabel = add a slug + its base vars
+     to this block. ============================================ -->
+<script>
+(function(){
+  try {
+    var LS_PREVIEW_TENANT = 'coachai_preview_tenant_v1';
+    var params = new URLSearchParams(window.location.search);
+    var slug = params.get('tenant');
+    // Persist a fresh ?tenant=<slug> for subsequent reloads
+    if (slug) {
+      try { localStorage.setItem(LS_PREVIEW_TENANT, slug); } catch (e) {}
+    } else {
+      try { slug = localStorage.getItem(LS_PREVIEW_TENANT); } catch (e) {}
+    }
+    // Sentinels to clear the preview
+    if (slug === 'clear' || slug === 'default' || slug === 'coachai-default') {
+      try { localStorage.removeItem(LS_PREVIEW_TENANT); } catch (e) {}
+      return;
+    }
+    if (!slug) return;
+    // Hardcoded synchronous palettes for each whitelabel. Must match the
+    // colors in the tenant's branding_config so the post-fetch overlay is
+    // a no-op (or just adds the logos / manifest / etc.). Bonus: when the
+    // DB fetch fails or is slow, KING already looks correct.
+    var THEMES = {
+      'jesus': {
+        bodyClass: 'theme-king',
+        vars: {
+          '--bg':            '#FDF7F8',
+          '--surface':       '#FFFFFF',
+          '--surface2':      '#FFF0F4',
+          '--border':        '#FFE1E8',
+          '--accent':        '#FF4F7B',
+          '--accent-bright': '#FF6B95',
+          '--accent2':       '#FF6B95',
+          '--accent3':       '#E03A6F',
+          '--text':          '#1A1A26',
+          '--muted':         '#6B6B80',
+          '--muted2':        '#A9A9B8',
+          '--success':       '#E03A6F'
+        }
+      }
+    };
+    var theme = THEMES[slug];
+    if (!theme) return;
+    if (theme.bodyClass) document.body.classList.add(theme.bodyClass);
+    if (theme.vars) {
+      var root = document.documentElement;
+      for (var k in theme.vars) root.style.setProperty(k, theme.vars[k]);
+    }
+  } catch (e) { /* never break landing render */ }
+})();
+</script>
+
 <!-- Shared SVG <defs> for icons that reference brand gradients by id.
      Lives at document level so any <use href="#grad-brand"/> or stroke
      reference resolves regardless of where the consumer SVG is mounted. -->
@@ -20195,12 +20266,14 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('welcome-back').style.display = 'none';
   // Init Supabase early so it's ready when user clicks Ingresar
   initSupabase();
-  // Pre-login tenant resolution — if ?tenant=<slug> is in the URL or a
-  // previous one is cached in localStorage, fetch + apply its branding
-  // BEFORE the landing screen paints. This lets us preview Jesús's
-  // KING coral landing without first logging in. Stepping stone for
-  // Phase C subdomain routing. Awaited so the branding lands before
-  // tryAutoLogin potentially navigates to home.
+  // Pre-login tenant resolution — pulls the FULL branding_config from
+  // Supabase (logo URLs, manifest, apple-touch-icon, shortName, exact
+  // colors). The CRITICAL first-paint pieces (body.theme-king class +
+  // base CSS vars) are already applied synchronously by the inline
+  // <script> at the top of <body> so the landing never renders in
+  // default theme — that's the unflickerable hot path. This async
+  // resolve overlays the rest on top once it lands (~400-700ms later).
+  // Stepping stone for Phase C subdomain routing.
   resolvePreviewTenant().catch(console.error);
   // Dev convenience: visiting ?onboarding=preview forces the multi-step
   // form visible immediately, skipping landing + auto-login. Lets us
