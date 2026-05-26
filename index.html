@@ -290,28 +290,31 @@ body.theme-king .onb-track .step-panel textarea::placeholder { color: var(--mute
    on default state (the inset shadow from the input rule was casting
    a subtle inner edge that read as a broken border). */
 body.theme-king .onb-track .step-panel select {
-  /* iOS Safari + border-radius on <select> renders a phantom "tail"
-     past the rounded top-right corner — the rounded border ends but
-     iOS continues painting a thin line out to the chevron-bounding-box
-     edge, looking like a broken border. Square the corners (radius 0)
-     to dodge the issue; iOS renders rectangle-cornered selects with a
-     clean continuous border. The whitelabel still uses rounded inputs
-     elsewhere — only the dropdowns become square. */
+  /* iOS Safari's native <select> rendering is incompatible with full
+     borders + border-radius + appearance:none in every combination we
+     tried. The native chrome insists on painting parts of its own
+     bounding box on top of ours, producing "broken border" /
+     "tail past the chevron" / "border only around the chevron"
+     artifacts depending on which combo of overrides we use.
+     Pragmatic surrender: drop the box border entirely and use a
+     single bottom-underline as the visual affordance. iOS can't
+     break a single bottom border. */
   appearance: auto !important;
   -webkit-appearance: auto !important;
   -moz-appearance: auto !important;
-  background: var(--surface) !important;
+  background: transparent !important;
   background-image: none !important;
-  padding-right: 16px !important;
-  border: 1px solid var(--border) !important;
+  border: 0 !important;
+  border-bottom: 1.5px solid var(--border) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
   outline: none !important;
+  padding: 12px 4px !important;
   -webkit-tap-highlight-color: transparent !important;
 }
 body.theme-king .onb-track .step-panel select:focus {
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 0 3px rgba(255,79,123,0.16) !important;
+  border-bottom-color: var(--accent) !important;
+  box-shadow: none !important;
 }
 
 /* Chip groups (objetivo, comidas, restricciones, etc). The base
