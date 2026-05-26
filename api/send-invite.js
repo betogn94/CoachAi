@@ -8,7 +8,6 @@
 import { Resend } from 'resend';
 
 const APP_URL  = 'https://coachaipro.ai';
-const LOGO_URL = 'https://vmvhlgzwufkardaruutt.supabase.co/storage/v1/object/public/exercise-gifs/brand/coachai-logo.png';
 const ALLOWED_ORIGINS = [
   'https://coachaipro.ai',
   'https://www.coachaipro.ai',
@@ -23,6 +22,73 @@ const ALLOWED_ORIGINS = [
 // back to no querystring (CoachAI default landing).
 const VALID_TENANT_SLUGS = new Set(['coachai-default', 'jesus']);
 
+// Per-tenant email theme. Each tenant's invite gets its own logo + color
+// palette so the inbox preview, the hero banner, the CTA button and every
+// brand-colored accent inside the body match what the invitee will see
+// when they tap through to the app.
+//
+// Hosting note: the KING logo is served by Vercel as a static file under
+// /tenants/jesus/logo.png (same path the app already uses for the app-side
+// wordmark swap). Resend pulls it from the public URL.
+function tenantEmailTheme(slug) {
+  if (slug === 'jesus') {
+    return {
+      logoUrl:        'https://coachaipro.ai/tenants/jesus/logo.png',
+      // Page bg = the KING --bg cream
+      bodyBg:         '#FDF7F8',
+      cardBorder:     'rgba(255,79,123,0.20)',
+      cardShadow:     'rgba(255,79,123,0.14)',
+      // Hero band gradient (3-stop): bright → coral → coral-deep
+      gradient:       'linear-gradient(135deg,#FF6B95 0%,#FF4F7B 50%,#E03A6F 100%)',
+      gradientFallback: '#FF4F7B',
+      // CTA button (2-stop): coral → coral-deep
+      gradientCta:    'linear-gradient(135deg,#FF4F7B 0%,#E03A6F 100%)',
+      ctaFallback:    '#FF4F7B',
+      ctaShadow:      'rgba(255,79,123,0.30)',
+      // Brand-accent color used everywhere a single hex was inlined
+      accent:         '#FF4F7B',
+      accentDark:     '#C42960',
+      // Feature box (rutina/dieta/coach/progreso list)
+      featureBg:      '#FFF0F4',
+      featureBorder:  'rgba(255,79,123,0.22)',
+      featureBullet:  '#C42960',
+      // "Cómo entrar" highlight box
+      howToBg:        '#FFEEF2',
+      howToBorder:    '#FF4F7B',
+      howToEyebrow:   '#FF4F7B',
+      howToText:      '#5a2f3f',
+      howToLink:      '#FF4F7B',
+      // Footer
+      footerBorder:   'rgba(255,79,123,0.16)',
+      footerLink:     '#FF4F7B',
+    };
+  }
+  // Default CoachAI Pro — original violet/teal palette + canonical logo
+  return {
+    logoUrl:        'https://vmvhlgzwufkardaruutt.supabase.co/storage/v1/object/public/exercise-gifs/brand/coachai-logo.png',
+    bodyBg:         '#f3f1fa',
+    cardBorder:     'rgba(124,106,255,0.18)',
+    cardShadow:     'rgba(124,106,255,0.10)',
+    gradient:       'linear-gradient(135deg,#7c6aff 0%,#5b9fff 50%,#2ecfb5 100%)',
+    gradientFallback: '#7c6aff',
+    gradientCta:    'linear-gradient(135deg,#7c6aff 0%,#5b9fff 100%)',
+    ctaFallback:    '#7c6aff',
+    ctaShadow:      'rgba(124,106,255,0.28)',
+    accent:         '#7c6aff',
+    accentDark:     '#5e4dc9',
+    featureBg:      '#f6f4ff',
+    featureBorder:  'rgba(124,106,255,0.22)',
+    featureBullet:  '#5e4dc9',
+    howToBg:        '#eafaf5',
+    howToBorder:    '#1ba88f',
+    howToEyebrow:   '#1ba88f',
+    howToText:      '#2c4a40',
+    howToLink:      '#1ba88f',
+    footerBorder:   'rgba(124,106,255,0.14)',
+    footerLink:     '#7c6aff',
+  };
+}
+
 function buildEmail({ nombre, invitadoPor, tenantSlug }) {
   // Pass-through tenant info only if it's a known slug AND not the default
   // (the default landing is what we'd hit without the param, so adding
@@ -36,6 +102,9 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
   // tap on the email shows them the branded landing instead of the
   // generic CoachAI one — they see the right brand BEFORE typing email.
   const appUrl = safeTenantSlug ? `${APP_URL}/?tenant=${encodeURIComponent(safeTenantSlug)}` : APP_URL;
+  // Resolve the per-tenant theme so the email visually matches the app
+  // the invitee will land on.
+  const theme = tenantEmailTheme(safeTenantSlug);
   // Strip HTML angle brackets + the Unicode replacement char (U+FFFD = "?")
   // + C0/C1 control chars. Real admin-panel submissions are always clean UTF-8;
   // this is a defensive sanitizer for malformed test calls / weird inputs.
@@ -48,14 +117,8 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
     ? `${safeNombre}, tu lugar en la beta de CoachAI 💪`
     : 'Tu lugar en la beta cerrada de CoachAI 💪';
 
-  const greetHtml = safeNombre ? `Hola <strong style="color:#7c6aff;">${safeNombre}</strong>,` : 'Hola,';
+  const greetHtml = safeNombre ? `Hola <strong style="color:${theme.accent};">${safeNombre}</strong>,` : 'Hola,';
   const greetTxt  = safeNombre ? `Hola ${safeNombre},` : 'Hola,';
-
-  // The hero gradient gives the brand its identity, sitting at the top of an
-  // otherwise light/clean body. The logo (PNG, transparent on dark) sits on
-  // the gradient where it was designed to live.
-  const gradient    = 'linear-gradient(135deg,#7c6aff 0%,#5b9fff 50%,#2ecfb5 100%)';
-  const gradientCta = 'linear-gradient(135deg,#7c6aff 0%,#5b9fff 100%)';
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -72,22 +135,22 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
   </style>
   <![endif]-->
 </head>
-<body style="margin:0;padding:0;background:#f3f1fa;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#1c1c2e;">
+<body style="margin:0;padding:0;background:${theme.bodyBg};font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#1c1c2e;">
   <!-- Pre-header (only shows in inbox preview) -->
-  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;color:#f3f1fa;font-size:1px;line-height:1px;">
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;color:${theme.bodyBg};font-size:1px;line-height:1px;">
     Tu coach personal con IA — rutina, dieta y seguimiento adaptados a vos. Beta exclusiva.
   </div>
 
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f3f1fa" style="background:#f3f1fa;padding:28px 12px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${theme.bodyBg}" style="background:${theme.bodyBg};padding:28px 12px;">
     <tr>
       <td align="center">
         <!-- ====== Email card ====== -->
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="max-width:580px;width:100%;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid rgba(124,106,255,0.18);box-shadow:0 10px 36px rgba(124,106,255,0.10);">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="max-width:580px;width:100%;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid ${theme.cardBorder};box-shadow:0 10px 36px ${theme.cardShadow};">
 
           <!-- HERO: gradient band + real logo PNG -->
           <tr>
-            <td align="center" bgcolor="#7c6aff" style="background:#7c6aff;background:${gradient};padding:36px 24px 30px;text-align:center;">
-              <img src="${LOGO_URL}" alt="CoachAI" width="280" style="display:block;width:280px;max-width:78%;height:auto;margin:0 auto 10px;border:0;outline:none;text-decoration:none;">
+            <td align="center" bgcolor="${theme.gradientFallback}" style="background:${theme.gradientFallback};background:${theme.gradient};padding:36px 24px 30px;text-align:center;">
+              <img src="${theme.logoUrl}" alt="CoachAI Pro" width="280" style="display:block;width:280px;max-width:78%;height:auto;margin:0 auto 10px;border:0;outline:none;text-decoration:none;">
               <div style="font-size:12.5px;color:rgba(255,255,255,0.95);letter-spacing:2px;text-transform:uppercase;font-weight:600;margin-top:6px;">Tu coach personal con IA</div>
             </td>
           </tr>
@@ -102,7 +165,7 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
                 Imaginate tener un <strong style="color:#1c1c2e;">coach experto en entrenamiento y nutrición</strong> disponible <strong style="color:#1c1c2e;">24/7 en el celular</strong>, que arma tu plan exacto y te acompaña semana a semana.
               </div>
               <div style="font-size:15px;color:#3d3d52;line-height:1.7;margin-bottom:22px;">
-                Eso es <strong style="color:#7c6aff;">CoachAI</strong>. Y te queremos como uno de los primeros en probarla.
+                Eso es <strong style="color:${theme.accent};">CoachAI</strong>. Y te queremos como uno de los primeros en probarla.
               </div>
             </td>
           </tr>
@@ -110,32 +173,32 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
           <!-- Features box (subtle lavender tint over white) -->
           <tr>
             <td bgcolor="#ffffff" style="background:#ffffff;padding:0 32px 28px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f6f4ff;border:1px solid rgba(124,106,255,0.22);border-radius:14px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${theme.featureBg};border:1px solid ${theme.featureBorder};border-radius:14px;">
                 <tr>
                   <td style="padding:18px 22px;">
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                       <tr>
                         <td style="padding:7px 0;font-size:14.5px;color:#1c1c2e;line-height:1.55;">
                           <span style="display:inline-block;width:28px;font-size:18px;vertical-align:middle;">💪</span>
-                          <strong style="color:#5e4dc9;">Rutina semanal</strong> armada a tu medida y objetivos
+                          <strong style="color:${theme.featureBullet};">Rutina semanal</strong> armada a tu medida y objetivos
                         </td>
                       </tr>
                       <tr>
                         <td style="padding:7px 0;font-size:14.5px;color:#1c1c2e;line-height:1.55;">
                           <span style="display:inline-block;width:28px;font-size:18px;vertical-align:middle;">🥗</span>
-                          <strong style="color:#5e4dc9;">Plan nutricional</strong> con tus gustos y restricciones
+                          <strong style="color:${theme.featureBullet};">Plan nutricional</strong> con tus gustos y restricciones
                         </td>
                       </tr>
                       <tr>
                         <td style="padding:7px 0;font-size:14.5px;color:#1c1c2e;line-height:1.55;">
                           <span style="display:inline-block;width:28px;font-size:18px;vertical-align:middle;">🤖</span>
-                          <strong style="color:#5e4dc9;">Coach AI 24/7</strong> en el bolsillo — pregunta y ajusta
+                          <strong style="color:${theme.featureBullet};">Coach AI 24/7</strong> en el bolsillo — pregunta y ajusta
                         </td>
                       </tr>
                       <tr>
                         <td style="padding:7px 0;font-size:14.5px;color:#1c1c2e;line-height:1.55;">
                           <span style="display:inline-block;width:28px;font-size:18px;vertical-align:middle;">📊</span>
-                          <strong style="color:#5e4dc9;">Progreso real</strong> medido semana a semana
+                          <strong style="color:${theme.featureBullet};">Progreso real</strong> medido semana a semana
                         </td>
                       </tr>
                     </table>
@@ -150,7 +213,7 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
             <td align="center" bgcolor="#ffffff" style="background:#ffffff;padding:0 32px 26px;">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td align="center" bgcolor="#7c6aff" style="background:#7c6aff;background:${gradientCta};border-radius:100px;box-shadow:0 6px 20px rgba(124,106,255,0.28);">
+                  <td align="center" bgcolor="${theme.ctaFallback}" style="background:${theme.ctaFallback};background:${theme.gradientCta};border-radius:100px;box-shadow:0 6px 20px ${theme.ctaShadow};">
                     <a href="${appUrl}" target="_blank" style="display:inline-block;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;letter-spacing:0.8px;padding:16px 40px;border-radius:100px;">
                       ENTRAR A COACHAI &rarr;
                     </a>
@@ -163,12 +226,12 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
           <!-- How to enter -->
           <tr>
             <td bgcolor="#ffffff" style="background:#ffffff;padding:0 32px 24px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#eafaf5;border-left:3px solid #1ba88f;border-radius:8px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${theme.howToBg};border-left:3px solid ${theme.howToBorder};border-radius:8px;">
                 <tr>
                   <td style="padding:14px 18px;">
-                    <div style="font-size:10.5px;font-weight:700;color:#1ba88f;letter-spacing:1.6px;text-transform:uppercase;margin-bottom:6px;">Cómo entrar</div>
-                    <div style="font-size:13.5px;color:#2c4a40;line-height:1.65;">
-                      Ingresá a <a href="${appUrl}" style="color:#1ba88f;text-decoration:none;font-weight:600;">coachaipro.ai</a> con <strong style="color:#1c1c2e;">este mismo email</strong>. Sin clave, sin formularios largos — la app te reconoce.
+                    <div style="font-size:10.5px;font-weight:700;color:${theme.howToEyebrow};letter-spacing:1.6px;text-transform:uppercase;margin-bottom:6px;">Cómo entrar</div>
+                    <div style="font-size:13.5px;color:${theme.howToText};line-height:1.65;">
+                      Ingresá a <a href="${appUrl}" style="color:${theme.howToLink};text-decoration:none;font-weight:600;">coachaipro.ai</a> con <strong style="color:#1c1c2e;">este mismo email</strong>. Sin clave, sin formularios largos — la app te reconoce.
                     </div>
                   </td>
                 </tr>
@@ -184,17 +247,17 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
               </div>
               <div style="font-size:13.5px;color:#5a5a70;line-height:1.65;">
                 Te esperamos.<br>
-                <strong style="color:#7c6aff;">— Equipo CoachAI</strong>
+                <strong style="color:${theme.accent};">— Equipo CoachAI</strong>
               </div>
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td bgcolor="#ffffff" style="background:#ffffff;padding:18px 32px 22px;border-top:1px solid rgba(124,106,255,0.14);">
+            <td bgcolor="#ffffff" style="background:#ffffff;padding:18px 32px 22px;border-top:1px solid ${theme.footerBorder};">
               <div style="font-size:11px;color:#9494a8;line-height:1.55;text-align:center;">
                 Recibiste este mail porque te invitamos a la beta cerrada de CoachAI.<br>
-                <a href="${appUrl}" style="color:#7c6aff;text-decoration:none;">coachaipro.ai</a>
+                <a href="${appUrl}" style="color:${theme.footerLink};text-decoration:none;">coachaipro.ai</a>
               </div>
             </td>
           </tr>
