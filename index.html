@@ -289,32 +289,74 @@ body.theme-king .onb-track .step-panel textarea::placeholder { color: var(--mute
    that bleeds past the rounded corners) and an explicit box-shadow:none
    on default state (the inset shadow from the input rule was casting
    a subtle inner edge that read as a broken border). */
-body.theme-king .onb-track .step-panel select {
-  /* iOS Safari's native <select> rendering is incompatible with full
-     borders + border-radius + appearance:none in every combination we
-     tried. The native chrome insists on painting parts of its own
-     bounding box on top of ours, producing "broken border" /
-     "tail past the chevron" / "border only around the chevron"
-     artifacts depending on which combo of overrides we use.
-     Pragmatic surrender: drop the box border entirely and use a
-     single bottom-underline as the visual affordance. iOS can't
-     break a single bottom border. */
-  appearance: auto !important;
-  -webkit-appearance: auto !important;
-  -moz-appearance: auto !important;
-  background: transparent !important;
-  background-image: none !important;
-  border: 0 !important;
-  border-bottom: 1.5px solid var(--border) !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  outline: none !important;
-  padding: 12px 4px !important;
-  -webkit-tap-highlight-color: transparent !important;
+/* Onboarding <select> wrapper approach — runtime JS (wrapKingSelects)
+   adds a <div class="king-select-wrap"><span class="king-select-display">…</span>
+   <select …></select></div> structure around each onboarding dropdown.
+   The wrapper carries the visual chrome (border, radius, chevron, bg);
+   the original <select> sits absolutely positioned on top at opacity:0
+   so taps still open the iOS native picker, but its broken rendering
+   is invisible. The display <span> mirrors the selected option's text
+   via a `change` listener.
+
+   This is the only approach that survives iOS Safari's native-chrome
+   quirks consistently. Cost: a tiny bit of JS at boot. */
+body.theme-king .king-select-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 13px 40px 13px 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
-body.theme-king .onb-track .step-panel select:focus {
-  border-bottom-color: var(--accent) !important;
-  box-shadow: none !important;
+body.theme-king .king-select-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255,79,123,0.16);
+}
+body.theme-king .king-select-wrap::after {
+  /* Chevron drawn with two borders rotated 45° → consistent across all
+     browsers, no SVG data-URI fights, no iOS rendering quirks. */
+  content: "";
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+body.theme-king .king-select-display {
+  display: block;
+  color: var(--text);
+  /* When the placeholder option ("— Seleccionar —") is selected, mute
+     the color so it reads like a placeholder. JS sets data-placeholder
+     on the wrapper while the placeholder option is active. */
+}
+body.theme-king .king-select-wrap[data-placeholder="1"] .king-select-display {
+  color: var(--muted);
+}
+body.theme-king .king-select-wrap select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  font-size: 16px; /* prevents iOS zoom-on-focus */
 }
 
 /* Chip groups (objetivo, comidas, restricciones, etc). The base
@@ -11265,6 +11307,41 @@ async function resolvePreviewTenant() {
 // the next apply or on resetAppState.
 let _lastTenantBodyClass = null;
 
+// Wrap every onboarding <select> in a styled div so iOS Safari's
+// native chrome can't break the border. The wrapper handles visuals;
+// the original select sits invisible on top to receive taps. Idempotent
+// (won't re-wrap an already-wrapped select). Only fires when the tenant's
+// theme is the KING overlay, since that's the only place we need this.
+function wrapKingSelects() {
+  const selects = document.querySelectorAll('.onb-track .step-panel select');
+  selects.forEach(sel => {
+    if (sel.dataset.kingWrapped === '1') return;
+    if (sel.parentElement && sel.parentElement.classList.contains('king-select-wrap')) return;
+    sel.dataset.kingWrapped = '1';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'king-select-wrap';
+    const display = document.createElement('span');
+    display.className = 'king-select-display';
+
+    function syncDisplay() {
+      const opt = sel.options[sel.selectedIndex];
+      display.textContent = opt ? opt.text : '';
+      // Heuristic: treat the option as a "placeholder" when it has an
+      // empty value attribute OR its text starts with an em-dash (e.g.
+      // "— Seleccionar —"). Mutes the display color.
+      const isPlaceholder = !opt || !opt.value || /^[—-]/.test(opt.text);
+      wrap.dataset.placeholder = isPlaceholder ? '1' : '0';
+    }
+    syncDisplay();
+    sel.addEventListener('change', syncDisplay);
+
+    sel.parentNode.insertBefore(wrap, sel);
+    wrap.appendChild(display);
+    wrap.appendChild(sel);
+  });
+}
+
 function applyTenantBranding(tenant) {
   // Drop the previous tenant's body class (if any) before applying the new
   // one — guarantees a clean theme switch when reusing the function.
@@ -11282,6 +11359,12 @@ function applyTenantBranding(tenant) {
   if (b.bodyClass) {
     document.body.classList.add(b.bodyClass);
     _lastTenantBodyClass = b.bodyClass;
+    // KING-specific runtime: wrap onboarding selects so iOS Safari can't
+    // break the borders. Safe to call before the form is rendered — the
+    // querySelector will just match nothing.
+    if (b.bodyClass === 'theme-king' && typeof wrapKingSelects === 'function') {
+      try { wrapKingSelects(); } catch (e) {}
+    }
   }
 
   // Colors → CSS variables. We set each var only if the tenant provided
@@ -11815,6 +11898,12 @@ function initOnboardingPanels() {
   currentPanelIdx = 0;
   currentStep = 1;
   slideOnboardingToPanel(0);
+  // KING-only: now that the panels are mounted, wrap each <select> so
+  // iOS Safari can't break the border. No-op for non-KING tenants
+  // (the .king-select-wrap CSS only renders under body.theme-king).
+  if (document.body.classList.contains('theme-king') && typeof wrapKingSelects === 'function') {
+    try { wrapKingSelects(); } catch (e) {}
+  }
 }
 
 function slideOnboardingToPanel(idx) {
@@ -19278,6 +19367,10 @@ window.addEventListener('DOMContentLoaded', () => {
           try {
             if (typeof initOnboardingPanels === 'function') initOnboardingPanels();
             if (typeof morphOnboardingHeight === 'function') morphOnboardingHeight();
+            // Re-run select-wrapping now that the form is visible (the
+            // initial applyTenantBranding ran before the panels were
+            // mounted into the DOM, so the querySelector matched nothing).
+            if (typeof wrapKingSelects === 'function') wrapKingSelects();
           } catch (e) { console.warn('[preview] init slider:', e); }
         });
       });
