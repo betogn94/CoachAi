@@ -108,7 +108,6 @@ body.theme-king .cai-home-card,
 body.theme-king .cai-home-semanas,
 body.theme-king .cai-home-semanas .semana-card,
 body.theme-king .cai-home-semanas .semana-analisis,
-body.theme-king .cai-perfil-section,
 body.theme-king .cai-perfil-plan,
 body.theme-king .cierre-card,
 body.theme-king .alim-day,
@@ -163,6 +162,18 @@ body.theme-king .btn-email-login {
   border: none !important;
   box-shadow: 0 6px 18px rgba(255,79,123,0.32) !important;
 }
+/* Loading state — the base rule drops the button to opacity 0.5 while
+   .el-loading is visible, which on the coral gradient reads as a flat
+   washed-out pink (very ugly). Override to a much subtler dim + drop
+   the lift transform so the button visually "settles" while waiting. */
+body.theme-king .btn-email-login:disabled {
+  opacity: 0.85 !important;
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
+  box-shadow: 0 3px 10px rgba(255,79,123,0.20) !important;
+  cursor: wait !important;
+  transform: none !important;
+}
+body.theme-king .email-login-loading { color: var(--muted) !important; }
 body.theme-king .landing-admin-link { color: var(--muted) !important; }
 body.theme-king .pwa-install-btn {
   background: var(--surface) !important;
@@ -1000,7 +1011,709 @@ body.theme-king .nav-close-btn {
   border: 1px solid var(--border) !important;
   color: var(--muted) !important;
 }
-/* --- end of KING overlay (first pass — landing/home/nav/drawer) --- */
+/* --- L. Chat (coach + user bubbles, input row, quick-action cards) ---
+   The dark-theme chat uses translucent-on-near-black bubbles, a violet→
+   teal send button, and a blue-cyan "thinking" pulse. KING reskins:
+   - coach bubbles → very pale rosa surface with soft pink border + dark text
+   - user bubbles → coral gradient with white text
+   - chat textarea → white surface with soft pink border, coral focus ring
+   - send button → coral gradient with coral glow
+   - typing pulse + ellipsis → coral instead of brand blue
+   - quick-action cards (Dieta/Rutina) → white card chrome (handled by the
+     universal card reset at A.1) plus coral icon plates + coral arrow
+   The fixed footer gradients (chat-input-row, quick-btns) also need to
+   fade from the cream bg instead of the dark --bg, otherwise the dark
+   gradient creates a visible "shelf" above the input on cream. */
+
+/* Coach bubble — light pink surface, dark text */
+body.theme-king .msg.coach .msg-bubble {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  box-shadow: 0 1px 2px rgba(26,26,38,0.04), 0 4px 14px rgba(255,107,149,0.06) !important;
+}
+/* User bubble — coral gradient with white text */
+body.theme-king .msg.user .msg-bubble {
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
+  border: 1px solid transparent !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(255,79,123,0.22) !important;
+}
+body.theme-king .msg.user .msg-bubble *,
+body.theme-king .msg.user .msg-bubble strong,
+body.theme-king .msg.user .msg-bubble em,
+body.theme-king .msg.user .msg-bubble a { color: #fff !important; }
+/* In coach bubbles, the strong/em accents (already coral via var mapping)
+   look fine; but Mi Alimentación, Mi Entreno, Perfil etc. links inside
+   coach bubbles use color: var(--accent-bright), which is the bright
+   coral — readable enough on the pale rosa. We just need to make sure
+   plain text reads as --text (the universal span rule already does this). */
+body.theme-king .msg.coach .msg-bubble a {
+  color: var(--accent) !important;
+  text-decoration: underline;
+  text-decoration-color: rgba(255,79,123,0.4);
+}
+
+/* Typing indicator — recolor the brand-blue pulse + ellipsis to coral */
+body.theme-king .typing-pulse {
+  background: var(--accent) !important;
+  box-shadow: 0 0 0 0 rgba(255,79,123,0.55), 0 0 10px rgba(255,79,123,0.55) !important;
+  animation: typingPulseKing 1.6s ease-out infinite !important;
+}
+@keyframes typingPulseKing {
+  0%   { box-shadow: 0 0 0 0 rgba(255,79,123,0.6),  0 0 10px rgba(255,79,123,0.55); }
+  70%  { box-shadow: 0 0 0 10px rgba(255,79,123,0), 0 0 10px rgba(255,79,123,0.55); }
+  100% { box-shadow: 0 0 0 0 rgba(255,79,123,0),    0 0 10px rgba(255,79,123,0.55); }
+}
+body.theme-king .typing-label { color: var(--muted) !important; }
+body.theme-king .typing-label .typing-ellipsis { color: var(--accent) !important; }
+
+/* Chat input row + quick-btns bar — both are fixed at the viewport bottom
+   with a "fade to bg" gradient so chat messages scrolling underneath fade
+   instead of clipping abruptly. The default uses var(--bg) which in KING
+   is cream, but the literal `linear-gradient(to top, var(--bg) ...)` is
+   already mapped to cream automatically. The PROBLEM is opacity: the dark
+   theme uses 70/75% bg stops which on cream looks like a hard cream slab.
+   Soften it so the cream fades more naturally. */
+body.theme-king .chat-input-row {
+  background: linear-gradient(to top, var(--bg) 55%, rgba(253,247,248,0.92) 80%, rgba(253,247,248,0) 100%) !important;
+}
+body.theme-king .quick-btns {
+  background: linear-gradient(to top, var(--bg) 60%, rgba(253,247,248,0.85) 85%, rgba(253,247,248,0) 100%) !important;
+}
+
+/* Chat textarea — white surface, soft pink border, coral focus ring.
+   The plain --border (#FFE1E8) is too soft against cream when the
+   textarea is empty — the container nearly disappears. Use a slightly
+   deeper rosa for the resting border + a small ambient drop shadow so
+   the input is always discoverable, even before the user taps it. */
+body.theme-king .chat-textarea {
+  background: var(--surface) !important;
+  border: 1px solid rgba(255,79,123,0.22) !important;
+  color: var(--text) !important;
+  box-shadow: 0 1px 2px rgba(26,26,38,0.04), 0 2px 8px rgba(255,79,123,0.06) !important;
+}
+body.theme-king .chat-textarea::placeholder { color: var(--muted) !important; }
+body.theme-king .chat-textarea:focus {
+  background: var(--surface) !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(255,79,123,0.12), 0 1px 2px rgba(26,26,38,0.04) !important;
+}
+
+/* Send button — coral gradient with coral glow */
+body.theme-king .send-btn {
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
+  box-shadow: 0 4px 14px rgba(255,79,123,0.32), 0 0 18px rgba(255,107,149,0.18) !important;
+}
+body.theme-king .send-btn:hover {
+  box-shadow: 0 6px 20px rgba(255,79,123,0.42), 0 0 26px rgba(255,107,149,0.24) !important;
+}
+body.theme-king .send-btn svg { fill: #fff !important; }
+
+/* Quick-action cards (Dieta / Rutina) — the white-card chrome was already
+   applied via the universal A.1 reset (line ~117). Here we recolor the
+   icon plates, arrow, title and sub-text. Dieta keeps the standard coral
+   ramp; Rutina uses a deeper coral variant so they're still visually
+   distinct without losing brand cohesion. */
+body.theme-king .qbtn-card:hover {
+  border-color: rgba(255,79,123,0.40) !important;
+  box-shadow: 0 8px 24px rgba(255,79,123,0.16) !important;
+}
+body.theme-king .qbtn-card-ico {
+  background: linear-gradient(135deg, rgba(255,107,149,0.22), rgba(255,79,123,0.12)) !important;
+  border: 1px solid rgba(255,79,123,0.30) !important;
+  color: var(--accent) !important;
+}
+body.theme-king .qbtn-card.is-rutina .qbtn-card-ico {
+  background: linear-gradient(135deg, rgba(255,79,123,0.22), rgba(224,58,111,0.14)) !important;
+  border-color: rgba(224,58,111,0.32) !important;
+  color: var(--accent3) !important;
+}
+body.theme-king .qbtn-card-title { color: var(--text) !important; }
+body.theme-king .qbtn-card-sub { color: var(--muted) !important; }
+body.theme-king .qbtn-card-arrow { color: var(--accent) !important; opacity: 0.9; }
+
+/* Legacy .qbtn / .qbtn-main pills (no longer used since the card refactor,
+   but defensively recolor in case any code path renders them). */
+body.theme-king .qbtn {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--muted) !important;
+}
+body.theme-king .qbtn:hover {
+  border-color: rgba(255,79,123,0.40) !important;
+  color: var(--accent) !important;
+  background: rgba(255,79,123,0.06) !important;
+}
+body.theme-king .qbtn-main {
+  background:
+    linear-gradient(rgba(255,79,123,0.04), rgba(224,58,111,0.04)) padding-box,
+    linear-gradient(135deg, var(--accent-bright), var(--accent3)) border-box !important;
+  color: var(--accent) !important;
+}
+body.theme-king .qbtn-main:hover {
+  color: var(--accent3) !important;
+}
+
+/* --- M. Mi Alimentación (header, summary cards, meal cards, edit modal) ---
+   The dark theme uses:
+   - violet→cyan→teal gradient on the "2/4 / 920" big numbers + progress bar
+   - dark crystal-depth surface on the meal cards (NOT in A.1 reset)
+   - teal/green chip on per-meal kcal
+   - violet glow on the "Editar" button + edit-modal planned-row left-border
+   - teal "Guardar" button
+   - inline-styled "← INICIO" back button with violet border on near-black bg
+   KING flips all those to coral. */
+
+/* "← INICIO" back buttons (inline-styled in HTML — only id selectors win). */
+body.theme-king #perfil-back-btn,
+body.theme-king #entreno-back-btn,
+body.theme-king #diario-back-btn {
+  background: var(--surface) !important;
+  border: 1px solid rgba(255,79,123,0.30) !important;
+  color: var(--accent) !important;
+  box-shadow: 0 1px 2px rgba(26,26,38,0.04) !important;
+}
+
+/* TUS OBJETIVOS DIARIOS — big numbers (kcal, P/C/G) */
+body.theme-king .alim-target-eyebrow { color: var(--accent) !important; }
+body.theme-king .alim-target-stats .stat .num {
+  color: var(--text) !important;
+}
+body.theme-king .alim-target-stats .stat .num.grad {
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+body.theme-king .alim-target-stats .stat .num .suf { color: var(--muted) !important; }
+body.theme-king .alim-target-stats .stat .label { color: var(--muted) !important; }
+body.theme-king .alim-target-stats .sep { background: var(--border) !important; }
+
+/* HOY · MARTES summary — 2/4 count, kcal counters, progress bar */
+body.theme-king .cai-alim-summary-eyebrow { color: var(--accent) !important; }
+body.theme-king .cai-alim-summary-count {
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+body.theme-king .cai-alim-summary-label { color: var(--muted) !important; }
+body.theme-king .cai-alim-summary-kcal { color: var(--muted) !important; }
+body.theme-king .cai-alim-summary-kcal strong { color: var(--text) !important; }
+body.theme-king .cai-alim-summary-kcal strong .total { color: var(--muted) !important; }
+body.theme-king .cai-alim-progress {
+  background: var(--border) !important;
+}
+body.theme-king .cai-alim-progress-fill {
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
+  box-shadow: 0 0 8px rgba(255,79,123,0.40) !important;
+}
+
+/* Meal cards — were dark crystal-depth (NOT in A.1 reset). Flip to white. */
+body.theme-king .cai-meal {
+  background: var(--surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--border) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 1px 2px rgba(26,26,38,0.04), 0 4px 14px rgba(255,107,149,0.08) !important;
+}
+/* The default .cai-meal.done drops opacity to 0.78 which on cream + strikethrough
+   muted text reads as borderline-illegible. Bump it up so done meals are still
+   clearly readable while staying visibly distinct from pending ones. */
+body.theme-king .cai-meal.done {
+  opacity: 1 !important;
+  background: var(--surface2) !important;  /* subtle rosa tint to mark "done" */
+}
+body.theme-king .cai-meal.done .cai-meal-name {
+  color: var(--muted) !important;
+  text-decoration: line-through;
+  text-decoration-color: rgba(255,79,123,0.55);
+}
+body.theme-king .cai-meal-name { color: var(--text) !important; }
+body.theme-king .cai-meal-detail { color: var(--muted) !important; }
+body.theme-king .cai-meal-hour { color: var(--muted) !important; }
+
+/* The empty/pending check circle — dark border becomes pink border on cream */
+body.theme-king .cai-meal-check {
+  background: transparent !important;
+  border: 1.5px solid rgba(255,79,123,0.35) !important;
+  color: transparent !important;
+}
+/* Checked-done state — coral fill */
+body.theme-king .cai-meal-check.done {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff !important;
+}
+
+/* kcal chip — was teal/green; KING flips it to soft coral */
+body.theme-king .cai-meal-kcal-chip {
+  background: rgba(255,79,123,0.08) !important;
+  color: var(--accent) !important;
+  border: 1px solid rgba(255,79,123,0.25) !important;
+}
+
+/* "Editar" button — was violet rgba bg; KING uses coral-soft */
+body.theme-king .cai-meal-edit {
+  background: rgba(255,79,123,0.08) !important;
+  border: 1px solid rgba(255,79,123,0.28) !important;
+  color: var(--accent) !important;
+}
+
+/* Empty state card — was dark crystal-depth */
+body.theme-king .cai-alim-empty-card {
+  background: var(--surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--border) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 1px 2px rgba(26,26,38,0.04), 0 4px 14px rgba(255,107,149,0.08) !important;
+}
+body.theme-king .cai-alim-empty-ico {
+  background: linear-gradient(135deg, rgba(255,107,149,0.20), rgba(224,58,111,0.14)) !important;
+  border: 1.5px solid rgba(255,79,123,0.35) !important;
+  color: var(--accent) !important;
+  box-shadow: 0 0 24px rgba(255,79,123,0.18) !important;
+}
+body.theme-king .cai-alim-empty-title { color: var(--text) !important; }
+body.theme-king .cai-alim-empty-sub { color: var(--muted) !important; }
+body.theme-king .cai-alim-empty-cta {
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 28px rgba(255,79,123,0.32) !important;
+}
+body.theme-king .cai-alim-empty-cta * { color: #fff !important; }
+
+/* ---- Edit-meal modal (alim-edit-overlay) ---- */
+body.theme-king .alim-edit-overlay {
+  background: rgba(26,26,38,0.55) !important;
+}
+body.theme-king .alim-edit-card {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 20px 60px rgba(26,26,38,0.20) !important;
+}
+body.theme-king .alim-edit-title { color: var(--text) !important; }
+body.theme-king .alim-edit-close { color: var(--muted) !important; }
+body.theme-king .alim-edit-close:hover { color: var(--text) !important; }
+/* "Planificado: ..." row — was violet rgba bg + violet left border (cyan-ish
+   in the screenshot). KING: soft rosa wash + coral left border. */
+body.theme-king .alim-edit-planned {
+  background: rgba(255,79,123,0.06) !important;
+  border-left: 3px solid var(--accent) !important;
+  color: var(--muted) !important;
+}
+body.theme-king #alim-edit-text {
+  background: var(--surface) !important;
+  border: 1px solid rgba(255,79,123,0.22) !important;
+  color: var(--text) !important;
+  /* iOS Safari paints a default inner shadow on <textarea> that reads as
+     a faint violet halo on the cream surface. Strip the native appearance
+     and force box-shadow:none so only our coral border is visible. */
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  box-shadow: none !important;
+}
+body.theme-king #alim-edit-text:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(255,79,123,0.12) !important;
+}
+body.theme-king .alim-edit-cancel {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--muted) !important;
+}
+body.theme-king .alim-edit-cancel:hover {
+  color: var(--text) !important;
+  border-color: rgba(255,79,123,0.30) !important;
+}
+/* "Guardar" — was teal-green bg+border+text. KING flips to coral. */
+body.theme-king .alim-edit-save {
+  background: rgba(255,79,123,0.10) !important;
+  border: 1px solid var(--accent) !important;
+  color: var(--accent) !important;
+}
+body.theme-king .alim-edit-save:hover {
+  background: rgba(255,79,123,0.18) !important;
+}
+body.theme-king .alim-edit-status { color: var(--muted) !important; }
+body.theme-king .alim-edit-hint { color: var(--muted) !important; }
+
+/* --- N. Mi Entreno (hero card, exercise cards, series inputs, resto-semana) ---
+   The dark theme uses:
+   - violet→cyan→teal gradient on the day-title ("ESPALDA/BÍCEPS")
+   - white-rgba border on the empty check button → invisible on cream
+   - dark-rgba bg on every exercise card → reads as a gray slab
+   - teal chip for "descanso: Xs" + violet pill for "Cómo se hace"
+   - rgba(255,255,255,0.04) bg on .cai-ent-serie-input → invisible on cream
+   - dark bg on .cai-ent-other ("RESTO DE LA SEMANA") — NOT in A.1 reset
+   - violet DIA-N badges + barely-visible OFF badge for Descanso
+   KING flips all of those to the coral palette. */
+
+/* Hero card (Espalda/Bíceps) — already gets white surface from A.1.
+   Override the gradient title, eyebrow, sub, chevron. */
+body.theme-king .cai-ent-hero-eyebrow { color: var(--accent) !important; }
+body.theme-king .cai-ent-hero-title {
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+body.theme-king .cai-ent-hero-sub { color: var(--muted) !important; }
+body.theme-king .cai-ent-hero-chev { color: var(--muted) !important; }
+body.theme-king .cai-ent-hero-head { color: var(--text) !important; }
+
+/* Check button — empty state had white-rgba border (invisible on cream).
+   Give it a pink ring so the tap target is discoverable. */
+body.theme-king .cai-ent-hero-check {
+  background: transparent !important;
+  border: 1.5px solid rgba(255,79,123,0.35) !important;
+  color: transparent !important;
+}
+body.theme-king .cai-ent-hero-check.done {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff !important;
+}
+
+/* Exercise card (Dominadas, Remo barra, ...) — was dark rgba bg. A flat
+   --surface2 fill on every card reads monotonous (the dark theme's
+   crystal-depth gave each card visual depth via the diagonal gradients).
+   Recreate that depth in KING with a subtle diagonal rosa gradient from
+   white-ish top-left to a deeper rosa bottom-right. Then alternate the
+   gradient angle on odd vs even cards so consecutive cards don't look
+   like xeroxed copies. The differences are very subtle (~5% lightness)
+   but enough to break the flatness. */
+body.theme-king .cai-ent-ex {
+  background: linear-gradient(135deg, #FFEDF2 0%, #FFC8D8 100%) !important;
+  background-image: linear-gradient(135deg, #FFEDF2 0%, #FFC8D8 100%) !important;
+  border: 1px solid rgba(255,79,123,0.18) !important;
+  box-shadow: 0 1px 2px rgba(26,26,38,0.04), 0 4px 14px rgba(255,107,149,0.10) !important;
+}
+body.theme-king .cai-ent-ex-name { color: var(--text) !important; }
+body.theme-king .cai-ent-ex-note { color: var(--muted) !important; }
+
+/* "descanso: 90s" chip — teal → coral */
+body.theme-king .cai-ent-ex-detail {
+  background: rgba(255,79,123,0.08) !important;
+  color: var(--accent) !important;
+  border: 1px solid rgba(255,79,123,0.25) !important;
+}
+
+/* "Cómo se hace" button — violet → coral */
+body.theme-king .cai-ent-ex-info-btn {
+  background: rgba(255,79,123,0.08) !important;
+  border: 1px solid rgba(255,79,123,0.28) !important;
+  color: var(--accent) !important;
+}
+
+/* Series block — title eyebrow + per-serie row labels */
+body.theme-king .cai-ent-series-title { color: var(--accent) !important; }
+body.theme-king .cai-ent-serie-label { color: var(--muted) !important; }
+body.theme-king .cai-ent-serie-times { color: var(--muted) !important; }
+body.theme-king .cai-ent-serie-unit { color: var(--muted) !important; }
+body.theme-king .cai-ent-serie-saved { color: var(--accent3) !important; }
+
+/* Serie inputs (reps, kg) — were rgba(255,255,255,0.04) on dark = barely
+   visible on cream. Use a soft rosa fill + pink border + dark text so the
+   input boxes read clearly. iOS Safari's default inner shadow nuked too. */
+body.theme-king .cai-ent-serie-input {
+  background: var(--surface2) !important;
+  border: 1px solid rgba(255,79,123,0.25) !important;
+  color: var(--text) !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  box-shadow: none !important;
+}
+body.theme-king .cai-ent-serie-input:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(255,79,123,0.12) !important;
+}
+body.theme-king .cai-ent-serie-input::placeholder { color: var(--muted) !important; opacity: 0.55; }
+
+/* "RESTO DE LA SEMANA" container — was NOT in A.1 reset; was dark slab. */
+body.theme-king .cai-ent-other {
+  background: var(--surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--border) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 1px 2px rgba(26,26,38,0.04), 0 4px 14px rgba(255,107,149,0.06) !important;
+}
+body.theme-king .cai-ent-other-title { color: var(--accent) !important; }
+
+/* Sub-cards (Pecho/Tríceps, Piernas, Hombros/Core, Descanso) — were dark. */
+body.theme-king .cai-ent-subcard {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+}
+body.theme-king .cai-ent-subcard:hover,
+body.theme-king .cai-ent-subcard:active {
+  border-color: rgba(255,79,123,0.30) !important;
+  background: rgba(255,79,123,0.06) !important;
+}
+body.theme-king .cai-ent-subcard.rest:hover {
+  border-color: var(--border) !important;
+  background: var(--surface2) !important;
+}
+body.theme-king .cai-ent-subcard-name { color: var(--text) !important; }
+body.theme-king .cai-ent-subcard-day { color: var(--muted) !important; }
+body.theme-king .cai-ent-subcard-arrow { color: var(--muted) !important; }
+
+/* DIA-N badge — violet → coral */
+body.theme-king .cai-ent-subcard-badge {
+  background: rgba(255,79,123,0.10) !important;
+  color: var(--accent) !important;
+  border: 1px solid rgba(255,79,123,0.30) !important;
+}
+/* OFF badge (rest day) — was barely visible. Soft muted card on cream. */
+body.theme-king .cai-ent-subcard.rest .cai-ent-subcard-badge {
+  background: var(--surface) !important;
+  color: var(--muted) !important;
+  border-color: var(--border) !important;
+}
+
+/* "Cómo se hace" exercise modal — overlay, card, description block.
+   .ej-modal-card uses var(--surface) which auto-flips to white, but the
+   description block has a hardcoded violet rgba background that reads as
+   a faint cyan-ish halo on cream. Flip that to a soft rosa wash. */
+body.theme-king .ej-modal-overlay {
+  background: rgba(26,26,38,0.55) !important;
+}
+body.theme-king .ej-modal-card {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 20px 60px rgba(26,26,38,0.20) !important;
+}
+body.theme-king .ej-modal-title { color: var(--text) !important; }
+body.theme-king .ej-modal-muscle { color: var(--accent) !important; }
+body.theme-king .ej-modal-close { color: var(--muted) !important; }
+body.theme-king .ej-modal-close:hover { color: var(--text) !important; }
+body.theme-king .ej-modal-gif-wrap {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+}
+body.theme-king .ej-modal-gif-wrap.empty::after { color: var(--muted) !important; }
+body.theme-king .ej-modal-desc {
+  background: rgba(255,79,123,0.06) !important;
+  border-left: 3px solid var(--accent) !important;
+  color: var(--text) !important;
+}
+
+/* Override chip ("plan modificado...") — violet → coral */
+body.theme-king .cai-ent-override-chip {
+  background: rgba(255,79,123,0.08) !important;
+  border: 1px solid rgba(255,79,123,0.28) !important;
+  color: var(--text) !important;
+}
+body.theme-king .cai-ent-override-chip button {
+  background: transparent !important;
+  border: 1px solid rgba(255,79,123,0.40) !important;
+  color: var(--accent) !important;
+}
+
+/* Legacy .entreno-* selectors (older Mi Entreno layout — kept defensively
+   in case any code path renders them). Same coral re-tints. */
+body.theme-king .entreno-ex-info-btn {
+  background: rgba(255,79,123,0.08) !important;
+  border: 1px solid rgba(255,79,123,0.28) !important;
+  color: var(--accent) !important;
+}
+body.theme-king .entreno-weight-input,
+body.theme-king .entreno-serie-input {
+  background: var(--surface2) !important;
+  border: 1px solid rgba(255,79,123,0.25) !important;
+  color: var(--text) !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  box-shadow: none !important;
+}
+body.theme-king .entreno-weight-input:focus,
+body.theme-king .entreno-serie-input:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(255,79,123,0.12) !important;
+}
+
+/* --- O. Perfil (plan cards, transformación, último análisis, mi información) ---
+   The dark theme has THREE Perfil containers that were NOT covered by the
+   A.1 universal card reset — they still render as gray crystal-depth on
+   cream:
+   - .cai-perfil-transform (Transformación Visual)
+   - .cai-perfil-analisis  (Último Análisis)
+   - .cai-perfil-info      (Mi Información — collapsible user card)
+   Plus the per-plan badges (RUTINA violet, DIETA teal/green), the avatar
+   gradient (violet→cyan→teal), the form inputs, and the GUARDAR CAMBIOS
+   button (also violet→cyan→teal). KING re-skins them all to coral. */
+
+/* Surface reset for the three uncovered containers. Subtle diagonal rosa
+   wash on each (much softer than the exercise cards' gradient — just
+   enough to lift off the cream page bg and give the cards depth instead
+   of reading as flat slabs). */
+body.theme-king .cai-perfil-transform,
+body.theme-king .cai-perfil-analisis,
+body.theme-king .cai-perfil-info {
+  background: linear-gradient(160deg, #FFFFFF 0%, #FFF4F7 100%) !important;
+  background-image: linear-gradient(160deg, #FFFFFF 0%, #FFF4F7 100%) !important;
+  border: 1px solid var(--border) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 1px 2px rgba(26,26,38,0.04), 0 4px 14px rgba(255,107,149,0.08) !important;
+}
+/* Same subtle wash on the plan cards (Rutina/Dieta) for visual consistency
+   with the rest of the section. The A.1 universal reset already painted
+   them white — override here to add the wash. */
+body.theme-king .cai-perfil-plan {
+  background: linear-gradient(160deg, #FFFFFF 0%, #FFF4F7 100%) !important;
+  background-image: linear-gradient(160deg, #FFFFFF 0%, #FFF4F7 100%) !important;
+}
+body.theme-king .cai-perfil-section-title { color: var(--accent) !important; }
+
+/* Mi plan — RUTINA / DIETA badges. RUTINA gets a soft-coral outline pill
+   (white-ish bg, coral border + text). DIETA gets a FILLED deeper-coral
+   pill so the two are immediately distinguishable at a glance — they
+   read as "primary action / secondary action" instead of two siblings. */
+body.theme-king .cai-perfil-plan-badge {
+  background: rgba(255,79,123,0.10) !important;
+  color: var(--accent) !important;
+  border: 1px solid rgba(255,79,123,0.35) !important;
+}
+body.theme-king .cai-perfil-plan-badge.dieta {
+  background: var(--accent3) !important;
+  color: #fff !important;
+  border-color: var(--accent3) !important;
+}
+body.theme-king .cai-perfil-plan-head:hover,
+body.theme-king .cai-perfil-plan-head:active {
+  background: rgba(255,79,123,0.05) !important;
+}
+body.theme-king .cai-perfil-plan-name { color: var(--text) !important; }
+body.theme-king .cai-perfil-plan-status { color: var(--muted) !important; }
+body.theme-king .cai-perfil-plan-status .active { color: var(--accent) !important; }
+body.theme-king .cai-perfil-plan-status .closed,
+body.theme-king .cai-perfil-plan-status .empty { color: var(--muted) !important; }
+body.theme-king .cai-perfil-plan-chev { color: var(--muted) !important; }
+body.theme-king .cai-perfil-plan-body-inner {
+  color: var(--muted) !important;
+  border-top: 1px solid var(--border) !important;
+}
+body.theme-king .cai-perfil-plan-body-inner h3,
+body.theme-king .cai-perfil-plan-body-inner h4,
+body.theme-king .cai-perfil-plan-body-inner strong { color: var(--text) !important; }
+body.theme-king .cai-perfil-plan-cta {
+  background: linear-gradient(135deg, rgba(255,79,123,0.15), rgba(224,58,111,0.10)) !important;
+  border: 1px solid rgba(255,79,123,0.30) !important;
+  color: var(--accent) !important;
+}
+body.theme-king .cai-perfil-plan-empty-body { color: var(--muted) !important; }
+
+/* Transformación visual — photo cards + badges + empty state */
+body.theme-king .cai-perfil-transform-empty { color: var(--muted) !important; }
+body.theme-king .cai-perfil-transform-card {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+}
+body.theme-king .cai-perfil-transform-card.is-current { border-color: rgba(255,79,123,0.45) !important; }
+body.theme-king .cai-perfil-transform-card.is-inicio  { border-color: rgba(255,107,149,0.40) !important; }
+body.theme-king .cai-perfil-transform-badge {
+  background: var(--accent) !important;
+  color: #fff !important;
+}
+body.theme-king .cai-perfil-transform-label { color: var(--accent) !important; }
+body.theme-king .cai-perfil-transform-date  { color: var(--muted) !important; }
+
+/* Foto inicio inline CTA */
+body.theme-king .cai-perfil-foto-inicio {
+  border-top: 1px solid var(--border) !important;
+}
+body.theme-king .cai-perfil-foto-inicio-eyebrow { color: var(--accent) !important; }
+body.theme-king .cai-perfil-foto-inicio-intro   { color: var(--muted) !important; }
+body.theme-king .cai-perfil-foto-inicio img     { background: var(--surface2) !important; }
+body.theme-king .cai-perfil-foto-inicio-btn {
+  background: rgba(255,79,123,0.08) !important;
+  border: 1px solid rgba(255,79,123,0.30) !important;
+  color: var(--accent) !important;
+}
+body.theme-king .cai-perfil-foto-inicio-primary {
+  background: linear-gradient(135deg, rgba(255,79,123,0.20), rgba(224,58,111,0.10)) !important;
+  border-color: rgba(255,79,123,0.40) !important;
+  color: var(--accent3) !important;
+}
+body.theme-king .cai-perfil-foto-inicio-secondary {
+  background: transparent !important;
+}
+body.theme-king .cai-perfil-foto-inicio-status { color: var(--muted) !important; }
+
+/* Último análisis — empty state + CTA */
+body.theme-king .cai-perfil-analisis-empty { color: var(--muted) !important; }
+body.theme-king .cai-perfil-analisis-week  { color: var(--accent) !important; }
+body.theme-king .cai-perfil-analisis-text  { color: var(--muted) !important; }
+body.theme-king .cai-perfil-analisis-cta {
+  background: rgba(255,79,123,0.08) !important;
+  border: 1px solid rgba(255,79,123,0.28) !important;
+  color: var(--accent) !important;
+}
+
+/* Mi información — avatar + form */
+body.theme-king .cai-perfil-info-head:hover,
+body.theme-king .cai-perfil-info-head:active {
+  background: rgba(255,79,123,0.05) !important;
+}
+body.theme-king .cai-perfil-info-avatar {
+  /* Stronger gradient with a brighter highlight at top-left → deeper
+     plum-coral at bottom-right so the circle reads as a polished bevel
+     instead of a flat pink disc. Soft coral glow around it. */
+  background: radial-gradient(circle at 30% 25%, #FF92AE 0%, #FF4F7B 45%, #C42960 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(255,79,123,0.40), inset 0 1px 2px rgba(255,255,255,0.25) !important;
+  border: 1px solid rgba(255,255,255,0.30) !important;
+}
+body.theme-king .cai-perfil-info-name  { color: var(--text) !important; }
+body.theme-king .cai-perfil-info-email { color: var(--muted) !important; }
+body.theme-king .cai-perfil-info-chev  { color: var(--muted) !important; }
+body.theme-king .cai-perfil-info-field:first-child {
+  border-top: 1px solid var(--border) !important;
+}
+body.theme-king .cai-perfil-info-field label { color: var(--muted) !important; }
+body.theme-king .cai-perfil-info-optional { color: var(--muted) !important; }
+body.theme-king .cai-perfil-info-field input {
+  background: var(--surface2) !important;
+  border: 1px solid rgba(255,79,123,0.22) !important;
+  color: var(--text) !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  box-shadow: none !important;
+}
+body.theme-king .cai-perfil-info-field input:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(255,79,123,0.12) !important;
+}
+body.theme-king .cai-perfil-info-readonly {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--muted) !important;
+}
+body.theme-king .cai-perfil-info-hint   { color: var(--muted) !important; }
+body.theme-king .cai-perfil-info-hint a { color: var(--accent) !important; }
+/* GUARDAR CAMBIOS — flagship coral gradient */
+body.theme-king .cai-perfil-info-save {
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 20px rgba(255,79,123,0.32) !important;
+}
+body.theme-king .cai-perfil-info-save * { color: #fff !important; }
+body.theme-king .cai-perfil-info-msg.ok  { color: var(--accent) !important; }
+body.theme-king .cai-perfil-info-msg.err { color: var(--accent3) !important; }
+
+/* Tutorial replay button */
+body.theme-king .cai-perfil-tutorial-btn {
+  background: var(--surface) !important;
+  border: 1px solid rgba(255,79,123,0.28) !important;
+  color: var(--accent) !important;
+}
+
+/* --- end of KING overlay (landing/home/nav/drawer/chat/mi-alim/mi-entreno/perfil) --- */
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -11510,12 +12223,17 @@ function resetAppState() {
   pendingPlanDelivery = null;
   dismissedPlanButtons = new Set();
   currentTenant = null;
-  // Drop the tenant body class so the next user (potentially on a
-  // different tenant) doesn't inherit the previous one's overlay.
-  if (_lastTenantBodyClass) {
-    document.body.classList.remove(_lastTenantBodyClass);
-    _lastTenantBodyClass = null;
-  }
+  // Do NOT strip _lastTenantBodyClass here. Two reasons:
+  // (1) During login (handleEmailLogin → resetAppState → loginOrRegister →
+  //     loadTenantForUser → applyTenantBranding), stripping the class would
+  //     cause a visible cyan/default-theme flash on the landing card between
+  //     reset and re-apply. applyTenantBranding itself swaps the class on
+  //     the next tenant cleanly (it removes the previous class before
+  //     adding the new one), so we don't need to pre-clear here.
+  // (2) For preview-tenant flows (?tenant=jesus), resetAppState runs but
+  //     no new user is logging in — stripping the class would un-skin the
+  //     landing screen mid-preview. The class should only change when an
+  //     actual tenant transition happens via applyTenantBranding.
   entrenóHoy = null;
   selectedDias = [];
   selectedComidas = '';
