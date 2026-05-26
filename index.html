@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260526-1230-icon-aspect-and-fill">
+<meta name="app-version" content="20260526-1300-home-eager-alim-load">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -14144,6 +14144,37 @@ function scrollToTop() {
   });
 }
 
+// Ensures the alimentación in-memory caches (_alimDays + _alimHeader parsed
+// from weeklyPlans.dieta, _alimEstado loaded from supabase) are populated.
+// Used by Home so the kcal-bars widget renders correctly on the FIRST paint
+// of a session — without this, the user would have to visit Mi Alimentación
+// once before Home's kcal chart shows real data (previously it just printed
+// "Sin dieta activa" or "0 kcal" on every cold-load of Home).
+// Safe to call multiple times — only does work where the cache is missing.
+async function ensureAlimentacionLoaded() {
+  // 1) Parse the dieta plan into _alimDays / _alimHeader (sync). The plan
+  //    is already in memory via weeklyPlans.dieta after login's data load,
+  //    so this is just CPU work — no network.
+  if ((!_alimDays || _alimDays.length === 0) && weeklyPlans?.dieta?.contenido && typeof parseDietaContenido === 'function') {
+    try {
+      let parsed = parseDietaContenido(weeklyPlans.dieta.contenido);
+      // Same fallback Mi Alimentación uses for legacy plain-text dietas
+      // (no LUNES/MARTES structure — synthesize 7 repeats from the meals).
+      if ((!parsed.days || parsed.days.length === 0) && typeof synthesizePlainTextDieta === 'function') {
+        parsed = synthesizePlainTextDieta(weeklyPlans.dieta.contenido);
+      }
+      _alimDays = parsed.days || null;
+      _alimHeader = parsed.header || null;
+    } catch (e) { console.warn('[home] dieta parse:', e); }
+  }
+  // 2) Load the supabase per-week "estado" (cumplido flags + custom kcal
+  //    edits per meal slot). Network call, ~50ms cached.
+  if (_alimEstado === null && typeof loadAlimentacionEstado === 'function') {
+    try { await loadAlimentacionEstado(); }
+    catch (e) { console.warn('[home] alim estado:', e); }
+  }
+}
+
 // renderHome — paints the new app-style dashboard. Synchronous first paint
 // from cached state (currentUser + weeklyPlans + _alimDays); then we kick off
 // the async data refreshers in parallel for the network-dependent widgets
@@ -14189,6 +14220,16 @@ function renderHome() {
   try { renderHomeKcalChart(); }      catch (e) { console.warn('[home] kcal:', e); }
   // Network-dependent widgets
   renderHomeRing().catch(e => console.warn('[home] ring:', e));
+  // Alimentación caches lazy-load on first visit to Mi Alimentación; for the
+  // FIRST open of Home (cold session) those caches are empty and the kcal
+  // chart would print "Sin dieta activa". Kick the load in the background
+  // and re-render the kcal chart + próxima comida widgets when it lands.
+  ensureAlimentacionLoaded()
+    .then(() => {
+      try { renderHomeKcalChart(); }      catch (e) { console.warn('[home] kcal re-render:', e); }
+      try { renderHomeProximaComida(); }  catch (e) { console.warn('[home] prox comida re-render:', e); }
+    })
+    .catch(e => console.warn('[home] alim load:', e));
   // Re-use the existing renderSemanas — it writes to #semanas-container which
   // we kept in the new HTML, so it works as-is.
   if (typeof renderSemanas === 'function') {
