@@ -450,6 +450,110 @@ body.theme-king .cai-home-semanas .btn-cerrar-semana:hover {
   box-shadow: 0 8px 24px rgba(255,79,123,0.42) !important;
 }
 
+/* --- K. Cierre semanal modal ---
+   Full overlay redesign: violet/teal glass + dark grey stat tiles
+   become a clean cream-surface modal with a coral CTA. The DOM stays
+   identical — only colors / borders / shadows swap. */
+
+/* Modal card — was dark glass + violet inset */
+body.theme-king .cierre-overlay .cierre-card {
+  background: var(--surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--border) !important;
+  box-shadow:
+    0 4px 24px rgba(255,79,123,0.10),
+    0 1px 2px rgba(26,26,38,0.06) !important;
+  -webkit-backdrop-filter: none !important;
+          backdrop-filter: none !important;
+}
+/* Header: calendar icon chip + title + date sub */
+body.theme-king .cierre-header .ico {
+  background: rgba(255,79,123,0.10) !important;
+  border: 1px solid rgba(255,79,123,0.30) !important;
+  color: var(--accent) !important;
+}
+body.theme-king .cierre-header .ico svg { color: var(--accent) !important; stroke: currentColor !important; }
+body.theme-king .cierre-overlay .cierre-title { color: var(--text) !important; }
+body.theme-king .cierre-overlay .cierre-sub { color: var(--muted) !important; }
+
+/* Stat tiles (DÍAS ENTRENADOS / KCAL · DÍA / PROTEÍNA / DÍAS REGISTRADOS) —
+   these were the dark-grey broken-looking blocks in the first KING render.
+   White surface with soft pink border + dark numbers + coral gradient
+   for the "primary" stat tile (`.grad`). */
+body.theme-king .cierre-overlay .cierre-stat {
+  background: var(--surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 1px 2px rgba(26,26,38,0.04), inset 0 1px 0 rgba(255,255,255,0.5) !important;
+  -webkit-backdrop-filter: none !important;
+          backdrop-filter: none !important;
+}
+body.theme-king .cierre-overlay .cierre-stat.grad {
+  background: linear-gradient(135deg, rgba(255,79,123,0.10), rgba(224,58,111,0.06)) !important;
+  border-color: rgba(255,79,123,0.30) !important;
+}
+body.theme-king .cierre-overlay .cierre-stat .label { color: var(--muted) !important; }
+body.theme-king .cierre-overlay .cierre-stat .num { color: var(--text) !important; }
+body.theme-king .cierre-overlay .cierre-stat .num.grad-text {
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent), var(--accent3)) !important;
+  -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+body.theme-king .cierre-overlay .cierre-stat .num .den {
+  color: var(--muted) !important;
+  -webkit-text-fill-color: var(--muted) !important;
+}
+body.theme-king .cierre-overlay .cierre-stat .sub { color: var(--muted) !important; }
+
+/* "COMPARÁ TU EVOLUCIÓN" eyebrow */
+body.theme-king .cierre-photos-eyebrow { color: var(--accent) !important; }
+body.theme-king .cierre-photos-eyebrow svg { color: var(--accent) !important; }
+
+/* Photo frames — Punto de inicio (image) + Esta semana (upload empty) */
+body.theme-king .cierre-overlay .cierre-photo .cap { color: var(--muted) !important; }
+body.theme-king .cierre-overlay .cierre-photo .frame {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+}
+body.theme-king .cierre-overlay .cierre-photo.upload .frame {
+  background: linear-gradient(180deg, rgba(255,107,149,0.06), rgba(255,79,123,0.04)) !important;
+  border: 1.5px dashed rgba(255,79,123,0.40) !important;
+}
+body.theme-king .cierre-overlay .cierre-photo.upload .frame:hover {
+  border-color: rgba(255,79,123,0.70) !important;
+  background: linear-gradient(180deg, rgba(255,107,149,0.10), rgba(255,79,123,0.06)) !important;
+}
+body.theme-king .cierre-overlay .cierre-photo .upload-ico {
+  background: linear-gradient(135deg, rgba(255,79,123,0.18), rgba(255,107,149,0.20)) !important;
+  border: 1px solid rgba(255,79,123,0.40) !important;
+  color: var(--accent) !important;
+}
+body.theme-king .cierre-overlay .cierre-photo .upload-ico svg { color: var(--accent) !important; }
+body.theme-king .cierre-overlay .cierre-photo .upload-cta .t { color: var(--text) !important; }
+body.theme-king .cierre-overlay .cierre-photo .upload-cta .s { color: var(--accent) !important; }
+body.theme-king .cierre-overlay .cierre-photo .frame .frame-empty-ico { color: var(--muted) !important; }
+
+/* Primary CTA "Generar análisis de mi semana" — violet/blue/teal → coral */
+body.theme-king .cierre-overlay .btn-generar-analisis {
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
+  color: #fff !important;
+  box-shadow:
+    0 12px 30px -10px rgba(255,79,123,0.55),
+    inset 0 1px 0 rgba(255,255,255,0.4) !important;
+}
+body.theme-king .cierre-overlay .btn-generar-analisis svg { color: #fff !important; stroke: currentColor !important; }
+
+/* Secondary CTA "← CERRAR" */
+body.theme-king .cierre-overlay .btn-cierre-cerrar {
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+  color: var(--muted) !important;
+}
+body.theme-king .cierre-overlay .btn-cierre-cerrar:hover {
+  color: var(--text) !important;
+  border-color: rgba(255,79,123,0.30) !important;
+}
+
 /* Seguimiento semanal — week strip eyebrow + chips */
 body.theme-king .cai-home-semanas-eyebrow { color: var(--accent) !important; }
 body.theme-king .semana-num { color: var(--accent) !important; }
