@@ -8114,6 +8114,16 @@ footer {
   width: 100%;
 }
 .cierre-overlay .cierre-photo.upload .frame:hover { border-color: rgba(180,167,255,.7); background: linear-gradient(180deg, rgba(124,106,255,.10), rgba(46,207,181,.06)); }
+.cierre-overlay .cierre-photo.upload .frame.has-photo {
+  padding: 0;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-style: solid;
+  background: transparent;
+}
+.cierre-overlay .cierre-photo.upload .frame.has-photo:hover {
+  border-color: rgba(255,255,255,0.08);
+  background: transparent;
+}
 .cierre-overlay .cierre-photo .frame .frame-empty-ico {
   display: flex; flex-direction: column; align-items: center; gap: 6px;
   color: #54526e;
@@ -13598,6 +13608,7 @@ function openCierreSemana(weekNum) {
    // .upload-cta as a column flex isn't overridden by this inline style.
   document.getElementById('cierre-foto-placeholder').style.display = 'flex';
   document.getElementById('cierre-foto-input').value = '';
+  document.getElementById('cierre-foto-upload-slot')?.classList.remove('has-photo');
   // If there's an analysis still running (user closed the modal mid-flight
   // and reopened), reflect that in the button instead of leaving it idle —
   // otherwise a tap silently no-ops because cierreInflight is still true.
@@ -13670,6 +13681,9 @@ function previewCierreFoto(event) {
   setPreviewSrc(preview, file);
   preview.style.display = 'block';
   document.getElementById('cierre-foto-placeholder').style.display = 'none';
+  // Drop the dashed-empty styling once we have a real photo so the frame
+  // matches the "Punto de inicio" slot visually (solid border, no padding).
+  document.getElementById('cierre-foto-upload-slot')?.classList.add('has-photo');
 }
 
 // Module-level in-flight guard. Without this, a fast double-tap (or repeated
