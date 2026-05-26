@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260526-0330-drawer-bottom-nav-match">
+<meta name="app-version" content="20260526-0345-scope-drawer-css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6908,8 +6908,8 @@ footer {
 .nav-user-name { font-weight: 600; font-size: 14px; color: var(--text); }
 .nav-user-goal { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
-.nav-section { padding: 10px 12px; }
-.nav-section-label {
+.nav-drawer .nav-section { padding: 10px 12px; }
+.nav-drawer .nav-section-label {
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 1.5px;
@@ -6917,11 +6917,16 @@ footer {
   padding: 6px 10px 8px;
   font-weight: 700;
 }
-/* Items now read as vertical chips that mirror the bottom-nav pill language:
+/* IMPORTANT: every rule in this block is scoped under .nav-drawer so it
+   doesn't leak into .cai-bottom-nav .nav-item — both reuse the .nav-item
+   class but the bottom-nav has its own visual treatment (gradient thumb
+   sliding behind the active item) that must NOT inherit our drawer
+   border/padding/box-shadow. Items here read as vertical chips that
+   mirror the bottom-nav pill language:
    - rounded pill shape
    - violet→teal gradient backing on .active (same recipe as .cai-bottom-nav-thumb)
    - same icon SVGs at the same stroke (1.8) as the bottom nav */
-.nav-item {
+.nav-drawer .nav-item {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -6933,8 +6938,8 @@ footer {
   transition: background 0.18s ease, color 0.18s ease;
   -webkit-tap-highlight-color: transparent;
 }
-.nav-item:hover { background: rgba(255,255,255,0.03); }
-.nav-item.active {
+.nav-drawer .nav-item:hover { background: rgba(255,255,255,0.03); }
+.nav-drawer .nav-item.active {
   background: linear-gradient(135deg, rgba(124,106,255,0.30), rgba(46,207,181,0.16));
   border: 1px solid rgba(124,106,255,0.45);
   /* Compensate the 1px border so heights match non-active siblings. */
@@ -6943,7 +6948,7 @@ footer {
     0 0 18px rgba(124,106,255,0.20),
     inset 0 1px 0 rgba(255,255,255,0.06);
 }
-.nav-item-icon {
+.nav-drawer .nav-item-icon {
   width: 36px;
   height: 36px;
   border-radius: 10px;
@@ -6956,18 +6961,18 @@ footer {
   color: var(--muted);
   transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
 }
-.nav-item-icon svg { width: 18px; height: 18px; display: block; }
-.nav-item:hover .nav-item-icon { color: var(--accent-bright); border-color: rgba(124,106,255,0.25); }
-.nav-item.active .nav-item-icon {
+.nav-drawer .nav-item-icon svg { width: 18px; height: 18px; display: block; }
+.nav-drawer .nav-item:hover .nav-item-icon { color: var(--accent-bright); border-color: rgba(124,106,255,0.25); }
+.nav-drawer .nav-item.active .nav-item-icon {
   color: #fff;
   background: rgba(255,255,255,0.06);
   border-color: rgba(255,255,255,0.10);
 }
-.nav-item-label { font-size: 14px; font-weight: 500; color: var(--muted); transition: color 0.18s ease; }
-.nav-item:hover .nav-item-label { color: var(--text); }
-.nav-item.active .nav-item-label { color: #fff; font-weight: 600; }
+.nav-drawer .nav-item-label { font-size: 14px; font-weight: 500; color: var(--muted); transition: color 0.18s ease; }
+.nav-drawer .nav-item:hover .nav-item-label { color: var(--text); }
+.nav-drawer .nav-item.active .nav-item-label { color: #fff; font-weight: 600; }
 
-.nav-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 8px 18px; }
+.nav-drawer .nav-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 8px 18px; }
 .nav-drawer-footer {
   margin-top: auto;
   padding: 20px 22px 22px;
