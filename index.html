@@ -291,14 +291,18 @@ body.theme-king .cai-home-greet-ico {
   color: var(--accent) !important;
 }
 
-/* Feedback bubble (bottom-right floating button) */
-body.theme-king .feedback-btn {
+/* Feedback FAB (bottom-right floating action button — id #feedback-fab,
+   not .feedback-btn which was a wrong-class guess in round 1). */
+body.theme-king #feedback-fab {
   background: linear-gradient(135deg, var(--accent-bright), var(--accent), var(--accent3)) !important;
   color: #fff !important;
-  box-shadow: 0 8px 22px rgba(255,79,123,0.32) !important;
+  box-shadow: 0 6px 20px rgba(255,79,123,0.35) !important;
 }
-body.theme-king .feedback-btn svg,
-body.theme-king .feedback-btn span { color: #fff !important; }
+body.theme-king #feedback-fab:hover {
+  box-shadow: 0 8px 26px rgba(255,79,123,0.45) !important;
+}
+body.theme-king #feedback-fab svg,
+body.theme-king #feedback-fab span { color: #fff !important; fill: currentColor !important; stroke: currentColor !important; }
 
 /* --- Round 2: items called out in first Safari review --- */
 
@@ -396,6 +400,55 @@ body.theme-king .cai-home-semanas .semana-strip-summary .num .den {
   -webkit-text-fill-color: var(--muted) !important;
 }
 body.theme-king .cai-home-semanas .semana-strip-summary .label { color: var(--muted) !important; }
+
+/* Calorías Hoy macro-ring icon — multi-circle SVG with hardcoded violet
+   gradient stops + hardcoded blue + teal strokes + thin white tracks.
+   Override every layer to coral; tracks need to be visible on cream so
+   we tint them subtly pink instead of the original ~10% white. */
+body.theme-king #cal-ring-home stop:nth-child(1) { stop-color: var(--accent-bright) !important; }
+body.theme-king #cal-ring-home stop:nth-child(2) { stop-color: var(--accent) !important; }
+body.theme-king .ico-kcal circle[stroke^="rgba(255,255,255"] { stroke: rgba(255,79,123,0.12) !important; }
+body.theme-king .ico-kcal circle[stroke="#5b9fff"] { stroke: var(--accent-bright) !important; }
+body.theme-king .ico-kcal circle[stroke="#2ecfb5"] { stroke: var(--accent3) !important; }
+
+/* Expanded week card — chevron, timeline (line + dots + trained icon),
+   status text, dates, and the "Cerrar semana y ver mi análisis" button.
+   All defaulted to violet/teal hardcoded literals. */
+body.theme-king .cai-home-semanas .semana-chevron { color: var(--muted) !important; }
+body.theme-king .cai-home-semanas .semana-card.open .semana-chevron { color: var(--accent) !important; }
+body.theme-king .cai-home-semanas .semana-timeline::before {
+  background: linear-gradient(180deg,
+    rgba(255,79,123,0.55) 0%,
+    rgba(255,107,149,0.30) 60%,
+    rgba(255,79,123,0.08) 90%) !important;
+}
+body.theme-king .cai-home-semanas .semana-tl-dot span {
+  background: var(--border) !important;
+  box-shadow: 0 0 0 4px var(--surface) !important;
+}
+body.theme-king .cai-home-semanas .semana-tl-row.trained .semana-tl-dot span {
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent)) !important;
+  box-shadow: 0 0 0 4px var(--surface), 0 0 14px rgba(255,79,123,0.35) !important;
+}
+body.theme-king .cai-home-semanas .semana-tl-row.rest .semana-tl-dot span {
+  background: rgba(255,107,107,0.45) !important;
+  box-shadow: 0 0 0 4px var(--surface) !important;
+}
+body.theme-king .cai-home-semanas .semana-tl-date { color: var(--text) !important; }
+body.theme-king .cai-home-semanas .semana-tl-status.trained { color: var(--accent) !important; }
+/* The dumbbell SVG inside the trained row's status (next to "ENTRENÓ") uses
+   currentColor, so retinting the parent .semana-tl-status.trained covers it. */
+
+/* Cerrar semana CTA */
+body.theme-king .cai-home-semanas .btn-cerrar-semana {
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
+  border: 1px solid var(--accent) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 18px rgba(255,79,123,0.30) !important;
+}
+body.theme-king .cai-home-semanas .btn-cerrar-semana:hover {
+  box-shadow: 0 8px 24px rgba(255,79,123,0.42) !important;
+}
 
 /* Seguimiento semanal — week strip eyebrow + chips */
 body.theme-king .cai-home-semanas-eyebrow { color: var(--accent) !important; }
