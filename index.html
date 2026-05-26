@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260526-0500-coachai-pro-logo">
+<meta name="app-version" content="20260526-0520-plan-notif-gate">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11948,14 +11948,25 @@ async function sendToAI(userMessage, isFirst = false) {
       return;
     }
     removeTyping();
-    // If this reply IS a plan delivery, swap the full plan dump in the chat
-    // for a short notification pointing to Mi Entreno / Mi Alimentación + Perfil.
-    // The full content still lives in conversationHistory (for AI follow-ups
-    // like "cambiá el ejercicio de pecho") and in planes_semanales (for the
-    // Mi Entreno / Mi Alimentación sections to render correctly).
-    const _planTipoForDisplay = pendingPlanDelivery
-      || ((reply && reply.length > 400) ? detectPlanInReply(reply) : null);
+    // Decide whether this reply is a real plan delivery vs a clarifying
+    // question. Two conditions both must hold for "plan delivered":
+    //   1) reply is long enough to plausibly contain a full week's plan (>400)
+    //   2) either the user explicitly requested a plan (pendingPlanDelivery
+    //      set via the quick-button click) OR the reply itself contains
+    //      plan-shaped content (detectPlanInReply returns non-null)
+    // If only the user request fired but the AI replied short (clarification,
+    // "let me get back to you", etc.), we surface the raw reply so the user
+    // sees the question and can answer — instead of falsely showing the
+    // "plan listo" notification with no plan actually saved.
+    const tipoFromReply = detectPlanInReply(reply);
+    const isPlanDelivery = reply && reply.length > 400 && (pendingPlanDelivery || tipoFromReply);
+    const _planTipoForDisplay = isPlanDelivery ? (pendingPlanDelivery || tipoFromReply) : null;
+
     if (_planTipoForDisplay) {
+      // Swap the full plan dump for a short notification pointing to Mi
+      // Entreno / Mi Alimentación + Perfil. The full content still lives in
+      // conversationHistory and planes_semanales so the AI keeps context
+      // and the sections render correctly.
       addMessage(buildPlanReadyNotification(_planTipoForDisplay), 'coach');
     } else {
       addMessage(formatResponse(reply), 'coach');
@@ -11965,12 +11976,11 @@ async function sendToAI(userMessage, isFirst = false) {
     pushedUserTurn = false; // assistant turn balanced the user turn — alternation OK
     saveChatToSupabase(chatMessages, todayConversation).catch(console.error);
 
-    // Determine the actual plan type to save. User intent (pendingPlanDelivery)
-    // wins over keyword detection on the reply: detectPlanInReply can false-
-    // positive on a routine reply that mentions "desayuno" in pre-workout
-    // timing advice, which would clobber the dieta slot with workout content.
-    if (reply && reply.length > 400) {
-      const tipoFromReply = detectPlanInReply(reply);
+    // Persist the plan if this reply was a real delivery. User intent
+    // (pendingPlanDelivery) wins over keyword detection — detectPlanInReply
+    // can false-positive on a rutina reply that mentions "desayuno" in
+    // pre-workout timing advice, which would clobber the dieta slot.
+    if (isPlanDelivery) {
       const tipo = pendingPlanDelivery || tipoFromReply;
 
       if (pendingPlanDelivery && tipoFromReply && pendingPlanDelivery !== tipoFromReply) {
@@ -11979,8 +11989,6 @@ async function sendToAI(userMessage, isFirst = false) {
       }
 
       if (tipo && (!weeklyPlans[tipo] || weeklyPlans[tipo].closed || tipoFromReply)) {
-        // Only persist if it's a fresh slot OR the reply explicitly contains plan
-        // content (tipoFromReply truthy means the AI actually delivered a plan).
         pendingPlanDelivery = null;
         const saved = await saveWeeklyPlan(tipo, reply);
         weeklyPlans[tipo] = saved || {
@@ -11991,9 +11999,13 @@ async function sendToAI(userMessage, isFirst = false) {
         };
         refreshQuickButtons();
       }
-    } else if (pendingPlanDelivery && reply && reply.length <= 400) {
-      // Reply was likely a clarifying question, not a plan — leave the flag for the next turn.
     }
+    // If the reply was short and pendingPlanDelivery was set, we DON'T touch
+    // either pendingPlanDelivery or dismissedPlanButtons — the user is mid-
+    // conversation (AI asked a clarifying question, user will answer, next
+    // assistant turn will hopefully be the actual plan). Leaving the flag +
+    // hidden button set keeps the experience coherent across the clarification
+    // turns. If the user abandons (reload, session switch), both reset.
   } catch (err) {
     console.error('[CoachAI] sendToAI error:', err?.message || err);
     removeTyping();
