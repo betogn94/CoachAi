@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260526-1400-alim-target-redesign">
+<meta name="app-version" content="20260526-1430-home-rerender-post-load">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11801,6 +11801,20 @@ async function launchCoach() {
   allChatHistory = history;
   recentDiario = recentDiarioData;
   weeklyPlans = plans;
+
+  // showHome() was called earlier in this function (line ~11764) BEFORE
+  // these async loads completed, so the first Home paint ran with empty
+  // weeklyPlans and the kcal-chart + próxima-comida widgets fell back to
+  // the "Sin dieta activa" empty state. Now that the data is in memory,
+  // re-render Home if it's the section currently visible — that lets the
+  // kcal chart and the Mi Entreno hero card converge to the real data
+  // without the user having to navigate away and back.
+  if (typeof renderHome === 'function') {
+    const homeVisible = document.getElementById('home-wrapper')?.style.display === 'block';
+    if (homeVisible) {
+      try { renderHome(); } catch (e) { console.warn('[home] post-load re-render:', e); }
+    }
+  }
 
   // Build the recent (last 7 days) summary slice used by buildHistorySummary().
   recentChatHistory = allChatHistory.slice(-7).slice().reverse();
