@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260525-2330-card-default-collapsed">
+<meta name="app-version" content="20260526-0100-analysis-card-polish">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -7727,9 +7727,11 @@ footer {
 
 /* Strip de 7 días (collapsed · en curso). Extra top padding pushes the
    day-bars + counter off the divider line above (which is the header's
-   bottom edge) so it doesn't read as touching. */
+   bottom edge) so it doesn't read as touching. `align-items: flex-end`
+   so the "ENTRENADOS" label baseline sits on the same row as the day
+   bars (both are the bottom child of their respective columns). */
 .cai-home-semanas .semana-strip {
-  display: flex; gap: 6px; align-items: center;
+  display: flex; gap: 6px; align-items: flex-end;
   padding: 14px 18px 16px;
 }
 .cai-home-semanas .semana-strip-days { display: flex; gap: 6px; flex: 1; }
@@ -7877,6 +7879,15 @@ footer {
   text-transform: none;
 }
 .cai-home-semanas .btn-cerrar-semana svg { display: none; }
+/* Override the legacy mobile rule (line ~6743) that applied
+   `width: calc(100% - 28px); margin: 0 14px 14px;` and pushed the button
+   off-center due to box-sizing interactions. Inside our wrapper we always
+   want full width inside the body's padding box. */
+.cai-home-semanas .btn-cerrar-semana {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 16px 0 0;
+}
 .cai-home-semanas .btn-cerrar-semana:hover {
   transform: translateY(-1px);
   box-shadow: 0 14px 30px -10px rgba(91,159,255,.45);
@@ -7921,63 +7932,88 @@ footer {
   color: #b4a7ff;
 }
 
-/* Análisis — editorial coach letter */
+/* Análisis — proper subcard with breathing room per Design feedback.
+   Sets white-space: normal explicitly because the legacy .semana-analisis
+   rule (line ~5719) inherits white-space: pre-wrap to children, which was
+   making the REGENERAR button render its template-literal indentation as
+   visible whitespace and inflate to ~74px tall. Subcard now has its own
+   bg + rounded border so it reads as a contained block, not loose text. */
 .cai-home-semanas .semana-analisis {
-  margin-top: 16px;
-  padding: 18px 18px 20px;
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(124,106,255,.06), rgba(46,207,181,.04));
-  border: 1px solid rgba(255,255,255,0.08);
-  position: relative;
+  margin: 14px 0 0;
+  padding: 16px 16px 14px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  white-space: normal;
 }
-.cai-home-semanas .semana-analisis::before {
-  content: "“";
-  position: absolute; top: -12px; left: 14px;
-  font-family: 'Bebas Neue', sans-serif; font-size: 60px; line-height: 1;
-  color: rgba(180,167,255,.35);
-}
-.cai-home-semanas .semana-analisis-title {
-  display: flex; align-items: center; gap: 8px;
-  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .12em;
-  color: #2ecfb5; text-transform: uppercase;
-  margin: 6px 0 12px;
-  white-space: nowrap; /* keep "CARTA DEL COACH" on a single line */
-}
-.cai-home-semanas .semana-analisis-title svg { flex-shrink: 0; }
 .cai-home-semanas .semana-analisis h1, .cai-home-semanas .semana-analisis h2 {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 22px; line-height: 1.05; letter-spacing: .02em;
-  background: linear-gradient(135deg, #7c6aff, #5b9fff, #2ecfb5);
-  -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin: 0 0 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13.5px; font-weight: 700;
+  color: #2ecfb5;
+  margin: 10px 0 4px;
 }
+.cai-home-semanas .semana-analisis h1:first-child,
+.cai-home-semanas .semana-analisis h2:first-child { margin-top: 0; }
 .cai-home-semanas .semana-analisis p, .cai-home-semanas .semana-analisis li {
-  font-size: 13.5px; line-height: 1.6; color: #cfcde0;
+  font-size: 13px; line-height: 1.5; color: #cfcde0;
+  margin: 0 0 6px;
 }
+.cai-home-semanas .semana-analisis ul { padding-left: 18px; margin: 4px 0 6px; }
 .cai-home-semanas .semana-analisis strong { color: #fff; font-weight: 600; }
-.cai-home-semanas .semana-analisis hr { border: 0; border-top: 1px solid rgba(255,255,255,.08); margin: 14px 0; }
+.cai-home-semanas .semana-analisis em { color: var(--muted2, #54526e); font-style: italic; }
+.cai-home-semanas .semana-analisis hr { border: 0; border-top: 1px solid rgba(255,255,255,.08); margin: 10px 0; }
+
+/* Footer (date + regenerar). Pill button copies Perfil's "← INICIO" back
+   button: subtle white-2.5% bg + violet-18% border + accent-bright text +
+   JetBrains Mono — compact and discreet, matches the existing app vocabulary. */
 .cai-home-semanas .semana-analisis-footer {
   display: flex; align-items: center; gap: 8px;
-  margin-top: 14px; padding-top: 14px;
-  border-top: 1px solid rgba(255,255,255,0.08);
+  margin-top: 12px; padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.06);
   font-family: 'JetBrains Mono', monospace; font-size: 10px;
   letter-spacing: .12em; color: var(--muted); text-transform: uppercase;
+}
+.cai-home-semanas .semana-analisis-footer button {
+  margin-left: auto;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(124,106,255,0.18);
+  color: var(--accent-bright);
+  padding: 8px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s ease, border-color .15s ease, transform .15s ease;
+}
+.cai-home-semanas .semana-analisis-footer button:hover {
+  background: rgba(124,106,255,0.07);
+  border-color: rgba(124,106,255,0.35);
+}
+.cai-home-semanas .semana-analisis-footer button:active {
+  transform: scale(0.97);
 }
 
 /* ── MODAL CIERRE — premium dashboard ─────────────────────────────── */
 .cierre-overlay .cierre-card {
-  /* Override legacy violet border + reduce padding so the modal feels
-     compact instead of edge-to-edge on mobile. Constrained max-height +
-     internal scroll prevents the photos+stats stack from filling the
-     viewport when the user has a small screen. */
+  /* Override legacy violet border + the .coach-card violet top inset
+     (`box-shadow: inset 0 2px 0 var(--accent)`) that was painting the
+     thin violet line at the top edge. Tighter padding + smaller max
+     dimensions so the modal feels compact on iPhone-sized viewports.
+     Card height is its natural content height — no internal scroll,
+     so the modal feels like a fixed dialog instead of a scroll surface
+     (Design choice). The current content fits comfortably on standard
+     iPhone viewports (~646px on a 812px screen). */
   background: rgba(20,20,32,0.92);
   border: 1px solid rgba(255,255,255,0.08);
-  padding: 18px 16px;
-  max-width: 420px;
-  max-height: 90vh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  box-shadow:
+    0 4px 24px rgba(0,0,0,0.4),
+    0 0 0 1px rgba(124,106,255,0.05);
+  padding: 16px 14px;
+  max-width: 380px;
   -webkit-backdrop-filter: blur(28px) saturate(140%);
           backdrop-filter: blur(28px) saturate(140%);
 }
@@ -8002,17 +8038,17 @@ footer {
   color: var(--muted); text-transform: uppercase; margin: 6px 0 0;
 }
 .cierre-overlay .cierre-stats {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-  margin-top: 18px; margin-bottom: 0;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  margin-top: 14px; margin-bottom: 0;
 }
 .cierre-overlay .cierre-stat {
   position: relative;
   background: rgba(20,20,32,0.55);
   border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 18px;
+  border-radius: 14px;
   -webkit-backdrop-filter: blur(24px) saturate(140%);
           backdrop-filter: blur(24px) saturate(140%);
-  padding: 16px 14px;
+  padding: 12px;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
   text-align: left;
 }
@@ -8024,8 +8060,8 @@ footer {
   color: #54526e; text-transform: uppercase;
 }
 .cierre-overlay .cierre-stat .num {
-  font-family: 'Bebas Neue', sans-serif; font-size: 36px; line-height: 1;
-  margin-top: 6px; color: #fff;
+  font-family: 'Bebas Neue', sans-serif; font-size: 28px; line-height: 1;
+  margin-top: 4px; color: #fff;
   font-weight: normal;
 }
 .cierre-overlay .cierre-stat .num.grad-text {
@@ -8041,20 +8077,20 @@ footer {
 }
 
 .cierre-photos-eyebrow {
-  display: flex; align-items: center; gap: 8px; margin-top: 22px; margin-bottom: 10px;
-  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .16em;
+  display: flex; align-items: center; gap: 8px; margin-top: 16px; margin-bottom: 8px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: .14em;
   color: #b4a7ff; text-transform: uppercase;
 }
 .cierre-overlay .cierre-photos {
-  display: flex; gap: 12px; margin-top: 0; margin-bottom: 0;
+  display: flex; gap: 10px; margin-top: 0; margin-bottom: 0;
 }
 .cierre-overlay .cierre-photo { flex: 1; }
 .cierre-overlay .cierre-photo .cap {
-  font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .16em;
-  color: #54526e; margin-bottom: 6px; text-align: center; text-transform: uppercase;
+  font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .14em;
+  color: #54526e; margin-bottom: 5px; text-align: center; text-transform: uppercase;
 }
 .cierre-overlay .cierre-photo .frame {
-  aspect-ratio: 3/4; border-radius: 14px; overflow: hidden;
+  aspect-ratio: 4/5; border-radius: 12px; overflow: hidden;
   background: linear-gradient(180deg, #1a1830, #0c0b1a);
   border: 1px solid rgba(255,255,255,0.08);
   background-size: cover; background-position: center;
@@ -8064,10 +8100,18 @@ footer {
 .cierre-overlay .cierre-photo.upload .frame {
   background: linear-gradient(180deg, rgba(124,106,255,.06), rgba(46,207,181,.04));
   border: 1.5px dashed rgba(180,167,255,.4);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
   cursor: pointer;
-  padding: 14px 10px;
+  padding: 10px;
   transition: border-color .2s, background .2s;
+}
+/* Critical: the inner placeholder div was rendering as block (no flex),
+   so .upload-ico (a block-level child) stuck to the left edge of the
+   placeholder instead of centering. Making it a column flex centers
+   both the camera circle and the CTA text horizontally. */
+.cierre-overlay .cierre-photo.upload #cierre-foto-placeholder {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  width: 100%;
 }
 .cierre-overlay .cierre-photo.upload .frame:hover { border-color: rgba(180,167,255,.7); background: linear-gradient(180deg, rgba(124,106,255,.10), rgba(46,207,181,.06)); }
 .cierre-overlay .cierre-photo .frame .frame-empty-ico {
@@ -8079,31 +8123,32 @@ footer {
   text-transform: uppercase;
 }
 .cierre-overlay .cierre-photo .upload-ico {
-  width: 54px; height: 54px; border-radius: 50%;
+  width: 46px; height: 46px; border-radius: 50%;
   background: linear-gradient(135deg, rgba(124,106,255,.20), rgba(46,207,181,.20));
   border: 1px solid rgba(180,167,255,.4);
   display: grid; place-items: center;
+  flex-shrink: 0;
 }
-.cierre-overlay .cierre-photo .upload-cta { text-align: center; padding: 0 10px; }
-.cierre-overlay .cierre-photo .upload-cta .t { font-family: 'Bebas Neue', sans-serif; font-size: 16px; color: #fff; letter-spacing: .04em; }
-.cierre-overlay .cierre-photo .upload-cta .s { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #2ecfb5; margin-top: 4px; letter-spacing: .16em; }
+.cierre-overlay .cierre-photo .upload-cta { text-align: center; padding: 0 6px; }
+.cierre-overlay .cierre-photo .upload-cta .t { font-family: 'Bebas Neue', sans-serif; font-size: 15px; color: #fff; letter-spacing: .04em; }
+.cierre-overlay .cierre-photo .upload-cta .s { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #2ecfb5; margin-top: 3px; letter-spacing: .14em; }
 .cierre-overlay .cierre-photo #cierre-foto-preview {
   width: 100%; height: 100%; object-fit: cover; border-radius: inherit;
 }
 
 /* CTA principal Generar análisis (override legacy) */
 .cierre-overlay .btn-generar-analisis {
-  margin-top: 22px; width: 100%; padding: 16px;
+  margin-top: 16px; width: 100%; padding: 13px;
   background: linear-gradient(135deg, #7c6aff, #5b9fff, #2ecfb5);
-  border: 0; border-radius: 16px;
-  color: #06121a; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700;
+  border: 0; border-radius: 14px;
+  color: #06121a; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700;
   letter-spacing: 0;
-  display: flex; align-items: center; justify-content: center; gap: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
   box-shadow:
-    0 18px 40px -14px rgba(91,159,255,.55),
+    0 12px 30px -10px rgba(91,159,255,.55),
     inset 0 1px 0 rgba(255,255,255,.4);
   cursor: pointer;
-  min-height: 52px;
+  min-height: 46px;
   transition: transform .15s ease;
   text-transform: none;
 }
@@ -8128,7 +8173,10 @@ footer {
 /* Mobile fine-tune (375px) */
 @media (max-width: 420px) {
   .cai-home-semanas .semana-header { padding: 14px 16px; }
-  .cai-home-semanas .semana-strip, .cai-home-semanas .semana-thumb { padding: 0 16px 14px; }
+  /* Restore the breathing room above the day strip / thumb that the desktop
+     rule sets — the mobile rule was zeroing it out, making "0/4 ENTRENADOS"
+     touch the header divider. */
+  .cai-home-semanas .semana-strip, .cai-home-semanas .semana-thumb { padding: 18px 16px 14px; }
   .cai-home-semanas .semana-card.open .semana-body { padding: 0 16px 16px; }
   .cai-home-semanas .semana-statbar { gap: 8px; }
   .cai-home-semanas .semana-statbar .stat .num { font-size: 20px; }
@@ -11840,7 +11888,13 @@ function formatResponse(text) {
     .replace(/^- (.+)$/gm, '<li>$1</li>')
     .replace(/(<li>[\s\S]*?<\/li>)+/g, m => `<ul>${m}</ul>`)
     .replace(/\n\n/g, '<br><br>')
-    .replace(/\n/g, '<br>');
+    .replace(/\n/g, '<br>')
+    // Strip <br>s that immediately follow block-level tags (h2/ul) — without
+    // this, "# Heading\n\nContent" produces <h2>Heading</h2><br><br>Content
+    // which stacks the h2's margin-bottom + 2 line-heights of <br> spacing,
+    // leaving a giant gap between heading and the paragraph. Block tags
+    // already provide their own margin, so the trailing <br>s are redundant.
+    .replace(/(<\/h[12]>|<\/ul>)(<br>\s*)+/g, '$1');
 }
 
 async function sendToAI(userMessage, isFirst = false) {
@@ -13363,25 +13417,17 @@ async function renderSemanas() {
         </div>`;
     }
 
-    // AI analysis — editorial "Carta del Coach". formatResponse handles escape +
-    // markdown-lite (same path as chat). Regenerate button preserved.
+    // AI analysis — clean text block. No eyebrow title, no decoration —
+    // just the markdown-formatted analysis + a minimal footer (date +
+    // regenerate). Headings inside come pre-styled by the .semana-analisis
+    // CSS scope (cyan bold instead of gradient hero treatment).
     if (cierre?.analisis) {
       bodyHtml += `
         <div class="semana-analisis">
-          <div class="semana-analisis-title">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 20V8M9 20V4M14 20v-9M19 20v-4M3 20h18"/>
-            </svg>
-            ${isEs?'CARTA DEL COACH':'COACH LETTER'}
-          </div>
           ${formatResponse(cierre.analisis)}
           <div class="semana-analisis-footer">
             <span>CoachAI · ${formatDateShort(cierre.fecha_fin || range.end)}</span>
-            <button onclick="regenerarAnalisisSemana(${w})" id="btn-regen-${w}"
-              style="margin-left:auto;background:transparent;border:1px solid rgba(180,167,255,.4);color:#b4a7ff;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:10px;letter-spacing:.12em;font-family:'JetBrains Mono',monospace;">
-              ${isEs?'REGENERAR':'REGENERATE'}
-            </button>
+            <button onclick="regenerarAnalisisSemana(${w})" id="btn-regen-${w}">${isEs?'REGENERAR':'REGENERATE'}</button>
           </div>
         </div>`;
     }
@@ -13548,7 +13594,9 @@ function openCierreSemana(weekNum) {
     delete cierrePreview.dataset.objUrl;
   }
   cierrePreview.src = '';
-  document.getElementById('cierre-foto-placeholder').style.display = 'block';
+  // Use 'flex' (not 'block') so the CSS rule that centers .upload-ico +
+   // .upload-cta as a column flex isn't overridden by this inline style.
+  document.getElementById('cierre-foto-placeholder').style.display = 'flex';
   document.getElementById('cierre-foto-input').value = '';
   // If there's an analysis still running (user closed the modal mid-flight
   // and reopened), reflect that in the button instead of leaving it idle —
@@ -13632,6 +13680,45 @@ let cierreInflight = false;
 // Cache of the last-generated analysis so the retry banner can re-attempt the
 // upsert without re-billing Claude. Keyed by `${userId}:${weekNum}`.
 let lastCierrePending = null;
+
+// ─── LOCAL-ONLY mock interceptor for /api/chat ───────────────────────────
+// In local dev (localhost / LAN IP) the Vercel serverless function isn't
+// available — fetch returns 404 HTML and the cierre flow shows "Error —
+// intentá de nuevo". This shim intercepts the call in non-production hosts
+// only and returns a canned weekly analysis after ~1.5s so the user can
+// visually walk through the full UX in Safari without hitting prod.
+// In production (coachaipro.ai) this is a no-op — we let the real /api/chat
+// handle it.
+(function installLocalChatMock(){
+  if (typeof window === 'undefined' || !window.fetch) return;
+  const h = location.hostname;
+  const isLocal = h === 'localhost' || h === '127.0.0.1' || /^192\.168\./.test(h) || /^10\./.test(h);
+  if (!isLocal) return;
+  const orig = window.fetch.bind(window);
+  window.fetch = async (url, opts) => {
+    const u = typeof url === 'string' ? url : (url?.url || '');
+    if (u.includes('/api/chat')) {
+      console.info('[local-mock] intercepting /api/chat for cierre demo');
+      await new Promise(r => setTimeout(r, 1500));
+      return new Response(JSON.stringify({
+        content: [{ type: 'text', text:
+`# Arranque sólido
+
+Cumpliste **3 de 4 entrenamientos (75% adherencia)** y registraste comidas 5 de 7 días — buena consistencia para una primera semana. Promediaste 1850 kcal/día con 145g de proteína, lo que te pone en un déficit moderado y sostenible para tu objetivo de definición.
+
+**Lo bueno**: tu adherencia al plan fue alta y la proteína está cerca del target. Si mantenés esto, en 4 semanas vas a ver cambios visibles en composición corporal.
+
+**Objetivos Semana 2:**
+1. Cumplí los 4 entrenamientos planeados
+2. Registrá los 7 días de comidas
+3. Subí proteína a 170g mínimo
+
+*(análisis simulado — solo aparece en local · prod usa el API real)*` }]
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    return orig(url, opts);
+  };
+})();
 
 async function ejecutarCierreSemana() {
   if (cierreInflight) return;
