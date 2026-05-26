@@ -12256,6 +12256,33 @@ function applyTenantBranding(tenant) {
       installBtn.setAttribute('aria-label', (lang === 'en' ? 'Install ' : 'Instalar ') + (b.shortName || b.name) + (lang === 'en' ? ' as app' : ' como app'));
     }
   }
+
+  // ── PWA install assets (manifest / apple-touch-icon / theme-color) ──
+  // The OS reads these from <head> when the user taps "Add to Home Screen"
+  // (iOS) or when Chrome shows the install prompt (Android). The defaults
+  // hardcoded in the HTML point to /manifest.json + /apple-touch-icon.png
+  // (CoachAI dark navy + violet/teal). For whitelabel tenants we swap
+  // them to the tenant's KING-equivalent assets BEFORE the install action
+  // happens — this runs at boot (resolvePreviewTenant via ?tenant=<slug>
+  // and the localStorage fallback fire before any beforeinstallprompt).
+  // Each swap is a no-op when the field isn't in branding_config, so the
+  // default tenant stays exactly as it was.
+  if (b.manifestUrl) {
+    const link = document.querySelector('link[rel="manifest"]');
+    if (link) link.setAttribute('href', b.manifestUrl);
+  }
+  if (b.appleTouchIcon) {
+    const link = document.querySelector('link[rel="apple-touch-icon"]');
+    if (link) link.setAttribute('href', b.appleTouchIcon);
+  }
+  if (b.themeColor) {
+    // We ship two theme-color metas (light + dark prefers-color-scheme).
+    // For light-themed whitelabels (KING) we want the coral on BOTH so
+    // the OS status bar / browser chrome match regardless of system theme.
+    document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
+      m.setAttribute('content', b.themeColor);
+    });
+  }
 }
 
 // ============================
