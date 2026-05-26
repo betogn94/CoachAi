@@ -42,6 +42,343 @@
   --warning: #ffb347;
 }
 
+/* ============================================================
+   KING WHITELABEL OVERLAY (Jesús)
+   Activated when applyTenantBranding sees branding_config.bodyClass
+   = "theme-king". This block ONLY exists to re-skin CoachAI Pro
+   into Jesús's KING brand — light theme, cream background, soft
+   white cards, coral CTAs, Airbnb-inspired softness.
+
+   Everything in here is scoped under body.theme-king so the
+   default CoachAI dark theme is 100% untouched.
+
+   Sections (in this order):
+     A. Shell + background
+     B. Landing / login
+     C. Header
+     D. Drawer
+     E. Bottom nav
+     F. Home dashboard
+     G. Chat
+     H. Mi Entreno
+     I. Mi Alimentación
+     J. Perfil
+     K. Cierre semanal
+     L. Seguimiento semanal
+
+   This block is currently empty and gets filled section by section,
+   each with a screenshot review checkpoint. See docs/whitelabel-jesus.md
+   ============================================================ */
+
+/* --- A. Shell + background --- */
+body.theme-king {
+  background: var(--bg);
+  color: var(--text);
+}
+body.theme-king::after {
+  /* The default body::after paints a dark radial vignette. For the
+     light KING theme we suppress it — a cream background should stay
+     cream, not get darkened in the corners. */
+  display: none;
+}
+
+/* --- A.1. Universal card chrome reset ---
+   Every dark-themed card in the app uses some variation of
+   rgba(20,20,32,0.55) + thin white border + dark shadow + backdrop blur.
+   For KING we want: solid white surface + soft pink border + soft
+   shadow + no blur. Listed selectors cover ~95% of the surfaces. Any
+   missed surface gets a targeted override in its section below. */
+body.theme-king .coach-card,
+body.theme-king .chart-card,
+body.theme-king .cai-alim-summary,
+body.theme-king .alim-target-card,
+body.theme-king .cai-ent-summary,
+body.theme-king .cai-ent-hero,
+body.theme-king .cai-home-hero,
+body.theme-king .cai-home-card,
+body.theme-king .cai-home-semanas,
+body.theme-king .cai-home-semanas .semana-card,
+body.theme-king .cai-home-semanas .semana-analisis,
+body.theme-king .cai-perfil-section,
+body.theme-king .cai-perfil-plan,
+body.theme-king .cierre-card,
+body.theme-king .alim-day,
+body.theme-king .cai-ent-day-card,
+body.theme-king .cai-ent-hero-other,
+body.theme-king .qbtn-card,
+body.theme-king .typing-bubble {
+  background: var(--surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 1px 2px rgba(26,26,38,0.04), 0 4px 14px rgba(255,107,149,0.08) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* --- A.2. Body text color across context-sensitive elements ---
+   The dark theme often uses inline color: #fff or color: var(--text);
+   when --text becomes dark in KING those auto-flip. But many spots
+   use literal #fff inline (especially in HTML attributes from the
+   templates we render). Those need targeted overrides per-section. */
+body.theme-king,
+body.theme-king p,
+body.theme-king span,
+body.theme-king div { color: var(--text); }
+
+/* --- B. Landing / Login --- */
+/* Wordmark — landing-logo uses CSS background-image, so we override the
+   bg URL to the tenant's recolored logo. (Header / drawer use real <img>
+   tags which applyTenantBranding swaps via JS.) */
+body.theme-king .landing-logo {
+  background-image: url('/tenants/jesus/logo.png') !important;
+}
+body.theme-king .landing-login-card {
+  background: var(--surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 4px 24px rgba(255,107,149,0.12), 0 1px 2px rgba(26,26,38,0.04) !important;
+}
+body.theme-king .email-login-input {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+}
+body.theme-king .email-login-input::placeholder { color: var(--muted) !important; }
+body.theme-king .email-login-input:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(255,79,123,0.12) !important;
+}
+body.theme-king .btn-email-login {
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 6px 18px rgba(255,79,123,0.32) !important;
+}
+body.theme-king .landing-admin-link { color: var(--muted) !important; }
+body.theme-king .pwa-install-btn {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  box-shadow: 0 2px 8px rgba(255,107,149,0.10) !important;
+}
+body.theme-king .landing-tagline { color: var(--muted) !important; }
+body.theme-king .landing-footer-text,
+body.theme-king footer { color: var(--muted) !important; }
+
+/* --- E. Bottom nav (pill) ---
+   Pill bg → white; active thumb → coral gradient; inactive icons →
+   muted; active icon → coral; label below → coral. Shape, animation,
+   thumb-slide behavior all unchanged. */
+body.theme-king .cai-bottom-nav-pill {
+  background: var(--surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 8px 28px rgba(255,107,149,0.18), 0 1px 2px rgba(26,26,38,0.04) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+body.theme-king .cai-bottom-nav::before {
+  /* The default paints a dark gradient backdrop band; KING uses cream
+     so we let the page background show through naturally. */
+  background: linear-gradient(to top,
+    var(--bg) 0%, var(--bg) 65%,
+    rgba(253,247,248,0.65) 88%, transparent 100%) !important;
+}
+body.theme-king .cai-bottom-nav-thumb {
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
+  border: 1px solid rgba(224,58,111,0.45) !important;
+  box-shadow: 0 4px 14px rgba(255,79,123,0.42), inset 0 1px 0 rgba(255,255,255,0.18) !important;
+}
+body.theme-king .cai-bottom-nav .nav-item { color: var(--muted) !important; }
+body.theme-king .cai-bottom-nav .nav-item.active { color: #fff !important; }
+body.theme-king .cai-bottom-nav-label {
+  color: var(--accent) !important;
+  text-shadow: 0 0 8px rgba(255,79,123,0.18) !important;
+}
+
+/* --- F. Home dashboard --- */
+body.theme-king .home-app-wrapper,
+body.theme-king #home-wrapper { background: var(--bg) !important; }
+body.theme-king .cai-home-head-title { color: var(--text) !important; }
+body.theme-king .cai-home-head-sub { color: var(--muted) !important; }
+/* Hero (big "ENTRENAMIENTOS X/N COMPLETADOS") */
+body.theme-king .cai-home-hero-eyebrow { color: var(--accent) !important; }
+body.theme-king .cai-home-hero-num { color: var(--text) !important; }
+body.theme-king .cai-home-hero-num #home-ring-done {
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent), var(--accent3)) !important;
+  -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+body.theme-king .cai-home-ring-track { stroke: var(--border) !important; }
+body.theme-king .cai-home-ring-center { color: var(--accent) !important; }
+body.theme-king .cai-home-hero-info .label,
+body.theme-king .cai-home-hero-sub { color: var(--muted) !important; }
+/* Sub-cards grid (Próxima Comida, Hoy Toca, Calorías Hoy, Coach AI) */
+body.theme-king .cai-home-card-eyebrow { color: var(--accent) !important; }
+body.theme-king .cai-home-card-title { color: var(--text) !important; }
+body.theme-king .cai-home-card-title-grad {
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent), var(--accent3)) !important;
+  -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+body.theme-king .cai-home-card-body { color: var(--muted) !important; }
+body.theme-king .cai-home-card-body-row { color: var(--muted) !important; }
+body.theme-king .cai-home-card-body-row svg { color: var(--accent) !important; }
+body.theme-king .cai-home-card-ico {
+  background: rgba(255,79,123,0.08) !important;
+  border: 1px solid rgba(255,79,123,0.22) !important;
+  color: var(--accent) !important;
+}
+body.theme-king .cai-home-card-ico.ico-alim,
+body.theme-king .cai-home-card-ico.ico-chat {
+  background: rgba(255,107,149,0.12) !important;
+  border-color: rgba(255,107,149,0.32) !important;
+}
+body.theme-king button.cai-home-card:hover {
+  border-color: rgba(255,79,123,0.30) !important;
+}
+/* Kcal bars in Coach AI card (vertical bars per meal) */
+body.theme-king #home-kcal-done {
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent), var(--accent3)) !important;
+  -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+body.theme-king #home-kcal-target { color: var(--muted) !important; }
+body.theme-king .cai-home-kcal-bar-track {
+  background: rgba(255,79,123,0.08) !important;
+}
+body.theme-king .cai-home-kcal-bar-fill {
+  background: linear-gradient(180deg, var(--accent-bright) 0%, var(--accent) 100%) !important;
+}
+body.theme-king .cai-home-kcal-bar-fill.done {
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent3) 100%) !important;
+  box-shadow: 0 0 6px rgba(224,58,111,0.30) !important;
+}
+body.theme-king .cai-home-kcal-bar-label { color: var(--muted) !important; }
+
+/* Seguimiento semanal week strip — make the dim "L M M J V S D" labels
+   readable on the cream/white card. */
+body.theme-king .semana-week-day,
+body.theme-king .semana-dotdays span,
+body.theme-king .cai-home-semanas .semana-week-day { color: var(--muted) !important; }
+body.theme-king .cai-home-semanas .semana-card .semana-meta-eyebrow,
+body.theme-king .cai-home-semanas .semana-meta-eyebrow { color: var(--muted) !important; }
+
+/* App header (small COACHAI bar) — drop the dark band so it sits on the
+   cream page surface and reads with the rest of the screen. */
+body.theme-king #main-header {
+  background: var(--bg) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+/* The header + drawer logos used mix-blend-mode: lighten on the dark
+   theme (so the white halftones of the violet wordmark would "vanish"
+   against the navy bg). On the cream KING bg that exact same trick
+   eats the coral wordmark instead — disable it for KING. */
+body.theme-king .logo img,
+body.theme-king .nav-drawer-logo img {
+  mix-blend-mode: normal !important;
+}
+body.theme-king .hamburger-btn span { background: var(--text) !important; }
+body.theme-king .lang-btn { color: var(--muted) !important; }
+body.theme-king .lang-btn.active { color: var(--accent) !important; background: rgba(255,79,123,0.08) !important; }
+
+/* Greeting at top of Home */
+body.theme-king #home-name { color: var(--text) !important; }
+body.theme-king #home-greeting-sub { color: var(--muted) !important; }
+body.theme-king .cai-home-greet-ico {
+  background: rgba(255,79,123,0.08) !important;
+  border: 1px solid rgba(255,79,123,0.18) !important;
+  color: var(--accent) !important;
+}
+
+/* Feedback bubble (bottom-right floating button) */
+body.theme-king .feedback-btn {
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent), var(--accent3)) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 22px rgba(255,79,123,0.32) !important;
+}
+
+/* Seguimiento semanal — week strip eyebrow + chips */
+body.theme-king .cai-home-semanas-eyebrow { color: var(--accent) !important; }
+body.theme-king .semana-num { color: var(--accent) !important; }
+body.theme-king .semana-badge {
+  background: rgba(255,79,123,0.08) !important;
+  border: 1px solid rgba(255,79,123,0.22) !important;
+  color: var(--accent) !important;
+}
+body.theme-king .semana-card.is-done .semana-badge {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border-color: var(--accent) !important;
+}
+body.theme-king .semana-statbar { border-color: var(--border) !important; }
+body.theme-king .semana-statbar .stat .num { color: var(--text) !important; }
+body.theme-king .semana-statbar .stat .num.grad {
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent), var(--accent3)) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+body.theme-king .semana-statbar .stat .label { color: var(--muted) !important; }
+body.theme-king .semana-statbar .sep { background: var(--border) !important; }
+
+/* --- D. Drawer (hamburger menu inside Chat) --- */
+body.theme-king .nav-drawer {
+  background: var(--surface) !important;
+  border-left: 1px solid var(--border) !important;
+  box-shadow: -12px 0 40px rgba(26,26,38,0.10) !important;
+}
+body.theme-king .nav-drawer-header { border-bottom: 1px solid var(--border) !important; }
+body.theme-king .nav-user-chip {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+}
+body.theme-king .nav-user-name { color: var(--text) !important; }
+body.theme-king .nav-user-goal { color: var(--muted) !important; }
+body.theme-king .nav-section-label { color: var(--muted) !important; }
+body.theme-king .nav-drawer .nav-item:hover {
+  background: rgba(255,79,123,0.04) !important;
+}
+body.theme-king .nav-drawer .nav-item.active {
+  background: linear-gradient(135deg, rgba(255,79,123,0.16), rgba(224,58,111,0.10)) !important;
+  border: 1px solid rgba(255,79,123,0.32) !important;
+  box-shadow: 0 4px 12px rgba(255,79,123,0.12) !important;
+}
+body.theme-king .nav-drawer .nav-item-icon {
+  background: rgba(255,79,123,0.04) !important;
+  border: 1px solid rgba(255,79,123,0.10) !important;
+  color: var(--muted) !important;
+}
+body.theme-king .nav-drawer .nav-item.active .nav-item-icon {
+  color: var(--accent) !important;
+  background: rgba(255,79,123,0.08) !important;
+  border-color: rgba(255,79,123,0.20) !important;
+}
+body.theme-king .nav-drawer .nav-item-label { color: var(--muted) !important; }
+body.theme-king .nav-drawer .nav-item.active .nav-item-label { color: var(--accent) !important; }
+body.theme-king .nav-drawer-footer {
+  background: var(--surface) padding-box,
+    linear-gradient(90deg, transparent 0%, rgba(255,79,123,0.32) 50%, transparent 100%) border-box !important;
+  border-top: 1px solid transparent !important;
+}
+body.theme-king .nav-footer-brand-name {
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent), var(--accent3)) !important;
+  -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+body.theme-king .nav-footer-pulse { background: var(--accent) !important; }
+body.theme-king .nav-version-tag {
+  color: var(--muted) !important;
+  border: 1px solid var(--border) !important;
+}
+body.theme-king .nav-version { color: var(--muted) !important; }
+body.theme-king .nav-close-btn {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--muted) !important;
+}
+/* --- end of KING overlay (first pass — landing/home/nav/drawer) --- */
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 html { scroll-behavior: smooth; }
@@ -10292,18 +10629,51 @@ async function loadTenantForUser(tenantId) {
   } catch (e) { console.warn('[tenant] load exception:', e); return null; }
 }
 
+// Module-level so applyTenantBranding can clean up the previous tenant's
+// body class before applying a new one (matters when an admin/QA user
+// switches tenant mid-session). One class added per apply, removed on
+// the next apply or on resetAppState.
+let _lastTenantBodyClass = null;
+
 function applyTenantBranding(tenant) {
+  // Drop the previous tenant's body class (if any) before applying the new
+  // one — guarantees a clean theme switch when reusing the function.
+  if (_lastTenantBodyClass) {
+    document.body.classList.remove(_lastTenantBodyClass);
+    _lastTenantBodyClass = null;
+  }
   if (!tenant) return;                  // No tenant resolved — keep hardcoded defaults
   const b = tenant.branding_config || {};
+
+  // Body class — enables the per-tenant CSS overlay block. e.g. "theme-king"
+  // selects the body.theme-king { ... } rules. Lets a whitelabel ship deep
+  // visual changes (light theme, soft cards, custom shadow recipes) on top
+  // of the same DOM without touching the default theme.
+  if (b.bodyClass) {
+    document.body.classList.add(b.bodyClass);
+    _lastTenantBodyClass = b.bodyClass;
+  }
 
   // Colors → CSS variables. We set each var only if the tenant provided
   // a value; missing fields keep the hardcoded default already in :root.
   if (b.colors) {
     const root = document.documentElement;
-    if (b.colors.accent)       root.style.setProperty('--accent',        b.colors.accent);
-    if (b.colors.accentBright) root.style.setProperty('--accent-bright', b.colors.accentBright);
-    if (b.colors.accent2)      root.style.setProperty('--accent2',       b.colors.accent2);
-    if (b.colors.accent3)      root.style.setProperty('--accent3',       b.colors.accent3);
+    if (b.colors.accent)        root.style.setProperty('--accent',        b.colors.accent);
+    if (b.colors.accentBright)  root.style.setProperty('--accent-bright', b.colors.accentBright);
+    if (b.colors.accent2)       root.style.setProperty('--accent2',       b.colors.accent2);
+    if (b.colors.accent3)       root.style.setProperty('--accent3',       b.colors.accent3);
+    // Surface + text vars — only overridden when a whitelabel ships a
+    // light-mode (or otherwise non-default) palette. Default tenants
+    // never set these so :root keeps the dark CoachAI theme intact.
+    if (b.colors.bg)            root.style.setProperty('--bg',         b.colors.bg);
+    if (b.colors.surface)       root.style.setProperty('--surface',    b.colors.surface);
+    if (b.colors.surface2)      root.style.setProperty('--surface2',   b.colors.surface2);
+    if (b.colors.border)        root.style.setProperty('--border',     b.colors.border);
+    if (b.colors.text)          root.style.setProperty('--text',       b.colors.text);
+    if (b.colors.muted)         root.style.setProperty('--muted',      b.colors.muted);
+    if (b.colors.muted2)        root.style.setProperty('--muted2',     b.colors.muted2);
+    if (b.colors.success)       root.style.setProperty('--success',    b.colors.success);
+    if (b.colors.warning)       root.style.setProperty('--warning',    b.colors.warning);
   }
 
   // Tab title — keep the "<name> — <tagline>" pattern so it reads
@@ -10393,6 +10763,12 @@ function resetAppState() {
   pendingPlanDelivery = null;
   dismissedPlanButtons = new Set();
   currentTenant = null;
+  // Drop the tenant body class so the next user (potentially on a
+  // different tenant) doesn't inherit the previous one's overlay.
+  if (_lastTenantBodyClass) {
+    document.body.classList.remove(_lastTenantBodyClass);
+    _lastTenantBodyClass = null;
+  }
   entrenóHoy = null;
   selectedDias = [];
   selectedComidas = '';
