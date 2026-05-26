@@ -81,6 +81,15 @@ body.theme-king::after {
      cream, not get darkened in the corners. */
   display: none;
 }
+/* Higher-specificity counterpart for the section-aware backdrop. The
+   default `body:has(:is(.form-wrapper, …)[style*="block"])::after` rule
+   paints a near-black bg + violet/teal orbs whenever onboarding / home /
+   any section wrapper is visible. That bg leaks through behind the
+   form panels even with my generic body.theme-king::after override. */
+body.theme-king:has(:is(.form-wrapper, #home-wrapper, #diario-wrapper, #dashboard-wrapper, #perfil-wrapper, #wl-wrapper, #mi-entreno-wrapper)[style*="block"])::after {
+  display: none !important;
+  background: transparent !important;
+}
 
 /* --- A.1. Universal card chrome reset ---
    Every dark-themed card in the app uses some variation of
@@ -194,6 +203,200 @@ body.theme-king .landing-login-icon {
   animation: landingIconGlowKING 3s ease-in-out infinite,
              landingIconBeat 3s ease-in-out infinite !important;
 }
+
+/* --- C. Onboarding (form-wrapper) ---
+   New-user multi-step form. Dark crystal-depth panels + violet/teal
+   gradients on every chip/card/button get re-skinned to white panels
+   with coral accents. */
+
+/* Top progress bar (PASO X DE 5 with 5 horizontal pills) */
+body.theme-king .progress-step,
+body.theme-king .progress-step.active,
+body.theme-king .progress-step.done {
+  background: var(--border) !important;
+  background-image: none !important;
+}
+body.theme-king .progress-step::after {
+  background: var(--border) !important;
+}
+body.theme-king .progress-step.active {
+  background: linear-gradient(90deg, var(--accent-bright), var(--accent)) !important;
+}
+body.theme-king .progress-step.active::after {
+  background: linear-gradient(90deg, var(--accent-bright), var(--accent)) !important;
+}
+body.theme-king .progress-step.done {
+  background: linear-gradient(90deg, var(--accent), var(--accent3)) !important;
+}
+body.theme-king .progress-step.done::after {
+  background: linear-gradient(90deg, var(--accent), var(--accent3)) !important;
+}
+body.theme-king .progress-step.active .ps-icon { color: var(--accent) !important; }
+body.theme-king .progress-step.done .ps-icon { color: var(--accent3) !important; }
+body.theme-king .progress-step.active .ps-label { color: var(--accent) !important; }
+body.theme-king .progress-step.done .ps-label { color: var(--accent3) !important; }
+body.theme-king .progress-step-label { color: var(--muted) !important; }
+body.theme-king .progress-skip-link { color: var(--muted) !important; }
+body.theme-king .progress-skip-link:hover { color: var(--accent) !important; }
+
+/* Step panels (the big "card" that holds each step's content) */
+body.theme-king .step-panel {
+  background-color: var(--surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--border) !important;
+  box-shadow:
+    0 1px 2px rgba(26,26,38,0.04),
+    0 8px 24px rgba(255,79,123,0.08) !important;
+  -webkit-backdrop-filter: none !important;
+          backdrop-filter: none !important;
+}
+/* Sub-progress dots inside multi-panel steps */
+body.theme-king .step-panel-dots .pdot {
+  background: rgba(255,79,123,0.18) !important;
+}
+body.theme-king .step-panel-dots .pdot.active {
+  background: var(--accent) !important;
+}
+
+/* Onboarding inputs (number, text, email, select, textarea) */
+body.theme-king .onb-track .step-panel input[type="text"],
+body.theme-king .onb-track .step-panel input[type="number"],
+body.theme-king .onb-track .step-panel input[type="email"],
+body.theme-king .onb-track .step-panel select,
+body.theme-king .onb-track .step-panel textarea {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  box-shadow: inset 0 1px 2px rgba(26,26,38,0.03) !important;
+}
+body.theme-king .onb-track .step-panel input:focus,
+body.theme-king .onb-track .step-panel select:focus,
+body.theme-king .onb-track .step-panel textarea:focus {
+  background: var(--surface) !important;
+  border-color: var(--accent) !important;
+  box-shadow:
+    inset 0 1px 2px rgba(26,26,38,0.03),
+    0 0 0 3px rgba(255,79,123,0.16) !important;
+}
+body.theme-king .onb-track .step-panel input::placeholder,
+body.theme-king .onb-track .step-panel textarea::placeholder { color: var(--muted) !important; }
+
+/* Chip groups (objetivo, comidas, restricciones, etc) */
+body.theme-king .chip {
+  background: var(--surface) !important;
+  border: 1.5px solid var(--border) !important;
+  color: var(--muted) !important;
+}
+body.theme-king .chip:hover {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+body.theme-king .chip.selected {
+  background: rgba(255,79,123,0.10) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+body.theme-king .chip.selected-green {
+  background: rgba(224,58,111,0.10) !important;
+  border-color: var(--accent3) !important;
+  color: var(--accent3) !important;
+}
+
+/* Level cards (Principiante / Intermedio / Avanzado) */
+body.theme-king .level-card {
+  background: var(--surface) !important;
+  border: 2px solid var(--border) !important;
+}
+body.theme-king .level-card:hover { border-color: rgba(255,79,123,0.30) !important; }
+body.theme-king .level-card.selected {
+  border-color: var(--accent) !important;
+  background: rgba(255,79,123,0.06) !important;
+  box-shadow: 0 4px 18px rgba(255,79,123,0.14) !important;
+}
+body.theme-king .level-title { color: var(--text) !important; }
+body.theme-king .level-desc { color: var(--muted) !important; }
+
+/* Objetivo cards (Definir / Volumen / Mantenimiento) */
+body.theme-king .objetivo-card {
+  background: var(--surface) !important;
+  border: 2px solid var(--border) !important;
+}
+body.theme-king .objetivo-card:hover { border-color: rgba(255,79,123,0.30) !important; }
+body.theme-king .objetivo-card.selected {
+  border-color: var(--accent) !important;
+  background: rgba(255,79,123,0.06) !important;
+  box-shadow: 0 4px 18px rgba(255,79,123,0.14) !important;
+}
+body.theme-king .objetivo-title { color: var(--text) !important; }
+body.theme-king .objetivo-sub { color: var(--muted) !important; }
+
+/* Nav buttons (← Volver / Siguiente →) */
+body.theme-king .btn-back {
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+  color: var(--muted) !important;
+}
+body.theme-king .btn-back:hover {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+body.theme-king .btn-next {
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent), var(--accent3)) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 18px rgba(255,79,123,0.32) !important;
+}
+body.theme-king .btn-next:hover {
+  box-shadow: 0 8px 24px rgba(255,79,123,0.42) !important;
+}
+body.theme-king .btn-next:disabled {
+  opacity: 0.4 !important;
+  box-shadow: none !important;
+}
+/* Make sure descendant spans/svg inside btn-next don't inherit dark text */
+body.theme-king .btn-next,
+body.theme-king .btn-next * { color: #fff !important; }
+
+/* Foto inicial upload (step 5) — dashed violet → dashed coral */
+body.theme-king .onb-track .foto-upload-area {
+  border: 2px dashed rgba(255,79,123,0.40) !important;
+  background: rgba(255,79,123,0.04) !important;
+}
+body.theme-king .onb-track .foto-upload-area:hover {
+  border-color: rgba(255,79,123,0.65) !important;
+  background: rgba(255,79,123,0.08) !important;
+}
+body.theme-king .onb-track .foto-upload-icon { color: var(--accent) !important; opacity: 0.8 !important; }
+body.theme-king .onb-track .foto-upload-label { color: var(--muted) !important; }
+
+/* Section labels + headings inside onboarding panels */
+body.theme-king .step-panel h1,
+body.theme-king .step-panel h2,
+body.theme-king .step-panel h3,
+body.theme-king .step-panel .section-title { color: var(--text) !important; }
+body.theme-king .step-panel label { color: var(--muted) !important; }
+body.theme-king .step-panel .section-sub,
+body.theme-king .step-panel .section-help { color: var(--muted) !important; }
+
+/* Section header inside each step panel — gradient bg + divider +
+   numbered chip + icon, all defaulted to violet/blue/teal. */
+body.theme-king .section-header {
+  background: linear-gradient(135deg, rgba(255,79,123,0.10) 0%, rgba(255,107,149,0.06) 50%, rgba(224,58,111,0.08) 100%) !important;
+}
+body.theme-king .section-header::after {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,79,123,0.42) 25%, rgba(255,107,149,0.38) 50%, rgba(224,58,111,0.38) 75%, transparent 100%) !important;
+}
+body.theme-king .section-icon {
+  background: linear-gradient(135deg, rgba(255,79,123,0.20), rgba(255,107,149,0.12)) !important;
+  border: 1px solid rgba(255,79,123,0.30) !important;
+  color: var(--accent) !important;
+}
+body.theme-king .section-number {
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
+  -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  filter: drop-shadow(0 0 14px rgba(255,79,123,0.24)) !important;
+}
+body.theme-king .section-title { color: var(--accent) !important; }
 body.theme-king .landing-footer-text,
 body.theme-king footer { color: var(--muted) !important; }
 
