@@ -1,6 +1,11 @@
 {
   "name": "coachai",
   "version": "1.0.0",
+  "scripts": {
+    "qa": "node qa/run.js",
+    "qa:local": "node qa/run.js --base http://localhost:3030 --personas testb --verbose",
+    "qa:prod": "node qa/run.js --base https://coach-ai-pearl.vercel.app --personas testb --verbose"
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "resend": "^4.0.0"
