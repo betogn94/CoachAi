@@ -1713,6 +1713,63 @@ body.theme-king .cai-perfil-tutorial-btn {
   color: var(--accent) !important;
 }
 
+/* --- P. Welcome tour overlay (in-app guided tour) ---
+   The default tour-card is a translucent dark glass that lets the app
+   show through. KING flips it to a translucent LIGHT glass (cream-white
+   with backdrop blur) so the coral-painted app behind reads correctly.
+   The coral palette also takes over the progress bar, the "Paso X / N"
+   eyebrow, the Next button gradient + glow, and the Back/Skip muted
+   tints. Typography stays full-opacity for legibility on the blur. */
+body.theme-king .tour-card {
+  background: rgba(255, 255, 255, 0.82) !important;
+  color: var(--text) !important;
+  border: 1px solid rgba(255,79,123,0.35) !important;
+  box-shadow:
+    0 24px 64px rgba(26,26,38,0.18),
+    0 0 0 1px rgba(255,107,149,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.60) !important;
+}
+body.theme-king .tour-progress {
+  background: rgba(255,79,123,0.14) !important;
+}
+body.theme-king .tour-progress-bar {
+  background: linear-gradient(90deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
+}
+body.theme-king .tour-step-num { color: var(--accent) !important; }
+body.theme-king .tour-title { color: var(--text) !important; }
+body.theme-king .tour-body  { color: var(--muted) !important; }
+body.theme-king .tour-close { color: var(--muted) !important; }
+body.theme-king .tour-close:hover { color: var(--text) !important; }
+body.theme-king .tour-btn-back {
+  border: 1px solid var(--border) !important;
+  color: var(--muted) !important;
+}
+body.theme-king .tour-btn-back:hover:not(:disabled) {
+  color: var(--accent) !important;
+  border-color: rgba(255,79,123,0.40) !important;
+}
+body.theme-king .tour-btn-skip { color: var(--muted) !important; }
+body.theme-king .tour-btn-skip:hover { color: var(--accent) !important; }
+body.theme-king .tour-btn-next {
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(255,79,123,0.32) !important;
+}
+body.theme-king .tour-btn-next:hover {
+  box-shadow: 0 6px 18px rgba(255,79,123,0.42) !important;
+}
+/* Legacy .tour-replay-btn (different from .cai-perfil-tutorial-btn) — used
+   in case any code path still renders the pill version. */
+body.theme-king .tour-replay-btn {
+  background: rgba(255,79,123,0.10) !important;
+  border: 1px solid rgba(255,79,123,0.30) !important;
+  color: var(--accent) !important;
+}
+body.theme-king .tour-replay-btn:hover {
+  background: rgba(255,79,123,0.18) !important;
+  border-color: rgba(255,79,123,0.50) !important;
+}
+
 /* --- end of KING overlay (landing/home/nav/drawer/chat/mi-alim/mi-entreno/perfil) --- */
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -6218,10 +6275,19 @@ footer {
 .tour-overlay.active { display: block; }
 .tour-card {
   max-width: 540px; margin: 0 auto;
-  background: var(--surface); color: var(--text);
-  border: 1px solid rgba(124,106,255,0.40);
+  /* Translucent dark glass so the app behind the card is visible (slightly
+     blurred for readability) — user can see what section we're talking
+     about, while the card text stays high-contrast on the dark blur. */
+  background: rgba(15, 15, 26, 0.78);
+  color: var(--text);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(124,106,255,0.35);
   border-radius: 18px; padding: 20px 22px 16px;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.55), 0 0 0 1px rgba(46,207,181,0.08);
+  box-shadow:
+    0 24px 64px rgba(0,0,0,0.55),
+    0 0 0 1px rgba(46,207,181,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.06);
   position: relative;
   pointer-events: auto;
   animation: tour-card-in 0.28s cubic-bezier(0.18, 1.1, 0.4, 1.05);
@@ -11431,38 +11497,57 @@ function stopHeartbeat() {
 // user through the 5 key sections of the app, then sets a flag in localStorage
 // so it doesn't re-fire. Users can replay it anytime from the Perfil section.
 const TOUR_DONE_KEY = 'coachai_tour_done_v1';
+// 7-step in-app guided tour. Each step has a nav fn that brings the right
+// section into view as the card's backdrop, so the user sees what we're
+// describing through the translucent card. Step 6 (Cierre Semanal) doesn't
+// have its own section — the modal lives inside Home — so we scroll Home
+// to the SEGUIMIENTO SEMANAL block instead of just landing on Home top.
 const TOUR_STEPS = [
   {
-    nav: () => showHome(), // intro step always lands on Home — works for both
-                           // first-time (already there, idempotent) and replays
-                           // from Perfil (switches back so the card has Home as backdrop)
-    title: '¡Bienvenido a CoachAI! 👋',
-    body: 'En 40 segundos te muestro las 5 partes más importantes de la app. Si querés saltarlo, podés volver a verlo desde tu Perfil cuando quieras.',
+    nav: () => showHome(),
+    title: '¡Bienvenida! 👋',
+    body: 'Acabás de terminar tu onboarding. En 40 segundos te muestro las partes principales de la app. Podés saltarlo y retomarlo cuando quieras desde tu Perfil.',
+  },
+  {
+    nav: () => showHome(),
+    title: '🏠 Inicio',
+    body: 'Tu pantalla principal: entrenamientos de la semana, calorías de hoy, próxima comida y qué te toca ahora. Es el resumen rápido de todo.',
   },
   {
     nav: () => showChat(),
-    title: '💬 El chat es tu coach',
-    body: 'Acá le pedís tu rutina, tu dieta, hacés preguntas y ajustás cosas. Para arrancar, escribí "rutina de la semana" o "dieta de la semana".',
+    title: '💬 Chat con tu coach',
+    body: 'Tu coach IA disponible 24/7. Pedile tu rutina o dieta de la semana, hacele preguntas o ajustá lo que necesites. Para arrancar tocá los botones de "Dieta" o "Rutina" abajo.',
   },
   {
     nav: () => showMiEntreno(),
     title: '💪 Mi Entreno',
-    body: 'Tu rutina semanal aparece acá, organizada día por día. Podés cargar tu peso por cada serie y tocar "ℹ️ Cómo se hace" al lado de cada ejercicio para ver una demo.',
+    body: 'Tu rutina organizada día por día. Cargá tu peso por cada serie a medida que entrenás y tocá "▶ Cómo se hace" en cualquier ejercicio para ver la demo.',
   },
   {
     nav: () => showDiario(),
     title: '🥗 Mi Alimentación',
-    body: 'Tu plan de comidas semanal. Tildá ✓ cada comida que cumplas o tocá ✏️ para editarla si comiste otra cosa. Las calorías se actualizan solas en Mi Progreso.',
+    body: 'Tu plan de comidas semanal. Tildá ✓ cada comida cumplida o tocá ✏️ para editarla si comiste otra cosa — la IA recalcula las calorías solas.',
   },
   {
-    nav: () => showDashboard(),
-    title: '📊 Mi Progreso',
-    body: 'Acá ves tus métricas: adherencia de entrenos, calorías por día, fotos de evolución y el resumen de tu semana.',
+    // Cierre Semanal lives at the bottom of Home, inside the "Seguimiento
+    // Semanal" block. We scroll it into view so the user actually sees the
+    // section we're describing behind the card.
+    nav: () => {
+      showHome();
+      requestAnimationFrame(() => {
+        const el = document.querySelector('.cai-home-semanas');
+        if (el && typeof el.scrollIntoView === 'function') {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    },
+    title: '📸 Cierre semanal',
+    body: 'Al final de cada semana subís dos fotos (frente + perfil) y la IA te arma un análisis completo de tu progreso. Lo ves acá abajo, en "Seguimiento Semanal".',
   },
   {
     nav: () => showPerfil(),
     title: '👤 Tu Perfil',
-    body: 'Tus datos, tus planes guardados, y este tutorial siempre accesible desde el botón "Ver tutorial otra vez". ¡A entrenar!',
+    body: 'Tus datos, tus planes guardados, y este tutorial siempre accesible. ¡A entrenar! 💪',
     isLast: true,
   },
 ];
