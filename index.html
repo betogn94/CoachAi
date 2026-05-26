@@ -290,12 +290,13 @@ body.theme-king .onb-track .step-panel textarea::placeholder { color: var(--mute
    on default state (the inset shadow from the input rule was casting
    a subtle inner edge that read as a broken border). */
 body.theme-king .onb-track .step-panel select {
-  /* iOS Safari: every attempt to use appearance:none + custom chevron
-     produced a "double border" artifact where iOS renders an internal
-     select box narrower than the outer container, leaving a phantom
-     edge to the right of the chevron. Reverting to the NATIVE select
-     chrome (so iOS draws its own grey down-arrow) — the chevron color
-     is a minor aesthetic loss but the border renders cleanly. */
+  /* iOS Safari + border-radius on <select> renders a phantom "tail"
+     past the rounded top-right corner — the rounded border ends but
+     iOS continues painting a thin line out to the chevron-bounding-box
+     edge, looking like a broken border. Square the corners (radius 0)
+     to dodge the issue; iOS renders rectangle-cornered selects with a
+     clean continuous border. The whitelabel still uses rounded inputs
+     elsewhere — only the dropdowns become square. */
   appearance: auto !important;
   -webkit-appearance: auto !important;
   -moz-appearance: auto !important;
@@ -303,6 +304,7 @@ body.theme-king .onb-track .step-panel select {
   background-image: none !important;
   padding-right: 16px !important;
   border: 1px solid var(--border) !important;
+  border-radius: 0 !important;
   box-shadow: none !important;
   outline: none !important;
   -webkit-tap-highlight-color: transparent !important;
