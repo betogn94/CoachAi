@@ -297,6 +297,105 @@ body.theme-king .feedback-btn {
   color: #fff !important;
   box-shadow: 0 8px 22px rgba(255,79,123,0.32) !important;
 }
+body.theme-king .feedback-btn svg,
+body.theme-king .feedback-btn span { color: #fff !important; }
+
+/* --- Round 2: items called out in first Safari review --- */
+
+/* Greeting block — the home icon chip + the big "TESTB" / section title.
+   Were violet-gradient on dark; now coral on cream. The shared
+   .cai-alim-header-* classes are used by Home AND by every section
+   header (Mi Entreno, Mi Alimentación, Perfil), so this one block
+   fixes all of them at once. */
+body.theme-king .cai-alim-header-ico {
+  background: linear-gradient(135deg, rgba(255,79,123,0.18), rgba(255,107,149,0.12)) !important;
+  border: 1px solid rgba(255,79,123,0.30) !important;
+  color: var(--accent) !important;
+}
+body.theme-king .cai-alim-header-h2 {
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 60%, var(--accent3) 100%) !important;
+  -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+body.theme-king .cai-alim-header-sub { color: var(--muted) !important; }
+
+/* Hero ring (ENTRENAMIENTOS X/N) — the SVG gradient defines color stops
+   inline with hardcoded violet/blue/teal hex. Override the stop-color
+   on each stop so the same gradient renders in KING coral. Affects both
+   the progress arc AND the central dumbbell glyph (both reference the
+   same gradient via stroke="url(#home-ring-grad)"). */
+body.theme-king #home-ring-grad stop:nth-child(1) { stop-color: var(--accent-bright) !important; }
+body.theme-king #home-ring-grad stop:nth-child(2) { stop-color: var(--accent) !important; }
+body.theme-king #home-ring-grad stop:nth-child(3) { stop-color: var(--accent3) !important; }
+/* The JS renderHomeRing sets inline `filter: drop-shadow(... rgba(124,106,255,0.45))`
+   on the ring-fill, which is a violet glow. Override the rendered glow
+   to coral via a more-specific selector — !important wins over inline
+   style here because inline style precedence is overridden by !important. */
+body.theme-king .cai-home-ring-fill {
+  filter: drop-shadow(0 0 6px rgba(255,79,123,0.55)) !important;
+}
+
+/* Card CTA circles (the arrow buttons in Próxima Comida / Hoy Toca / Coach AI).
+   Default uses violet border + accent-bright color; alim/chat variants
+   use teal. All become coral in KING. */
+body.theme-king .cai-home-card-cta {
+  border: 1px solid rgba(255,79,123,0.30) !important;
+  color: var(--accent) !important;
+  background: rgba(255,79,123,0.04) !important;
+}
+body.theme-king .cai-home-card-alim .cai-home-card-cta,
+body.theme-king .cai-home-card-chat .cai-home-card-cta {
+  border-color: rgba(224,58,111,0.30) !important;
+  color: var(--accent3) !important;
+}
+
+/* Bullet-row icons (the little colored dots/SVGs inside card body rows)
+   — defaulted to accent3 (teal) which reads cyan against KING bg. */
+body.theme-king .cai-home-card-body-row svg { color: var(--accent) !important; }
+
+/* Seguimiento Semanal — "En curso" chip, today-bar marker, and the
+   "1/4 ENTRENADOS" summary number all defaulted to violet/blue. */
+body.theme-king .cai-home-semanas .semana-status.en-curso {
+  color: var(--accent) !important;
+  border-color: rgba(255,79,123,0.35) !important;
+  background: rgba(255,79,123,0.10) !important;
+}
+body.theme-king .cai-home-semanas .semana-status.en-curso::before {
+  background: var(--accent) !important;
+  box-shadow: 0 0 10px rgba(255,79,123,0.65) !important;
+}
+body.theme-king .cai-home-semanas .semana-status.cerrada {
+  color: var(--accent3) !important;
+  border-color: rgba(224,58,111,0.35) !important;
+  background: rgba(224,58,111,0.08) !important;
+}
+body.theme-king .cai-home-semanas .semana-status.cerrada::before {
+  border-left-color: var(--accent3) !important;
+  border-bottom-color: var(--accent3) !important;
+}
+body.theme-king .cai-home-semanas .semana-status {
+  border-color: var(--border) !important;
+  background: var(--surface2) !important;
+  color: var(--muted) !important;
+}
+/* Today's bar (J in the week strip) — coral instead of violet→blue gradient */
+body.theme-king .cai-home-semanas .semana-strip-day.trained .bar {
+  background: linear-gradient(90deg, var(--accent-bright), var(--accent)) !important;
+}
+body.theme-king .cai-home-semanas .semana-strip-day .bar {
+  background: rgba(255,79,123,0.10) !important;
+}
+body.theme-king .cai-home-semanas .semana-strip-day .d { color: var(--muted) !important; }
+body.theme-king .cai-home-semanas .semana-strip-summary .num {
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent), var(--accent3)) !important;
+  -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+body.theme-king .cai-home-semanas .semana-strip-summary .num .den {
+  color: var(--muted) !important;
+  -webkit-text-fill-color: var(--muted) !important;
+}
+body.theme-king .cai-home-semanas .semana-strip-summary .label { color: var(--muted) !important; }
 
 /* Seguimiento semanal — week strip eyebrow + chips */
 body.theme-king .cai-home-semanas-eyebrow { color: var(--accent) !important; }
