@@ -554,6 +554,28 @@ body.theme-king .cierre-overlay .btn-cierre-cerrar:hover {
   border-color: rgba(255,79,123,0.30) !important;
 }
 
+/* Global brand gradient (#grad-brand) lives in a shared SVG <defs> block
+   at the top of <body>. Multiple icons (the camera in the upload frame,
+   any cierre-header glyph, etc) reference it via stroke="url(#grad-brand)"
+   — CSS `color`/`stroke` overrides don't apply to URL-referenced
+   gradients, so we have to override the stop-color on each stop. */
+body.theme-king #grad-brand stop:nth-child(1) { stop-color: var(--accent-bright) !important; }
+body.theme-king #grad-brand stop:nth-child(2) { stop-color: var(--accent) !important; }
+body.theme-king #grad-brand stop:nth-child(3) { stop-color: var(--accent3) !important; }
+
+/* Coral CTAs have white text via `color: #fff !important` on the button,
+   but my global `body.theme-king span { color: var(--text) }` rule was
+   beating that for any inner <span> (DM Sans label inside the button).
+   Force the descendant text to inherit white explicitly. */
+body.theme-king .btn-email-login,
+body.theme-king .btn-email-login *,
+body.theme-king #feedback-fab,
+body.theme-king #feedback-fab *,
+body.theme-king .cai-home-semanas .btn-cerrar-semana,
+body.theme-king .cai-home-semanas .btn-cerrar-semana *,
+body.theme-king .cierre-overlay .btn-generar-analisis,
+body.theme-king .cierre-overlay .btn-generar-analisis * { color: #fff !important; }
+
 /* Seguimiento semanal — week strip eyebrow + chips */
 body.theme-king .cai-home-semanas-eyebrow { color: var(--accent) !important; }
 body.theme-king .semana-num { color: var(--accent) !important; }
