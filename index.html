@@ -161,7 +161,39 @@ body.theme-king .pwa-install-btn {
   color: var(--text) !important;
   box-shadow: 0 2px 8px rgba(255,107,149,0.10) !important;
 }
+/* The install button has a conic-gradient halo behind a small chip with
+   the download icon — both defaulted to violet/teal. Recolor to coral. */
+body.theme-king .pwa-install-btn .pi-icon-ring {
+  background: conic-gradient(from 0deg,
+    transparent 0%,
+    rgba(255,107,149,0.55) 20%,
+    transparent 45%,
+    rgba(255,79,123,0.50) 70%,
+    transparent 100%) !important;
+}
+body.theme-king .pwa-install-btn .pi-icon {
+  background: linear-gradient(135deg, rgba(255,79,123,0.18), rgba(255,107,149,0.14)) !important;
+  border: 1px solid rgba(255,79,123,0.30) !important;
+  color: var(--accent) !important;
+}
+body.theme-king .pwa-install-btn .pi-title { color: var(--text) !important; }
+body.theme-king .pwa-install-btn .pi-sub { color: var(--muted) !important; }
+body.theme-king .pwa-install-btn .pi-arrow { color: var(--accent) !important; }
 body.theme-king .landing-tagline { color: var(--muted) !important; }
+/* The login-card icon (kettlebell-AI in a circle) has a pulsing
+   drop-shadow animation defined at :root level with hardcoded violet
+   + teal shadows. Override the keyframes via a tenant-scoped animation
+   that uses the coral palette so the breathing glow matches KING. */
+@keyframes landingIconGlowKING {
+  0%, 100% { filter: drop-shadow(0 0 16px rgba(255,79,123,0.32))
+                     drop-shadow(0 0 28px rgba(224,58,111,0.18)); }
+  50%      { filter: drop-shadow(0 0 22px rgba(255,79,123,0.45))
+                     drop-shadow(0 0 38px rgba(224,58,111,0.26)); }
+}
+body.theme-king .landing-login-icon {
+  animation: landingIconGlowKING 3s ease-in-out infinite,
+             landingIconBeat 3s ease-in-out infinite !important;
+}
 body.theme-king .landing-footer-text,
 body.theme-king footer { color: var(--muted) !important; }
 
@@ -10907,6 +10939,55 @@ async function loadTenantForUser(tenantId) {
   } catch (e) { console.warn('[tenant] load exception:', e); return null; }
 }
 
+// Resolve a tenant by its slug. Used for pre-login branding (so the
+// landing screen can show Jesús's KING coral before the user even
+// types their email) and as the foundation for Phase C subdomain /
+// custom-domain routing (e.g. jesus.coachai.app → loadTenantBySlug('jesus')).
+async function loadTenantBySlug(slug) {
+  if (!slug || !sbClient) return null;
+  try {
+    const { data, error } = await sbClient
+      .from('tenants').select('*').eq('slug', slug).maybeSingle();
+    if (error) { console.warn('[tenant] load-by-slug failed:', error); return null; }
+    return data;
+  } catch (e) { console.warn('[tenant] load-by-slug exception:', e); return null; }
+}
+
+// Pre-login tenant resolution from URL query param (?tenant=<slug>).
+// Runs ONCE at page boot so the landing screen can be branded before the
+// user logs in. Persists the choice to localStorage so reloads inside
+// the same Safari tab keep the branding without needing the query param
+// every time. Stepping stone toward Phase C (subdomain / domain-based
+// resolution) where we won't need this manual override.
+const LS_PREVIEW_TENANT = 'coachai_preview_tenant_v1';
+async function resolvePreviewTenant() {
+  if (!sbClient) return null;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    let slug = params.get('tenant');
+    if (slug) {
+      // Persist for subsequent reloads, strip from URL for cleanliness
+      localStorage.setItem(LS_PREVIEW_TENANT, slug);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('tenant');
+      window.history.replaceState({}, '', url.toString());
+    } else {
+      slug = localStorage.getItem(LS_PREVIEW_TENANT);
+    }
+    if (slug === 'clear' || slug === 'default') {
+      localStorage.removeItem(LS_PREVIEW_TENANT);
+      return null;
+    }
+    if (!slug || slug === 'coachai-default') return null;
+    const tenant = await loadTenantBySlug(slug);
+    if (tenant) {
+      currentTenant = tenant;
+      applyTenantBranding(tenant);
+    }
+    return tenant;
+  } catch (e) { console.warn('[tenant] preview resolve failed:', e); return null; }
+}
+
 // Module-level so applyTenantBranding can clean up the previous tenant's
 // body class before applying a new one (matters when an admin/QA user
 // switches tenant mid-session). One class added per apply, removed on
@@ -10978,6 +11059,23 @@ function applyTenantBranding(tenant) {
   if (b.logoIcon && b.logoIcon !== '/logo-icon.png') {
     document.querySelectorAll('img[src="/logo-icon.png"], img[src="logo-icon.png"]').forEach(img => img.src = b.logoIcon);
   }
+
+  // Install-PWA button label — hardcoded "Instalar CoachAI" in the HTML.
+  // Patch it to use the tenant's brand name so a Jesús-tenant user sees
+  // "Instalar CoachAI Pro" (or whatever shortName is set) instead of the
+  // default. Defensive: skip silently if the element isn't on the page.
+  if (b.shortName || b.name) {
+    const piTitle = document.querySelector('#pwa-install-btn .pi-title');
+    if (piTitle) {
+      const label = b.shortName || b.name;
+      piTitle.textContent = (lang === 'en' ? 'Install ' : 'Instalar ') + label;
+    }
+    // Same for the aria-label on the button itself
+    const installBtn = document.getElementById('pwa-install-btn');
+    if (installBtn) {
+      installBtn.setAttribute('aria-label', (lang === 'en' ? 'Install ' : 'Instalar ') + (b.shortName || b.name) + (lang === 'en' ? ' as app' : ' como app'));
+    }
+  }
 }
 
 // ============================
@@ -10987,6 +11085,23 @@ const LS_KEY = 'coachai_profile_v1';
 // Persistent login: after a user logs in once, we remember {email,nombre}
 // and auto-resume on next visit so they never re-type credentials.
 const LS_SESSION = 'coachai_session_v1';
+
+// Dev convenience: visiting any URL with `?logout=1` wipes the persisted
+// session BEFORE app boot, so the next page render falls through to the
+// landing/login screen. Used during whitelabel iteration so we can jump
+// back to the login surface from a phone without clearing Safari data.
+(function maybeLogoutFromQuery() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('logout') === '1') {
+      localStorage.removeItem(LS_SESSION);
+      // Strip the query param so subsequent reloads don't keep wiping.
+      const url = new URL(window.location.href);
+      url.searchParams.delete('logout');
+      window.history.replaceState({}, '', url.toString());
+    }
+  } catch (e) { /* no-op */ }
+})();
 // Closed-beta capacity. New-account creation is blocked once this many
 // usuarios rows exist (existing users are unaffected). Bumped from 10 → 20
 // after the first wave filled and demand grew (~80 interested signups).
@@ -18852,6 +18967,13 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('welcome-back').style.display = 'none';
   // Init Supabase early so it's ready when user clicks Ingresar
   initSupabase();
+  // Pre-login tenant resolution — if ?tenant=<slug> is in the URL or a
+  // previous one is cached in localStorage, fetch + apply its branding
+  // BEFORE the landing screen paints. This lets us preview Jesús's
+  // KING coral landing without first logging in. Stepping stone for
+  // Phase C subdomain routing. Awaited so the branding lands before
+  // tryAutoLogin potentially navigates to home.
+  resolvePreviewTenant().catch(console.error);
   // Persistent login: if this device logged in before, resume automatically.
   tryAutoLogin().catch(console.error);
 
