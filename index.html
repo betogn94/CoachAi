@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260526-0100-analysis-card-polish">
+<meta name="app-version" content="20260526-0200-silent-auto-update">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6426,38 +6426,6 @@ footer {
 .pwa-modal-ok:hover { transform: translateY(-1px); }
 .pwa-modal-ok:active { transform: scale(0.98); }
 
-/* ===== Version-update banner =====
-   Shows at top of viewport when /version.json doesn't match the cached HTML's
-   <meta app-version> tag. Solves iOS PWA stale-cache: instead of asking users
-   to delete + reinstall, they just tap "Actualizar" to nuke caches + reload. */
-.app-update-banner {
-  position: fixed; left: 0; right: 0;
-  top: 0; z-index: 9500;
-  padding-top: calc(10px + env(safe-area-inset-top));
-  padding-bottom: 10px;
-  padding-left: calc(16px + env(safe-area-inset-left));
-  padding-right: calc(16px + env(safe-area-inset-right));
-  background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%);
-  color: #fff;
-  display: none; align-items: center; justify-content: space-between; gap: 10px;
-  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
-  transform: translateY(-100%);
-  transition: transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.1);
-}
-.app-update-banner.show { display: flex; transform: translateY(0); }
-.app-update-banner-text { flex: 1; min-width: 0; }
-.app-update-banner-btn {
-  background: rgba(255,255,255,0.22);
-  border: 1px solid rgba(255,255,255,0.5);
-  color: #fff; padding: 7px 14px; border-radius: 100px;
-  font-family: inherit; font-size: 12.5px; font-weight: 700; letter-spacing: 0.3px;
-  cursor: pointer; flex-shrink: 0;
-  transition: background 0.15s, transform 0.15s;
-}
-.app-update-banner-btn:hover { background: rgba(255,255,255,0.32); }
-.app-update-banner-btn:active { transform: scale(0.96); }
-
 .landing-footer-text {
   font-size: 11px;
   color: var(--muted2);
@@ -9228,14 +9196,6 @@ footer {
 
 <!-- PWA install instructions — platform-aware modal opened from the landing button
      when the native install prompt isn't available (iOS Safari, desktop, etc.) -->
-<!-- Version-update banner — shown by checkForAppUpdate() when /version.json
-     mismatches the cached HTML's app-version meta. Click "Actualizar" runs
-     forceAppUpdate() which clears caches + reloads. -->
-<div class="app-update-banner" id="app-update-banner" role="status" aria-live="polite">
-  <span class="app-update-banner-text">✨ Nueva versión disponible</span>
-  <button class="app-update-banner-btn" onclick="forceAppUpdate()">Actualizar</button>
-</div>
-
 <div class="pwa-modal-overlay" id="pwa-modal" onclick="closePwaModal(event)" role="dialog" aria-modal="true" aria-label="Instalar CoachAI">
   <div class="pwa-modal-card" onclick="event.stopPropagation()">
     <button class="pwa-modal-close" onclick="closePwaModal()" aria-label="Cerrar">×</button>
@@ -18186,14 +18146,11 @@ async function checkForAppUpdate() {
     _appUpdateActionTaken = true;
 
     // If we already tried auto-reload this session and we're STILL stale, the
-    // cache is genuinely stuck — show the banner so the user can take action
-    // (delete + reinstall is the last resort, but at least they know).
+    // cache is genuinely stuck — give up silently for this session to avoid
+    // a reload loop. The flag clears 5s after a successful load (see below),
+    // so the next mismatch detection will try again.
     const alreadyTried = sessionStorage.getItem('coachai_auto_updated') === '1';
-    if (alreadyTried) {
-      const b = document.getElementById('app-update-banner');
-      if (b) { b.style.display = 'flex'; b.offsetHeight; b.classList.add('show'); }
-      return;
-    }
+    if (alreadyTried) return;
 
     // First mismatch detection — mark + auto-reload immediately
     sessionStorage.setItem('coachai_auto_updated', '1');
