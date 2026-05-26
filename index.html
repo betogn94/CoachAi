@@ -283,23 +283,42 @@ body.theme-king .onb-track .step-panel textarea::placeholder { color: var(--mute
 /* iOS Safari renders <select> with native chrome that paints over the
    right edge of the border, making it look "missing a piece". Strip
    the native appearance and paint our own coral chevron via background
-   so the border renders cleanly across all platforms. */
+   so the border renders cleanly across all platforms. Reset is more
+   aggressive than the round-1 attempt: also forces explicit background-
+   color (iOS otherwise paints its own light-grey behind native chrome
+   that bleeds past the rounded corners) and an explicit box-shadow:none
+   on default state (the inset shadow from the input rule was casting
+   a subtle inner edge that read as a broken border). */
 body.theme-king .onb-track .step-panel select {
   appearance: none !important;
   -webkit-appearance: none !important;
   -moz-appearance: none !important;
+  background-color: var(--surface) !important;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23FF4F7B' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") !important;
   background-repeat: no-repeat !important;
   background-position: right 14px center !important;
   background-size: 14px !important;
   padding-right: 38px !important;
+  box-shadow: none !important;
+}
+body.theme-king .onb-track .step-panel select:focus {
+  /* The base :focus rule layered inset + ring shadows; keep just the
+     coral focus ring without the inset which can make the border look
+     uneven on iOS. */
+  box-shadow: 0 0 0 3px rgba(255,79,123,0.16) !important;
 }
 
-/* Chip groups (objetivo, comidas, restricciones, etc) */
+/* Chip groups (objetivo, comidas, restricciones, etc). Keep font-weight
+   IDENTICAL across base + selected — the base rule lifts to 500 on
+   :selected which slightly widens the text and could wrap the last
+   chip in a row ("Sin alergias", "Sin lesiones") onto a new line on
+   click, looking like the chip "jumped down". Locking the weight kills
+   the reflow. */
 body.theme-king .chip {
   background: var(--surface) !important;
   border: 1.5px solid var(--border) !important;
   color: var(--muted) !important;
+  font-weight: 500 !important;
 }
 body.theme-king .chip:hover {
   border-color: var(--accent) !important;
@@ -309,11 +328,13 @@ body.theme-king .chip.selected {
   background: rgba(255,79,123,0.10) !important;
   border-color: var(--accent) !important;
   color: var(--accent) !important;
+  font-weight: 500 !important;
 }
 body.theme-king .chip.selected-green {
   background: rgba(224,58,111,0.10) !important;
   border-color: var(--accent3) !important;
   color: var(--accent3) !important;
+  font-weight: 500 !important;
 }
 
 /* Level cards (Principiante / Intermedio / Avanzado) */
