@@ -10082,6 +10082,12 @@ footer {
     var THEMES = {
       'jesus': {
         bodyClass: 'theme-king',
+        // Path to the tenant's logo-icon (the small kettlebell icon used
+        // in the login card + the nav drawer header). The full
+        // applyTenantBranding async pass also swaps this from
+        // branding_config, but that runs ~500ms later. We pre-swap here
+        // via a MutationObserver so the icon never paints in default.
+        logoIcon: '/tenants/jesus/icon.png',
         vars: {
           '--bg':            '#FDF7F8',
           '--surface':       '#FFFFFF',
@@ -10104,6 +10110,47 @@ footer {
     if (theme.vars) {
       var root = document.documentElement;
       for (var k in theme.vars) root.style.setProperty(k, theme.vars[k]);
+    }
+    // Pre-swap the logo-icon BEFORE the browser paints it. The <img
+    // src="logo-icon.png"> tags live further down in the body (login
+    // card + nav drawer); when the HTML parser reaches them it would
+    // start the network request for the default icon, paint it, and
+    // only ~500ms later applyTenantBranding would swap to the KING
+    // one — that's the flash Beto saw. A MutationObserver on the
+    // documentElement catches every newly-added node during parsing
+    // and rewrites img.src before it ever paints.
+    if (theme.logoIcon) {
+      var ICON_RE = /(^|\/)logo-icon\.png(\?.*)?$/;
+      var swapImg = function(img){ try { img.src = theme.logoIcon; } catch(e){} };
+      var sweep = function(root){
+        if (!root || !root.querySelectorAll) return;
+        var imgs = root.querySelectorAll('img');
+        for (var i = 0; i < imgs.length; i++) {
+          if (ICON_RE.test(imgs[i].getAttribute('src') || '')) swapImg(imgs[i]);
+        }
+      };
+      sweep(document); // catch anything already parsed
+      var obs = new MutationObserver(function(muts){
+        for (var i = 0; i < muts.length; i++) {
+          var added = muts[i].addedNodes;
+          for (var j = 0; j < added.length; j++) {
+            var n = added[j];
+            if (n.nodeType !== 1) continue;
+            if (n.tagName === 'IMG' && ICON_RE.test(n.getAttribute('src') || '')) {
+              swapImg(n);
+            } else {
+              sweep(n);
+            }
+          }
+        }
+      });
+      obs.observe(document.documentElement, { childList: true, subtree: true });
+      // Stop observing once the document is fully parsed — by then
+      // every logo-icon img in the DOM has been swept.
+      document.addEventListener('DOMContentLoaded', function(){
+        sweep(document); // final pass for anything we might have missed
+        obs.disconnect();
+      });
     }
   } catch (e) { /* never break landing render */ }
 })();
