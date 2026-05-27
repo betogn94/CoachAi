@@ -17536,18 +17536,25 @@ function parseDietaContenido(text) {
     'JUEVES':'jue','VIERNES':'vie','SÁBADO':'sab','SABADO':'sab','DOMINGO':'dom',
   };
   const MEAL_PREFIX = {
-    'des':       { key:'desayuno',     name:'Desayuno',     emoji:'🌅' },
-    'desayuno':  { key:'desayuno',     name:'Desayuno',     emoji:'🌅' },
-    'alm':       { key:'almuerzo',     name:'Almuerzo',     emoji:'☀️' },
-    'almuerzo':  { key:'almuerzo',     name:'Almuerzo',     emoji:'☀️' },
-    'mer':       { key:'merienda',     name:'Merienda',     emoji:'🕐' },
-    'merienda':  { key:'merienda',     name:'Merienda',     emoji:'🕐' },
-    'cena':      { key:'cena',         name:'Cena',         emoji:'🌙' },
-    'col':       { key:'colacion',     name:'Colación',     emoji:'🍎' },
-    'colacion':  { key:'colacion',     name:'Colación',     emoji:'🍎' },
-    'pre':       { key:'pre-entreno',  name:'Pre-entreno',  emoji:'⚡' },
-    'post':      { key:'post-entreno', name:'Post-entreno', emoji:'💪' },
-    'snack':     { key:'snack',        name:'Snack',        emoji:'🍎' },
+    'des':           { key:'desayuno',     name:'Desayuno',     emoji:'🌅' },
+    'desayuno':      { key:'desayuno',     name:'Desayuno',     emoji:'🌅' },
+    'alm':           { key:'almuerzo',     name:'Almuerzo',     emoji:'☀️' },
+    'almuerzo':      { key:'almuerzo',     name:'Almuerzo',     emoji:'☀️' },
+    'mer':           { key:'merienda',     name:'Merienda',     emoji:'🕐' },
+    'merienda':      { key:'merienda',     name:'Merienda',     emoji:'🕐' },
+    'cena':          { key:'cena',         name:'Cena',         emoji:'🌙' },
+    'col':           { key:'colacion',     name:'Colación',     emoji:'🍎' },
+    'colacion':      { key:'colacion',     name:'Colación',     emoji:'🍎' },
+    // Pre/post-entreno: accept multiple writings since coaches like Jesús
+    // write them with hyphens ("Pre-entreno:", "Post-entreno:"). The
+    // captured prefix is normalized (lowercased + hyphens-stripped) before
+    // lookup, so all of these variants converge on the same meal type:
+    //   Pre:, Pre-entreno:, Preentreno:, pre entreno:, etc.
+    'pre':           { key:'pre-entreno',  name:'Pre-entreno',  emoji:'⚡' },
+    'preentreno':    { key:'pre-entreno',  name:'Pre-entreno',  emoji:'⚡' },
+    'post':          { key:'post-entreno', name:'Post-entreno', emoji:'💪' },
+    'postentreno':   { key:'post-entreno', name:'Post-entreno', emoji:'💪' },
+    'snack':         { key:'snack',        name:'Snack',        emoji:'🍎' },
   };
   // Strip accents for prefix lookup (so "Colación:" → "colacion")
   const stripAcc = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -17585,10 +17592,14 @@ function parseDietaContenido(text) {
     // Total
     const total = clean.match(/^Total\s*:\s*(\d+)\s*(?:kcal|cal)?/i);
     if (total) { current.totalKcal = parseInt(total[1]); continue; }
-    // Meal: "Prefix: content — Xcal"
-    const mm = clean.match(/^([\wáéíóúñÁÉÍÓÚÑ]+)\s*:\s*(.+)$/);
+    // Meal: "Prefix: content — Xcal". The prefix accepts letters, accents
+    // AND hyphens — coaches like Jesús write "Post-entreno:" /
+    // "Pre-entreno:" with a hyphen between the two words. Before lookup
+    // we normalize: strip accents, lowercase, AND collapse hyphens so
+    // "Post-entreno" → "postentreno" matches MEAL_PREFIX['postentreno'].
+    const mm = clean.match(/^([\wáéíóúñÁÉÍÓÚÑ-]+)\s*:\s*(.+)$/);
     if (!mm) continue;
-    const prefix = stripAcc(mm[1].toLowerCase());
+    const prefix = stripAcc(mm[1].toLowerCase()).replace(/-/g, '');
     const meta = MEAL_PREFIX[prefix];
     if (!meta) continue;
     const rest = mm[2].trim();
