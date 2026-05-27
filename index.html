@@ -10041,6 +10041,17 @@ footer {
     var params = new URLSearchParams(window.location.search);
     // 1) Try the query string first (?tenant=<slug>) — historical format.
     var slug = params.get('tenant');
+    // 1b) Hash fragment (#tenant=<slug>). iOS Safari STRIPS query strings
+    //     when capturing the URL for "Add to Home Screen" (we caught this
+    //     via the debug overlay: PWA launched at "/" even though the user
+    //     was on /?tenant=jesus). Hash fragments are part of the URL but
+    //     not the query — iOS preserves them in the PWA launch URL more
+    //     reliably than query strings. This is now the PREFERRED transport
+    //     for the PWA path.
+    if (!slug && window.location.hash) {
+      var hashMatch = window.location.hash.match(/[#&]tenant=([^&]+)/);
+      if (hashMatch) slug = decodeURIComponent(hashMatch[1]);
+    }
     // 2) If no query, try the path. Email links use /jesus or /king to dodge
     //    Gmail's link-tracking proxy, which sometimes mangles nested query
     //    strings (the original ?tenant=jesus can get collapsed into Gmail's
@@ -10054,22 +10065,18 @@ footer {
         // Normalize: both /jesus and /king map to the 'jesus' tenant slug
         // (King is Jesús's brand name; the tenant slug in DB is 'jesus').
         slug = 'jesus';
-        // Rewrite path → query-string. The path form (/king) is for the
-        // email link (survives Gmail's link rewriting). Once we're on
-        // the site, switch to /?tenant=jesus because iOS Safari + Chrome
-        // iOS are inconsistent about which URL they capture when the
-        // user taps "Add to Home Screen": some normalize an unknown
-        // path back to "/", some keep it. The query-string form is
-        // universally captured (it's a "valid" URL shape) AND survives
-        // the install flow on every browser we've seen. Gmail is no
-        // longer in the loop at this point so query-string mangling is
-        // not a concern. The PWA's launch URL ends up being
-        // "/?tenant=jesus" → the sync script's URLSearchParams.get('tenant')
-        // path picks it up immediately on launch → KING applied.
+        // Rewrite path → HASH FRAGMENT. Confirmed via debug overlay that
+        // iOS Safari + Chrome iOS strip query strings when capturing the
+        // URL for "Add to Home Screen" (PWA launched at "/" despite the
+        // URL bar showing /?tenant=jesus). Hash fragments survive this
+        // capture because they're not part of the path or query — iOS
+        // includes them in the stored URL. PWA launches at "/#tenant=jesus"
+        // → hash detection above picks it up → KING applied at first paint.
         try {
           var url = new URL(window.location.href);
           url.pathname = '/';
-          url.searchParams.set('tenant', 'jesus');
+          url.search = '';   // strip any query (Gmail tracker remnants)
+          url.hash = '#tenant=jesus';
           window.history.replaceState({}, '', url.toString());
         } catch (e) {}
       }
