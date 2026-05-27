@@ -10047,34 +10047,22 @@ footer {
       try { slug = localStorage.getItem(LS_PREVIEW_TENANT); } catch (e) {}
     }
     // Sentinels to clear the preview — used to explicitly downgrade to
-    // CoachAI default during testing. Without one of these, we fall
-    // through to the TEMPORARY default-to-KING block below.
+    // CoachAI default during testing.
     if (slug === 'clear' || slug === 'default' || slug === 'coachai-default') {
       try { localStorage.removeItem(LS_PREVIEW_TENANT); } catch (e) {}
       return;
     }
-    // ────────────────────────────────────────────────────────────────
-    // TEMPORARY (2026-05-26 night): FORCE KING for every login screen.
-    //
-    // Tonight every new invite Beto sends is for a Jesús client. Beto
-    // explicitly asked to "always paint the login KING" so there's zero
-    // margin for error if anything upstream fails (?tenant param
-    // stripped by Gmail, copy-paste loses it, screenshot OCR loses it,
-    // user types the URL from memory, etc.).
-    //
-    // Override is unconditional — ignores any ?tenant param AND any
-    // LS_PREVIEW_TENANT value. The post-login path is what flips the
-    // user to their actual tenant: applyTenantBranding runs after
-    // launchCoach() with the user's tenants row, and its non-bodyClass
-    // cleanup block (see function below) strips the theme-king class
-    // + KING-applied CSS vars when the user is on coachai-default.
-    //
-    // Tomorrow morning (2026-05-27): DELETE this single-line override
-    // so the script falls back to the conditional `!slug` / known-slug
-    // behavior again. Marked TEMPORARY in lowercase too so a `grep
-    // TEMPORARY` finds it.
-    // ────────────────────────────────────────────────────────────────
-    slug = 'jesus';
+    // No slug → fall through (CoachAI default). The post-login path
+    // will resolve the user's actual tenant via loadTenantForUser
+    // and applyTenantBranding handles the branding from there.
+    // (Removed the 2026-05-26 night force-KING fallback — it was causing
+    // a half-applied state on default-tenant users: the sync script
+    // applied KING globally, then post-login cleanup stripped the body
+    // class + CSS vars but couldn't undo the img.src swaps the
+    // MutationObserver had already done — leaving coral logos on top of
+    // a default-themed app. Better to only apply KING when we're
+    // CERTAIN the visitor is on a whitelabel.)
+    if (!slug) return;
     // Hardcoded synchronous palettes for each whitelabel. Must match the
     // colors in the tenant's branding_config so the post-fetch overlay is
     // a no-op (or just adds the logos / manifest / etc.). Bonus: when the
@@ -10082,11 +10070,13 @@ footer {
     var THEMES = {
       'jesus': {
         bodyClass: 'theme-king',
-        // Path to the tenant's logo-icon (the small kettlebell icon used
-        // in the login card + the nav drawer header). The full
-        // applyTenantBranding async pass also swaps this from
-        // branding_config, but that runs ~500ms later. We pre-swap here
-        // via a MutationObserver so the icon never paints in default.
+        // Paths to the tenant's logo assets. The wordmark (logo.png) and
+        // the kettlebell icon (logo-icon.png) both ship as <img src="…">
+        // tags inside the body. The full applyTenantBranding async pass
+        // swaps them from branding_config, but that runs ~500ms later.
+        // We pre-swap here via a MutationObserver so neither ever paints
+        // in default.
+        logo:     '/tenants/jesus/logo.png',
         logoIcon: '/tenants/jesus/icon.png',
         vars: {
           '--bg':            '#FDF7F8',
@@ -10111,23 +10101,35 @@ footer {
       var root = document.documentElement;
       for (var k in theme.vars) root.style.setProperty(k, theme.vars[k]);
     }
-    // Pre-swap the logo-icon BEFORE the browser paints it. The <img
-    // src="logo-icon.png"> tags live further down in the body (login
-    // card + nav drawer); when the HTML parser reaches them it would
-    // start the network request for the default icon, paint it, and
-    // only ~500ms later applyTenantBranding would swap to the KING
-    // one — that's the flash Beto saw. A MutationObserver on the
-    // documentElement catches every newly-added node during parsing
-    // and rewrites img.src before it ever paints.
-    if (theme.logoIcon) {
-      var ICON_RE = /(^|\/)logo-icon\.png(\?.*)?$/;
-      var swapImg = function(img){ try { img.src = theme.logoIcon; } catch(e){} };
+    // Pre-swap the brand assets BEFORE the browser paints them. The
+    // <img src="logo.png"> (wordmark, in header + nav drawer) and
+    // <img src="logo-icon.png"> (kettlebell, in login card + nav drawer)
+    // tags live mid-body — when the parser hits them it would start the
+    // network request for the default versions and paint them before
+    // applyTenantBranding's async pass can swap them. A MutationObserver
+    // on documentElement rewrites img.src before paint.
+    var SWAP_MAP = [
+      // [pattern matched against img.src,    replacement path]
+      [/(^|\/)logo-icon\.png(\?.*)?$/, theme.logoIcon],
+      [/(^|\/)logo\.png(\?.*)?$/,      theme.logo]
+    ].filter(function(p){ return !!p[1]; });
+    if (SWAP_MAP.length) {
+      var resolveSwap = function(src){
+        for (var i = 0; i < SWAP_MAP.length; i++) {
+          if (SWAP_MAP[i][0].test(src)) return SWAP_MAP[i][1];
+        }
+        return null;
+      };
+      var swapImg = function(img){
+        var target = resolveSwap(img.getAttribute('src') || '');
+        if (target && img.src !== target) {
+          try { img.src = target; } catch(e){}
+        }
+      };
       var sweep = function(root){
         if (!root || !root.querySelectorAll) return;
         var imgs = root.querySelectorAll('img');
-        for (var i = 0; i < imgs.length; i++) {
-          if (ICON_RE.test(imgs[i].getAttribute('src') || '')) swapImg(imgs[i]);
-        }
+        for (var i = 0; i < imgs.length; i++) swapImg(imgs[i]);
       };
       sweep(document); // catch anything already parsed
       var obs = new MutationObserver(function(muts){
@@ -10136,17 +10138,14 @@ footer {
           for (var j = 0; j < added.length; j++) {
             var n = added[j];
             if (n.nodeType !== 1) continue;
-            if (n.tagName === 'IMG' && ICON_RE.test(n.getAttribute('src') || '')) {
-              swapImg(n);
-            } else {
-              sweep(n);
-            }
+            if (n.tagName === 'IMG') swapImg(n);
+            else sweep(n);
           }
         }
       });
       obs.observe(document.documentElement, { childList: true, subtree: true });
       // Stop observing once the document is fully parsed — by then
-      // every logo-icon img in the DOM has been swept.
+      // every matching img in the DOM has been swept.
       document.addEventListener('DOMContentLoaded', function(){
         sweep(document); // final pass for anything we might have missed
         obs.disconnect();
@@ -12310,14 +12309,18 @@ function wrapKingSelects() {
 }
 
 function applyTenantBranding(tenant) {
-  // Drop the previous tenant's body class (if any) before applying the new
-  // one — guarantees a clean theme switch when reusing the function.
-  if (_lastTenantBodyClass) {
+  if (!tenant) return;                  // No tenant resolved — keep hardcoded defaults
+  const b = tenant.branding_config || {};
+  // Drop the previous tenant's body class ONLY if the incoming tenant uses
+  // a different class. Removing + re-adding the same class causes a visible
+  // flash to the default theme between the two operations during double-
+  // applies (both resolvePreviewTenant + loadTenantForUser fire this
+  // function for the same tenant on every login — that double-fire is
+  // what produced the "logo cyan, luego rosado" flash users reported).
+  if (_lastTenantBodyClass && _lastTenantBodyClass !== b.bodyClass) {
     document.body.classList.remove(_lastTenantBodyClass);
     _lastTenantBodyClass = null;
   }
-  if (!tenant) return;                  // No tenant resolved — keep hardcoded defaults
-  const b = tenant.branding_config || {};
 
   // Body class — enables the per-tenant CSS overlay block. e.g. "theme-king"
   // selects the body.theme-king { ... } rules. Lets a whitelabel ship deep
@@ -12333,16 +12336,16 @@ function applyTenantBranding(tenant) {
       try { wrapKingSelects(); } catch (e) {}
     }
   } else {
-    // No bodyClass on the incoming tenant → strip any whitelabel class
-    // that might have been applied SYNCHRONOUSLY at first paint and
-    // reset the KING-applied inline CSS vars on <html> so :root defaults
-    // take over. This matters because the temporary night-fallback in
-    // the inline script at the top of <body> paints theme-king + KING
-    // vars on EVERY login — without this cleanup, an existing CoachAI
-    // user logging in would stay stuck in the cream/coral overlay
-    // forever after login. Keep SYNC_VARS in sync with the THEMES
-    // object in that script. Removing tomorrow when the night-fallback
-    // is reverted is safe too (this becomes a defensive no-op).
+    // No bodyClass on the incoming tenant → strip any whitelabel state
+    // that might have been applied at first paint by either:
+    //   • the sync script at the top of <body> (body class + CSS vars)
+    //   • the sync script's MutationObserver (img.src swaps)
+    // Without this full cleanup, a coachai-default user lands on the
+    // app with half-KING styling: body class + CSS vars get reset but
+    // <img src="/tenants/jesus/icon.png"> entries stay → coral logo
+    // floating on a default-themed app. That's the half-applied state
+    // Beto saw the morning after the night force-KING rollout.
+    // Keep SYNC_VARS in sync with the THEMES object in that script.
     document.body.classList.remove('theme-king');
     var SYNC_VARS = [
       '--bg','--surface','--surface2','--border',
@@ -12351,6 +12354,19 @@ function applyTenantBranding(tenant) {
     ];
     var rootEl = document.documentElement;
     SYNC_VARS.forEach(function(v){ rootEl.style.removeProperty(v); });
+    // Reverse any logo / logo-icon swaps the sync observer made. The
+    // patterns match ANY whitelabel asset under /tenants/<slug>/, not
+    // just KING, so this stays correct when a second whitelabel ships.
+    var defaultLogo     = (b.logo     && typeof b.logo     === 'string') ? b.logo     : '/logo.png';
+    var defaultLogoIcon = (b.logoIcon && typeof b.logoIcon === 'string') ? b.logoIcon : '/logo-icon.png';
+    document.querySelectorAll('img').forEach(function(img){
+      var src = img.getAttribute('src') || '';
+      if (/^\/tenants\/[^/]+\/icon\.png/.test(src)) {
+        try { img.src = defaultLogoIcon; } catch (e) {}
+      } else if (/^\/tenants\/[^/]+\/logo\.png/.test(src)) {
+        try { img.src = defaultLogo; } catch (e) {}
+      }
+    });
   }
 
   // Colors → CSS variables. We set each var only if the tenant provided
