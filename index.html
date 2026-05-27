@@ -2534,6 +2534,13 @@ body:has(.form-wrapper[style*="block"]) .home-wrapper { display: none !important
 .cai-bottom-nav { display: none; }
 body.app-active .cai-bottom-nav { display: flex; }
 
+/* Hide the bottom nav while the admin panel (#wl-wrapper) is visible.
+   The admin section has its own back button ("← Salir") and doesn't share
+   navigation with the client app — the bottom-nav icons (Inicio, Chat,
+   Mi Alim, Mi Entreno, Perfil) make no sense there and visually clutter
+   the admin views (alumnos list, student detail, beta panel, etc.). */
+body.app-active:has(#wl-wrapper[style*="block"]) .cai-bottom-nav { display: none !important; }
+
 /* ===== Context-aware header chrome =====
    ES/EN toggle only shows on Home (the section where the user is "settling
    in" and might want to change language). Hidden in chat, mi alimentación,
