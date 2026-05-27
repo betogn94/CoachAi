@@ -10039,8 +10039,23 @@ footer {
   try {
     var LS_PREVIEW_TENANT = 'coachai_preview_tenant_v1';
     var params = new URLSearchParams(window.location.search);
-    // 1) Try the query string first (?tenant=<slug>) — historical format.
-    var slug = params.get('tenant');
+    // 0) HOSTNAME-BASED tenant detection — the canonical Phase C route.
+    //    iOS strips path/query/hash from URLs at PWA install time, BUT it
+    //    preserves the ORIGIN (scheme + hostname). A user installing the
+    //    PWA from king.coachaipro.ai gets a PWA pinned to that origin
+    //    forever — every subsequent launch opens at king.coachaipro.ai/
+    //    no matter what iOS does to the rest of the URL. Hostname is the
+    //    ONLY signal that survives the install round-trip on Chrome iOS.
+    //    This block runs FIRST so a king.* hostname overrides every
+    //    other signal (path, query, hash, localStorage).
+    var slug = null;
+    try {
+      var host = window.location.hostname || '';
+      // king.coachaipro.ai or any king.* subdomain → KING tenant
+      if (/^king\./i.test(host)) slug = 'jesus';
+    } catch(e) {}
+    // 1) Try the query string (?tenant=<slug>) — fallback for browser navigation
+    if (!slug) slug = params.get('tenant');
     // 1b) Hash fragment (#tenant=<slug>). iOS Safari STRIPS query strings
     //     when capturing the URL for "Add to Home Screen" (we caught this
     //     via the debug overlay: PWA launched at "/" even though the user

@@ -113,15 +113,15 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
     typeof tenantSlug === 'string' && VALID_TENANT_SLUGS.has(tenantSlug) && tenantSlug !== 'coachai-default'
       ? tenantSlug
       : null;
-  // Build the URL the CTA + every link in the email points to. For
-  // whitelabel tenants we use a PATH-based URL (no query string, so
-  // Gmail's link-tracking proxy can't mangle it). The DB slug ("jesus")
-  // is the internal identifier; the URL-visible slug is the BRAND name
-  // ("king") so an invitee reading the URL sees "coachaipro.ai/king",
-  // not the trainer's personal name. The sync first-paint script in
-  // index.html accepts both /jesus and /king (case-insensitive) and
-  // maps them to the same tenant. Vercel rewrites both paths to the
-  // SPA. Add more here as new whitelabels ship.
+  // Build the URL the CTA + every link in the email points to.
+  //
+  // PHASE C in progress: we're migrating to per-tenant SUBDOMAINS
+  // (king.coachaipro.ai) because that's the only URL component iOS
+  // preserves at PWA install. Once DNS for king.coachaipro.ai
+  // propagates and the Vercel domain is wired, swap TENANT_BASE_URL
+  // back in (see commit history for the line). Until then we ship
+  // path-based URLs that work end-to-end (KING applies in the
+  // browser flow; PWA install has the email-lookup fallback).
   const TENANT_URL_SLUG = { 'jesus': 'king' };
   const urlPathSlug = safeTenantSlug ? (TENANT_URL_SLUG[safeTenantSlug] || safeTenantSlug) : null;
   const appUrl = urlPathSlug ? `${APP_URL}/${encodeURIComponent(urlPathSlug)}` : APP_URL;
