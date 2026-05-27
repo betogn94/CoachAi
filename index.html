@@ -10054,15 +10054,24 @@ footer {
         // Normalize: both /jesus and /king map to the 'jesus' tenant slug
         // (King is Jesús's brand name; the tenant slug in DB is 'jesus').
         slug = 'jesus';
-        // IMPORTANT: do NOT rewrite the URL to "/" here. iOS Safari's
-        // "Add to Home Screen" uses the CURRENT URL of the browser as
-        // the launch URL of the installed PWA — NOT the manifest's
-        // start_url. If we cleaned the path to "/" first, the user
-        // would then tap Share → Add to Home Screen, iOS would
-        // capture "/" as the launch URL, and the PWA would open at
-        // "/" with no tenant info → default theme. Leaving "/jesus"
-        // in the URL bar makes the installed PWA launch at "/jesus"
-        // every time, which the sync script picks up correctly.
+        // Rewrite path → query-string. The path form (/king) is for the
+        // email link (survives Gmail's link rewriting). Once we're on
+        // the site, switch to /?tenant=jesus because iOS Safari + Chrome
+        // iOS are inconsistent about which URL they capture when the
+        // user taps "Add to Home Screen": some normalize an unknown
+        // path back to "/", some keep it. The query-string form is
+        // universally captured (it's a "valid" URL shape) AND survives
+        // the install flow on every browser we've seen. Gmail is no
+        // longer in the loop at this point so query-string mangling is
+        // not a concern. The PWA's launch URL ends up being
+        // "/?tenant=jesus" → the sync script's URLSearchParams.get('tenant')
+        // path picks it up immediately on launch → KING applied.
+        try {
+          var url = new URL(window.location.href);
+          url.pathname = '/';
+          url.searchParams.set('tenant', 'jesus');
+          window.history.replaceState({}, '', url.toString());
+        } catch (e) {}
       }
     }
     // Persist for subsequent reloads
