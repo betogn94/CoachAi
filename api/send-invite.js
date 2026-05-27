@@ -115,16 +115,16 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
       : null;
   // Build the URL the CTA + every link in the email points to.
   //
-  // PHASE C in progress: we're migrating to per-tenant SUBDOMAINS
-  // (king.coachaipro.ai) because that's the only URL component iOS
-  // preserves at PWA install. Once DNS for king.coachaipro.ai
-  // propagates and the Vercel domain is wired, swap TENANT_BASE_URL
-  // back in (see commit history for the line). Until then we ship
-  // path-based URLs that work end-to-end (KING applies in the
-  // browser flow; PWA install has the email-lookup fallback).
-  const TENANT_URL_SLUG = { 'jesus': 'king' };
-  const urlPathSlug = safeTenantSlug ? (TENANT_URL_SLUG[safeTenantSlug] || safeTenantSlug) : null;
-  const appUrl = urlPathSlug ? `${APP_URL}/${encodeURIComponent(urlPathSlug)}` : APP_URL;
+  // PHASE C LIVE: we use per-tenant SUBDOMAINS because that's the only
+  // URL component iOS preserves at PWA install time. A PWA installed
+  // from king.coachaipro.ai always launches at that origin → the sync
+  // first-paint script in index.html detects the hostname → KING
+  // applies from the very first pixel on every launch, including the
+  // very first one. No flash, no email-lookup fallback needed.
+  const TENANT_BASE_URL = {
+    'jesus': 'https://king.coachaipro.ai',
+  };
+  const appUrl = safeTenantSlug ? (TENANT_BASE_URL[safeTenantSlug] || APP_URL) : APP_URL;
   // Resolve the per-tenant theme so the email visually matches the app
   // the invitee will land on.
   const theme = tenantEmailTheme(safeTenantSlug);
