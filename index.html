@@ -14129,11 +14129,20 @@ async function launchCoach() {
     if (container) container.scrollTop = container.scrollHeight;
   }
 
-  // First-time welcome tour: fires once after the user lands on home/chat.
-  // Delay a bit so the page settles and the user sees the home first, then the
-  // overlay appears smoothly. startTour() is a no-op if the user already
-  // completed it (localStorage flag), so reruns of launchCoach() are safe.
-  setTimeout(() => { try { startTour(false); } catch (e) {} }, 1200);
+  // First-time welcome tour: fires as soon as the home backdrop has
+  // painted — feels like a welcome, not an interruption. The previous
+  // setTimeout of 1200ms was long enough for users to start tapping
+  // around, and the tour landed mid-navigation as a popup. Two nested
+  // requestAnimationFrame() calls guarantee the browser has finished
+  // ONE full paint cycle (the home behind the tour card) before the
+  // overlay slides in (~16-32ms in practice, below human reaction).
+  // startTour() is a no-op if the user already completed it
+  // (localStorage flag), so reruns of launchCoach() are safe.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      try { startTour(false); } catch (e) {}
+    });
+  });
 }
 
 // ============================
