@@ -10054,14 +10054,15 @@ footer {
         // Normalize: both /jesus and /king map to the 'jesus' tenant slug
         // (King is Jesús's brand name; the tenant slug in DB is 'jesus').
         slug = 'jesus';
-        // Clean the path so subsequent reloads land at "/" with the
-        // localStorage cache. Cosmetic + avoids confusing the user
-        // with a "/jesus" path in their URL bar.
-        try {
-          var url = new URL(window.location.href);
-          url.pathname = '/';
-          window.history.replaceState({}, '', url.toString());
-        } catch (e) {}
+        // IMPORTANT: do NOT rewrite the URL to "/" here. iOS Safari's
+        // "Add to Home Screen" uses the CURRENT URL of the browser as
+        // the launch URL of the installed PWA — NOT the manifest's
+        // start_url. If we cleaned the path to "/" first, the user
+        // would then tap Share → Add to Home Screen, iOS would
+        // capture "/" as the launch URL, and the PWA would open at
+        // "/" with no tenant info → default theme. Leaving "/jesus"
+        // in the URL bar makes the installed PWA launch at "/jesus"
+        // every time, which the sync script picks up correctly.
       }
     }
     // Persist for subsequent reloads
