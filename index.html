@@ -14887,10 +14887,17 @@ async function renderMiAlimentacion() {
   const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
   const EDIT_SVG  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
 
+  // Display helper: coaches like Jesús write meal options as
+  // "3 claras + 1 huevo + 3 tostadas" using "+" between ingredients,
+  // which on a narrow phone column visually melts together. Swap
+  // " + " for " /// " purely at render time — separates ingredients
+  // into visually distinct chunks without losing the meaning. The
+  // raw text in DB stays as the coach pasted it.
+  const _displayMealContent = (txt) => (txt || '').replace(/\s\+\s/g, ' /// ');
   mealsList.innerHTML = day.meals.map((m, j) => {
     const st = estado[`d${i}m${j}`] || {};
     const cumplido = !!st.cumplido;
-    const showText = st.customText || m.content;
+    const showText = _displayMealContent(st.customText || m.content);
     const showKcal = st.customText ? st.customKcal : m.kcal;
     const hour = _ALIM_MEAL_HOURS[m.key] || '';
     return `
@@ -17415,23 +17422,39 @@ function parseRutinaContenido(text) {
   let current = null;
 
   const clean = s => s.replace(/[*_#]/g, '').trim();
-  // Exercise lines: numbered ("1. ", "2) ") OR bullet-prefixed ("• ", "- ",
-  // "* ", "– "). Previously only the numbered form matched, which silently
-  // dropped every exercise on rutinas that came back with bullets (the AI
-  // does this occasionally, and our QA mock uses •) — Mi Entreno would
-  // then show "0 ejercicios" per day even though the plan was saved fine.
-  const isExercise = s => /^\s*(?:\d+[\.\)]|[•\-*–])\s+/.test(s);
+  // Exercise lines come in TWO forms in real-world rutinas:
+  //   1. Marker-prefixed: numbered ("1. ", "2) ") or bullet ("• ", "- ", "* ", "– ")
+  //   2. UNMARKED but with "—" detail separator: "Sentadilla — 4 series x 8 reps — descanso: 90s"
+  //      This is how human coaches like Jesús write them when migrating from
+  //      Word/Notes/WhatsApp. The line has no bullet but the detail block
+  //      after the "—" is the telltale of an exercise (series/reps/descanso).
+  // isExercise covers both. The body extractor below strips whichever
+  // marker (if any) is present and parses name/detail off the first "—".
+  const isExercise = s => {
+    if (/^\s*(?:\d+[\.\)]|[•\-*–])\s+/.test(s)) return true;                  // marker-prefixed
+    // Unmarked: a non-empty line with "—"/"·"/"-" + a series/reps/descanso pattern after it
+    // The pattern is loose on purpose: anything resembling "X series", "X reps",
+    // "X x Y", or "descanso" in the detail half is enough.
+    if (/\s[—·–]\s/.test(s) && /(serie|rep|descanso|fallo)/i.test(s)) return true;
+    return false;
+  };
+  // Notes prefixed with the "↳" arrow are continuation lines explaining the
+  // previous exercise (Jesús uses these for execution cues + drop sets).
+  // Treated as note attached to the last exercise of the current day.
+  const isNoteLine = s => /^[↳→▸]\s+/.test(s);
   const isDayHeader = s => {
     const c = clean(s);
     if (/^d[ií]a\s*\d+/i.test(c)) return true;                          // "Día 1 · ..."
     if (new RegExp(`^(${DAY_NAMES})\\b`, 'i').test(c)) return true;      // "LUNES — PUSH"
     return false;
   };
-  const isRest = s => /descanso/i.test(s) && !isExercise(s) && !/·\s*desc\s|descanso:\s*\d+\s*s/i.test(s);
+  const isRest = s => /descanso/i.test(s) && !isExercise(s) && !isNoteLine(s) && !/·\s*desc\s|descanso:\s*\d+\s*s/i.test(s);
   const isSkippable = s => {
     const c = clean(s).toLowerCase();
     if (!c) return true;
     if (/^-{2,}$/.test(s.trim())) return true;                          // --- separators
+    if (/^═{2,}/.test(s.trim())) return true;                           // ═══ template separators
+    if (/^rutina\s+semanal\b/i.test(c)) return true;                    // "RUTINA SEMANAL — Template"
     if (/^(💪\s*)?rutina\b/i.test(c)) return true;                      // title line
     if (/^📋|^estructura\b|reloj de arena/i.test(c)) return true;       // meta line
     if (/dudas|cargá tus|acordate de cargar|¿tenés alguna duda/i.test(c)) return true; // footer
@@ -17458,13 +17481,24 @@ function parseRutinaContenido(text) {
     }
 
     if (isExercise(s) && current) {
-      // Strip the leading marker (numbered "1. " / "2) " OR bullet "• " /
-      // "- " / "* " / "– ") so we're left with just the exercise body.
+      // Strip the leading marker if present (numbered "1. " / "2) " OR
+      // bullet "• "/"- "/"* "/"– "). For unmarked exercises (Jesús-style)
+      // this is a no-op — the body IS the line minus markdown chars.
       const body = clean(s).replace(/^\s*(?:\d+[\.\)]|[•\-*–])\s+/, '').trim();
       let name = body, detail = '';
-      const m = body.search(/\s[—·-]\s/);
+      // Use a more permissive separator regex: hyphen-spaces or em-dash or
+      // middle-dot or en-dash. The first separator split is name vs detail.
+      const m = body.search(/\s[—·–-]\s/);
       if (m !== -1) { name = body.slice(0, m).trim(); detail = body.slice(m + 3).trim(); }
       current.exercises.push({ name, detail, note: '' });
+      continue;
+    }
+
+    // Note-prefixed lines (↳ arrow, used by Jesús) → attach to last exercise
+    if (isNoteLine(s) && current && current.exercises.length) {
+      const last = current.exercises[current.exercises.length - 1];
+      const noteBody = clean(s).replace(/^[↳→▸]\s+/, '').trim();
+      last.note = last.note ? `${last.note} • ${noteBody}` : noteBody;
       continue;
     }
 
