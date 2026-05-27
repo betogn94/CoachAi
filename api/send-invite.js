@@ -113,11 +113,16 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
     typeof tenantSlug === 'string' && VALID_TENANT_SLUGS.has(tenantSlug) && tenantSlug !== 'coachai-default'
       ? tenantSlug
       : null;
-  // Build the URL the CTA + every link in the email points to. With a
-  // whitelabel tenant we append ?tenant=<slug> so the invitee's first
-  // tap on the email shows them the branded landing instead of the
-  // generic CoachAI one — they see the right brand BEFORE typing email.
-  const appUrl = safeTenantSlug ? `${APP_URL}/?tenant=${encodeURIComponent(safeTenantSlug)}` : APP_URL;
+  // Build the URL the CTA + every link in the email points to. For
+  // whitelabel tenants we use a PATH-based URL (e.g. /jesus) instead of
+  // a query-string (e.g. /?tenant=jesus). Gmail's link tracking proxy
+  // sometimes mangles nested query strings when it wraps URLs through
+  // www.google.com/url?q=… — the destination's `?tenant=jesus` can get
+  // collapsed into Gmail's own URL params and dropped. A clean path
+  // (no query string) survives every link processor we've seen, and a
+  // Vercel rewrite + the sync first-paint script both resolve /jesus
+  // identically to /?tenant=jesus.
+  const appUrl = safeTenantSlug ? `${APP_URL}/${encodeURIComponent(safeTenantSlug)}` : APP_URL;
   // Resolve the per-tenant theme so the email visually matches the app
   // the invitee will land on.
   const theme = tenantEmailTheme(safeTenantSlug);

@@ -10039,8 +10039,32 @@ footer {
   try {
     var LS_PREVIEW_TENANT = 'coachai_preview_tenant_v1';
     var params = new URLSearchParams(window.location.search);
+    // 1) Try the query string first (?tenant=<slug>) — historical format.
     var slug = params.get('tenant');
-    // Persist a fresh ?tenant=<slug> for subsequent reloads
+    // 2) If no query, try the path. Email links use /jesus or /king to dodge
+    //    Gmail's link-tracking proxy, which sometimes mangles nested query
+    //    strings (the original ?tenant=jesus can get collapsed into Gmail's
+    //    own URL params and dropped). A clean path survives every link
+    //    processor we've seen, and Vercel rewrites /jesus → /index.html so
+    //    the SPA loads normally. We strip the path so localStorage caching
+    //    + future reloads behave identically to the query-string path.
+    if (!slug) {
+      var pathMatch = window.location.pathname.match(/^\/(jesus|king)\/?$/i);
+      if (pathMatch) {
+        // Normalize: both /jesus and /king map to the 'jesus' tenant slug
+        // (King is Jesús's brand name; the tenant slug in DB is 'jesus').
+        slug = 'jesus';
+        // Clean the path so subsequent reloads land at "/" with the
+        // localStorage cache. Cosmetic + avoids confusing the user
+        // with a "/jesus" path in their URL bar.
+        try {
+          var url = new URL(window.location.href);
+          url.pathname = '/';
+          window.history.replaceState({}, '', url.toString());
+        } catch (e) {}
+      }
+    }
+    // Persist for subsequent reloads
     if (slug) {
       try { localStorage.setItem(LS_PREVIEW_TENANT, slug); } catch (e) {}
     } else {

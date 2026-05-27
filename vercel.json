@@ -12,5 +12,15 @@
       "destination": "https://coachaipro.ai/$1",
       "permanent": true
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/jesus",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/king",
+      "destination": "/index.html"
+    }
   ]
 }
