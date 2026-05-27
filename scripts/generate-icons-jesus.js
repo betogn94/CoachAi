@@ -49,10 +49,13 @@ async function generate(outName, size) {
   // 1. Build the cream-rosa background
   const bg = await sharp(Buffer.from(bgSvg(size))).png().toBuffer();
 
-  // 2. Resize the source icon to ~68% of the canvas (matches the default
-  //    generator's padding ratio so KING + default sit consistent on
-  //    the home screen).
-  const logoSize = Math.round(size * 0.68);
+  // 2. Resize the source icon to ~88% of the canvas. Most iOS apps
+  //    (YouTube, Claude, Google, Instagram, etc.) render their logos
+  //    nearly edge-to-edge with only ~6% of padding per side. The
+  //    earlier 68% sized the kettlebell too small relative to the
+  //    icon area — it read as a tiny mark on a big cream square
+  //    instead of a proper app icon.
+  const logoSize = Math.round(size * 0.88);
   const logo = await sharp(SRC)
     .resize(logoSize, logoSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
     .toBuffer();

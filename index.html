@@ -11645,7 +11645,14 @@ const TOUR_DONE_KEY = 'coachai_tour_done_v1';
 const TOUR_STEPS = [
   {
     nav: () => showHome(),
-    title: '¡Bienvenida! 👋',
+    // Default tenant (CoachAI) is mass-market — masculine reads as
+    // gender-neutral in Spanish. KING (Jesús's whitelabel) serves only
+    // women clients, so the feminine "Bienvenida" is used there. Same
+    // override pattern can be reused for any other step that needs
+    // gender-aware copy on KING. Resolved at render time in
+    // renderTourStep() via the body.theme-king class check.
+    title: '¡Bienvenido! 👋',
+    titleKing: '¡Bienvenida! 👋',
     body: 'Acabás de terminar tu onboarding. En 40 segundos te muestro las partes principales de la app. Podés saltarlo y retomarlo cuando quieras desde tu Perfil.',
   },
   {
@@ -11721,8 +11728,12 @@ function renderTourStep() {
   const back = document.getElementById('tour-btn-back');
   const next = document.getElementById('tour-btn-next');
   if (num) num.textContent = `Paso ${_tourIdx + 1} / ${TOUR_STEPS.length}`;
-  if (title) title.textContent = step.title;
-  if (body) body.textContent = step.body;
+  // Tenant-aware copy: if the current tenant uses theme-king and the step
+  // ships a *King override, prefer it. Currently only the welcome step's
+  // salutation needs this (masculine for default, feminine for KING).
+  const isKing = document.body.classList.contains('theme-king');
+  if (title) title.textContent = (isKing && step.titleKing) ? step.titleKing : step.title;
+  if (body)  body.textContent  = (isKing && step.bodyKing)  ? step.bodyKing  : step.body;
   if (bar) bar.style.width = `${((_tourIdx + 1) / TOUR_STEPS.length) * 100}%`;
   if (back) back.disabled = _tourIdx === 0;
   if (next) next.textContent = step.isLast ? '✓ Terminar' : 'Siguiente →';
