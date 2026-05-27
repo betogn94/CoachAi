@@ -14104,7 +14104,14 @@ async function launchCoach() {
     // BEFORE the generic AI greeting — so she sees the plan is already there
     // and isn't confused thinking the AI needs to generate it from scratch.
     if (window._migrationCoach) {
-      const coach = window._migrationCoach;
+      // Per-tenant override for the "venís migrada de X" label. Lets a
+      // whitelabel (Jesús/KING) always say its brand name in the welcome
+      // ("venís migrada de King") regardless of what the admin entered
+      // in beta_invitados.migrada_de_coach (which could be "Jesús",
+      // "Coach J", etc.). Defaults to the invite's coach name when the
+      // tenant doesn't override.
+      const brandOverride = currentTenant?.branding_config?.migrationBrandName;
+      const coach = brandOverride || window._migrationCoach;
       const nombreCliente = (document.getElementById('f-nombre')?.value || '').trim().split(' ')[0];
       const isEs = (lang === 'es');
       const welcomeHtml = isEs
