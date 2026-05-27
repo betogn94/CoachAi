@@ -10146,6 +10146,54 @@ footer {
         }
       }
     };
+    // Expose the apply function globally so the email-input handler can
+    // call it after a successful tenant lookup. We need this because iOS
+    // Safari + Chrome iOS strip EVERYTHING from the URL (path, query AND
+    // hash) when capturing for "Add to Home Screen" — the installed PWA
+    // launches at "/" no matter what. Detecting tenant from URL alone is
+    // impossible on first PWA launch. The email-input fallback (see
+    // bottom of body) handles this case: as soon as the user types a
+    // KING-tenant email, we look up the invite and apply theme via this.
+    window.applySyncTenantTheme = function(slugArg) {
+      var theme = THEMES[slugArg];
+      if (!theme) return false;
+      if (theme.bodyClass) document.body.classList.add(theme.bodyClass);
+      if (theme.vars) {
+        var root = document.documentElement;
+        for (var k in theme.vars) root.style.setProperty(k, theme.vars[k]);
+      }
+      if (theme.manifestUrl) {
+        var mLink = document.querySelector('link[rel="manifest"]');
+        if (mLink) mLink.setAttribute('href', theme.manifestUrl);
+      }
+      if (theme.appleTouchIcon) {
+        var aLink = document.querySelector('link[rel="apple-touch-icon"]');
+        if (aLink) aLink.setAttribute('href', theme.appleTouchIcon);
+      }
+      if (theme.themeColor) {
+        var metas = document.querySelectorAll('meta[name="theme-color"]');
+        for (var mi = 0; mi < metas.length; mi++) {
+          metas[mi].setAttribute('content', theme.themeColor);
+        }
+      }
+      // Swap img.src for any logo-icon / logo images already in the DOM.
+      if (theme.logoIcon) {
+        document.querySelectorAll('img').forEach(function(img){
+          var src = img.getAttribute('src') || '';
+          if (/(^|\/)logo-icon\.png(\?.*)?$/.test(src)) img.src = theme.logoIcon;
+        });
+      }
+      if (theme.logo) {
+        document.querySelectorAll('img').forEach(function(img){
+          var src = img.getAttribute('src') || '';
+          if (/(^|\/)logo\.png(\?.*)?$/.test(src)) img.src = theme.logo;
+        });
+      }
+      // Persist so the next reload skips the lookup.
+      try { localStorage.setItem(LS_PREVIEW_TENANT, slugArg); } catch(e){}
+      return true;
+    };
+
     var theme = THEMES[slug];
     if (!theme) return;
     if (theme.bodyClass) document.body.classList.add(theme.bodyClass);
@@ -10226,45 +10274,6 @@ footer {
       });
     }
   } catch (e) { /* never break landing render */ }
-})();
-</script>
-
-<!-- ============================================================
-     TEMPORARY PWA debug overlay (2026-05-27).
-     ============================================================
-     Beto reports the PWA opens in default theme even though install
-     happened on /king with KING painted. We need to SEE what URL the
-     PWA is actually launching at — iOS PWAs don't show the URL bar so
-     we're guessing. This overlay only renders when the page is in
-     standalone (PWA) mode AND there's no tenant info detected at
-     boot. Shows the launch URL + localStorage state + body class so
-     we can diagnose. Remove once we're confident the flow is fixed. -->
-<script>
-(function(){
-  try {
-    // Defer to next tick so document.body exists + sync script ran
-    setTimeout(function(){
-      var isStandalone = window.matchMedia('(display-mode: standalone)').matches
-                     || window.navigator.standalone === true;
-      if (!isStandalone) return;
-      var hasTenant = document.body.classList.contains('theme-king');
-      if (hasTenant) return;  // KING applied → no need to debug
-      var lsTenant = '';
-      try { lsTenant = localStorage.getItem('coachai_preview_tenant_v1') || '(empty)'; } catch(e) { lsTenant = '(err)'; }
-      var div = document.createElement('div');
-      div.id = 'pwa-debug-overlay';
-      div.style.cssText = 'position:fixed;top:8px;left:8px;right:8px;z-index:99999;background:rgba(0,0,0,0.85);color:#fff;font:11px/1.4 monospace;padding:10px 12px;border-radius:6px;max-height:50vh;overflow:auto;border:2px solid #FF4F7B';
-      div.innerHTML =
-        '<div style="font-weight:bold;color:#FF6B95;margin-bottom:6px">PWA DEBUG (KING no detectado)</div>' +
-        '<div><b>href:</b> ' + window.location.href + '</div>' +
-        '<div><b>pathname:</b> ' + window.location.pathname + '</div>' +
-        '<div><b>search:</b> ' + (window.location.search || '(empty)') + '</div>' +
-        '<div><b>LS tenant:</b> ' + lsTenant + '</div>' +
-        '<div><b>body.class:</b> ' + document.body.className + '</div>' +
-        '<button onclick="this.parentElement.remove()" style="margin-top:8px;padding:4px 10px;background:#FF4F7B;color:#fff;border:0;border-radius:4px;font:11px monospace">CERRAR</button>';
-      document.body.appendChild(div);
-    }, 100);
-  } catch (e) {}
 })();
 </script>
 
@@ -20520,6 +20529,57 @@ window.addEventListener('DOMContentLoaded', () => {
   // resolve overlays the rest on top once it lands (~400-700ms later).
   // Stepping stone for Phase C subdomain routing.
   resolvePreviewTenant().catch(console.error);
+
+  // ─── Email-input tenant lookup (PWA-launch fallback) ────────────────
+  // iOS Safari + Chrome iOS strip the URL down to just the origin when
+  // they capture it for "Add to Home Screen", so the installed PWA
+  // launches at "/" with no tenant info — even though the URL bar
+  // showed a path/query/hash with the tenant at install time. URL-
+  // based detection is impossible on the first PWA launch on iOS.
+  //
+  // This handler is the fallback: as the user types their email in the
+  // login form, we look it up in beta_invitados (debounced) and apply
+  // the matching tenant theme via window.applySyncTenantTheme. The
+  // landing briefly renders default while they type the first half of
+  // their email, then flips to KING right after they finish — by the
+  // time they tap INGRESAR, the theme is already correct.
+  //
+  // No-op for default-tenant invites (slug='coachai-default') so a
+  // CoachAI user typing their email doesn't get a confusing flicker.
+  (function setupEmailTenantLookup(){
+    var emailEl = document.getElementById('el-email');
+    if (!emailEl) return;
+    var lookupTimer = null;
+    var lastLookedUp = null;  // skip dupe lookups for the same email
+    emailEl.addEventListener('input', function(){
+      if (lookupTimer) clearTimeout(lookupTimer);
+      lookupTimer = setTimeout(async function(){
+        var email = (emailEl.value || '').trim().toLowerCase();
+        // Basic email shape check — don't query Supabase for "a@b.c" half-typed garbage
+        if (!email || email.length < 6 || !email.includes('@') || !email.includes('.')) return;
+        if (email === lastLookedUp) return;
+        lastLookedUp = email;
+        try {
+          if (!sbClient) initSupabase();
+          if (!sbClient) return;
+          const { data } = await sbClient
+            .from('beta_invitados')
+            .select('tenant_slug')
+            .eq('email', email)
+            .maybeSingle();
+          if (!data || !data.tenant_slug) return;
+          if (data.tenant_slug === 'coachai-default') return;
+          // Apply via the sync-script helper so the swap is comprehensive
+          // (body class + CSS vars + manifest + apple-touch-icon + theme-
+          // color + img.src). The same helper that powered the first-paint
+          // KING in the browser flow.
+          if (typeof window.applySyncTenantTheme === 'function') {
+            window.applySyncTenantTheme(data.tenant_slug);
+          }
+        } catch (e) { /* silent — never block the login form */ }
+      }, 400);  // 400ms debounce — long enough that a user typing fast doesn't get N queries
+    });
+  })();
   // Dev convenience: visiting ?onboarding=preview forces the multi-step
   // form visible immediately, skipping landing + auto-login. Lets us
   // iterate on the onboarding theme from a phone without creating a
