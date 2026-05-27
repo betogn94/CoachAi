@@ -10102,6 +10102,17 @@ footer {
         // in default.
         logo:     '/tenants/jesus/logo.png',
         logoIcon: '/tenants/jesus/icon.png',
+        // PWA install assets — manifest + apple-touch-icon + theme-color.
+        // These also need to be swapped SYNC because "Add to Home Screen"
+        // can fire as soon as the user taps Share, and iOS captures the
+        // currently-attached manifest at that moment. The async path was
+        // too slow: users tapped Share before the swap landed → PWA got
+        // installed with the default manifest (start_url='/', dark theme,
+        // CoachAI icon). Then when they launched the PWA from the home
+        // screen, it opened at '/' with NO tenant info → default login.
+        manifestUrl:    '/manifest-jesus.json',
+        appleTouchIcon: '/tenants/jesus/icon-180.png',
+        themeColor:     '#FF4F7B',
         vars: {
           '--bg':            '#FDF7F8',
           '--surface':       '#FFFFFF',
@@ -10124,6 +10135,28 @@ footer {
     if (theme.vars) {
       var root = document.documentElement;
       for (var k in theme.vars) root.style.setProperty(k, theme.vars[k]);
+    }
+    // PWA install assets — swap synchronously so "Add to Home Screen"
+    // captures the tenant's manifest + icon + theme-color even if the
+    // user taps Share within milliseconds of arriving. The async path
+    // (applyTenantBranding) was too slow: iOS captures whatever's
+    // currently attached when the user taps Share, not after the page
+    // fully settles.
+    if (theme.manifestUrl) {
+      var mLink = document.querySelector('link[rel="manifest"]');
+      if (mLink) mLink.setAttribute('href', theme.manifestUrl);
+    }
+    if (theme.appleTouchIcon) {
+      var aLink = document.querySelector('link[rel="apple-touch-icon"]');
+      if (aLink) aLink.setAttribute('href', theme.appleTouchIcon);
+    }
+    if (theme.themeColor) {
+      // Both light + dark prefers-color-scheme metas — KING is a light
+      // theme so we want the coral on both regardless of system mode.
+      var metas = document.querySelectorAll('meta[name="theme-color"]');
+      for (var mi = 0; mi < metas.length; mi++) {
+        metas[mi].setAttribute('content', theme.themeColor);
+      }
     }
     // Pre-swap the brand assets BEFORE the browser paints them. The
     // <img src="logo.png"> (wordmark, in header + nav drawer) and
