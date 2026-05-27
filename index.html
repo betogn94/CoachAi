@@ -10395,8 +10395,10 @@ footer {
      continues to work without changes. The icon+label children are styled
      hidden (display:none) by the new CSS. -->
 <div class="progress-bar-container">
-  <!-- Saltar first so it stacks ABOVE the bars (right-aligned). -->
-  <a class="progress-skip-link" id="progress-skip-link" onclick="launchCoach()" data-es="Saltar" data-en="Skip">Saltar</a>
+  <!-- Saltar link removed (2026-05-27): caused users to skip onboarding and
+       land in the coach without profile data, breaking IMC + AI personalization.
+       The CSS rules for .progress-skip-link stay in place (harmless without
+       the element) in case we ever want to add it back behind an admin flag. -->
   <div class="progress-steps">
     <div class="progress-step active" id="ps1"></div>
     <div class="progress-step" id="ps2"></div>
