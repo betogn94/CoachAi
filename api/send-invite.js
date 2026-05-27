@@ -114,15 +114,17 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
       ? tenantSlug
       : null;
   // Build the URL the CTA + every link in the email points to. For
-  // whitelabel tenants we use a PATH-based URL (e.g. /jesus) instead of
-  // a query-string (e.g. /?tenant=jesus). Gmail's link tracking proxy
-  // sometimes mangles nested query strings when it wraps URLs through
-  // www.google.com/url?q=… — the destination's `?tenant=jesus` can get
-  // collapsed into Gmail's own URL params and dropped. A clean path
-  // (no query string) survives every link processor we've seen, and a
-  // Vercel rewrite + the sync first-paint script both resolve /jesus
-  // identically to /?tenant=jesus.
-  const appUrl = safeTenantSlug ? `${APP_URL}/${encodeURIComponent(safeTenantSlug)}` : APP_URL;
+  // whitelabel tenants we use a PATH-based URL (no query string, so
+  // Gmail's link-tracking proxy can't mangle it). The DB slug ("jesus")
+  // is the internal identifier; the URL-visible slug is the BRAND name
+  // ("king") so an invitee reading the URL sees "coachaipro.ai/king",
+  // not the trainer's personal name. The sync first-paint script in
+  // index.html accepts both /jesus and /king (case-insensitive) and
+  // maps them to the same tenant. Vercel rewrites both paths to the
+  // SPA. Add more here as new whitelabels ship.
+  const TENANT_URL_SLUG = { 'jesus': 'king' };
+  const urlPathSlug = safeTenantSlug ? (TENANT_URL_SLUG[safeTenantSlug] || safeTenantSlug) : null;
+  const appUrl = urlPathSlug ? `${APP_URL}/${encodeURIComponent(urlPathSlug)}` : APP_URL;
   // Resolve the per-tenant theme so the email visually matches the app
   // the invitee will land on.
   const theme = tenantEmailTheme(safeTenantSlug);
