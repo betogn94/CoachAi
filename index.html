@@ -17901,6 +17901,25 @@ async function mirrorTrainedDay(dateStr, add, stateAfter) {
   } catch (e) {
     console.warn('progreso_diario.entreno mirror failed:', e);
   }
+
+  // Refresh in-memory recentDiario + re-render Seguimiento Semanal in Home.
+  // Without this, the user marks a day done in Mi Entreno and the SEM strip
+  // in Home keeps showing "0 ENTRENADOS" until they reload the page. The
+  // DB is correct (entreno=true) but the recentDiario cache that
+  // computeWeekStats reads from is stale. Both load + render are
+  // best-effort + non-blocking — the toggle UI already updated locally.
+  try {
+    if (typeof loadRecentDiario === 'function') {
+      recentDiario = await loadRecentDiario();
+    }
+    if (typeof renderSemanas === 'function'
+        && document.getElementById('home-wrapper')
+        && getComputedStyle(document.getElementById('home-wrapper')).display !== 'none') {
+      await renderSemanas();
+    }
+  } catch (e) {
+    console.warn('Seguimiento Semanal refresh after entreno mirror failed:', e);
+  }
 }
 
 function exKey(dayIdx, exIdx) { return `d${dayIdx}e${exIdx}`; }
