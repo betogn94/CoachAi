@@ -10222,6 +10222,45 @@ footer {
 })();
 </script>
 
+<!-- ============================================================
+     TEMPORARY PWA debug overlay (2026-05-27).
+     ============================================================
+     Beto reports the PWA opens in default theme even though install
+     happened on /king with KING painted. We need to SEE what URL the
+     PWA is actually launching at — iOS PWAs don't show the URL bar so
+     we're guessing. This overlay only renders when the page is in
+     standalone (PWA) mode AND there's no tenant info detected at
+     boot. Shows the launch URL + localStorage state + body class so
+     we can diagnose. Remove once we're confident the flow is fixed. -->
+<script>
+(function(){
+  try {
+    // Defer to next tick so document.body exists + sync script ran
+    setTimeout(function(){
+      var isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                     || window.navigator.standalone === true;
+      if (!isStandalone) return;
+      var hasTenant = document.body.classList.contains('theme-king');
+      if (hasTenant) return;  // KING applied → no need to debug
+      var lsTenant = '';
+      try { lsTenant = localStorage.getItem('coachai_preview_tenant_v1') || '(empty)'; } catch(e) { lsTenant = '(err)'; }
+      var div = document.createElement('div');
+      div.id = 'pwa-debug-overlay';
+      div.style.cssText = 'position:fixed;top:8px;left:8px;right:8px;z-index:99999;background:rgba(0,0,0,0.85);color:#fff;font:11px/1.4 monospace;padding:10px 12px;border-radius:6px;max-height:50vh;overflow:auto;border:2px solid #FF4F7B';
+      div.innerHTML =
+        '<div style="font-weight:bold;color:#FF6B95;margin-bottom:6px">PWA DEBUG (KING no detectado)</div>' +
+        '<div><b>href:</b> ' + window.location.href + '</div>' +
+        '<div><b>pathname:</b> ' + window.location.pathname + '</div>' +
+        '<div><b>search:</b> ' + (window.location.search || '(empty)') + '</div>' +
+        '<div><b>LS tenant:</b> ' + lsTenant + '</div>' +
+        '<div><b>body.class:</b> ' + document.body.className + '</div>' +
+        '<button onclick="this.parentElement.remove()" style="margin-top:8px;padding:4px 10px;background:#FF4F7B;color:#fff;border:0;border-radius:4px;font:11px monospace">CERRAR</button>';
+      document.body.appendChild(div);
+    }, 100);
+  } catch (e) {}
+})();
+</script>
+
 <!-- Shared SVG <defs> for icons that reference brand gradients by id.
      Lives at document level so any <use href="#grad-brand"/> or stroke
      reference resolves regardless of where the consumer SVG is mounted. -->
