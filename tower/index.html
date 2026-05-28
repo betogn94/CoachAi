@@ -622,6 +622,11 @@
       backdrop-filter: blur(2px);
       display: grid; place-items: center;
       z-index: 100;
+      /* Stop iOS rubber-band scrolling from leaking through to the body
+         behind the modal (user could pan the dashboard left/right or
+         pull-down behind the modal). */
+      overscroll-behavior: contain;
+      touch-action: none;
     }
     :root[data-theme="light"] .modal-backdrop { background: rgba(15,23,42,0.35); }
     .modal {
@@ -633,7 +638,17 @@
       max-width: 480px;
       max-height: 90vh;
       overflow-y: auto;
+      overscroll-behavior: contain;
+      touch-action: pan-y; /* allow vertical scroll INSIDE the modal only */
       box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    /* When a modal is open we freeze the page underneath so the only thing
+       that scrolls is the modal itself. The body lock is set via JS
+       (saves scrollY then position:fixed; top:-scrollY) — this CSS hook
+       prevents the brief flash before JS runs. */
+    body.modal-locked {
+      overflow: hidden !important;
+      overscroll-behavior: none !important;
     }
     .modal h2 {
       margin: 0 0 16px;
@@ -1209,14 +1224,45 @@
     }
 
     // ---------- Modal ----------
+    // Body scroll lock — prevents iOS rubber-band scrolling on the page
+    // underneath when a modal is open. Uses position:fixed to freeze the
+    // viewport at the current scroll position (other techniques like just
+    // overflow:hidden don't hold iOS in PWA mode). Restores scroll on unlock.
+    let _modalLockCount = 0;
+    let _modalLockedScrollY = 0;
+    function lockBodyScroll() {
+      _modalLockCount++;
+      if (_modalLockCount > 1) return; // already locked
+      _modalLockedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      document.body.classList.add('modal-locked');
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${_modalLockedScrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.width = '100%';
+    }
+    function unlockBodyScroll() {
+      _modalLockCount = Math.max(0, _modalLockCount - 1);
+      if (_modalLockCount > 0) return; // another modal still open
+      document.body.classList.remove('modal-locked');
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.width = '';
+      window.scrollTo(0, _modalLockedScrollY);
+    }
+
     function modal(html) {
       return new Promise((resolve) => {
         const back = document.createElement('div');
         back.className = 'modal-backdrop';
         back.innerHTML = `<div class="modal" role="dialog" aria-modal="true">${html}</div>`;
         document.body.appendChild(back);
+        lockBodyScroll();
         const close = (result) => {
           back.remove();
+          unlockBodyScroll();
           resolve(result);
         };
         back.addEventListener('click', (e) => {
@@ -1709,7 +1755,8 @@
       back.className = 'modal-backdrop';
       back.innerHTML = `<div class="modal">${html}</div>`;
       document.body.appendChild(back);
-      const close = () => back.remove();
+      lockBodyScroll();
+      const close = () => { back.remove(); unlockBodyScroll(); };
       back.addEventListener('click', (e) => {
         if (e.target === back) close();
         if (e.target.matches('[data-modal-action="cancel"]')) close();
