@@ -83,6 +83,30 @@ export function getSession(req) {
   return verifySession(token);
 }
 
+/**
+ * Higher-order wrapper that guards an endpoint behind a valid Tower session.
+ * Usage:
+ *   export default withAuth(async (req, res, session) => { ... });
+ */
+export function withAuth(handler) {
+  return async function guarded(req, res) {
+    const session = getSession(req);
+    if (!session) {
+      return res.status(401).json({ ok: false, error: 'unauthenticated' });
+    }
+    try {
+      return await handler(req, res, session);
+    } catch (err) {
+      console.error('[tower] handler error:', err);
+      return res.status(500).json({
+        ok: false,
+        error: 'server_error',
+        detail: String(err?.message || err),
+      });
+    }
+  };
+}
+
 // Returns { username, displayName } if user/pass match an env-configured admin.
 // Uses timing-safe comparison to avoid leaking which field is wrong.
 export function checkCredentials(username, password) {

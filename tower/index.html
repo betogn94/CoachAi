@@ -450,6 +450,231 @@
       font-size: 12px;
       letter-spacing: 0.1em;
     }
+
+    /* ---------- TABLES ---------- */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+    }
+    .data-table thead th {
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      background: var(--bg-elev-2);
+      border-bottom: 1px solid var(--border);
+    }
+    .data-table tbody td {
+      padding: 12px 14px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border-soft);
+      vertical-align: middle;
+    }
+    .data-table tbody tr:last-child td { border-bottom: none; }
+    .data-table tbody tr {
+      cursor: default;
+      transition: background 0.1s;
+    }
+    .data-table tbody tr.clickable { cursor: pointer; }
+    .data-table tbody tr.clickable:hover { background: var(--bg-elev-2); }
+    .data-table .cell-mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 12px; }
+    .data-table .cell-dim  { color: var(--text-dim); }
+    .data-table .cell-right { text-align: right; }
+    .table-wrap { overflow-x: auto; }
+
+    /* ---------- BADGES ---------- */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      background: var(--bg-elev-2);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .badge-accent { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+    .badge-success { background: rgba(34,197,94,0.12); color: var(--success); border-color: transparent; }
+    .badge-warning { background: rgba(245,158,11,0.12); color: var(--warning); border-color: transparent; }
+    .badge-danger  { background: rgba(239,68,68,0.12);  color: var(--danger);  border-color: transparent; }
+
+    /* ---------- BUTTONS ---------- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--bg-elev);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.1s, border-color 0.1s;
+    }
+    .btn:hover { background: var(--bg-elev-2); border-color: var(--text-muted); }
+    .btn-primary-sm {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .btn-primary-sm:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .btn-danger-ghost {
+      background: transparent;
+      border-color: transparent;
+      color: var(--danger);
+      padding: 4px 8px;
+    }
+    .btn-danger-ghost:hover { background: rgba(239,68,68,0.10); }
+    .btn-back {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 4px 0;
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+    .btn-back:hover { color: var(--text); }
+
+    /* ---------- MODAL ---------- */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(2px);
+      display: grid; place-items: center;
+      z-index: 100;
+    }
+    :root[data-theme="light"] .modal-backdrop { background: rgba(15,23,42,0.35); }
+    .modal {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .modal h2 {
+      margin: 0 0 16px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 20px;
+    }
+    .field select {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .field textarea {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 60px;
+    }
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* ---------- DRILL HEADER ---------- */
+    .drill-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .drill-title { display: flex; align-items: center; gap: 10px; }
+    .drill-title .swatch {
+      width: 28px; height: 28px; border-radius: 6px;
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+    }
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .meta-row strong { color: var(--text); font-weight: 500; }
+
+    /* ---------- BUGS DETAIL ---------- */
+    .bug-item {
+      padding: 10px 12px;
+      background: rgba(239,68,68,0.05);
+      border-left: 2px solid var(--danger);
+      border-radius: 4px;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+    .bug-item .bug-meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+    /* ---------- EMPTY STATE ---------- */
+    .empty-row {
+      padding: 40px 24px;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+
+    /* ---------- TOAST ---------- */
+    .toast-stack {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 200;
+    }
+    .toast {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--text);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      animation: slideIn 0.2s ease-out;
+    }
+    .toast-error { border-color: var(--danger); color: var(--danger); }
+    .toast-success { border-color: var(--success); color: var(--success); }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(8px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
   </style>
 </head>
 <body>
@@ -490,7 +715,7 @@
 
       <div id="loginError" class="login-error"></div>
 
-      <div class="login-footer">COACHAI · TOWER · v0.1</div>
+      <div class="login-footer">COACHAI · TOWER · v0.2</div>
     </form>
   </div>
 
@@ -554,7 +779,7 @@
       <header class="topbar">
         <div id="crumb" class="crumb"><strong>Dashboard</strong></div>
         <div class="topbar-actions">
-          <span class="tl tl-gray" title="Estado del sistema"><span class="tl-dot"></span><span class="mono">v0.1</span></span>
+          <span class="tl tl-gray" title="Estado del sistema"><span class="tl-dot"></span><span class="mono">v0.2</span></span>
         </div>
       </header>
 
@@ -694,72 +919,143 @@
       showLogin();
     });
 
-    // ---------- Routing (very light) ----------
+    // ---------- Utilities ----------
+    function escapeHtml(s) {
+      if (s == null) return '';
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[c]));
+    }
+    function fmtUsd(n) {
+      const v = Number(n || 0);
+      return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function fmtInt(n) {
+      return Number(n || 0).toLocaleString('en-US');
+    }
+    function fmtRelative(iso) {
+      if (!iso) return '—';
+      const t = new Date(iso).getTime();
+      if (!Number.isFinite(t)) return '—';
+      const diff = Date.now() - t;
+      const sec = Math.floor(diff / 1000);
+      if (sec < 60) return 'hace ' + sec + 's';
+      const min = Math.floor(sec / 60);
+      if (min < 60) return 'hace ' + min + ' min';
+      const hr = Math.floor(min / 60);
+      if (hr < 24) return 'hace ' + hr + ' h';
+      const d = Math.floor(hr / 24);
+      if (d < 30) return 'hace ' + d + ' d';
+      const mo = Math.floor(d / 30);
+      if (mo < 12) return 'hace ' + mo + ' meses';
+      return 'hace ' + Math.floor(mo / 12) + ' años';
+    }
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      if (!Number.isFinite(d.getTime())) return iso;
+      return d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+    function tlBadge(tl) {
+      if (!tl) return '<span class="tl tl-gray"><span class="tl-dot"></span>—</span>';
+      const cls = 'tl-' + (tl.color || 'gray');
+      return `<span class="tl ${cls}" title="${escapeHtml(tl.reason || '')}"><span class="tl-dot"></span>${escapeHtml(tl.reason || '')}</span>`;
+    }
+    function todayIso() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    // ---------- Toasts ----------
+    function ensureToastStack() {
+      let s = document.getElementById('toastStack');
+      if (!s) {
+        s = document.createElement('div');
+        s.id = 'toastStack';
+        s.className = 'toast-stack';
+        document.body.appendChild(s);
+      }
+      return s;
+    }
+    function toast(msg, type = '') {
+      const s = ensureToastStack();
+      const el = document.createElement('div');
+      el.className = 'toast' + (type ? ' toast-' + type : '');
+      el.textContent = msg;
+      s.appendChild(el);
+      setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 200); }, 3500);
+    }
+
+    // ---------- Modal ----------
+    function modal(html) {
+      return new Promise((resolve) => {
+        const back = document.createElement('div');
+        back.className = 'modal-backdrop';
+        back.innerHTML = `<div class="modal" role="dialog" aria-modal="true">${html}</div>`;
+        document.body.appendChild(back);
+        const close = (result) => {
+          back.remove();
+          resolve(result);
+        };
+        back.addEventListener('click', (e) => {
+          if (e.target === back) close(null);
+          if (e.target.matches('[data-modal-action="cancel"]')) close(null);
+        });
+        // Expose close to the caller so they can finalize on submit
+        back._close = close;
+        // Focus first input
+        setTimeout(() => back.querySelector('input,select,textarea,button')?.focus(), 50);
+      });
+    }
+
+    // ---------- Routing ----------
+    let currentTenantSlug = null;
+
     const ROUTES = {
-      dashboard: {
-        label: 'Dashboard',
-        render: renderDashboard,
-      },
-      tenants: {
-        label: 'Tenants',
-        render: () => placeholder('Tenants', 'Listado de tenants, semáforo de estado, drill-down a cada uno. Llega en Fase 2.'),
-      },
-      users: {
-        label: 'Usuarios',
-        render: () => placeholder('Usuarios', 'Vista global de todas las usuarias (across tenants). Adherencia, actividad, bugs. Fase 2.'),
-      },
-      financiero: {
-        label: 'Financiero',
-        render: () => placeholder('Financiero', 'Suscripciones, pagos, vencimientos. Stripe + Mercado Pago + transferencia manual. Fase 4–6.'),
-      },
-      costos: {
-        label: 'API / Costos',
-        render: () => placeholder('API / Costos', 'Consumo de tokens Anthropic, costo por usuario/tenant, % facturación vs costo. Fase 3.'),
-      },
-      logs: {
-        label: 'Logs',
-        render: () => placeholder('Logs', 'Eventos del sistema, errores, bug reports de usuarias.'),
-      },
-      config: {
-        label: 'Configuración',
-        render: () => placeholder('Configuración', 'Precios por tenant, splits, notificaciones, alertas internas.'),
-      },
+      dashboard:    { label: 'Dashboard',     render: renderDashboard },
+      tenants:      { label: 'Tenants',       render: renderTenantsList },
+      users:        { label: 'Usuarios',      render: () => placeholder('Usuarios', 'Vista global de todas las usuarias (across tenants). Llega luego — entrá por Tenants → click un tenant para ver sus usuarias.') },
+      financiero:   { label: 'Financiero',    render: () => placeholder('Financiero', 'Suscripciones, pagos, vencimientos. Stripe + Mercado Pago + transferencia manual. Fase 4–6.') },
+      costos:       { label: 'API / Costos',  render: renderCostos },
+      logs:         { label: 'Logs',          render: () => placeholder('Logs', 'Eventos del sistema, errores, bug reports de usuarias. Próxima iteración.') },
+      config:       { label: 'Configuración', render: () => placeholder('Configuración', 'Precios por tenant, splits, notificaciones, alertas internas.') },
     };
 
-    function route(name) {
+    function route(name, extra) {
       const r = ROUTES[name] || ROUTES.dashboard;
       document.querySelectorAll('.nav-item').forEach(el => {
         el.classList.toggle('active', el.dataset.route === name);
       });
       crumbEl.innerHTML = `<strong>${r.label}</strong>`;
       contentEl.innerHTML = '';
-      r.render(contentEl);
+      r.render(contentEl, extra);
     }
 
     document.addEventListener('click', (e) => {
       const ni = e.target.closest('.nav-item');
       if (ni && ni.dataset.route) {
+        currentTenantSlug = null;
         route(ni.dataset.route);
       }
     });
 
-    // ---------- Views ----------
+    // ---------- Views: placeholder ----------
     function placeholder(title, body) {
       contentEl.innerHTML = `
         <div class="page-header">
           <div>
-            <h1 class="page-title">${title}</h1>
+            <h1 class="page-title">${escapeHtml(title)}</h1>
             <p class="page-sub">Sección en construcción.</p>
           </div>
         </div>
         <div class="placeholder">
           <strong>Próximamente</strong>
-          ${body}
+          ${escapeHtml(body)}
         </div>
       `;
     }
 
-    function renderDashboard() {
+    // ---------- Views: DASHBOARD ----------
+    async function renderDashboard() {
       contentEl.innerHTML = `
         <div class="page-header">
           <div>
@@ -767,56 +1063,419 @@
             <p class="page-sub">Resumen general del ecosistema CoachAI.</p>
           </div>
         </div>
+        <div id="dashGrid" class="cards-grid"></div>
+        <div id="dashTl" class="cards-grid"></div>
+      `;
 
-        <div class="cards-grid">
-          <div class="stat-card">
-            <div class="stat-label">Tenants activos</div>
-            <div class="stat-value">—</div>
-            <div class="stat-sub">Se conecta a DB en Fase 2</div>
+      const grid = document.getElementById('dashGrid');
+      const tl   = document.getElementById('dashTl');
+
+      // Skeleton
+      grid.innerHTML = `
+        ${statCardSkeleton('Tenants activos')}
+        ${statCardSkeleton('Usuarias totales')}
+        ${statCardSkeleton('Activas (7d)')}
+        ${statCardSkeleton('Bugs reportados')}
+        ${statCardSkeleton('Costos del mes (USD)')}
+      `;
+
+      const { ok, data } = await api('/api/tower/dashboard');
+      if (!ok || !data?.ok) {
+        grid.innerHTML = `<div class="stat-card"><div class="stat-label">Error</div><div class="stat-sub">${escapeHtml(data?.detail || data?.error || 'No se pudo cargar')}</div></div>`;
+        return;
+      }
+      const s = data.stats;
+
+      grid.innerHTML = `
+        ${statCard('Tenants activos', fmtInt(s.tenants.active), `${fmtInt(s.tenants.total)} totales`)}
+        ${statCard('Usuarias totales', fmtInt(s.users.total), `${fmtInt(s.users.active_7d)} activas en 7d`)}
+        ${statCard('Activas (7d)', fmtInt(s.users.active_7d), `${pct(s.users.active_7d, s.users.total)} del total`)}
+        ${statCard('Bugs reportados', fmtInt(s.bugs.total), `${fmtInt(s.bugs.last_30d)} en últimos 30d`)}
+        ${statCard('Costos del mes (USD)', fmtUsd(s.costs.this_month_usd), 'Manuales — ver sección Costos')}
+      `;
+
+      const b = s.traffic_light;
+      tl.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-label">Distribución de tenants</div>
+          <div style="display:flex; gap:14px; align-items:center; margin-top:4px;">
+            <span class="tl tl-green"><span class="tl-dot"></span>${fmtInt(b.green)}</span>
+            <span class="tl tl-yellow"><span class="tl-dot"></span>${fmtInt(b.yellow)}</span>
+            <span class="tl tl-red"><span class="tl-dot"></span>${fmtInt(b.red)}</span>
+            <span class="tl tl-gray"><span class="tl-dot"></span>${fmtInt(b.gray)}</span>
           </div>
-          <div class="stat-card">
-            <div class="stat-label">Usuarias totales</div>
-            <div class="stat-value">—</div>
-            <div class="stat-sub">Se conecta a DB en Fase 2</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">MRR (USD)</div>
-            <div class="stat-value">—</div>
-            <div class="stat-sub">Disponible en Fase 4</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Costo API (mes)</div>
-            <div class="stat-value">—</div>
-            <div class="stat-sub">Disponible en Fase 3</div>
-          </div>
+          <div class="stat-sub">Verde · Amarillo · Rojo · Gris</div>
         </div>
-
-        <div class="cards-grid">
-          <div class="stat-card">
-            <div class="stat-label">Estado del sistema</div>
-            <div class="stat-value mono" style="font-size: 16px;">
-              <span class="tl tl-green"><span class="tl-dot"></span>OK</span>
-            </div>
-            <div class="stat-sub">Login activo · Sesión válida</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Versión Tower</div>
-            <div class="stat-value mono" style="font-size: 16px;">v0.1.0</div>
-            <div class="stat-sub">Fase 1 — Acceso</div>
-          </div>
-        </div>
-
-        <div class="placeholder" style="margin-top: 8px;">
-          <strong>Fase 1 lista ✓</strong>
-          Subdominio + login funcionando. Próximo paso: Fase 2 — datos reales de tenants y usuarias.
+        <div class="stat-card">
+          <div class="stat-label">Versión Tower</div>
+          <div class="stat-value mono" style="font-size:16px;">v0.2.0</div>
+          <div class="stat-sub">Fase 2 — Datos reales</div>
         </div>
       `;
     }
 
-    function escapeHtml(s) {
-      return String(s).replace(/[&<>"']/g, c => ({
-        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-      }[c]));
+    function pct(n, total) {
+      if (!total) return '—';
+      return Math.round((n / total) * 100) + '%';
+    }
+    function statCard(label, value, sub) {
+      return `<div class="stat-card">
+        <div class="stat-label">${escapeHtml(label)}</div>
+        <div class="stat-value">${value}</div>
+        <div class="stat-sub">${escapeHtml(sub || '')}</div>
+      </div>`;
+    }
+    function statCardSkeleton(label) {
+      return `<div class="stat-card">
+        <div class="stat-label">${escapeHtml(label)}</div>
+        <div class="stat-value"><span class="spinner"></span></div>
+        <div class="stat-sub">cargando…</div>
+      </div>`;
+    }
+
+    // ---------- Views: TENANTS ----------
+    async function renderTenantsList(el) {
+      el.innerHTML = `
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Tenants</h1>
+            <p class="page-sub">Todas las cuentas de CoachAI. Click en una fila para ver sus usuarias.</p>
+          </div>
+        </div>
+        <div id="tenantsTable" class="table-wrap"><div class="placeholder"><span class="spinner"></span> &nbsp; Cargando tenants…</div></div>
+      `;
+      const wrap = document.getElementById('tenantsTable');
+      const { ok, data } = await api('/api/tower/tenants');
+      if (!ok || !data?.ok) {
+        wrap.innerHTML = `<div class="placeholder"><strong>Error</strong>${escapeHtml(data?.detail || data?.error || 'No se pudo cargar')}</div>`;
+        return;
+      }
+      const rows = data.tenants;
+      if (!rows.length) {
+        wrap.innerHTML = `<div class="placeholder">Sin tenants registrados.</div>`;
+        return;
+      }
+      wrap.innerHTML = `
+        <table class="data-table">
+          <thead><tr>
+            <th>Estado</th>
+            <th>Tenant</th>
+            <th>Tipo</th>
+            <th>Dominio</th>
+            <th class="cell-right">Usuarias</th>
+            <th>Última actividad</th>
+          </tr></thead>
+          <tbody>
+            ${rows.map(t => `
+              <tr class="clickable" data-slug="${escapeHtml(t.slug)}">
+                <td>${tlBadge(t.traffic_light)}</td>
+                <td>
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    ${t.brand?.accent ? `<span class="swatch" style="width:18px;height:18px;border-radius:4px;background:${escapeHtml(t.brand.accent)};border:1px solid var(--border);display:inline-block;"></span>` : ''}
+                    <div>
+                      <div style="font-weight:500;">${escapeHtml(t.name)}</div>
+                      <div class="cell-mono cell-dim" style="font-size:11px;">${escapeHtml(t.slug)}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  ${t.is_cofounder ? '<span class="badge badge-accent">co-founder</span>' : ''}
+                  ${t.is_whitelabel ? '<span class="badge">whitelabel</span>' : '<span class="badge">default</span>'}
+                </td>
+                <td class="cell-mono">${t.domain ? escapeHtml(t.domain) : '<span class="cell-dim">—</span>'}</td>
+                <td class="cell-right cell-mono">
+                  ${fmtInt(t.users.total)}${t.users.capacity ? ' / ' + fmtInt(t.users.capacity) : ' / ∞'}
+                  <div class="cell-dim" style="font-size:11px;">${fmtInt(t.users.active_7d)} activas 7d</div>
+                </td>
+                <td class="cell-dim">${fmtRelative(t.last_activity)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      wrap.querySelectorAll('tr.clickable').forEach(tr => {
+        tr.addEventListener('click', () => openTenantDrill(tr.dataset.slug));
+      });
+    }
+
+    async function openTenantDrill(slug) {
+      currentTenantSlug = slug;
+      crumbEl.innerHTML = `<a href="#" id="crumbBack">Tenants</a> · <strong>${escapeHtml(slug)}</strong>`;
+      document.getElementById('crumbBack')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        currentTenantSlug = null;
+        route('tenants');
+      });
+      contentEl.innerHTML = `<div class="placeholder"><span class="spinner"></span> &nbsp; Cargando ${escapeHtml(slug)}…</div>`;
+
+      const { ok, data } = await api(`/api/tower/users?tenant=${encodeURIComponent(slug)}`);
+      if (!ok || !data?.ok) {
+        contentEl.innerHTML = `<div class="placeholder"><strong>Error</strong>${escapeHtml(data?.detail || data?.error || 'No se pudo cargar')}</div>`;
+        return;
+      }
+      const tenant = data.tenant;
+      const users = data.users;
+
+      contentEl.innerHTML = `
+        <button class="btn-back" id="backBtn">← Volver a Tenants</button>
+        <div class="drill-header">
+          <div>
+            <div class="drill-title">
+              <h1 class="page-title">${escapeHtml(tenant.name)}</h1>
+            </div>
+            <div class="meta-row">
+              <span><strong>${escapeHtml(tenant.slug)}</strong></span>
+              <span>${fmtInt(users.length)} usuarias</span>
+            </div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          ${users.length === 0 ? '<div class="placeholder">Sin usuarias todavía.</div>' : `
+          <table class="data-table">
+            <thead><tr>
+              <th>Estado</th>
+              <th>Usuaria</th>
+              <th>Última actividad</th>
+              <th class="cell-right">Adherencia</th>
+              <th class="cell-right">Entrenó (30d)</th>
+              <th class="cell-right">Sesiones</th>
+              <th class="cell-right">Bugs</th>
+            </tr></thead>
+            <tbody>
+              ${users.map(u => `
+                <tr class="clickable" data-uid="${escapeHtml(u.id)}">
+                  <td>${tlBadge(u.traffic_light)}</td>
+                  <td>
+                    <div style="font-weight:500;">${escapeHtml(u.nombre || u.email)}</div>
+                    <div class="cell-mono cell-dim" style="font-size:11px;">${escapeHtml(u.email)}</div>
+                  </td>
+                  <td class="cell-dim">${fmtRelative(u.last_active)}</td>
+                  <td class="cell-right cell-mono">${u.stats.adherence != null ? Math.round(u.stats.adherence * 100) + '%' : '—'}</td>
+                  <td class="cell-right cell-mono">${fmtInt(u.stats.daysTrained30d)}${u.stats.weeklyTarget ? ' <span class="cell-dim">/ ' + (u.stats.weeklyTarget * 4) + '</span>' : ''}</td>
+                  <td class="cell-right cell-mono">${fmtInt(u.session_count)}</td>
+                  <td class="cell-right">
+                    ${u.stats.openBugs > 0 ? `<span class="badge badge-danger">${u.stats.openBugs}</span>` : '<span class="cell-dim">0</span>'}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>`}
+        </div>
+        ${renderBugsBlock(users)}
+      `;
+      document.getElementById('backBtn').addEventListener('click', () => { currentTenantSlug = null; route('tenants'); });
+    }
+
+    function renderBugsBlock(users) {
+      const allBugs = [];
+      users.forEach(u => {
+        (u.bugs || []).forEach(b => allBugs.push({ ...b, usuario: u.nombre || u.email }));
+      });
+      if (!allBugs.length) return '';
+      return `
+        <div style="margin-top:32px;">
+          <h2 style="font-size:14px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; margin:0 0 12px;">
+            Bugs reportados
+          </h2>
+          ${allBugs.map(b => `
+            <div class="bug-item">
+              <div>${escapeHtml(b.mensaje)}</div>
+              <div class="bug-meta">${escapeHtml(b.usuario)} · ${fmtRelative(b.created_at)}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    // ---------- Views: COSTOS ----------
+    let _tenantsCache = null;
+    async function loadTenantsForSelect() {
+      if (_tenantsCache) return _tenantsCache;
+      const { data } = await api('/api/tower/tenants');
+      _tenantsCache = (data?.tenants || []).map(t => ({ id: t.id, slug: t.slug, name: t.name }));
+      return _tenantsCache;
+    }
+
+    async function renderCostos(el) {
+      el.innerHTML = `
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Costos</h1>
+            <p class="page-sub">Registro manual de gastos. Infraestructura compartida y costos atribuidos a un tenant.</p>
+          </div>
+          <button class="btn btn-primary-sm" id="addCostBtn">+ Nuevo costo</button>
+        </div>
+        <div id="costsTotals" class="cards-grid"></div>
+        <div id="costsTable" class="table-wrap" style="margin-top:8px;"><div class="placeholder"><span class="spinner"></span> &nbsp; Cargando…</div></div>
+      `;
+      document.getElementById('addCostBtn').addEventListener('click', openAddCostModal);
+      await loadCostsTable();
+    }
+
+    async function loadCostsTable() {
+      const wrap = document.getElementById('costsTable');
+      const totalsEl = document.getElementById('costsTotals');
+      const { ok, data } = await api('/api/tower/costs');
+      if (!ok || !data?.ok) {
+        wrap.innerHTML = `<div class="placeholder"><strong>Error</strong>${escapeHtml(data?.detail || data?.error || 'No se pudo cargar')}</div>`;
+        return;
+      }
+      const rows = data.costs;
+      const t = data.totals;
+      totalsEl.innerHTML = `
+        ${statCard('Total acumulado', fmtUsd(t.usd), `${fmtInt(t.count)} registros`)}
+        ${statCard('Compartido (infra)', fmtUsd(t.shared_usd), 'No atribuido a un tenant')}
+        ${statCard('Atribuido a tenants', fmtUsd(t.attributed_usd), 'Costo directo a un tenant')}
+      `;
+      if (!rows.length) {
+        wrap.innerHTML = `<div class="placeholder"><strong>Sin costos registrados</strong>Cargá el primero con el botón "+ Nuevo costo".</div>`;
+        return;
+      }
+      wrap.innerHTML = `
+        <table class="data-table">
+          <thead><tr>
+            <th>Período</th>
+            <th>Concepto</th>
+            <th>Proveedor</th>
+            <th>Tenant</th>
+            <th>Frecuencia</th>
+            <th class="cell-right">Monto (USD)</th>
+            <th></th>
+          </tr></thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr data-id="${escapeHtml(r.id)}">
+                <td class="cell-mono">${fmtDate(r.period_start)}${r.period_end ? '<div class="cell-dim" style="font-size:11px;">→ ' + fmtDate(r.period_end) + '</div>' : ''}</td>
+                <td>
+                  <div style="font-weight:500;">${escapeHtml(r.label)}</div>
+                  ${r.notes ? `<div class="cell-dim" style="font-size:11px;">${escapeHtml(r.notes)}</div>` : ''}
+                </td>
+                <td><span class="badge">${escapeHtml(r.provider)}</span></td>
+                <td>${r.tenants ? `<span class="badge badge-accent">${escapeHtml(r.tenants.slug)}</span>` : '<span class="cell-dim">— compartido</span>'}</td>
+                <td class="cell-dim">${escapeHtml(r.billing_period)}</td>
+                <td class="cell-right cell-mono">${fmtUsd(r.amount_usd)}</td>
+                <td class="cell-right">
+                  <button class="btn btn-danger-ghost" data-delete="${escapeHtml(r.id)}" title="Eliminar">×</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      wrap.querySelectorAll('[data-delete]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('¿Eliminar este registro de costo?')) return;
+          const id = btn.dataset.delete;
+          const { ok } = await api(`/api/tower/costs?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+          if (ok) { toast('Costo eliminado', 'success'); loadCostsTable(); }
+          else { toast('No se pudo eliminar', 'error'); }
+        });
+      });
+    }
+
+    async function openAddCostModal() {
+      const tenants = await loadTenantsForSelect();
+      const today = todayIso();
+      const providers = ['vercel','supabase','resend','anthropic','godaddy','stripe','mercadopago','otro'];
+
+      const html = `
+        <h2>Nuevo costo</h2>
+        <div class="field">
+          <label>Concepto</label>
+          <input id="m_label" type="text" placeholder="Ej: Vercel Pro · mayo" autocomplete="off" required>
+        </div>
+        <div class="form-grid-2">
+          <div class="field">
+            <label>Proveedor</label>
+            <select id="m_provider">
+              ${providers.map(p => `<option value="${p}">${p}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field">
+            <label>Monto (USD)</label>
+            <input id="m_amount" type="number" step="0.01" min="0" placeholder="0.00" required>
+          </div>
+        </div>
+        <div class="form-grid-2">
+          <div class="field">
+            <label>Inicio de período</label>
+            <input id="m_start" type="date" value="${today}" required>
+          </div>
+          <div class="field">
+            <label>Fin de período (opcional)</label>
+            <input id="m_end" type="date">
+          </div>
+        </div>
+        <div class="form-grid-2">
+          <div class="field">
+            <label>Frecuencia</label>
+            <select id="m_period">
+              <option value="monthly">Mensual</option>
+              <option value="yearly">Anual</option>
+              <option value="one-time">Único</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Tenant (opcional)</label>
+            <select id="m_tenant">
+              <option value="">— Compartido (infra)</option>
+              ${tenants.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Notas (opcional)</label>
+          <textarea id="m_notes" placeholder="Detalle, factura, etc."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn" data-modal-action="cancel">Cancelar</button>
+          <button class="btn btn-primary-sm" id="m_save">Guardar</button>
+        </div>
+      `;
+
+      const back = document.createElement('div');
+      back.className = 'modal-backdrop';
+      back.innerHTML = `<div class="modal">${html}</div>`;
+      document.body.appendChild(back);
+      const close = () => back.remove();
+      back.addEventListener('click', (e) => {
+        if (e.target === back) close();
+        if (e.target.matches('[data-modal-action="cancel"]')) close();
+      });
+      setTimeout(() => back.querySelector('#m_label')?.focus(), 50);
+
+      back.querySelector('#m_save').addEventListener('click', async () => {
+        const payload = {
+          label: back.querySelector('#m_label').value.trim(),
+          provider: back.querySelector('#m_provider').value,
+          amount_usd: parseFloat(back.querySelector('#m_amount').value),
+          billing_period: back.querySelector('#m_period').value,
+          period_start: back.querySelector('#m_start').value,
+          period_end: back.querySelector('#m_end').value || null,
+          tenant_id: back.querySelector('#m_tenant').value || null,
+          notes: back.querySelector('#m_notes').value.trim() || null,
+        };
+        if (!payload.label) return toast('Falta el concepto', 'error');
+        if (!(payload.amount_usd >= 0)) return toast('Monto inválido', 'error');
+        if (!payload.period_start) return toast('Falta el inicio de período', 'error');
+
+        const btn = back.querySelector('#m_save');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>';
+        const { ok, data } = await api('/api/tower/costs', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        btn.disabled = false;
+        btn.textContent = 'Guardar';
+        if (!ok || !data?.ok) {
+          toast(data?.error || 'No se pudo guardar', 'error');
+          return;
+        }
+        toast('Costo agregado', 'success');
+        close();
+        loadCostsTable();
+      });
     }
 
     // ---------- Boot ----------
