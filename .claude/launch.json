@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "coachai",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "-p", "3030", "."],
+      "runtimeExecutable": "vercel",
+      "runtimeArgs": ["dev", "--listen", "3030"],
       "port": 3030
     }
   ]
