@@ -1059,10 +1059,29 @@
       }
     }
 
+    // iOS PWA workaround: when we toggle full-viewport elements between
+    // display:none and display:block, Safari sometimes keeps stale
+    // safe-area-inset values until a real layout event (scroll/resize).
+    // Closing and re-opening the app forces this; here we trigger it
+    // synthetically so the user doesn't have to.
+    function nudgeViewport() {
+      requestAnimationFrame(() => {
+        window.scrollTo(0, 0);
+        window.dispatchEvent(new Event('resize'));
+        // Second tick: some iOS versions need a frame after layout to
+        // re-read env(safe-area-inset-*). Forcing a reflow on body.
+        requestAnimationFrame(() => {
+          // Touching offsetHeight triggers a synchronous layout pass.
+          void document.body.offsetHeight;
+        });
+      });
+    }
+
     function showLogin() {
       boot.classList.add('hidden');
       appEl.classList.add('hidden');
       loginEl.classList.remove('hidden');
+      nudgeViewport();
       setTimeout(() => $('#loginUser')?.focus(), 50);
     }
 
@@ -1073,6 +1092,7 @@
       userName.textContent = session.displayName || session.username;
       userAvatar.textContent = (session.displayName || session.username || '?').charAt(0).toUpperCase();
       route('dashboard');
+      nudgeViewport();
     }
 
     loginForm.addEventListener('submit', async (e) => {
@@ -1749,6 +1769,11 @@
     }
 
     // ---------- Boot ----------
+    // Nudge once on initial load so iOS PWA picks up safe-area-insets
+    // before we toggle any full-viewport elements.
+    if (document.readyState === 'complete') nudgeViewport();
+    else window.addEventListener('load', nudgeViewport, { once: true });
+
     checkSession();
   })();
   </script>
