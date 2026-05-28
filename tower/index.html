@@ -193,7 +193,11 @@
       border-radius: 8px;
       padding: 10px 12px;
       color: var(--text);
-      font-size: 14px;
+      /* 16px is mandatory on mobile: iOS Safari auto-zooms in when focusing
+         any <input>/<select>/<textarea> with font-size < 16px AND does NOT
+         zoom back out on blur — leaving the viewport stuck at the zoomed
+         level and pushing the topbar off-screen post-login. */
+      font-size: 16px;
       transition: border-color 0.15s, box-shadow 0.15s;
     }
     .field input:focus {
@@ -649,7 +653,8 @@
       border-radius: 8px;
       padding: 10px 12px;
       color: var(--text);
-      font-size: 14px;
+      /* See note on .field input — 16px to prevent iOS auto-zoom on focus. */
+      font-size: 16px;
     }
     .field textarea {
       width: 100%;
@@ -658,7 +663,8 @@
       border-radius: 8px;
       padding: 10px 12px;
       color: var(--text);
-      font-size: 14px;
+      /* See note on .field input — 16px to prevent iOS auto-zoom on focus. */
+      font-size: 16px;
       font-family: inherit;
       resize: vertical;
       min-height: 60px;
@@ -910,7 +916,7 @@
 
       <div id="loginError" class="login-error"></div>
 
-      <div class="login-footer">COACHAI · TOWER · v0.6</div>
+      <div class="login-footer">COACHAI · TOWER · v0.7</div>
     </form>
   </div>
 
@@ -985,7 +991,7 @@
           <div id="crumb" class="crumb"><strong>Dashboard</strong></div>
         </div>
         <div class="topbar-actions">
-          <span class="tl tl-gray" title="Estado del sistema"><span class="tl-dot"></span><span class="mono">v0.6</span></span>
+          <span class="tl tl-gray" title="Estado del sistema"><span class="tl-dot"></span><span class="mono">v0.7</span></span>
         </div>
       </header>
 
@@ -1339,8 +1345,8 @@
         </div>
         <div class="stat-card">
           <div class="stat-label">Versión Tower</div>
-          <div class="stat-value mono" style="font-size:16px;">v0.6.0</div>
-          <div class="stat-sub">Overlay arquitectura</div>
+          <div class="stat-value mono" style="font-size:16px;">v0.7.0</div>
+          <div class="stat-sub">iOS input zoom fix</div>
         </div>
       `;
     }
