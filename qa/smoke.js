@@ -157,7 +157,32 @@ async function main() {
     // gate (>400 chars + plan markers); the in-app default mock is short.
     st = startStep('reset_chat_state');
     try {
-      await page.evaluate(() => {
+      // Per-persona cardio fixtures — each agent exercises a different
+      // frequency pattern so the parser + UI render gets coverage across
+      // all 3 cases (entreno-only, every-day, off-days-only). Also varies
+      // tipo/intensidad/duración so the parser's field extraction is
+      // exercised broadly.
+      const CARDIO_FIXTURES = {
+        testb: {
+          line:        '🏃 CARDIO: post entreno 25 min caminata moderada',
+          expect:      { duracion_min: 25, tipo: 'caminata', intensidad: 'moderada', frecuencia: 'entreno' },
+        },
+        qa1: {
+          line:        '🏃 CARDIO: post entreno 15 min HIIT intenso',
+          expect:      { duracion_min: 15, tipo: 'HIIT', intensidad: 'intensa', frecuencia: 'entreno' },
+        },
+        qa2: {
+          line:        '🏃 CARDIO: todos los días 30 min caminata suave',
+          expect:      { duracion_min: 30, tipo: 'caminata', intensidad: 'suave', frecuencia: 'todos' },
+        },
+        qa3: {
+          line:        '🏃 CARDIO: días off 45 min trote moderado',
+          expect:      { duracion_min: 45, tipo: 'trote', intensidad: 'moderada', frecuencia: 'descanso' },
+        },
+      };
+      const cardioFixture = CARDIO_FIXTURES[args.persona] || CARDIO_FIXTURES.testb;
+
+      await page.evaluate((cardioLine) => {
         try { if (typeof weeklyPlans !== 'undefined' && weeklyPlans) { weeklyPlans.dieta = null; weeklyPlans.rutina = null; } } catch (e) {}
         try { if (typeof dismissedPlanButtons !== 'undefined' && dismissedPlanButtons && dismissedPlanButtons.clear) dismissedPlanButtons.clear(); } catch (e) {}
         try { if (typeof refreshQuickButtons === 'function') refreshQuickButtons(); } catch (e) {}
@@ -171,12 +196,18 @@ async function main() {
           'MARTES\nDesayuno: huevos 3 + avena 40g — 340 kcal\nAlmuerzo: ternera 180g + quinoa 120g — 580 kcal\nMerienda: queso + frutas — 250 kcal\nCena: pollo 200g + verduras — 480 kcal\n\n' +
           'MIERCOLES\nDesayuno: tostadas + palta + huevos — 410 kcal\nAlmuerzo: atún + arroz + ensalada — 560 kcal\nMerienda: licuado proteína — 320 kcal\nCena: pavo + papas — 520 kcal\n\n' +
           'JUEVES\nDesayuno: avena + frutos rojos — 360 kcal\nAlmuerzo: pollo + arroz integral — 600 kcal\nMerienda: yogur griego — 240 kcal\nCena: pescado + verduras — 460 kcal\n';
+        // Routine body + per-persona CARDIO line appended at the end.
+        // (The parser does a top-down scan for the first CARDIO line so
+        // position doesn't matter, but the AI prompt places it after the
+        // rest-day block — we mirror that here.)
         const buildRutinaReply = () =>
           'Rutina semanal — TestB | Foco: hipertrofia + control de progresión\n\n' +
           'LUNES — Pecho/Tríceps\n• Press banca 4 series x 8 reps — descanso: 90s\n• Aperturas con mancuernas 3 series x 12 reps — descanso: 60s\n• Press militar 4 series x 10 reps — descanso: 90s\n• Fondos paralelas 3 series x 10 reps — descanso: 75s\n\n' +
           'MARTES — Espalda/Bíceps\n• Dominadas 4 series x 8 reps — descanso: 90s\n• Remo barra 4 series x 10 reps — descanso: 90s\n• Curl barra 3 series x 12 reps — descanso: 60s\n• Curl martillo 3 series x 12 reps — descanso: 60s\n\n' +
           'JUEVES — Piernas\n• Sentadilla 4 series x 8 reps — descanso: 120s\n• Peso muerto 4 series x 6 reps — descanso: 120s\n• Prensa 45° 3 series x 12 reps — descanso: 90s\n• Curl femoral 3 series x 12 reps — descanso: 60s\n\n' +
-          'VIERNES — Hombros/Core\n• Press militar 4 series x 10 reps — descanso: 90s\n• Elevaciones laterales 3 series x 15 reps — descanso: 60s\n• Plancha 3 series x 60s — descanso: 45s\n';
+          'VIERNES — Hombros/Core\n• Press militar 4 series x 10 reps — descanso: 90s\n• Elevaciones laterales 3 series x 15 reps — descanso: 60s\n• Plancha 3 series x 60s — descanso: 45s\n\n' +
+          '🛋️ Descanso: sábado y domingo — caminata, movilidad o estiramientos 20-30 min.\n\n' +
+          cardioLine;
 
         const orig = window.fetch.bind(window);
         window.fetch = async (url, opts) => {
@@ -195,7 +226,9 @@ async function main() {
           }
           return orig(url, opts);
         };
-      });
+      }, cardioFixture.line);
+      // Stash fixture for later steps
+      report.cardioFixture = cardioFixture;
       const btnCount = await page.evaluate(() => document.querySelectorAll('#quick-btns .qbtn-card').length);
       if (btnCount !== 2) throw new Error(`expected 2 quick-buttons (Dieta + Rutina), got ${btnCount}`);
       st.pass();
@@ -253,6 +286,85 @@ async function main() {
         return !!w && getComputedStyle(w).display !== 'none' && w.offsetHeight > 100;
       });
       if (!ok) throw new Error('mi-entreno-wrapper not visible / empty after showMiEntreno()');
+      st.pass();
+    } catch (e) { st.fail(e); }
+
+    // --- Step 9b: Parse the cardio rule from the saved routine and match fixture ---
+    st = startStep('cardio_rule_parses_match_fixture');
+    try {
+      const expected = report.cardioFixture && report.cardioFixture.expect;
+      if (!expected) throw new Error('no cardio fixture stashed on report');
+      const parsed = await page.evaluate(() => {
+        try {
+          const r = weeklyPlans && weeklyPlans.rutina;
+          if (!r || !r.contenido) return { error: 'no rutina contenido' };
+          if (typeof parseCardioRule !== 'function') return { error: 'parseCardioRule not defined' };
+          return parseCardioRule(r.contenido);
+        } catch (e) { return { error: String(e && e.message || e) }; }
+      });
+      if (!parsed || parsed.error) throw new Error('parser returned: ' + JSON.stringify(parsed));
+      const mismatches = [];
+      ['duracion_min', 'tipo', 'intensidad', 'frecuencia'].forEach(k => {
+        if (parsed[k] !== expected[k]) mismatches.push(`${k}: expected="${expected[k]}" got="${parsed[k]}"`);
+      });
+      if (mismatches.length) throw new Error('cardio rule mismatch — ' + mismatches.join(' | '));
+      report.cardioParsed = parsed;
+      st.pass();
+    } catch (e) { st.fail(e); }
+
+    // --- Step 9c: Cardio chip renders correctly given today's day type ---
+    // For "todos" → chip MUST render regardless of today being rest or training.
+    // For "entreno" → chip renders only on training days.
+    // For "descanso" → chip renders only on rest days.
+    // We can't reliably know whether today is rest for each persona without
+    // running buildTrainingDayMapping. So instead we force-open the hero card
+    // (or pick a known training day), then check chip presence vs frequency
+    // expectation.
+    st = startStep('cardio_chip_renders_correctly');
+    try {
+      const expectedFreq = report.cardioFixture && report.cardioFixture.expect && report.cardioFixture.expect.frecuencia;
+      const result = await page.evaluate((freq) => {
+        // Find a training day to display (any non-rest day in the mapping)
+        if (typeof buildTrainingDayMapping !== 'function') return { error: 'mapping fn missing' };
+        const map = buildTrainingDayMapping();
+        if (!map) return { error: 'no mapping' };
+        const trainingIdx = Object.values(map.weekdayToRoutineIdx)[0];
+        const restIdx = map.days.findIndex(d => d.isRest);
+        const out = { freq, trainingIdx, restIdx, trainingChip: null, restChip: null };
+
+        // Show a training day
+        if (typeof _entOverrideIdx !== 'undefined' && trainingIdx != null) {
+          window._entOverrideIdx = trainingIdx;
+          if (typeof showMiEntreno === 'function') showMiEntreno();
+        }
+        // wait a tick — we can't await inside page.evaluate sync block; the
+        // mi-entreno re-renders synchronously enough for the immediate DOM
+        // check. If flakey, we'd wrap in a setTimeout poll.
+        out.trainingChip = !!document.querySelector('.cai-ent-cardio-chip');
+
+        // Now show a rest day (if any)
+        if (restIdx >= 0 && typeof _entOverrideIdx !== 'undefined') {
+          window._entOverrideIdx = restIdx;
+          if (typeof showMiEntreno === 'function') showMiEntreno();
+          out.restChip = !!document.querySelector('.cai-ent-cardio-chip');
+        }
+        return out;
+      }, expectedFreq);
+
+      if (result.error) throw new Error(result.error);
+
+      // Expected presence based on frecuencia
+      const expectTraining = (expectedFreq === 'entreno' || expectedFreq === 'todos');
+      const expectRest     = (expectedFreq === 'descanso' || expectedFreq === 'todos');
+      const failures = [];
+      if (result.trainingIdx != null && result.trainingChip !== expectTraining) {
+        failures.push(`training day: expected chip=${expectTraining}, got ${result.trainingChip}`);
+      }
+      if (result.restIdx >= 0 && result.restChip !== expectRest) {
+        failures.push(`rest day: expected chip=${expectRest}, got ${result.restChip}`);
+      }
+      if (failures.length) throw new Error('frecuencia=' + expectedFreq + ' → ' + failures.join(' | '));
+      report.cardioChipCheck = result;
       st.pass();
     } catch (e) { st.fail(e); }
 
