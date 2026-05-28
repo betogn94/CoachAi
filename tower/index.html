@@ -129,8 +129,13 @@
 
     /* ---------- LOGIN ---------- */
     .login-wrap {
-      min-height: 100vh;
-      min-height: 100dvh;
+      /* Fixed overlay on top of the app shell. The app stays mounted
+         underneath so iOS keeps a stable layout (safe-area-insets are
+         computed once and don't reflow on auth state changes). */
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      background: var(--bg);
       display: grid;
       place-items: center;
       padding: 24px;
@@ -138,6 +143,7 @@
       padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
       padding-left: max(24px, env(safe-area-inset-left, 0px));
       padding-right: max(24px, env(safe-area-inset-right, 0px));
+      transition: opacity 0.18s ease, visibility 0.18s;
     }
     .login-card {
       width: 100%;
@@ -475,6 +481,15 @@
 
     /* ---------- UTILS ---------- */
     .hidden { display: none !important; }
+    /* Soft hide: keeps element in the layout (preserves iOS safe-area-inset
+       computation) but invisible and non-interactive. Used for login/app
+       transitions so we never trigger a display:none → display:block cycle
+       that confuses iOS PWA viewport metrics. */
+    .faded {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
     .spinner {
       display: inline-block;
       width: 14px;
@@ -487,7 +502,7 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* boot loader */
+    /* boot loader — sits above everything until checkSession resolves */
     .boot {
       position: fixed; inset: 0;
       display: grid; place-items: center;
@@ -495,6 +510,8 @@
       color: var(--text-muted);
       font-size: 12px;
       letter-spacing: 0.1em;
+      z-index: 80;
+      transition: opacity 0.15s ease, visibility 0.15s;
     }
 
     /* ---------- TABLES ---------- */
@@ -861,8 +878,9 @@
     <div><span class="spinner"></span> &nbsp; TOWER</div>
   </div>
 
-  <!-- Login screen -->
-  <div id="login" class="login-wrap hidden">
+  <!-- Login screen — overlay on top of app, hidden via opacity not display
+       so the underlying app shell keeps its layout & safe-area-insets. -->
+  <div id="login" class="login-wrap faded">
     <button id="loginThemeToggle" class="theme-toggle-floating" title="Cambiar tema" aria-label="Cambiar tema">
       <svg id="loginThemeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>
     </button>
@@ -892,12 +910,13 @@
 
       <div id="loginError" class="login-error"></div>
 
-      <div class="login-footer">COACHAI · TOWER · v0.5</div>
+      <div class="login-footer">COACHAI · TOWER · v0.6</div>
     </form>
   </div>
 
-  <!-- App shell -->
-  <div id="app" class="app hidden">
+  <!-- App shell — always mounted so iOS computes safe-area-insets once.
+       'faded' is the initial state (invisible until session check passes). -->
+  <div id="app" class="app faded">
     <div id="sidebarOverlay" class="sidebar-overlay" aria-hidden="true"></div>
     <aside class="sidebar">
       <div class="sidebar-brand">
@@ -966,7 +985,7 @@
           <div id="crumb" class="crumb"><strong>Dashboard</strong></div>
         </div>
         <div class="topbar-actions">
-          <span class="tl tl-gray" title="Estado del sistema"><span class="tl-dot"></span><span class="mono">v0.5</span></span>
+          <span class="tl tl-gray" title="Estado del sistema"><span class="tl-dot"></span><span class="mono">v0.6</span></span>
         </div>
       </header>
 
@@ -1059,40 +1078,31 @@
       }
     }
 
-    // iOS PWA workaround: when we toggle full-viewport elements between
-    // display:none and display:block, Safari sometimes keeps stale
-    // safe-area-inset values until a real layout event (scroll/resize).
-    // Closing and re-opening the app forces this; here we trigger it
-    // synthetically so the user doesn't have to.
+    // Safety-net nudge: forces a synthetic layout pass. With the new
+    // overlay architecture (app always mounted, login fades over it) this
+    // rarely matters, but it's cheap and helps on edge cases (rotating
+    // the device, returning from background, etc).
     function nudgeViewport() {
       requestAnimationFrame(() => {
-        window.scrollTo(0, 0);
         window.dispatchEvent(new Event('resize'));
-        // Second tick: some iOS versions need a frame after layout to
-        // re-read env(safe-area-inset-*). Forcing a reflow on body.
-        requestAnimationFrame(() => {
-          // Touching offsetHeight triggers a synchronous layout pass.
-          void document.body.offsetHeight;
-        });
+        requestAnimationFrame(() => { void document.body.offsetHeight; });
       });
     }
 
     function showLogin() {
-      boot.classList.add('hidden');
-      appEl.classList.add('hidden');
-      loginEl.classList.remove('hidden');
-      nudgeViewport();
+      boot.classList.add('faded');
+      appEl.classList.add('faded');
+      loginEl.classList.remove('faded');
       setTimeout(() => $('#loginUser')?.focus(), 50);
     }
 
     function enterApp() {
-      boot.classList.add('hidden');
-      loginEl.classList.add('hidden');
-      appEl.classList.remove('hidden');
+      boot.classList.add('faded');
+      loginEl.classList.add('faded');
+      appEl.classList.remove('faded');
       userName.textContent = session.displayName || session.username;
       userAvatar.textContent = (session.displayName || session.username || '?').charAt(0).toUpperCase();
       route('dashboard');
-      nudgeViewport();
     }
 
     loginForm.addEventListener('submit', async (e) => {
@@ -1329,8 +1339,8 @@
         </div>
         <div class="stat-card">
           <div class="stat-label">Versión Tower</div>
-          <div class="stat-value mono" style="font-size:16px;">v0.5.0</div>
-          <div class="stat-sub">Icono nuevo + safe-areas</div>
+          <div class="stat-value mono" style="font-size:16px;">v0.6.0</div>
+          <div class="stat-sub">Overlay arquitectura</div>
         </div>
       `;
     }
