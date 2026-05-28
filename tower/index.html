@@ -7,6 +7,32 @@
   <meta name="referrer" content="no-referrer">
   <title>TOWER — CoachAI</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B0F17'/%3E%3Cpath d='M9 9h3v3h2V9h4v3h2V9h3v5l-2 2v7l2 2v1H9v-1l2-2v-7l-2-2V9z' fill='%235B8DEF'/%3E%3C/svg%3E">
+
+  <!-- Defense against leaked service workers from the main CoachAI app.
+       Tower must never be served from a cached SW (or it would serve the
+       wrong HTML). Runs synchronously before anything else paints. -->
+  <script>
+    (function(){
+      if (!('serviceWorker' in navigator)) return;
+      try {
+        navigator.serviceWorker.getRegistrations().then(function(regs){
+          var killed = false;
+          regs.forEach(function(r){ r.unregister(); killed = true; });
+          if (killed && window.caches && caches.keys) {
+            caches.keys().then(function(keys){
+              keys.forEach(function(k){ caches.delete(k); });
+              // If a SW had hijacked us, the current document may be stale.
+              // Reload once (without query loop) to get fresh content.
+              if (!sessionStorage.getItem('tower.swPurged')) {
+                sessionStorage.setItem('tower.swPurged', '1');
+                location.replace(location.pathname);
+              }
+            });
+          }
+        });
+      } catch(_){}
+    })();
+  </script>
   <link rel="preconnect" href="https://rsms.me/">
   <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
 
