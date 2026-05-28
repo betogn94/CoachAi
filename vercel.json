@@ -11,19 +11,15 @@
       "has": [{ "type": "host", "value": "www.coachaipro.com" }],
       "destination": "https://coachaipro.ai/$1",
       "permanent": true
-    }
-  ],
-  "rewrites": [
+    },
     {
       "source": "/",
       "has": [{ "type": "host", "value": "tower.coachaipro.ai" }],
-      "destination": "/tower/index.html"
-    },
-    {
-      "source": "/((?!api/).*)",
-      "has": [{ "type": "host", "value": "tower.coachaipro.ai" }],
-      "destination": "/tower/$1"
-    },
+      "destination": "/tower/",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
     {
       "source": "/jesus",
       "destination": "/index.html"
