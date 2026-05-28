@@ -15,7 +15,10 @@
   <link rel="manifest" href="/tower/manifest.json">
   <link rel="apple-touch-icon" href="/tower/icon-180.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <!-- "default" tells iOS NOT to overlay the status bar; iOS draws a normal
+       status bar tinted by our theme-color, and our content starts below it.
+       Avoids the entire "content under the status bar" problem. -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="TOWER">
   <meta name="mobile-web-app-capable" content="yes">
 
@@ -127,9 +130,14 @@
     /* ---------- LOGIN ---------- */
     .login-wrap {
       min-height: 100vh;
+      min-height: 100dvh;
       display: grid;
       place-items: center;
       padding: 24px;
+      padding-top: max(24px, env(safe-area-inset-top, 0px));
+      padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+      padding-left: max(24px, env(safe-area-inset-left, 0px));
+      padding-right: max(24px, env(safe-area-inset-right, 0px));
     }
     .login-card {
       width: 100%;
@@ -241,6 +249,7 @@
       display: grid;
       grid-template-columns: 240px 1fr;
       min-height: 100vh;
+      min-height: 100dvh;
     }
     .sidebar {
       background: var(--bg-elev);
@@ -248,6 +257,9 @@
       display: flex;
       flex-direction: column;
       padding: 16px 12px;
+      padding-top: max(16px, env(safe-area-inset-top, 0px));
+      padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+      padding-left: max(12px, env(safe-area-inset-left, 0px));
     }
     .sidebar-brand {
       display: flex;
@@ -342,14 +354,19 @@
       min-width: 0;
     }
     .topbar {
-      height: 48px;
       border-bottom: 1px solid var(--border);
       background: var(--bg);
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 24px;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-right: max(24px, env(safe-area-inset-right, 0px));
+      height: calc(48px + env(safe-area-inset-top, 0px));
       flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
     .crumb {
       font-size: 13px;
@@ -367,6 +384,8 @@
 
     .content {
       padding: 28px 32px;
+      padding-bottom: max(28px, env(safe-area-inset-bottom, 0px));
+      padding-right: max(32px, env(safe-area-inset-right, 0px));
       overflow-y: auto;
     }
     .page-header {
@@ -679,8 +698,8 @@
     /* ---------- TOAST ---------- */
     .toast-stack {
       position: fixed;
-      bottom: 24px;
-      right: 24px;
+      bottom: max(24px, env(safe-area-inset-bottom, 0px));
+      right: max(24px, env(safe-area-inset-right, 0px));
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -765,12 +784,15 @@
       }
       .hamburger { display: inline-flex; }
       .topbar-brand { display: inline-flex; }
-      .topbar { padding: 0 12px; }
+      .topbar {
+        padding-left: 12px;
+        padding-right: max(12px, env(safe-area-inset-right, 0px));
+      }
       .crumb { display: none; }
       .content {
         padding: 16px 12px;
-        /* iOS safe area */
-        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0));
+        padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+        padding-right: max(12px, env(safe-area-inset-right, 0px));
       }
       .page-header {
         flex-direction: column;
@@ -818,11 +840,6 @@
         border-radius: 14px;
       }
 
-      /* iOS notch */
-      .topbar {
-        padding-top: env(safe-area-inset-top, 0);
-        height: calc(48px + env(safe-area-inset-top, 0));
-      }
     }
 
     @media (max-width: 420px) {
@@ -853,8 +870,8 @@
     <form class="login-card" id="loginForm" autocomplete="on">
       <div class="login-brand">
         <!-- Chess rook icon -->
-        <svg viewBox="0 0 32 32" fill="currentColor" aria-hidden="true">
-          <path d="M9 9h3v3h2V9h4v3h2V9h3v5l-2 2v7l2 2v1H9v-1l2-2v-7l-2-2V9z"/>
+        <svg viewBox="0 0 1000 1000" fill="currentColor" aria-hidden="true">
+          <path d="M 220 80 L 350 80 L 350 180 L 430 180 L 430 80 L 570 80 L 570 180 L 650 180 L 650 80 L 780 80 L 780 220 L 820 240 L 820 290 L 180 290 L 180 240 L 220 220 Z M 290 290 L 710 290 L 670 360 L 670 420 C 670 510, 700 580, 740 660 L 260 660 C 300 580, 330 510, 330 420 L 330 360 Z M 180 660 L 820 660 L 820 760 L 880 760 L 880 880 L 120 880 L 120 760 L 180 760 Z"/>
         </svg>
         <span class="wm">TOWER</span>
       </div>
@@ -875,7 +892,7 @@
 
       <div id="loginError" class="login-error"></div>
 
-      <div class="login-footer">COACHAI · TOWER · v0.4</div>
+      <div class="login-footer">COACHAI · TOWER · v0.5</div>
     </form>
   </div>
 
@@ -884,8 +901,8 @@
     <div id="sidebarOverlay" class="sidebar-overlay" aria-hidden="true"></div>
     <aside class="sidebar">
       <div class="sidebar-brand">
-        <svg viewBox="0 0 32 32" fill="currentColor" aria-hidden="true">
-          <path d="M9 9h3v3h2V9h4v3h2V9h3v5l-2 2v7l2 2v1H9v-1l2-2v-7l-2-2V9z"/>
+        <svg viewBox="0 0 1000 1000" fill="currentColor" aria-hidden="true">
+          <path d="M 220 80 L 350 80 L 350 180 L 430 180 L 430 80 L 570 80 L 570 180 L 650 180 L 650 80 L 780 80 L 780 220 L 820 240 L 820 290 L 180 290 L 180 240 L 220 220 Z M 290 290 L 710 290 L 670 360 L 670 420 C 670 510, 700 580, 740 660 L 260 660 C 300 580, 330 510, 330 420 L 330 360 Z M 180 660 L 820 660 L 820 760 L 880 760 L 880 880 L 120 880 L 120 760 L 180 760 Z"/>
         </svg>
         <span class="wm">TOWER</span>
       </div>
@@ -943,13 +960,13 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
           </button>
           <div class="topbar-brand">
-            <svg viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M9 9h3v3h2V9h4v3h2V9h3v5l-2 2v7l2 2v1H9v-1l2-2v-7l-2-2V9z"/></svg>
+            <svg viewBox="0 0 1000 1000" fill="currentColor" aria-hidden="true"><path d="M 220 80 L 350 80 L 350 180 L 430 180 L 430 80 L 570 80 L 570 180 L 650 180 L 650 80 L 780 80 L 780 220 L 820 240 L 820 290 L 180 290 L 180 240 L 220 220 Z M 290 290 L 710 290 L 670 360 L 670 420 C 670 510, 700 580, 740 660 L 260 660 C 300 580, 330 510, 330 420 L 330 360 Z M 180 660 L 820 660 L 820 760 L 880 760 L 880 880 L 120 880 L 120 760 L 180 760 Z"/></svg>
             <span>TOWER</span>
           </div>
           <div id="crumb" class="crumb"><strong>Dashboard</strong></div>
         </div>
         <div class="topbar-actions">
-          <span class="tl tl-gray" title="Estado del sistema"><span class="tl-dot"></span><span class="mono">v0.4</span></span>
+          <span class="tl tl-gray" title="Estado del sistema"><span class="tl-dot"></span><span class="mono">v0.5</span></span>
         </div>
       </header>
 
@@ -1292,8 +1309,8 @@
         </div>
         <div class="stat-card">
           <div class="stat-label">Versión Tower</div>
-          <div class="stat-value mono" style="font-size:16px;">v0.4.0</div>
-          <div class="stat-sub">Amortización mensual</div>
+          <div class="stat-value mono" style="font-size:16px;">v0.5.0</div>
+          <div class="stat-sub">Icono nuevo + safe-areas</div>
         </div>
       `;
     }
