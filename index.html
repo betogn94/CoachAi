@@ -10736,11 +10736,12 @@ footer {
         <div class="cai-home-card-top">
           <div class="cai-home-card-eyebrow" data-es="RECUERDA" data-en="REMINDER">RECUERDA</div>
           <div class="cai-home-card-ico ico-cardio">
-            <!-- Person walking icon (Lucide-style outline) -->
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="13" cy="4" r="2"/>
-              <path d="M4 22l5-9 4 2 3-5 4 8"/>
-              <path d="M13 6l-3 5 4 2 3-4"/>
+            <!-- Simple running person — same icon used in Mi Entreno chip -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="17" cy="4" r="2"/>
+              <path d="M15.5 21l1-5-3.5-3 1.5-5"/>
+              <path d="M9 11l3-3 2.5 1.5 2.5-1"/>
+              <path d="M4 18l3.5-1.5 2-3"/>
             </svg>
           </div>
         </div>
@@ -13714,8 +13715,12 @@ Día 2 · [Combinación]
 
 🛋️ Descanso: [días restantes] — caminata, movilidad o estiramientos 20-30 min.
 
-🏃 CARDIO: post entreno [X] min [tipo] [intensidad]
-(Ejemplos válidos: "post entreno 25 min caminata moderada" | "post entreno 15 min HIIT intenso" | "post entreno 30 min trote suave". SIEMPRE incluí esta línea; los días son los mismos que los días de entreno del usuario — el app los mapea automáticamente. Si el plan no lleva cardio justificado, igual incluí "post entreno 15 min caminata suave" como mínimo de salud cardiovascular.)
+🏃 CARDIO: [cuándo] [X] min [tipo] [intensidad]
+(OBLIGATORIO — siempre incluí esta línea, aclarando cuándo aplica. Elegí UNA de estas tres frecuencias según el objetivo del usuario:
+  • "post entreno [X] min [tipo] [intensidad]"  → solo días de entreno (default para hipertrofia / ganar músculo)
+  • "todos los días [X] min [tipo] [intensidad]"  → 7 días, incluso los de descanso (típico de Definir o cardio salud)
+  • "días off [X] min [tipo] [intensidad]"  → solo días sin pesas (poco común, pero válido si el coach lo prefiere)
+Ejemplos: "post entreno 25 min caminata moderada" | "todos los días 30 min caminata suave" | "días off 45 min trote moderado". Si el plan no lleva cardio justificado, igual incluí "post entreno 15 min caminata suave" como mínimo de salud cardiovascular.)
 
 REGLAS DE FORMATO ESTRICTAS:
 - Cada ejercicio ocupa 2 líneas (línea de datos + línea de ejecución). Si hay intensificador, suma 1 línea más.
@@ -13917,8 +13922,12 @@ Día 2 · [Combinación]
 
 🛋️ Descanso: [días restantes] — caminata, movilidad o estiramientos 20-30 min.
 
-🏃 CARDIO: post entreno [X] min [tipo] [intensidad]
-(Ejemplos válidos: "post entreno 25 min caminata moderada" | "post entreno 15 min HIIT intenso" | "post entreno 30 min trote suave". SIEMPRE incluí esta línea; los días son los mismos que los días de entreno del usuario — el app los mapea automáticamente. Si el plan no lleva cardio justificado, igual incluí "post entreno 15 min caminata suave" como mínimo de salud cardiovascular.)
+🏃 CARDIO: [cuándo] [X] min [tipo] [intensidad]
+(OBLIGATORIO — siempre incluí esta línea, aclarando cuándo aplica. Elegí UNA de estas tres frecuencias según el objetivo del usuario:
+  • "post entreno [X] min [tipo] [intensidad]"  → solo días de entreno (default para hipertrofia / ganar músculo)
+  • "todos los días [X] min [tipo] [intensidad]"  → 7 días, incluso los de descanso (típico de Definir o cardio salud)
+  • "días off [X] min [tipo] [intensidad]"  → solo días sin pesas (poco común, pero válido si el coach lo prefiere)
+Ejemplos: "post entreno 25 min caminata moderada" | "todos los días 30 min caminata suave" | "días off 45 min trote moderado". Si el plan no lleva cardio justificado, igual incluí "post entreno 15 min caminata suave" como mínimo de salud cardiovascular.)
 
 REGLAS DE FORMATO ESTRICTAS:
 - Cada ejercicio ocupa 2 líneas (línea de datos + línea de ejecución). Si hay intensificador, suma 1 línea más.
@@ -17094,9 +17103,10 @@ function renderHomeCardioCard(profile) {
   const rule = parseCardioRule(rutina.contenido);
   if (!rule) return;
 
-  // Today must be a training day (cardio = matches training days)
+  // Apply the rule's frequency: 'entreno' / 'todos' / 'descanso'
   const mapping = (typeof buildTrainingDayMapping === 'function') ? buildTrainingDayMapping() : null;
-  if (!mapping || mapping.isTodayRest) return;
+  if (!mapping) return;
+  if (!cardioAppliesToday(rule, mapping.isTodayRest)) return;
 
   // Populate the cardio card
   const dur = rule.duracion_min || 30;
@@ -17909,8 +17919,20 @@ function parseCardioRule(text) {
     if (t.re.test(body)) { tipo = t.v; break; }
   }
 
+  // Frecuencia — when does cardio apply?
+  //   'todos'    → 7 días (entreno + descanso)
+  //   'entreno'  → solo días de entreno (default)
+  //   'descanso' → solo días de descanso (off-days)
+  let frecuencia = 'entreno'; // default
+  if (/\b(todos\s+los\s+d[ií]as?|todos\s+los\s+dias?|diari[ao]|diariamente|cada\s+d[ií]a|every\s+day|daily)\b/i.test(body)) {
+    frecuencia = 'todos';
+  } else if (/\b(d[ií]as?\s+(off|libres?|de\s+descanso|sin\s+entreno|sin\s+pesas)|off[-\s]?days?|rest\s+days?)\b/i.test(body)) {
+    frecuencia = 'descanso';
+  }
+  // 'post entreno' is the implicit default; we don't need to detect it.
+
   // Notes: anything left after stripping duration/intensity/type stopwords
-  const STOPWORDS = /\b(de|del|el|la|los|las|todos|todas|d[ií]as?|post|entreno|entrenamiento|cada|por|x|semana|semanal|veces?|sesi[oó]n(?:es)?|lunes?|martes?|mi[eé]rcoles?|jueves?|viernes?|s[aá]bados?|domingos?|y|o|\/)\b/gi;
+  const STOPWORDS = /\b(de|del|el|la|los|las|todos|todas|d[ií]as?|post|entreno|entrenamiento|cada|por|x|semana|semanal|veces?|sesi[oó]n(?:es)?|lunes?|martes?|mi[eé]rcoles?|jueves?|viernes?|s[aá]bados?|domingos?|y|o|\/|off|libres?|descanso|sin|pesas)\b/gi;
   let notas = body
     .replace(/\d+(?:[.,]\d+)?\s*(?:min(?:utos?)?|hs?|horas?|'|′)/gi, '')
     .replace(/\b(suave|liviana|moderad[ao]|intens[ao]|vigoros[ao]|fuerte|baj[ao]|alt[ao])\b/gi, '')
@@ -17931,9 +17953,20 @@ function parseCardioRule(text) {
     duracion_min: duracion_min || null,
     tipo: tipo || null,
     intensidad: intensidad || null,
+    frecuencia,                              // 'entreno' | 'todos' | 'descanso'
     notas: notas || null,
     raw: cardioLine,
   };
+}
+
+// Helper: does the given cardio rule apply today, given whether today is
+// a rest day or a training day?
+function cardioAppliesToday(rule, isTodayRest) {
+  if (!rule) return false;
+  if (rule.frecuencia === 'todos') return true;
+  if (rule.frecuencia === 'descanso') return !!isTodayRest;
+  // default 'entreno'
+  return !isTodayRest;
 }
 
 // ============================
@@ -18369,16 +18402,20 @@ function sanitizeReps(v) {
   return String(v == null ? '' : v).replace(/[^\d]/g, '').slice(0, 3);
 }
 
-// Builds the cardio info chip rendered below the exercise list in the
-// expanded day card. Returns empty string if no cardio applies. The chip
-// is informational — no own checkbox; cardio gets marked when the day's
-// entreno is marked (per design decision: one tap = both done).
-function _buildCardioChipHtml() {
+// Builds the cardio info chip. Returns empty string if no cardio applies
+// to the given day type (training vs rest). The chip is informational —
+// no own checkbox; on training days cardio gets marked when entreno is
+// marked. On rest days it's a pure reminder.
+function _buildCardioChipHtml(opts = {}) {
+  const isRestDay = !!opts.isRestDay;
   try {
     const rutina = (typeof weeklyPlans !== 'undefined') ? weeklyPlans?.rutina : null;
     if (!rutina || !rutina.contenido) return '';
     const rule = parseCardioRule(rutina.contenido);
     if (!rule) return '';
+    // Respect the rule's frequency: only show chip if cardio applies to
+    // THIS day type (training vs rest).
+    if (!cardioAppliesToday(rule, isRestDay)) return '';
     const isEs = lang === 'es';
     const dur = rule.duracion_min || 30;
     const parts = [];
@@ -18395,17 +18432,18 @@ function _buildCardioChipHtml() {
     return `
       <div class="cai-ent-cardio-chip" role="note" aria-label="${isEs?'Cardio del día':'Cardio for today'}">
         <div class="cai-ent-cardio-ico">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="13" cy="4" r="2"/>
-            <path d="M4 22l5-9 4 2 3-5 4 8"/>
-            <path d="M13 6l-3 5 4 2 3-4"/>
+          <!-- Simple running person (Lucide-style outline, single subject) -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="17" cy="4" r="2"/>
+            <path d="M15.5 21l1-5-3.5-3 1.5-5"/>
+            <path d="M9 11l3-3 2.5 1.5 2.5-1"/>
+            <path d="M4 18l3.5-1.5 2-3"/>
           </svg>
         </div>
         <div class="cai-ent-cardio-body">
           <div class="cai-ent-cardio-title">${isEs?'CARDIO':'CARDIO'} · ${dur} min</div>
           ${sub ? `<div class="cai-ent-cardio-sub">${_esc(sub)}</div>` : ''}
         </div>
-        <div class="cai-ent-cardio-hint">${isEs?'se marca con el entreno':'auto-done with workout'}</div>
       </div>
     `;
   } catch (e) {
@@ -18680,9 +18718,11 @@ function renderMiEntreno() {
   // === HERO ===
   hero.style.display = 'block';
   if (displayIdx === null) {
-    // REST HERO
+    // REST HERO — show cardio chip if the routine has a rule that applies
+    // to rest days (frecuencia: 'todos' or 'descanso').
+    const restCardioChip = _buildCardioChipHtml({ isRestDay: true });
     hero.innerHTML = `
-      <div class="cai-ent-hero">
+      <div class="cai-ent-hero${restCardioChip ? ' open' : ''}">
         <div class="cai-ent-hero-top">
           <div>
             <div class="cai-ent-hero-eyebrow">${lang==='es'?'HOY · DESCANSO':'TODAY · REST'}</div>
@@ -18692,6 +18732,7 @@ function renderMiEntreno() {
               : 'Recovery, growth, injury prevention. If you feel like moving, pick a routine day below.'}</div>
           </div>
         </div>
+        ${restCardioChip ? `<div class="cai-ent-hero-body-wrap" style="max-height:none;overflow:visible;">${restCardioChip}</div>` : ''}
       </div>
     `;
   } else {
@@ -18708,8 +18749,9 @@ function renderMiEntreno() {
       : (day.isRest ? (lang==='es'?'DESCANSO':'REST') : dayBadge);
 
     if (day.isRest) {
+      const restCardioChip2 = _buildCardioChipHtml({ isRestDay: true });
       hero.innerHTML = `
-        <div class="cai-ent-hero${done ? ' done' : ''}">
+        <div class="cai-ent-hero${done ? ' done' : ''}${restCardioChip2 ? ' open' : ''}">
           <div class="cai-ent-hero-top">
             <div>
               <div class="cai-ent-hero-eyebrow">${eyebrow}</div>
@@ -18725,6 +18767,7 @@ function renderMiEntreno() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </button>
           </div>
+          ${restCardioChip2 ? `<div class="cai-ent-hero-body-wrap" style="max-height:none;overflow:visible;">${restCardioChip2}</div>` : ''}
         </div>
       `;
     } else {
@@ -18811,7 +18854,7 @@ function renderMiEntreno() {
           </div>
           <div class="cai-ent-hero-body-wrap">
             <div class="cai-ent-hero-ex-list">${exHtml}</div>
-            ${_buildCardioChipHtml()}
+            ${_buildCardioChipHtml({ isRestDay: false })}
           </div>
         </div>
       `;
