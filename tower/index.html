@@ -874,7 +874,7 @@
 
       <div id="loginError" class="login-error"></div>
 
-      <div class="login-footer">COACHAI · TOWER · v0.3</div>
+      <div class="login-footer">COACHAI · TOWER · v0.4</div>
     </form>
   </div>
 
@@ -948,7 +948,7 @@
           <div id="crumb" class="crumb"><strong>Dashboard</strong></div>
         </div>
         <div class="topbar-actions">
-          <span class="tl tl-gray" title="Estado del sistema"><span class="tl-dot"></span><span class="mono">v0.3</span></span>
+          <span class="tl tl-gray" title="Estado del sistema"><span class="tl-dot"></span><span class="mono">v0.4</span></span>
         </div>
       </header>
 
@@ -1259,7 +1259,7 @@
         ${statCardSkeleton('Usuarios totales')}
         ${statCardSkeleton('Activos (7d)')}
         ${statCardSkeleton('Bugs reportados')}
-        ${statCardSkeleton('Costos del mes (USD)')}
+        ${statCardSkeleton('Costo mensual proyectado')}
       `;
 
       const { ok, data } = await api('/api/tower/dashboard');
@@ -1274,7 +1274,7 @@
         ${statCard('Usuarios totales', fmtInt(s.users.total), `${fmtInt(s.users.active_7d)} activos en 7d`)}
         ${statCard('Activos (7d)', fmtInt(s.users.active_7d), `${pct(s.users.active_7d, s.users.total)} del total`)}
         ${statCard('Bugs reportados', fmtInt(s.bugs.total), `${fmtInt(s.bugs.last_30d)} en últimos 30d`)}
-        ${statCard('Costos del mes (USD)', fmtUsd(s.costs.this_month_usd), 'Manuales — ver sección Costos')}
+        ${statCard('Costo mensual proyectado', fmtUsd(s.costs.monthly_projected_usd), 'Cuotas activas + recurrentes')}
       `;
 
       const b = s.traffic_light;
@@ -1291,8 +1291,8 @@
         </div>
         <div class="stat-card">
           <div class="stat-label">Versión Tower</div>
-          <div class="stat-value mono" style="font-size:16px;">v0.3.0</div>
-          <div class="stat-sub">Mobile + PWA</div>
+          <div class="stat-value mono" style="font-size:16px;">v0.4.0</div>
+          <div class="stat-sub">Amortización mensual</div>
         </div>
       `;
     }
@@ -1495,6 +1495,44 @@
       await loadCostsTable();
     }
 
+    function freqLabel(period, installments) {
+      const base = { monthly: 'Mensual', yearly: 'Anual', 'one-time': 'Único' }[period] || period;
+      if (period === 'one-time' && installments > 1) return `${installments} cuotas`;
+      return base;
+    }
+
+    function renderCostRow(r) {
+      const progress = r.installments_progress;
+      const monthlyCell = r.monthly_usd > 0
+        ? `<span class="cell-mono">${fmtUsd(r.monthly_usd)}</span>${progress ? `<div class="cell-dim" style="font-size:11px;">cuota ${progress.paid}/${progress.total}</div>` : ''}`
+        : `<span class="cell-dim">—</span>${progress ? `<div class="cell-dim" style="font-size:11px;">${progress.paid}/${progress.total} pagadas</div>` : ''}`;
+      const freq = freqLabel(r.billing_period, r.installments);
+      const tenantCell = r.tenants
+        ? `<span class="badge badge-accent">${escapeHtml(r.tenants.slug)}</span>`
+        : '<span class="cell-dim">— compartido</span>';
+      const endRange = r.period_end
+        ? `<div class="cell-dim" style="font-size:11px;">→ ${fmtDate(r.period_end)}</div>`
+        : '';
+      const notes = r.notes ? `<div class="cell-dim" style="font-size:11px;">${escapeHtml(r.notes)}</div>` : '';
+      return `
+        <tr data-id="${escapeHtml(r.id)}">
+          <td class="cell-mono">${fmtDate(r.period_start)}${endRange}</td>
+          <td>
+            <div style="font-weight:500;">${escapeHtml(r.label)}</div>
+            ${notes}
+          </td>
+          <td><span class="badge">${escapeHtml(r.provider)}</span></td>
+          <td>${tenantCell}</td>
+          <td class="cell-dim">${escapeHtml(freq)}</td>
+          <td class="cell-right cell-mono">${fmtUsd(r.amount_usd)}</td>
+          <td class="cell-right">${monthlyCell}</td>
+          <td class="cell-right">
+            <button class="btn btn-danger-ghost" data-delete="${escapeHtml(r.id)}" title="Eliminar">×</button>
+          </td>
+        </tr>
+      `;
+    }
+
     async function loadCostsTable() {
       const wrap = document.getElementById('costsTable');
       const totalsEl = document.getElementById('costsTotals');
@@ -1506,9 +1544,10 @@
       const rows = data.costs;
       const t = data.totals;
       totalsEl.innerHTML = `
-        ${statCard('Total acumulado', fmtUsd(t.usd), `${fmtInt(t.count)} registros`)}
-        ${statCard('Compartido (infra)', fmtUsd(t.shared_usd), 'No atribuido a un tenant')}
-        ${statCard('Atribuido a tenants', fmtUsd(t.attributed_usd), 'Costo directo a un tenant')}
+        ${statCard('Mensual proyectado', fmtUsd(t.monthly_projected_usd), 'Este mes — cuotas + recurrentes activos')}
+        ${statCard('Mensual compartido', fmtUsd(t.monthly_shared_usd), 'Infraestructura compartida')}
+        ${statCard('Mensual atribuido', fmtUsd(t.monthly_attributed_usd), 'Atribuido a tenants')}
+        ${statCard('Acumulado histórico', fmtUsd(t.usd), `${fmtInt(t.count)} registros totales`)}
       `;
       if (!rows.length) {
         wrap.innerHTML = `<div class="placeholder"><strong>Sin costos registrados</strong>Cargá el primero con el botón "+ Nuevo costo".</div>`;
@@ -1522,26 +1561,12 @@
             <th>Proveedor</th>
             <th>Tenant</th>
             <th>Frecuencia</th>
-            <th class="cell-right">Monto (USD)</th>
+            <th class="cell-right">Monto total</th>
+            <th class="cell-right">Mensualizado</th>
             <th></th>
           </tr></thead>
           <tbody>
-            ${rows.map(r => `
-              <tr data-id="${escapeHtml(r.id)}">
-                <td class="cell-mono">${fmtDate(r.period_start)}${r.period_end ? '<div class="cell-dim" style="font-size:11px;">→ ' + fmtDate(r.period_end) + '</div>' : ''}</td>
-                <td>
-                  <div style="font-weight:500;">${escapeHtml(r.label)}</div>
-                  ${r.notes ? `<div class="cell-dim" style="font-size:11px;">${escapeHtml(r.notes)}</div>` : ''}
-                </td>
-                <td><span class="badge">${escapeHtml(r.provider)}</span></td>
-                <td>${r.tenants ? `<span class="badge badge-accent">${escapeHtml(r.tenants.slug)}</span>` : '<span class="cell-dim">— compartido</span>'}</td>
-                <td class="cell-dim">${escapeHtml(r.billing_period)}</td>
-                <td class="cell-right cell-mono">${fmtUsd(r.amount_usd)}</td>
-                <td class="cell-right">
-                  <button class="btn btn-danger-ghost" data-delete="${escapeHtml(r.id)}" title="Eliminar">×</button>
-                </td>
-              </tr>
-            `).join('')}
+            ${rows.map(r => renderCostRow(r)).join('')}
           </tbody>
         </table>
       `;
@@ -1594,16 +1619,26 @@
             <label>Frecuencia</label>
             <select id="m_period">
               <option value="monthly">Mensual</option>
-              <option value="yearly">Anual</option>
-              <option value="one-time">Único</option>
+              <option value="yearly">Anual (se mensualiza ÷12)</option>
+              <option value="one-time">Único / Cuotas</option>
             </select>
           </div>
+          <div class="field" id="m_installments_field" style="display:none;">
+            <label>Cantidad de cuotas</label>
+            <input id="m_installments" type="number" min="1" max="120" step="1" value="1" placeholder="1 = pago único">
+          </div>
+        </div>
+        <div class="form-grid-2">
           <div class="field">
             <label>Tenant (opcional)</label>
             <select id="m_tenant">
               <option value="">— Compartido (infra)</option>
               ${tenants.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('')}
             </select>
+          </div>
+          <div class="field">
+            <label>Mensualizado (preview)</label>
+            <input id="m_monthly_preview" type="text" disabled value="—" style="opacity:0.7;">
           </div>
         </div>
         <div class="field">
@@ -1627,12 +1662,46 @@
       });
       setTimeout(() => back.querySelector('#m_label')?.focus(), 50);
 
+      // Show/hide the installments field + live monthly preview
+      const periodEl = back.querySelector('#m_period');
+      const installmentsField = back.querySelector('#m_installments_field');
+      const installmentsEl = back.querySelector('#m_installments');
+      const amountEl = back.querySelector('#m_amount');
+      const previewEl = back.querySelector('#m_monthly_preview');
+
+      function updateModalPreview() {
+        const period = periodEl.value;
+        installmentsField.style.display = (period === 'one-time') ? '' : 'none';
+        const amount = parseFloat(amountEl.value) || 0;
+        let monthly = 0;
+        if (period === 'monthly') monthly = amount;
+        else if (period === 'yearly') monthly = amount / 12;
+        else if (period === 'one-time') {
+          const n = Math.max(1, parseInt(installmentsEl.value, 10) || 1);
+          monthly = amount / n;
+        }
+        if (period === 'one-time' && (parseInt(installmentsEl.value, 10) || 1) === 1) {
+          previewEl.value = `$${amount.toFixed(2)} (mes 1 solamente)`;
+        } else {
+          previewEl.value = monthly > 0 ? `$${monthly.toFixed(2)} / mes` : '—';
+        }
+      }
+      periodEl.addEventListener('change', updateModalPreview);
+      installmentsEl.addEventListener('input', updateModalPreview);
+      amountEl.addEventListener('input', updateModalPreview);
+      updateModalPreview();
+
       back.querySelector('#m_save').addEventListener('click', async () => {
+        const period = periodEl.value;
+        const installments = period === 'one-time'
+          ? Math.max(1, parseInt(installmentsEl.value, 10) || 1)
+          : 1;
         const payload = {
           label: back.querySelector('#m_label').value.trim(),
           provider: back.querySelector('#m_provider').value,
-          amount_usd: parseFloat(back.querySelector('#m_amount').value),
-          billing_period: back.querySelector('#m_period').value,
+          amount_usd: parseFloat(amountEl.value),
+          billing_period: period,
+          installments,
           period_start: back.querySelector('#m_start').value,
           period_end: back.querySelector('#m_end').value || null,
           tenant_id: back.querySelector('#m_tenant').value || null,

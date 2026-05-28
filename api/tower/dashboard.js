@@ -3,6 +3,7 @@
 
 import { withAuth } from './_auth.js';
 import { sb, count } from './_db.js';
+import { sumMonthly, currentMonthUtc } from './_cost_math.js';
 
 export default withAuth(async (req, res) => {
   const now = Date.now();
@@ -17,7 +18,7 @@ export default withAuth(async (req, res) => {
     usersActive7d,
     bugsTotal,
     bugsLast30d,
-    costsThisMonth,
+    monthlyProjected,
   ] = await Promise.all([
     count('tenants'),
     count('tenants', 'status=eq.active'),
@@ -25,7 +26,7 @@ export default withAuth(async (req, res) => {
     count('usuarios', `last_active=gte.${sevenDaysAgoIso}`),
     count('feedback'),
     count('feedback', `created_at=gte.${thirtyDaysAgoIso}`),
-    sumCostsThisMonth(),
+    computeMonthlyProjected(),
   ]);
 
   // Traffic light distribution across tenants (simple rules for now,
@@ -72,25 +73,21 @@ export default withAuth(async (req, res) => {
       tenants: { total: tenantsTotal, active: tenantsActive },
       users:   { total: usersTotal, active_7d: usersActive7d },
       bugs:    { total: bugsTotal, last_30d: bugsLast30d },
-      costs:   { this_month_usd: costsThisMonth },
+      costs:   { monthly_projected_usd: monthlyProjected },
       traffic_light: tlBuckets,
     },
   });
 });
 
-async function sumCostsThisMonth() {
-  const d = new Date();
-  const start = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)).toISOString().slice(0, 10);
-  const next = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)).toISOString().slice(0, 10);
+async function computeMonthlyProjected() {
   try {
-    const rows = await sb(
-      `/tower_costs?select=amount_usd&period_start=gte.${start}&period_start=lt.${next}`
-    );
-    let total = 0;
-    for (const r of rows) total += Number(r.amount_usd || 0);
-    return Math.round(total * 100) / 100;
+    // Pull ALL active-window cost rows and let the math helper figure out
+    // which contribute to this month. We can't pre-filter on the DB because
+    // a cost from a year ago might still be in its installment window.
+    const rows = await sb('/tower_costs?select=amount_usd,billing_period,installments,period_start,period_end');
+    const { year, month } = currentMonthUtc();
+    return sumMonthly(rows, year, month);
   } catch (e) {
-    // If table doesn't exist yet or perms fail, don't break the dashboard.
     return 0;
   }
 }
