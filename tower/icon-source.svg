@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="rookGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7AA3F5"/>
+      <stop offset="55%" stop-color="#5B8DEF"/>
+      <stop offset="100%" stop-color="#3F6BC9"/>
+    </linearGradient>
+    <radialGradient id="bgGlow" cx="0.5" cy="0.35" r="0.7">
+      <stop offset="0%" stop-color="#142035" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#0B0F17" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="113" ry="113" fill="#0B0F17"/>
+  <rect width="512" height="512" rx="113" ry="113" fill="url(#bgGlow)"/>
+  <g transform="translate(57 57) scale(0.399)">
+    <path d="M 220 80 L 350 80 L 350 180 L 430 180 L 430 80 L 570 80 L 570 180 L 650 180 L 650 80 L 780 80 L 780 220 L 820 240 L 820 290 L 180 290 L 180 240 L 220 220 Z M 290 290 L 710 290 L 670 360 L 670 420 C 670 510, 700 580, 740 660 L 260 660 C 300 580, 330 510, 330 420 L 330 360 Z M 180 660 L 820 660 L 820 760 L 880 760 L 880 880 L 120 880 L 120 760 L 180 760 Z" fill="url(#rookGrad)" stroke="#3F6BC9" stroke-width="8" stroke-linejoin="round"/>
+  </g>
+</svg>
