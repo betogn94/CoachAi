@@ -1420,11 +1420,13 @@ body.theme-king .cai-ent-ex-info-btn:active {
   transform: translateY(0);
   box-shadow: 0 3px 10px rgba(255,79,123,0.28) !important;
 }
+/* Only set color — the SVG has fill="none" on the root (so the circle
+   stays a hollow outline) and fill="currentColor" on the triangle path
+   (so the play arrow is solid). Forcing fill: currentColor here would
+   fill the circle too, giving a solid white disc with no visible play. */
 body.theme-king .cai-ent-ex-info-btn svg,
 body.theme-king .cai-ent-ex-info-btn .cai-ent-ex-info-ico {
   color: #fff !important;
-  fill: currentColor !important;
-  stroke: currentColor !important;
 }
 
 /* Series block — title eyebrow + per-serie row labels */
