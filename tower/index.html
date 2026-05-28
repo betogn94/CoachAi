@@ -5,30 +5,56 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
   <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#0B0F17" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#F6F8FB" media="(prefers-color-scheme: light)">
   <title>TOWER — CoachAI</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B0F17'/%3E%3Cpath d='M9 9h3v3h2V9h4v3h2V9h3v5l-2 2v7l2 2v1H9v-1l2-2v-7l-2-2V9z' fill='%235B8DEF'/%3E%3C/svg%3E">
 
-  <!-- Defense against leaked service workers from the main CoachAI app.
-       Tower must never be served from a cached SW (or it would serve the
-       wrong HTML). Runs synchronously before anything else paints. -->
+  <!-- PWA -->
+  <link rel="manifest" href="/tower/manifest.json">
+  <link rel="apple-touch-icon" href="/tower/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TOWER">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <!-- Service worker lifecycle. Two responsibilities:
+       1) Purge any leaked SW from the main CoachAI app (different scope but
+          some browsers leak across hostnames if mistakenly registered).
+       2) Register Tower's own SW (network-only — admin data must be fresh,
+          we never want to serve stale cached HTML). The SW only enables
+          installability + offline fallback, not caching of dynamic data. -->
   <script>
     (function(){
       if (!('serviceWorker' in navigator)) return;
       try {
         navigator.serviceWorker.getRegistrations().then(function(regs){
-          var killed = false;
-          regs.forEach(function(r){ r.unregister(); killed = true; });
-          if (killed && window.caches && caches.keys) {
+          var hasStranger = false;
+          regs.forEach(function(r){
+            var scope = (r.scope || '').toLowerCase();
+            // Anything not scoped to /tower/ on THIS origin is a stranger.
+            if (scope.indexOf('/tower/') === -1) {
+              r.unregister();
+              hasStranger = true;
+            }
+          });
+          if (hasStranger && window.caches && caches.keys) {
             caches.keys().then(function(keys){
-              keys.forEach(function(k){ caches.delete(k); });
-              // If a SW had hijacked us, the current document may be stale.
-              // Reload once (without query loop) to get fresh content.
+              keys.forEach(function(k){
+                if (k.indexOf('tower-') !== 0) caches.delete(k);
+              });
               if (!sessionStorage.getItem('tower.swPurged')) {
                 sessionStorage.setItem('tower.swPurged', '1');
                 location.replace(location.pathname);
+                return;
               }
             });
           }
+          // Register Tower's SW (network-first, scoped to /tower/)
+          window.addEventListener('load', function(){
+            navigator.serviceWorker.register('/tower/sw.js', { scope: '/tower/' })
+              .catch(function(){ /* non-fatal */ });
+          });
         });
       } catch(_){}
     })();
@@ -675,6 +701,139 @@
       from { opacity: 0; transform: translateX(8px); }
       to { opacity: 1; transform: translateX(0); }
     }
+
+    /* ---------- HAMBURGER (mobile) ---------- */
+    .hamburger {
+      display: none;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .hamburger svg { width: 16px; height: 16px; }
+    .hamburger:active { background: var(--bg-elev-2); }
+
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 49;
+    }
+    :root[data-theme="light"] .sidebar-overlay { background: rgba(15,23,42,0.35); }
+
+    /* Topbar mobile branding (hidden on desktop, replaces sidebar logo on mobile) */
+    .topbar-brand {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      font-size: 13px;
+    }
+    .topbar-brand svg { width: 18px; height: 18px; color: var(--accent); }
+
+    /* ---------- RESPONSIVE BREAKPOINTS ---------- */
+    @media (max-width: 768px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 260px;
+        max-width: 80vw;
+        z-index: 50;
+        transform: translateX(-100%);
+        transition: transform 0.2s ease-out;
+        box-shadow: 4px 0 24px rgba(0,0,0,0.3);
+      }
+      .app.menu-open .sidebar {
+        transform: translateX(0);
+      }
+      .app.menu-open .sidebar-overlay {
+        display: block;
+      }
+      .hamburger { display: inline-flex; }
+      .topbar-brand { display: inline-flex; }
+      .topbar { padding: 0 12px; }
+      .crumb { display: none; }
+      .content {
+        padding: 16px 12px;
+        /* iOS safe area */
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0));
+      }
+      .page-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .page-title { font-size: 18px; }
+      .page-sub { font-size: 12px; }
+
+      .cards-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .stat-card { padding: 14px; }
+      .stat-value { font-size: 20px; }
+
+      .data-table thead th { padding: 8px 10px; font-size: 9px; }
+      .data-table tbody td { padding: 10px 10px; font-size: 12px; }
+
+      .modal {
+        max-height: 96vh;
+        margin: 8px;
+        padding: 20px 18px;
+      }
+      .form-grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .drill-header {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .toast-stack {
+        bottom: 12px;
+        right: 12px;
+        left: 12px;
+      }
+      .toast { font-size: 12px; }
+
+      /* Login on mobile: full bleed, smaller paddings */
+      .login-card {
+        padding: 28px 20px;
+        border-radius: 14px;
+      }
+
+      /* iOS notch */
+      .topbar {
+        padding-top: env(safe-area-inset-top, 0);
+        height: calc(48px + env(safe-area-inset-top, 0));
+      }
+    }
+
+    @media (max-width: 420px) {
+      .cards-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* PWA standalone tweaks (avoid iOS bouncing white area) */
+    @media (display-mode: standalone) {
+      html, body { background: var(--bg); overscroll-behavior-y: none; }
+    }
   </style>
 </head>
 <body>
@@ -715,12 +874,13 @@
 
       <div id="loginError" class="login-error"></div>
 
-      <div class="login-footer">COACHAI · TOWER · v0.2</div>
+      <div class="login-footer">COACHAI · TOWER · v0.3</div>
     </form>
   </div>
 
   <!-- App shell -->
   <div id="app" class="app hidden">
+    <div id="sidebarOverlay" class="sidebar-overlay" aria-hidden="true"></div>
     <aside class="sidebar">
       <div class="sidebar-brand">
         <svg viewBox="0 0 32 32" fill="currentColor" aria-hidden="true">
@@ -777,9 +937,18 @@
 
     <section class="main">
       <header class="topbar">
-        <div id="crumb" class="crumb"><strong>Dashboard</strong></div>
+        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+          <button id="hamburgerBtn" class="hamburger" aria-label="Abrir menú">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+          <div class="topbar-brand">
+            <svg viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M9 9h3v3h2V9h4v3h2V9h3v5l-2 2v7l2 2v1H9v-1l2-2v-7l-2-2V9z"/></svg>
+            <span>TOWER</span>
+          </div>
+          <div id="crumb" class="crumb"><strong>Dashboard</strong></div>
+        </div>
         <div class="topbar-actions">
-          <span class="tl tl-gray" title="Estado del sistema"><span class="tl-dot"></span><span class="mono">v0.2</span></span>
+          <span class="tl tl-gray" title="Estado del sistema"><span class="tl-dot"></span><span class="mono">v0.3</span></span>
         </div>
       </header>
 
@@ -1013,10 +1182,10 @@
     const ROUTES = {
       dashboard:    { label: 'Dashboard',     render: renderDashboard },
       tenants:      { label: 'Tenants',       render: renderTenantsList },
-      users:        { label: 'Usuarios',      render: () => placeholder('Usuarios', 'Vista global de todas las usuarias (across tenants). Llega luego — entrá por Tenants → click un tenant para ver sus usuarias.') },
+      users:        { label: 'Usuarios',      render: () => placeholder('Usuarios', 'Vista global de todos los usuarios (across tenants). Llega luego — entrá por Tenants → click un tenant para ver sus usuarios.') },
       financiero:   { label: 'Financiero',    render: () => placeholder('Financiero', 'Suscripciones, pagos, vencimientos. Stripe + Mercado Pago + transferencia manual. Fase 4–6.') },
       costos:       { label: 'API / Costos',  render: renderCostos },
-      logs:         { label: 'Logs',          render: () => placeholder('Logs', 'Eventos del sistema, errores, bug reports de usuarias. Próxima iteración.') },
+      logs:         { label: 'Logs',          render: () => placeholder('Logs', 'Eventos del sistema, errores, bug reports de usuarios. Próxima iteración.') },
       config:       { label: 'Configuración', render: () => placeholder('Configuración', 'Precios por tenant, splits, notificaciones, alertas internas.') },
     };
 
@@ -1035,7 +1204,21 @@
       if (ni && ni.dataset.route) {
         currentTenantSlug = null;
         route(ni.dataset.route);
+        closeMobileMenu(); // auto-collapse on mobile after picking a section
       }
+    });
+
+    // ---------- Mobile menu ----------
+    function openMobileMenu()  { appEl.classList.add('menu-open'); }
+    function closeMobileMenu() { appEl.classList.remove('menu-open'); }
+    function toggleMobileMenu(){ appEl.classList.toggle('menu-open'); }
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#hamburgerBtn'))     { e.preventDefault(); toggleMobileMenu(); }
+      if (e.target.closest('#sidebarOverlay'))   { closeMobileMenu(); }
+    });
+    // Close on ESC + on hash change
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeMobileMenu();
     });
 
     // ---------- Views: placeholder ----------
@@ -1073,8 +1256,8 @@
       // Skeleton
       grid.innerHTML = `
         ${statCardSkeleton('Tenants activos')}
-        ${statCardSkeleton('Usuarias totales')}
-        ${statCardSkeleton('Activas (7d)')}
+        ${statCardSkeleton('Usuarios totales')}
+        ${statCardSkeleton('Activos (7d)')}
         ${statCardSkeleton('Bugs reportados')}
         ${statCardSkeleton('Costos del mes (USD)')}
       `;
@@ -1088,8 +1271,8 @@
 
       grid.innerHTML = `
         ${statCard('Tenants activos', fmtInt(s.tenants.active), `${fmtInt(s.tenants.total)} totales`)}
-        ${statCard('Usuarias totales', fmtInt(s.users.total), `${fmtInt(s.users.active_7d)} activas en 7d`)}
-        ${statCard('Activas (7d)', fmtInt(s.users.active_7d), `${pct(s.users.active_7d, s.users.total)} del total`)}
+        ${statCard('Usuarios totales', fmtInt(s.users.total), `${fmtInt(s.users.active_7d)} activos en 7d`)}
+        ${statCard('Activos (7d)', fmtInt(s.users.active_7d), `${pct(s.users.active_7d, s.users.total)} del total`)}
         ${statCard('Bugs reportados', fmtInt(s.bugs.total), `${fmtInt(s.bugs.last_30d)} en últimos 30d`)}
         ${statCard('Costos del mes (USD)', fmtUsd(s.costs.this_month_usd), 'Manuales — ver sección Costos')}
       `;
@@ -1108,8 +1291,8 @@
         </div>
         <div class="stat-card">
           <div class="stat-label">Versión Tower</div>
-          <div class="stat-value mono" style="font-size:16px;">v0.2.0</div>
-          <div class="stat-sub">Fase 2 — Datos reales</div>
+          <div class="stat-value mono" style="font-size:16px;">v0.3.0</div>
+          <div class="stat-sub">Mobile + PWA</div>
         </div>
       `;
     }
@@ -1139,7 +1322,7 @@
         <div class="page-header">
           <div>
             <h1 class="page-title">Tenants</h1>
-            <p class="page-sub">Todas las cuentas de CoachAI. Click en una fila para ver sus usuarias.</p>
+            <p class="page-sub">Todas las cuentas de CoachAI. Click en una fila para ver sus usuarios.</p>
           </div>
         </div>
         <div id="tenantsTable" class="table-wrap"><div class="placeholder"><span class="spinner"></span> &nbsp; Cargando tenants…</div></div>
@@ -1162,7 +1345,7 @@
             <th>Tenant</th>
             <th>Tipo</th>
             <th>Dominio</th>
-            <th class="cell-right">Usuarias</th>
+            <th class="cell-right">Usuarios</th>
             <th>Última actividad</th>
           </tr></thead>
           <tbody>
@@ -1185,7 +1368,7 @@
                 <td class="cell-mono">${t.domain ? escapeHtml(t.domain) : '<span class="cell-dim">—</span>'}</td>
                 <td class="cell-right cell-mono">
                   ${fmtInt(t.users.total)}${t.users.capacity ? ' / ' + fmtInt(t.users.capacity) : ' / ∞'}
-                  <div class="cell-dim" style="font-size:11px;">${fmtInt(t.users.active_7d)} activas 7d</div>
+                  <div class="cell-dim" style="font-size:11px;">${fmtInt(t.users.active_7d)} activos 7d</div>
                 </td>
                 <td class="cell-dim">${fmtRelative(t.last_activity)}</td>
               </tr>
@@ -1225,16 +1408,16 @@
             </div>
             <div class="meta-row">
               <span><strong>${escapeHtml(tenant.slug)}</strong></span>
-              <span>${fmtInt(users.length)} usuarias</span>
+              <span>${fmtInt(users.length)} usuarios</span>
             </div>
           </div>
         </div>
         <div class="table-wrap">
-          ${users.length === 0 ? '<div class="placeholder">Sin usuarias todavía.</div>' : `
+          ${users.length === 0 ? '<div class="placeholder">Sin usuarios todavía.</div>' : `
           <table class="data-table">
             <thead><tr>
               <th>Estado</th>
-              <th>Usuaria</th>
+              <th>Usuario</th>
               <th>Última actividad</th>
               <th class="cell-right">Adherencia</th>
               <th class="cell-right">Entrenó (30d)</th>

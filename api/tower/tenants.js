@@ -18,9 +18,9 @@ function computeTrafficLight(t, totalUsers, activeUsers, capacity) {
   // status === 'active'
   if (capacity && totalUsers >= capacity)            return { color: 'red',    reason: `Cupo lleno (${totalUsers}/${capacity})` };
   if (capacity && totalUsers >= Math.floor(capacity * 0.9)) return { color: 'yellow', reason: `Cupo casi lleno (${totalUsers}/${capacity})` };
-  if (totalUsers === 0)                              return { color: 'gray',   reason: 'Sin usuarias todavía' };
+  if (totalUsers === 0)                              return { color: 'gray',   reason: 'Sin usuarios todavía' };
   if (activeUsers === 0)                             return { color: 'yellow', reason: 'Sin actividad últimos 7d' };
-  return { color: 'green', reason: `${activeUsers} activas / ${totalUsers}` };
+  return { color: 'green', reason: `${activeUsers} activos / ${totalUsers}` };
 }
 
 export default withAuth(async (req, res) => {

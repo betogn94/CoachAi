@@ -1,0 +1,19 @@
+{
+  "name": "TOWER — CoachAI",
+  "short_name": "TOWER",
+  "description": "Panel de control privado de CoachAI Pro.",
+  "id": "/tower/",
+  "start_url": "/tower/",
+  "scope": "/tower/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0B0F17",
+  "theme_color": "#0B0F17",
+  "lang": "es",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "/tower/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/tower/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/tower/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
