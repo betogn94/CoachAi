@@ -854,11 +854,25 @@
       .modal {
         max-height: 96vh;
         margin: 8px;
-        padding: 20px 18px;
+        padding: 14px 16px;
       }
-      .form-grid-2 {
-        grid-template-columns: 1fr;
+      .modal h2 { margin-bottom: 10px; font-size: 15px; }
+      /* Tighter form on mobile so the cost modal fits in one viewport,
+         no scroll needed — every saved millisecond of cognitive load
+         counts when logging quick expenses. */
+      .modal .field { margin-bottom: 8px; }
+      .modal .field label { margin-bottom: 3px; font-size: 10px; }
+      .modal .field input,
+      .modal .field select,
+      .modal .field textarea {
+        padding: 8px 10px;
       }
+      .modal .field textarea { min-height: 40px; }
+      .modal .form-grid-2 { gap: 8px; }
+      .modal .modal-actions { margin-top: 12px; }
+      /* Keep 2-col grids on mobile (don't force them to stack) — they
+         fit comfortably and shave 4 vertical slots from the cost form. */
+      .modal .form-grid-2 { grid-template-columns: 1fr 1fr; }
 
       .drill-header {
         flex-direction: column;
@@ -1702,16 +1716,7 @@
           <div class="field">
             <label>Monto (USD)</label>
             <input id="m_amount" type="number" step="0.01" min="0" placeholder="0.00" required>
-          </div>
-        </div>
-        <div class="form-grid-2">
-          <div class="field">
-            <label>Inicio de período</label>
-            <input id="m_start" type="date" value="${today}" required>
-          </div>
-          <div class="field">
-            <label>Fin de período (opcional)</label>
-            <input id="m_end" type="date">
+            <div id="m_monthly_preview" style="font-size:10px;color:var(--text-muted);margin-top:3px;letter-spacing:0.04em;">—</div>
           </div>
         </div>
         <div class="form-grid-2">
@@ -1719,32 +1724,35 @@
             <label>Frecuencia</label>
             <select id="m_period">
               <option value="monthly">Mensual</option>
-              <option value="yearly">Anual (se mensualiza ÷12)</option>
+              <option value="yearly">Anual (÷12)</option>
               <option value="one-time">Único / Cuotas</option>
             </select>
           </div>
           <div class="field" id="m_installments_field" style="display:none;">
-            <label>Cantidad de cuotas</label>
-            <input id="m_installments" type="number" min="1" max="120" step="1" value="1" placeholder="1 = pago único">
+            <label>Cuotas</label>
+            <input id="m_installments" type="number" min="1" max="120" step="1" value="1">
           </div>
         </div>
         <div class="form-grid-2">
           <div class="field">
-            <label>Tenant (opcional)</label>
-            <select id="m_tenant">
-              <option value="">— Compartido (infra)</option>
-              ${tenants.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('')}
-            </select>
+            <label>Inicio</label>
+            <input id="m_start" type="date" value="${today}" required>
           </div>
           <div class="field">
-            <label>Mensualizado (preview)</label>
-            <input id="m_monthly_preview" type="text" disabled value="—" style="opacity:0.7;">
+            <label>Tenant</label>
+            <select id="m_tenant">
+              <option value="">— Compartido</option>
+              ${tenants.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('')}
+            </select>
           </div>
         </div>
         <div class="field">
           <label>Notas (opcional)</label>
           <textarea id="m_notes" placeholder="Detalle, factura, etc."></textarea>
         </div>
+        <!-- Fin de período rara vez se usa; lo dejamos oculto. Si lo
+             necesitás se setea desde la edición del row después de crear. -->
+        <input type="hidden" id="m_end" value="">
         <div class="modal-actions">
           <button class="btn" data-modal-action="cancel">Cancelar</button>
           <button class="btn btn-primary-sm" id="m_save">Guardar</button>
@@ -1781,10 +1789,15 @@
           const n = Math.max(1, parseInt(installmentsEl.value, 10) || 1);
           monthly = amount / n;
         }
+        const setPreview = (txt) => {
+          // previewEl is now a <div> (helper text), not an <input>
+          if ('value' in previewEl && previewEl.tagName === 'INPUT') previewEl.value = txt;
+          else previewEl.textContent = txt;
+        };
         if (period === 'one-time' && (parseInt(installmentsEl.value, 10) || 1) === 1) {
-          previewEl.value = `$${amount.toFixed(2)} (mes 1 solamente)`;
+          setPreview(`= $${amount.toFixed(2)} solo este mes`);
         } else {
-          previewEl.value = monthly > 0 ? `$${monthly.toFixed(2)} / mes` : '—';
+          setPreview(monthly > 0 ? `= $${monthly.toFixed(2)} / mes` : '—');
         }
       }
       periodEl.addEventListener('change', updateModalPreview);
