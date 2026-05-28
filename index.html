@@ -3543,10 +3543,17 @@ button.cai-home-card:hover { border-color: rgba(124,106,255,0.20); }
    ============================================================ */
 .cai-home-card-slot {
   position: relative;
-  /* When inactive (no cardio today) we behave as a normal grid item
-     and just show the chat card. The chat card has 'is-active' baseline
-     so nothing changes visually. When 'is-rotating' is added, the
-     cardio card becomes positioned absolute over the chat. */
+  /* The slot is a grid item like any other card. We must make sure the
+     inner card stretches to fill the cell (otherwise it collapses to its
+     intrinsic height and looks smaller than neighbors). */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 168px;
+}
+.cai-home-card-slot > .cai-home-card {
+  flex: 1;
+  min-height: 100%;
 }
 .cai-home-card-slot.is-rotating .cai-home-card-chat,
 .cai-home-card-slot.is-rotating .cai-home-card-cardio {
@@ -11235,9 +11242,6 @@ footer {
 <!-- CHAT -->
 <div class="chat-wrapper" id="chat-wrapper">
   <div class="chat-card">
-    <div class="chat-profile-bar-wrap">
-      <div class="chat-profile-bar" id="chat-profile-bar"></div>
-    </div>
     <div class="chat-messages" id="chat-messages"></div>
     <div class="quick-btns" id="quick-btns"></div>
     <div class="chat-input-row">
@@ -14376,14 +14380,20 @@ async function launchCoach() {
   const objLabel = { definir: lang==='es'?'🔥 Definir':'🔥 Cut', volumen: lang==='es'?'💪 Volumen':'💪 Bulk', mantenimiento: lang==='es'?'⚖️ Mantenimiento':'⚖️ Maintain' };
   const nivLabel = { principiante: lang==='es'?'🌱 Principiante':'🌱 Beginner', intermedio: lang==='es'?'⚡ Intermedio':'⚡ Intermediate', avanzado: lang==='es'?'🔱 Avanzado':'🔱 Advanced' };
 
-  document.getElementById('chat-profile-bar').innerHTML = [
-    { l: lang==='es'?'Usuario':'User', v: nombre },
-    { l: lang==='es'?'Peso':'Weight', v: `${peso}kg` },
-    { l: 'IMC', v: imc },
-    { l: lang==='es'?'Objetivo':'Goal', v: objLabel[selections.objetivo] },
-    { l: lang==='es'?'Nivel':'Level', v: nivLabel[selections.nivel] },
-    { l: lang==='es'?'Días':'Days', v: `${selectedDias.length}d/sem` },
-  ].map(i => `<div class="cpb-item"><div class="cpb-label">${i.l}</div><div class="cpb-value">${i.v}</div></div>`).join('');
+  // Legacy profile bar — removed from the chat shell (UX cleanup). Keeping
+  // this block null-safe in case any other code path still expects it to
+  // exist. If you reintroduce it, restore the markup in #chat-wrapper.
+  const _cpb = document.getElementById('chat-profile-bar');
+  if (_cpb) {
+    _cpb.innerHTML = [
+      { l: lang==='es'?'Usuario':'User', v: nombre },
+      { l: lang==='es'?'Peso':'Weight', v: `${peso}kg` },
+      { l: 'IMC', v: imc },
+      { l: lang==='es'?'Objetivo':'Goal', v: objLabel[selections.objetivo] },
+      { l: lang==='es'?'Nivel':'Level', v: nivLabel[selections.nivel] },
+      { l: lang==='es'?'Días':'Days', v: `${selectedDias.length}d/sem` },
+    ].map(i => `<div class="cpb-item"><div class="cpb-label">${i.l}</div><div class="cpb-value">${i.v}</div></div>`).join('');
+  }
 
   // Quick actions — built dynamically based on whether weekly plans were already delivered
   refreshQuickButtons();
@@ -17874,6 +17884,10 @@ function parseCardioRule(text) {
   // Remove the leading "CARDIO" word and optional colon/dash
   let body = cardioLine.replace(/^cardio\s*[:\-—–·]?\s*/i, '').trim();
   if (!body) return null;
+  // Strip markdown formatting marks (**, __, *, _) that the AI sometimes
+  // emits around words ("**caminata** moderada"). Leaving them in pollutes
+  // the notes extraction with "** caminata"-style noise.
+  body = body.replace(/\*+|_+/g, '').replace(/\s{2,}/g, ' ').trim();
 
   // Duration: "30 min", "45 minutos", "20'", "1 hora", "1,5 hs"
   let duracion_min = null;
