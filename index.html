@@ -586,9 +586,24 @@ body.theme-king .cai-home-card-ico {
   color: var(--accent) !important;
 }
 body.theme-king .cai-home-card-ico.ico-alim,
-body.theme-king .cai-home-card-ico.ico-chat {
+body.theme-king .cai-home-card-ico.ico-chat,
+body.theme-king .cai-home-card-ico.ico-cardio {
   background: rgba(255,107,149,0.12) !important;
   border-color: rgba(255,107,149,0.32) !important;
+  color: var(--accent) !important;
+}
+/* Cardio card title gradient in King → same pink palette as the rest. */
+body.theme-king .cai-home-card-cardio .cai-home-card-title-grad {
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent), var(--accent3)) !important;
+  -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important;
+  background-clip: text !important; color: transparent !important;
+}
+/* Rotator dots in King → pink tint */
+body.theme-king .cai-home-card-dots .rot-dot {
+  background: rgba(255,79,123,0.25) !important;
+}
+body.theme-king .cai-home-card-dots .rot-dot.is-active {
+  background: var(--accent) !important;
 }
 body.theme-king button.cai-home-card:hover {
   border-color: rgba(255,79,123,0.30) !important;
@@ -1401,6 +1416,20 @@ body.theme-king .cai-ent-ex-detail {
   color: var(--accent) !important;
   border: 1px solid rgba(255,79,123,0.25) !important;
 }
+
+/* Cardio chip (Mi Entreno) in King theme — pink gradient like the other
+   surface elements, with pink accent for icon & title. */
+body.theme-king .cai-ent-cardio-chip {
+  background: linear-gradient(135deg, rgba(255,107,149,0.10), rgba(255,79,123,0.10)) !important;
+  border: 1px solid rgba(255,79,123,0.20) !important;
+}
+body.theme-king .cai-ent-cardio-ico {
+  background: rgba(255,79,123,0.12) !important;
+  color: var(--accent) !important;
+}
+body.theme-king .cai-ent-cardio-title { color: var(--accent) !important; }
+body.theme-king .cai-ent-cardio-sub   { color: var(--muted) !important; }
+body.theme-king .cai-ent-cardio-hint  { color: var(--muted2) !important; }
 
 /* "Cómo se hace" button — solid filled CTA matching the Feedback FAB:
    pink gradient + white text/icon + soft shadow. Gives it real button
@@ -3044,6 +3073,55 @@ body.app-active:has(.form-wrapper[style*="block"]) { padding-bottom: 0; }
 }
 .cai-ent-hero.open .cai-ent-hero-body-wrap { max-height: 9999px; }
 .cai-ent-hero-body-wrap .cai-ent-hero-ex-list { padding-top: 14px; }
+
+/* Cardio info chip — sits at the bottom of an expanded day card.
+   Pure reminder (no own check; marking the day's entreno marks cardio too). */
+.cai-ent-cardio-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(91,159,255,0.10), rgba(46,207,181,0.10));
+  border: 1px solid rgba(91,159,255,0.18);
+}
+.cai-ent-cardio-ico {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(46,207,181,0.15);
+  color: var(--accent3);
+  flex-shrink: 0;
+}
+.cai-ent-cardio-ico svg { width: 18px; height: 18px; }
+.cai-ent-cardio-body { flex: 1; min-width: 0; }
+.cai-ent-cardio-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--accent3);
+}
+.cai-ent-cardio-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cai-ent-cardio-hint {
+  font-size: 10px;
+  color: var(--muted2, var(--muted));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+  text-align: right;
+  flex-shrink: 0;
+}
+@media (max-width: 480px) {
+  .cai-ent-cardio-hint { display: none; }
+}
 .cai-ent-hero-eyebrow {
   font-family: 'JetBrains Mono', monospace;
   font-size: 9.5px; letter-spacing: 1.4px;
@@ -3455,6 +3533,84 @@ button.cai-home-card:hover { border-color: rgba(124,106,255,0.20); }
 .cai-home-card-chat .cai-home-card-cta {
   border-color: rgba(46,207,181,0.30);
   color: var(--accent3);
+}
+
+/* ============================================================
+   ROTATOR SLOT — Coach AI ↔ Cardio cards (Home)
+   The slot replaces the bare Coach AI card. When the user has a
+   cardio rule for today, the slot rotates between Coach AI and
+   Cardio cards with cross-fade (8s auto + clickable dots).
+   ============================================================ */
+.cai-home-card-slot {
+  position: relative;
+  /* When inactive (no cardio today) we behave as a normal grid item
+     and just show the chat card. The chat card has 'is-active' baseline
+     so nothing changes visually. When 'is-rotating' is added, the
+     cardio card becomes positioned absolute over the chat. */
+}
+.cai-home-card-slot.is-rotating .cai-home-card-chat,
+.cai-home-card-slot.is-rotating .cai-home-card-cardio {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.5s ease, visibility 0.5s;
+}
+.cai-home-card-slot.is-rotating .is-active {
+  opacity: 1;
+  visibility: visible;
+  position: relative; /* the visible one defines the slot's height */
+}
+.cai-home-card-slot.is-rotating .cai-home-card-cardio.is-active {
+  position: absolute;
+  inset: 0;
+}
+/* Keep at least the chat card's natural size when rotating */
+.cai-home-card-slot.is-rotating {
+  min-height: 168px;
+}
+
+/* Cardio card — base palette (default tenant) mirrors Coach AI:
+   gradient eyebrow + dark cool surface, but with a warmer accent. */
+.cai-home-card-cardio {
+  /* Inherits .cai-home-card base. Only override accent CTA color. */
+}
+.cai-home-card-ico.ico-cardio {
+  background: linear-gradient(135deg, rgba(91,159,255,0.18), rgba(46,207,181,0.18));
+  color: var(--accent3);
+}
+.cai-home-card-cardio .cai-home-card-title-grad {
+  background: linear-gradient(135deg, var(--accent3) 0%, var(--accent2) 50%, var(--accent-bright) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; color: transparent;
+}
+
+/* Rotator dots */
+.cai-home-card-dots {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 5;
+}
+.cai-home-card-dots .rot-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.25);
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+.cai-home-card-dots .rot-dot:hover { transform: scale(1.2); }
+.cai-home-card-dots .rot-dot.is-active {
+  background: rgba(255,255,255,0.7);
+  width: 14px;
+  border-radius: 4px;
 }
 
 /* Kcal card — chart by meal type */
@@ -10558,17 +10714,47 @@ footer {
       <div class="cai-home-kcal-chart" id="home-kcal-bars"></div>
     </div>
 
-    <button class="cai-home-card cai-home-card-chat" onclick="showChat(); setActiveNav('nav-coach')" type="button">
-      <div class="cai-home-card-top">
-        <div class="cai-home-card-eyebrow" data-es="COACH AI" data-en="COACH AI">COACH AI</div>
-        <div class="cai-home-card-ico ico-chat">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 0 1-.9-3.8A8.38 8.38 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5z"/></svg>
+    <!-- Rotator slot: by default shows the Coach AI card. When parseCardioRule
+         finds a rule AND today is a training day, the Cardio reminder card
+         rotates in via cross-fade (8s auto + clickable dots). -->
+    <div class="cai-home-card-slot" id="home-card-rotator">
+      <button class="cai-home-card cai-home-card-chat is-active" data-rot-slide="chat" onclick="showChat(); setActiveNav('nav-coach')" type="button">
+        <div class="cai-home-card-top">
+          <div class="cai-home-card-eyebrow" data-es="COACH AI" data-en="COACH AI">COACH AI</div>
+          <div class="cai-home-card-ico ico-chat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 0 1-.9-3.8A8.38 8.38 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5z"/></svg>
+          </div>
         </div>
+        <div class="cai-home-card-title" data-es="CONSULTA" data-en="ASK">CONSULTA</div>
+        <div class="cai-home-card-title cai-home-card-title-grad" data-es="LO QUE NECESITES" data-en="ANYTHING YOU NEED">LO QUE NECESITES</div>
+        <div class="cai-home-card-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+      </button>
+
+      <!-- Cardio reminder card. Inserted populated by renderCardioCard().
+           Same shape/size as Coach AI so the cross-fade works seamlessly. -->
+      <button class="cai-home-card cai-home-card-cardio" data-rot-slide="cardio" id="home-card-cardio" type="button" style="display:none;">
+        <div class="cai-home-card-top">
+          <div class="cai-home-card-eyebrow" data-es="RECUERDA" data-en="REMINDER">RECUERDA</div>
+          <div class="cai-home-card-ico ico-cardio">
+            <!-- Person walking icon (Lucide-style outline) -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="13" cy="4" r="2"/>
+              <path d="M4 22l5-9 4 2 3-5 4 8"/>
+              <path d="M13 6l-3 5 4 2 3-4"/>
+            </svg>
+          </div>
+        </div>
+        <div class="cai-home-card-title" data-es="HOY TOCAN" data-en="TODAY">HOY TOCAN</div>
+        <div class="cai-home-card-title cai-home-card-title-grad" id="cardio-card-duration">— min de cardio</div>
+        <div class="cai-home-card-sub" id="cardio-card-sub" style="margin-top:6px; font-size:12px; color:var(--muted); letter-spacing:0.04em;"></div>
+      </button>
+
+      <!-- Rotator dots (only shown when both slides are active) -->
+      <div class="cai-home-card-dots" id="home-card-dots" style="display:none;">
+        <button class="rot-dot is-active" data-rot-target="chat" aria-label="Coach AI"></button>
+        <button class="rot-dot" data-rot-target="cardio" aria-label="Cardio"></button>
       </div>
-      <div class="cai-home-card-title" data-es="CONSULTA" data-en="ASK">CONSULTA</div>
-      <div class="cai-home-card-title cai-home-card-title-grad" data-es="LO QUE NECESITES" data-en="ANYTHING YOU NEED">LO QUE NECESITES</div>
-      <div class="cai-home-card-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
-    </button>
+    </div>
   </div>
 
   <!-- Wide hero card: SEGUIMIENTO SEMANAL — eyebrow is a sibling INSIDE the
@@ -13528,6 +13714,9 @@ Día 2 · [Combinación]
 
 🛋️ Descanso: [días restantes] — caminata, movilidad o estiramientos 20-30 min.
 
+🏃 CARDIO: post entreno [X] min [tipo] [intensidad]
+(Ejemplos válidos: "post entreno 25 min caminata moderada" | "post entreno 15 min HIIT intenso" | "post entreno 30 min trote suave". SIEMPRE incluí esta línea; los días son los mismos que los días de entreno del usuario — el app los mapea automáticamente. Si el plan no lleva cardio justificado, igual incluí "post entreno 15 min caminata suave" como mínimo de salud cardiovascular.)
+
 REGLAS DE FORMATO ESTRICTAS:
 - Cada ejercicio ocupa 2 líneas (línea de datos + línea de ejecución). Si hay intensificador, suma 1 línea más.
 - "sets×reps" usa el × Unicode, no la x ASCII. Ejemplos válidos: 3×15, 3×20-15-12, 2×20.
@@ -13727,6 +13916,9 @@ Día 2 · [Combinación]
 [Repetí para CADA día disponible. NUNCA abrevies con "...similar para el resto".]
 
 🛋️ Descanso: [días restantes] — caminata, movilidad o estiramientos 20-30 min.
+
+🏃 CARDIO: post entreno [X] min [tipo] [intensidad]
+(Ejemplos válidos: "post entreno 25 min caminata moderada" | "post entreno 15 min HIIT intenso" | "post entreno 30 min trote suave". SIEMPRE incluí esta línea; los días son los mismos que los días de entreno del usuario — el app los mapea automáticamente. Si el plan no lleva cardio justificado, igual incluí "post entreno 15 min caminata suave" como mínimo de salud cardiovascular.)
 
 REGLAS DE FORMATO ESTRICTAS:
 - Cada ejercicio ocupa 2 líneas (línea de datos + línea de ejecución). Si hay intensificador, suma 1 línea más.
@@ -16741,6 +16933,7 @@ function renderHome() {
   try { renderHomeProximaComida(); }  catch (e) { console.warn('[home] prox comida:', e); }
   try { renderHomeHoyToca(); }        catch (e) { console.warn('[home] hoy toca:', e); }
   try { renderHomeKcalChart(); }      catch (e) { console.warn('[home] kcal:', e); }
+  try { renderHomeCardioCard(p); }    catch (e) { console.warn('[home] cardio card:', e); }
   // Network-dependent widgets
   renderHomeRing().catch(e => console.warn('[home] ring:', e));
   // Alimentación caches lazy-load on first visit to Mi Alimentación; for the
@@ -16868,6 +17061,100 @@ function renderHomeHoyToca() {
       <span>${dayNum > 0 ? `${isEs?'Día':'Day'} ${dayNum}` : ''} · ${todayDay.exercises.length} ${isEs?'ej.':'ex.'}</span>
     </div>
   `;
+}
+
+// ============================
+// HOME: CARDIO REMINDER CARD (rotator)
+// ============================
+// Decides whether today has cardio (rule from rutina + today is a training
+// day per buildTrainingDayMapping). If yes, populates the cardio card and
+// activates the rotator (cross-fade with the Coach AI card). If no, hides
+// the cardio card and leaves only Coach AI visible.
+let _cardioRotInterval = null;
+function renderHomeCardioCard(profile) {
+  const isEs = lang === 'es';
+  const slot      = document.getElementById('home-card-rotator');
+  const cardioCard = document.getElementById('home-card-cardio');
+  const dots      = document.getElementById('home-card-dots');
+  const durEl     = document.getElementById('cardio-card-duration');
+  const subEl     = document.getElementById('cardio-card-sub');
+  if (!slot || !cardioCard) return;
+
+  // Tear down any previous rotator state first (re-renders after marking
+  // a day as trained, switching tabs, etc, must not stack intervals).
+  if (_cardioRotInterval) { clearInterval(_cardioRotInterval); _cardioRotInterval = null; }
+  slot.classList.remove('is-rotating');
+  cardioCard.style.display = 'none';
+  dots.style.display = 'none';
+
+  // Need a rutina with a CARDIO line
+  const rutina = (typeof weeklyPlans !== 'undefined') ? weeklyPlans?.rutina : null;
+  if (!rutina || !rutina.contenido || rutina.closed) return;
+
+  const rule = parseCardioRule(rutina.contenido);
+  if (!rule) return;
+
+  // Today must be a training day (cardio = matches training days)
+  const mapping = (typeof buildTrainingDayMapping === 'function') ? buildTrainingDayMapping() : null;
+  if (!mapping || mapping.isTodayRest) return;
+
+  // Populate the cardio card
+  const dur = rule.duracion_min || 30;
+  durEl.textContent = isEs
+    ? `${dur} MIN DE CARDIO`
+    : `${dur} MIN OF CARDIO`;
+
+  const subParts = [];
+  if (rule.tipo)        subParts.push(rule.tipo.charAt(0).toUpperCase() + rule.tipo.slice(1));
+  if (rule.intensidad)  subParts.push(rule.intensidad);
+  if (rule.notas)       subParts.push(rule.notas);
+  subEl.textContent = subParts.join(' · ');
+
+  // Activate rotator
+  cardioCard.style.display = '';
+  dots.style.display = 'flex';
+  slot.classList.add('is-rotating');
+
+  // Wire dots (idempotent — replace handlers on each render)
+  const dotEls = dots.querySelectorAll('.rot-dot');
+  dotEls.forEach(d => {
+    const clone = d.cloneNode(true);
+    d.parentNode.replaceChild(clone, d);
+  });
+  dots.querySelectorAll('.rot-dot').forEach(d => {
+    d.addEventListener('click', (e) => {
+      e.stopPropagation();
+      _cardioRotShow(d.dataset.rotTarget);
+      // Reset autoplay timer when user manually navigates
+      if (_cardioRotInterval) clearInterval(_cardioRotInterval);
+      _cardioRotInterval = setInterval(_cardioRotTick, 8000);
+    });
+  });
+
+  // Start auto-rotation
+  _cardioRotInterval = setInterval(_cardioRotTick, 8000);
+}
+
+function _cardioRotShow(target) {
+  const slot = document.getElementById('home-card-rotator');
+  if (!slot) return;
+  slot.querySelectorAll('[data-rot-slide]').forEach(el => {
+    el.classList.toggle('is-active', el.dataset.rotSlide === target);
+  });
+  const dots = document.getElementById('home-card-dots');
+  if (dots) {
+    dots.querySelectorAll('.rot-dot').forEach(d => {
+      d.classList.toggle('is-active', d.dataset.rotTarget === target);
+    });
+  }
+}
+
+function _cardioRotTick() {
+  const slot = document.getElementById('home-card-rotator');
+  if (!slot) return;
+  const current = slot.querySelector('[data-rot-slide].is-active');
+  const next = current?.dataset.rotSlide === 'chat' ? 'cardio' : 'chat';
+  _cardioRotShow(next);
 }
 
 // Kcal hoy — bars by meal type (Desayuno · Almuerzo · Merienda · Cena, etc.).
@@ -17542,6 +17829,114 @@ function parseRutinaContenido(text) {
 }
 
 // ============================
+// CARDIO RULE PARSER
+// ============================
+// Detects a global CARDIO line in a rutina text and extracts:
+//   { duracion_min, tipo, intensidad, notas, raw }
+// Returns null if no cardio rule found.
+//
+// Accepted shapes (case-insensitive, accent-insensitive):
+//   "CARDIO: 30 min caminata moderada"
+//   "Cardio post entreno 45 min trote"
+//   "Cardio todos los días 30 min de caminata en ayunas"
+//   "🏃 CARDIO: 20 min HIIT intenso"
+//
+// We DON'T parse days here — the app applies the rule to the user's
+// dias_entreno from the profile (per design decision: cardio always
+// matches training days).
+function parseCardioRule(text) {
+  if (!text || typeof text !== 'string') return null;
+  // Find the first line that starts with (optional emoji)(CARDIO)
+  const lines = text.split('\n');
+  let cardioLine = null;
+  for (const raw of lines) {
+    const line = raw.replace(/\r/g, '').trim();
+    if (!line) continue;
+    // Strip leading emojis/markdown and check
+    const stripped = line.replace(/^[\s*_#🏃🚶💪⚡🔥▶️]+/u, '').trim();
+    if (/^cardio\b/i.test(stripped)) {
+      cardioLine = stripped;
+      break;
+    }
+  }
+  if (!cardioLine) return null;
+
+  // Remove the leading "CARDIO" word and optional colon/dash
+  let body = cardioLine.replace(/^cardio\s*[:\-—–·]?\s*/i, '').trim();
+  if (!body) return null;
+
+  // Duration: "30 min", "45 minutos", "20'", "1 hora", "1,5 hs"
+  let duracion_min = null;
+  const minMatch = body.match(/(\d+(?:[.,]\d+)?)\s*(?:min(?:utos?)?\b|'|′)/i);
+  if (minMatch) {
+    duracion_min = Math.round(parseFloat(minMatch[1].replace(',', '.')));
+  } else {
+    const hourMatch = body.match(/(\d+(?:[.,]\d+)?)\s*(?:hs?\b|horas?\b)/i);
+    if (hourMatch) duracion_min = Math.round(parseFloat(hourMatch[1].replace(',', '.')) * 60);
+  }
+
+  // Intensity (suave / moderada / intensa / vigorosa / liviana / fuerte)
+  let intensidad = null;
+  const intMatch = body.match(/\b(suave|liviana|moderad[ao]|intens[ao]|vigoros[ao]|fuerte|baj[ao]|alt[ao])\b/i);
+  if (intMatch) {
+    const map = {
+      suave: 'suave', liviana: 'suave', baja: 'suave', bajo: 'suave',
+      moderada: 'moderada', moderado: 'moderada',
+      intensa: 'intensa', intenso: 'intensa',
+      vigorosa: 'intensa', vigoroso: 'intensa',
+      fuerte: 'intensa', alta: 'intensa', alto: 'intensa',
+    };
+    intensidad = map[intMatch[1].toLowerCase()] || intMatch[1].toLowerCase();
+  }
+
+  // Type — known keywords. Order matters for multi-word (e.g. "trote suave"
+  // should match "trote", not "suave" which is intensity).
+  let tipo = null;
+  const TIPOS = [
+    { re: /\b(caminat\w*|walk\w*)\b/i,            v: 'caminata' },
+    { re: /\b(trot\w*|jog\w*)\b/i,                v: 'trote' },
+    { re: /\b(carrer\w*|correr|run\w*)\b/i,       v: 'carrera' },
+    { re: /\b(bici|ciclis\w*|bike|cycling)\b/i,   v: 'bici' },
+    { re: /\b(spin\w*|spinning)\b/i,              v: 'spinning' },
+    { re: /\b(eliptic\w*|elliptic\w*)\b/i,        v: 'elíptica' },
+    { re: /\b(escaler\w*|stair\w*)\b/i,           v: 'escaleras' },
+    { re: /\b(hiit|tabata)\b/i,                   v: 'HIIT' },
+    { re: /\b(remo|row\w*)\b/i,                   v: 'remo' },
+    { re: /\b(nataci\w*|swim\w*)\b/i,             v: 'natación' },
+    { re: /\b(zumba|baile|danza)\b/i,             v: 'baile' },
+  ];
+  for (const t of TIPOS) {
+    if (t.re.test(body)) { tipo = t.v; break; }
+  }
+
+  // Notes: anything left after stripping duration/intensity/type stopwords
+  const STOPWORDS = /\b(de|del|el|la|los|las|todos|todas|d[ií]as?|post|entreno|entrenamiento|cada|por|x|semana|semanal|veces?|sesi[oó]n(?:es)?|lunes?|martes?|mi[eé]rcoles?|jueves?|viernes?|s[aá]bados?|domingos?|y|o|\/)\b/gi;
+  let notas = body
+    .replace(/\d+(?:[.,]\d+)?\s*(?:min(?:utos?)?|hs?|horas?|'|′)/gi, '')
+    .replace(/\b(suave|liviana|moderad[ao]|intens[ao]|vigoros[ao]|fuerte|baj[ao]|alt[ao])\b/gi, '')
+    .replace(STOPWORDS, '')
+    .replace(/[\(\)\[\]]/g, '')
+    .replace(/[,.;:]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  // If only the type word remains in notes, drop it (already captured)
+  if (tipo && notas && new RegExp(`^${tipo}$`, 'i').test(notas)) notas = '';
+  // If empty or just punctuation
+  if (!notas || notas.length < 3) notas = null;
+
+  // Require at least a duration OR a type to consider this a valid rule
+  if (!duracion_min && !tipo) return null;
+
+  return {
+    duracion_min: duracion_min || null,
+    tipo: tipo || null,
+    intensidad: intensidad || null,
+    notas: notas || null,
+    raw: cardioLine,
+  };
+}
+
+// ============================
 // DIETA PARSER — mirrors parseRutinaContenido, output shape:
 //   { header: { targetKcal, targetProt, targetCarbs, targetFat } | null,
 //     days: [{ dayName, dayKey, meals: [{key,name,emoji,content,kcal}], totalKcal }] }
@@ -17974,6 +18369,51 @@ function sanitizeReps(v) {
   return String(v == null ? '' : v).replace(/[^\d]/g, '').slice(0, 3);
 }
 
+// Builds the cardio info chip rendered below the exercise list in the
+// expanded day card. Returns empty string if no cardio applies. The chip
+// is informational — no own checkbox; cardio gets marked when the day's
+// entreno is marked (per design decision: one tap = both done).
+function _buildCardioChipHtml() {
+  try {
+    const rutina = (typeof weeklyPlans !== 'undefined') ? weeklyPlans?.rutina : null;
+    if (!rutina || !rutina.contenido) return '';
+    const rule = parseCardioRule(rutina.contenido);
+    if (!rule) return '';
+    const isEs = lang === 'es';
+    const dur = rule.duracion_min || 30;
+    const parts = [];
+    if (rule.tipo)       parts.push(rule.tipo.charAt(0).toUpperCase() + rule.tipo.slice(1));
+    if (rule.intensidad) parts.push(rule.intensidad);
+    if (rule.notas)      parts.push(rule.notas);
+    const sub = parts.join(' · ');
+    // Local HTML escape — `esc` is scoped to renderEntreno, not available
+    // here. Cardio strings come from the rule parser so they're already
+    // pretty constrained, but escape anyway as defense in depth.
+    const _esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+    return `
+      <div class="cai-ent-cardio-chip" role="note" aria-label="${isEs?'Cardio del día':'Cardio for today'}">
+        <div class="cai-ent-cardio-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="13" cy="4" r="2"/>
+            <path d="M4 22l5-9 4 2 3-5 4 8"/>
+            <path d="M13 6l-3 5 4 2 3-4"/>
+          </svg>
+        </div>
+        <div class="cai-ent-cardio-body">
+          <div class="cai-ent-cardio-title">${isEs?'CARDIO':'CARDIO'} · ${dur} min</div>
+          ${sub ? `<div class="cai-ent-cardio-sub">${_esc(sub)}</div>` : ''}
+        </div>
+        <div class="cai-ent-cardio-hint">${isEs?'se marca con el entreno':'auto-done with workout'}</div>
+      </div>
+    `;
+  } catch (e) {
+    console.warn('[cardio chip]', e);
+    return '';
+  }
+}
+
 async function showMiEntreno() {
   trackEvent('section_view', { section: 'entreno' });
   hideAllSections();
@@ -18371,6 +18811,7 @@ function renderMiEntreno() {
           </div>
           <div class="cai-ent-hero-body-wrap">
             <div class="cai-ent-hero-ex-list">${exHtml}</div>
+            ${_buildCardioChipHtml()}
           </div>
         </div>
       `;
