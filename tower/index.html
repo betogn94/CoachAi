@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>TOWER — CoachAI</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B0F17'/%3E%3Cpath d='M9 9h3v3h2V9h4v3h2V9h3v5l-2 2v7l2 2v1H9v-1l2-2v-7l-2-2V9z' fill='%235B8DEF'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://rsms.me/">
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+
+  <style>
+    /* ---------- THEME TOKENS ---------- */
+    :root[data-theme="dark"] {
+      --bg:           #0B0F17;
+      --bg-elev:      #141A24;
+      --bg-elev-2:    #1C2330;
+      --border:       #2A3441;
+      --border-soft:  #1F2733;
+      --text:         #E8ECF3;
+      --text-muted:   #8B95A7;
+      --text-dim:     #4A5468;
+      --accent:       #5B8DEF;
+      --accent-hover: #7AA3F5;
+      --accent-soft:  rgba(91, 141, 239, 0.12);
+      --danger:       #EF4444;
+      --warning:      #F59E0B;
+      --success:      #22C55E;
+      --neutral:      #6B7280;
+      --shadow-card:  none;
+      --input-bg:     #0F141D;
+    }
+    :root[data-theme="light"] {
+      --bg:           #F6F8FB;
+      --bg-elev:      #FFFFFF;
+      --bg-elev-2:    #F0F3F8;
+      --border:       #DCE2EA;
+      --border-soft:  #E8EDF3;
+      --text:         #121821;
+      --text-muted:   #5C6877;
+      --text-dim:     #9BA6B5;
+      --accent:       #2563EB;
+      --accent-hover: #1D4ED8;
+      --accent-soft:  rgba(37, 99, 235, 0.10);
+      --danger:       #DC2626;
+      --warning:      #D97706;
+      --success:      #16A34A;
+      --neutral:      #6B7280;
+      --shadow-card:  0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
+      --input-bg:     #FFFFFF;
+    }
+
+    /* ---------- RESET / BASE ---------- */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-feature-settings: 'cv02','cv03','cv04','cv11';
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .mono {
+      font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: var(--accent-hover); }
+    button { font: inherit; cursor: pointer; }
+
+    /* ---------- LOGIN ---------- */
+    .login-wrap {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 380px;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px 28px;
+      box-shadow: var(--shadow-card);
+    }
+    .login-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .login-brand svg { width: 28px; height: 28px; color: var(--accent); }
+    .login-brand .wm {
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      font-size: 15px;
+    }
+    .login-title {
+      margin: 0 0 6px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .login-sub {
+      margin: 0 0 24px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .field input {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-size: 14px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .field input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .btn-primary {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-weight: 500;
+      font-size: 14px;
+      transition: background 0.15s;
+      margin-top: 8px;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .login-error {
+      margin-top: 14px;
+      padding: 10px 12px;
+      background: rgba(239, 68, 68, 0.10);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: 8px;
+      color: var(--danger);
+      font-size: 13px;
+      display: none;
+    }
+    .login-error.show { display: block; }
+    .login-footer {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.04em;
+    }
+    .theme-toggle-floating {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .theme-toggle-floating:hover { color: var(--text); border-color: var(--text-muted); }
+    .theme-toggle-floating svg { width: 16px; height: 16px; }
+
+    /* ---------- APP SHELL ---------- */
+    .app {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      min-height: 100vh;
+    }
+    .sidebar {
+      background: var(--bg-elev);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 16px 12px;
+    }
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 8px 20px;
+      border-bottom: 1px solid var(--border-soft);
+      margin-bottom: 16px;
+    }
+    .sidebar-brand svg { width: 22px; height: 22px; color: var(--accent); flex-shrink: 0; }
+    .sidebar-brand .wm {
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      font-size: 13px;
+    }
+    .nav-section {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      padding: 14px 10px 6px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s;
+      user-select: none;
+    }
+    .nav-item:hover {
+      background: var(--bg-elev-2);
+      color: var(--text);
+    }
+    .nav-item.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .nav-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .sidebar-foot {
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-soft);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 10px;
+    }
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      color: var(--accent);
+      display: grid;
+      place-items: center;
+      font-weight: 600;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .sidebar-foot .name {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      transition: background 0.12s, color 0.12s;
+    }
+    .icon-btn:hover { background: var(--bg-elev-2); color: var(--text); }
+    .icon-btn svg { width: 14px; height: 14px; }
+
+    .main {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .topbar {
+      height: 48px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      flex-shrink: 0;
+    }
+    .crumb {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .crumb strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .content {
+      padding: 28px 32px;
+      overflow-y: auto;
+    }
+    .page-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .page-title {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .page-sub {
+      margin: 4px 0 0;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .placeholder {
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      padding: 60px 24px;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 13px;
+      background: var(--bg-elev);
+    }
+    .placeholder strong {
+      display: block;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      box-shadow: var(--shadow-card);
+    }
+    .stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+      font-size: 24px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1;
+    }
+    .stat-sub {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    /* ---------- TRAFFIC LIGHT ---------- */
+    .tl {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+    }
+    .tl-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .tl-green  .tl-dot { background: var(--success); box-shadow: 0 0 6px rgba(34, 197, 94, 0.5); }
+    .tl-yellow .tl-dot { background: var(--warning); box-shadow: 0 0 6px rgba(245, 158, 11, 0.5); }
+    .tl-red    .tl-dot { background: var(--danger);  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5); }
+    .tl-gray   .tl-dot { background: var(--neutral); }
+
+    /* ---------- UTILS ---------- */
+    .hidden { display: none !important; }
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: -2px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* boot loader */
+    .boot {
+      position: fixed; inset: 0;
+      display: grid; place-items: center;
+      background: var(--bg);
+      color: var(--text-muted);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Boot loader (shown until /me responds) -->
+  <div id="boot" class="boot">
+    <div><span class="spinner"></span> &nbsp; TOWER</div>
+  </div>
+
+  <!-- Login screen -->
+  <div id="login" class="login-wrap hidden">
+    <button id="loginThemeToggle" class="theme-toggle-floating" title="Cambiar tema" aria-label="Cambiar tema">
+      <svg id="loginThemeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>
+    </button>
+
+    <form class="login-card" id="loginForm" autocomplete="on">
+      <div class="login-brand">
+        <!-- Chess rook icon -->
+        <svg viewBox="0 0 32 32" fill="currentColor" aria-hidden="true">
+          <path d="M9 9h3v3h2V9h4v3h2V9h3v5l-2 2v7l2 2v1H9v-1l2-2v-7l-2-2V9z"/>
+        </svg>
+        <span class="wm">TOWER</span>
+      </div>
+
+      <h1 class="login-title">Acceso privado</h1>
+      <p class="login-sub">Panel de control de CoachAI Pro.</p>
+
+      <div class="field">
+        <label for="loginUser">Usuario</label>
+        <input id="loginUser" name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required>
+      </div>
+      <div class="field">
+        <label for="loginPass">Contraseña</label>
+        <input id="loginPass" name="password" type="password" autocomplete="current-password" required>
+      </div>
+
+      <button type="submit" id="loginSubmit" class="btn-primary">Ingresar</button>
+
+      <div id="loginError" class="login-error"></div>
+
+      <div class="login-footer">COACHAI · TOWER · v0.1</div>
+    </form>
+  </div>
+
+  <!-- App shell -->
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <svg viewBox="0 0 32 32" fill="currentColor" aria-hidden="true">
+          <path d="M9 9h3v3h2V9h4v3h2V9h3v5l-2 2v7l2 2v1H9v-1l2-2v-7l-2-2V9z"/>
+        </svg>
+        <span class="wm">TOWER</span>
+      </div>
+
+      <div class="nav-section">General</div>
+      <div class="nav-item active" data-route="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" data-route="tenants">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V8l9-5 9 5v13"></path><path d="M9 21v-6h6v6"></path></svg>
+        Tenants
+      </div>
+      <div class="nav-item" data-route="users">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        Usuarios
+      </div>
+
+      <div class="nav-section">Negocio</div>
+      <div class="nav-item" data-route="financiero">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        Financiero
+      </div>
+      <div class="nav-item" data-route="costos">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+        API / Costos
+      </div>
+
+      <div class="nav-section">Sistema</div>
+      <div class="nav-item" data-route="logs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="17" x2="13" y2="17"></line></svg>
+        Logs
+      </div>
+      <div class="nav-item" data-route="config">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        Configuración
+      </div>
+
+      <div class="sidebar-foot">
+        <div id="userAvatar" class="avatar">?</div>
+        <div id="userName" class="name">—</div>
+        <button id="themeToggle" class="icon-btn" title="Cambiar tema" aria-label="Cambiar tema">
+          <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>
+        </button>
+        <button id="logoutBtn" class="icon-btn" title="Cerrar sesión" aria-label="Cerrar sesión">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        </button>
+      </div>
+    </aside>
+
+    <section class="main">
+      <header class="topbar">
+        <div id="crumb" class="crumb"><strong>Dashboard</strong></div>
+        <div class="topbar-actions">
+          <span class="tl tl-gray" title="Estado del sistema"><span class="tl-dot"></span><span class="mono">v0.1</span></span>
+        </div>
+      </header>
+
+      <main id="content" class="content">
+        <!-- Routed content -->
+      </main>
+    </section>
+  </div>
+
+  <script>
+  (() => {
+    // ---------- Theme ----------
+    const THEME_KEY = 'tower.theme';
+    const root = document.documentElement;
+    function applyTheme(t) {
+      root.setAttribute('data-theme', t);
+      try { localStorage.setItem(THEME_KEY, t); } catch {}
+      updateThemeIcons(t);
+    }
+    function updateThemeIcons(t) {
+      const moon = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>`;
+      const sun  = `<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>`;
+      const svg = t === 'dark' ? sun : moon;
+      const a = document.getElementById('themeIcon');
+      const b = document.getElementById('loginThemeIcon');
+      if (a) a.innerHTML = svg;
+      if (b) b.innerHTML = svg;
+    }
+    function toggleTheme() {
+      const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+    }
+    function initTheme() {
+      let t = null;
+      try { t = localStorage.getItem(THEME_KEY); } catch {}
+      if (!t) t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      applyTheme(t);
+    }
+    initTheme();
+
+    document.addEventListener('click', (e) => {
+      const tt = e.target.closest('#themeToggle, #loginThemeToggle');
+      if (tt) { e.preventDefault(); toggleTheme(); }
+    });
+
+    // ---------- DOM refs ----------
+    const $ = (sel) => document.querySelector(sel);
+    const boot = $('#boot');
+    const loginEl = $('#login');
+    const appEl = $('#app');
+    const loginForm = $('#loginForm');
+    const loginError = $('#loginError');
+    const loginSubmit = $('#loginSubmit');
+    const userAvatar = $('#userAvatar');
+    const userName = $('#userName');
+    const contentEl = $('#content');
+    const crumbEl = $('#crumb');
+    const logoutBtn = $('#logoutBtn');
+
+    // ---------- Auth flow ----------
+    let session = null;
+
+    async function api(path, opts = {}) {
+      const res = await fetch(path, {
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+        ...opts,
+      });
+      let data = null;
+      try { data = await res.json(); } catch {}
+      return { ok: res.ok, status: res.status, data };
+    }
+
+    function showError(msg) {
+      loginError.textContent = msg;
+      loginError.classList.add('show');
+    }
+    function clearError() {
+      loginError.textContent = '';
+      loginError.classList.remove('show');
+    }
+
+    async function checkSession() {
+      const { ok, data } = await api('/api/tower/me');
+      if (ok && data && data.ok) {
+        session = data.user;
+        enterApp();
+      } else {
+        showLogin();
+      }
+    }
+
+    function showLogin() {
+      boot.classList.add('hidden');
+      appEl.classList.add('hidden');
+      loginEl.classList.remove('hidden');
+      setTimeout(() => $('#loginUser')?.focus(), 50);
+    }
+
+    function enterApp() {
+      boot.classList.add('hidden');
+      loginEl.classList.add('hidden');
+      appEl.classList.remove('hidden');
+      userName.textContent = session.displayName || session.username;
+      userAvatar.textContent = (session.displayName || session.username || '?').charAt(0).toUpperCase();
+      route('dashboard');
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearError();
+      const username = $('#loginUser').value.trim();
+      const password = $('#loginPass').value;
+      if (!username || !password) { showError('Completá usuario y contraseña.'); return; }
+      loginSubmit.disabled = true;
+      loginSubmit.innerHTML = '<span class="spinner"></span> Verificando...';
+      const { ok, status, data } = await api('/api/tower/login', {
+        method: 'POST',
+        body: JSON.stringify({ username, password }),
+      });
+      loginSubmit.disabled = false;
+      loginSubmit.textContent = 'Ingresar';
+      if (ok && data && data.ok) {
+        session = data.user;
+        $('#loginPass').value = '';
+        enterApp();
+      } else if (status === 401) {
+        showError('Usuario o contraseña incorrectos.');
+      } else {
+        showError('No se pudo iniciar sesión. Probá de nuevo.');
+      }
+    });
+
+    logoutBtn.addEventListener('click', async () => {
+      await api('/api/tower/logout', { method: 'POST' });
+      session = null;
+      showLogin();
+    });
+
+    // ---------- Routing (very light) ----------
+    const ROUTES = {
+      dashboard: {
+        label: 'Dashboard',
+        render: renderDashboard,
+      },
+      tenants: {
+        label: 'Tenants',
+        render: () => placeholder('Tenants', 'Listado de tenants, semáforo de estado, drill-down a cada uno. Llega en Fase 2.'),
+      },
+      users: {
+        label: 'Usuarios',
+        render: () => placeholder('Usuarios', 'Vista global de todas las usuarias (across tenants). Adherencia, actividad, bugs. Fase 2.'),
+      },
+      financiero: {
+        label: 'Financiero',
+        render: () => placeholder('Financiero', 'Suscripciones, pagos, vencimientos. Stripe + Mercado Pago + transferencia manual. Fase 4–6.'),
+      },
+      costos: {
+        label: 'API / Costos',
+        render: () => placeholder('API / Costos', 'Consumo de tokens Anthropic, costo por usuario/tenant, % facturación vs costo. Fase 3.'),
+      },
+      logs: {
+        label: 'Logs',
+        render: () => placeholder('Logs', 'Eventos del sistema, errores, bug reports de usuarias.'),
+      },
+      config: {
+        label: 'Configuración',
+        render: () => placeholder('Configuración', 'Precios por tenant, splits, notificaciones, alertas internas.'),
+      },
+    };
+
+    function route(name) {
+      const r = ROUTES[name] || ROUTES.dashboard;
+      document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.route === name);
+      });
+      crumbEl.innerHTML = `<strong>${r.label}</strong>`;
+      contentEl.innerHTML = '';
+      r.render(contentEl);
+    }
+
+    document.addEventListener('click', (e) => {
+      const ni = e.target.closest('.nav-item');
+      if (ni && ni.dataset.route) {
+        route(ni.dataset.route);
+      }
+    });
+
+    // ---------- Views ----------
+    function placeholder(title, body) {
+      contentEl.innerHTML = `
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">${title}</h1>
+            <p class="page-sub">Sección en construcción.</p>
+          </div>
+        </div>
+        <div class="placeholder">
+          <strong>Próximamente</strong>
+          ${body}
+        </div>
+      `;
+    }
+
+    function renderDashboard() {
+      contentEl.innerHTML = `
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Bienvenido${session?.displayName ? ', ' + escapeHtml(session.displayName) : ''}</h1>
+            <p class="page-sub">Resumen general del ecosistema CoachAI.</p>
+          </div>
+        </div>
+
+        <div class="cards-grid">
+          <div class="stat-card">
+            <div class="stat-label">Tenants activos</div>
+            <div class="stat-value">—</div>
+            <div class="stat-sub">Se conecta a DB en Fase 2</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Usuarias totales</div>
+            <div class="stat-value">—</div>
+            <div class="stat-sub">Se conecta a DB en Fase 2</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">MRR (USD)</div>
+            <div class="stat-value">—</div>
+            <div class="stat-sub">Disponible en Fase 4</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Costo API (mes)</div>
+            <div class="stat-value">—</div>
+            <div class="stat-sub">Disponible en Fase 3</div>
+          </div>
+        </div>
+
+        <div class="cards-grid">
+          <div class="stat-card">
+            <div class="stat-label">Estado del sistema</div>
+            <div class="stat-value mono" style="font-size: 16px;">
+              <span class="tl tl-green"><span class="tl-dot"></span>OK</span>
+            </div>
+            <div class="stat-sub">Login activo · Sesión válida</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Versión Tower</div>
+            <div class="stat-value mono" style="font-size: 16px;">v0.1.0</div>
+            <div class="stat-sub">Fase 1 — Acceso</div>
+          </div>
+        </div>
+
+        <div class="placeholder" style="margin-top: 8px;">
+          <strong>Fase 1 lista ✓</strong>
+          Subdominio + login funcionando. Próximo paso: Fase 2 — datos reales de tenants y usuarias.
+        </div>
+      `;
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[c]));
+    }
+
+    // ---------- Boot ----------
+    checkSession();
+  })();
+  </script>
+</body>
+</html>

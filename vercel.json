@@ -15,6 +15,16 @@
   ],
   "rewrites": [
     {
+      "source": "/",
+      "has": [{ "type": "host", "value": "tower.coachaipro.ai" }],
+      "destination": "/tower/index.html"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "has": [{ "type": "host", "value": "tower.coachaipro.ai" }],
+      "destination": "/tower/$1"
+    },
+    {
       "source": "/jesus",
       "destination": "/index.html"
     },
