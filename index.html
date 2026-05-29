@@ -2834,6 +2834,49 @@ body.app-active:has(.form-wrapper[style*="block"]) { padding-bottom: 0; }
 .cai-alim-summary-kcal strong .total {
   color: var(--muted); font-size: 14px;
 }
+/* Macros row — sits between the kcal/comidas row and the progress bar.
+   Three pills (P/C/G), monospaced numbers so they don't jiggle as they tick. */
+.cai-alim-summary-macros {
+  display: flex;
+  gap: 8px;
+  margin: 6px 0 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.cai-alim-summary-macros .m-pill {
+  flex: 1;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 6px;
+  padding: 5px 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text);
+}
+.cai-alim-summary-macros .m-key {
+  color: var(--accent-bright);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+.cai-alim-summary-macros .m-tot {
+  color: var(--muted);
+  font-size: 10px;
+  margin-left: 2px;
+}
+/* King theme — pink pill */
+body.theme-king .cai-alim-summary-macros .m-pill {
+  background: rgba(255,79,123,0.06) !important;
+  border-color: rgba(255,79,123,0.18) !important;
+  color: var(--text) !important;
+}
+body.theme-king .cai-alim-summary-macros .m-key {
+  color: var(--accent) !important;
+}
+body.theme-king .cai-alim-summary-macros .m-tot {
+  color: var(--muted) !important;
+}
 .cai-alim-progress {
   height: 4px;
   border-radius: 100px;
@@ -11804,6 +11847,14 @@ footer {
         </strong>
       </div>
     </div>
+    <!-- Macros line — sums proportionally as meals get checked. Hidden when
+         the dieta header has no macro targets (older plans without TOTAL
+         ESTIMADO footer). -->
+    <div class="cai-alim-summary-macros" id="alim-summary-macros" style="display:none">
+      <span class="m-pill"><span class="m-key">P</span> <span id="alim-summary-done-prot">0</span><span class="m-tot">/<span id="alim-summary-total-prot">0</span>g</span></span>
+      <span class="m-pill"><span class="m-key">C</span> <span id="alim-summary-done-carbs">0</span><span class="m-tot">/<span id="alim-summary-total-carbs">0</span>g</span></span>
+      <span class="m-pill"><span class="m-key">G</span> <span id="alim-summary-done-fat">0</span><span class="m-tot">/<span id="alim-summary-total-fat">0</span>g</span></span>
+    </div>
     <div class="cai-alim-progress">
       <div class="cai-alim-progress-fill" id="alim-summary-progress" data-empty="true" style="width:0%"></div>
     </div>
@@ -14093,22 +14144,24 @@ FORMATO OBLIGATORIO — lista compacta, una línea por comida, sin markdown deco
 🥗 Plan nutricional — [Nombre] | Target: Xkcal/día | P:Xg C:Xg G:Xg
 
 LUNES
-Des: [alimento + cantidad] — Xcal
-Alm: [alimento + cantidad] — Xcal
-Mer: [alimento + cantidad] — Xcal
-Cena: [alimento + cantidad] — Xcal
-Total: Xkcal
+Des: [alimento + cantidad] — Xcal · P:Xg C:Xg G:Xg
+Alm: [alimento + cantidad] — Xcal · P:Xg C:Xg G:Xg
+Mer: [alimento + cantidad] — Xcal · P:Xg C:Xg G:Xg
+Cena: [alimento + cantidad] — Xcal · P:Xg C:Xg G:Xg
+Total: Xkcal · P:Xg C:Xg G:Xg
 
 MARTES
-Des: [alimento + cantidad] — Xcal
-Alm: [alimento + cantidad] — Xcal
-Mer: [alimento + cantidad] — Xcal
-Cena: [alimento + cantidad] — Xcal
-Total: Xkcal
+Des: [alimento + cantidad] — Xcal · P:Xg C:Xg G:Xg
+Alm: [alimento + cantidad] — Xcal · P:Xg C:Xg G:Xg
+Mer: [alimento + cantidad] — Xcal · P:Xg C:Xg G:Xg
+Cena: [alimento + cantidad] — Xcal · P:Xg C:Xg G:Xg
+Total: Xkcal · P:Xg C:Xg G:Xg
 
 MIÉRCOLES
 Des: ...
 [continuar igual hasta DOMINGO]
+
+OBLIGATORIO: cada comida lleva sus 4 valores numéricos (kcal + P/C/G en gramos). La suma de los 7 días debe estar cerca del target del header. Los valores son aproximados pero realistas — calculalos a partir de los alimentos y cantidades reales que pusiste.
 
 ¿Dudas sobre el plan? Cargá tus comidas en Mi Alimentación 📝
 
@@ -14206,23 +14259,25 @@ MANDATORY FORMAT — compact list, one line per meal, no decorative markdown. Ca
 🥗 Nutrition plan — [Name] | Target: Xkcal/day | P:Xg C:Xg F:Xg
 
 MONDAY
-Bkf: [food + quantity] — Xcal
-Lnc: [food + quantity] — Xcal
-Snk: [food + quantity] — Xcal
-Din: [food + quantity] — Xcal
-Total: Xkcal
+Bkf: [food + quantity] — Xcal · P:Xg C:Xg F:Xg
+Lnc: [food + quantity] — Xcal · P:Xg C:Xg F:Xg
+Snk: [food + quantity] — Xcal · P:Xg C:Xg F:Xg
+Din: [food + quantity] — Xcal · P:Xg C:Xg F:Xg
+Total: Xkcal · P:Xg C:Xg F:Xg
 
 TUESDAY
-Bkf: [food + quantity] — Xcal
-Lnc: [food + quantity] — Xcal
-Snk: [food + quantity] — Xcal
-Din: [food + quantity] — Xcal
-Total: Xkcal
+Bkf: [food + quantity] — Xcal · P:Xg C:Xg F:Xg
+Lnc: [food + quantity] — Xcal · P:Xg C:Xg F:Xg
+Snk: [food + quantity] — Xcal · P:Xg C:Xg F:Xg
+Din: [food + quantity] — Xcal · P:Xg C:Xg F:Xg
+Total: Xkcal · P:Xg C:Xg F:Xg
 
 WEDNESDAY
 [same pattern]
 
 [continue identically through THURSDAY, FRIDAY, SATURDAY, SUNDAY]
+
+MANDATORY: every meal must include all 4 numeric values (kcal + P/C/F grams). The sum across all 7 days should be close to the target in the header. Values are approximate but realistic — calculate them from the actual foods and quantities you listed.
 
 Any questions about the plan? Log your meals in My Day 📝
 
@@ -15105,18 +15160,62 @@ async function renderMiAlimentacion() {
 
   // Stats for the hero summary
   let doneCount = 0, doneKcal = 0, totalKcal = 0;
+  // Macros: prefer REAL per-meal values (new format includes them in the
+  // dieta line "— X kcal · P:Xg C:Xg G:Xg"). If a meal is missing macros
+  // (legacy plan or coach didn't include), fall back to proportional
+  // estimation from the daily header target (kcal-weighted).
+  let doneProt = 0, doneCarbs = 0, doneFat = 0;
+  let totalProt = 0, totalCarbs = 0, totalFat = 0;
+  let plannedDayKcal = 0;
+  day.meals.forEach(m => { plannedDayKcal += (m.kcal || 0); });
+  const haveMacroTargets = !!(_alimHeader && (_alimHeader.targetProt || _alimHeader.targetCarbs || _alimHeader.targetFat));
+  // Detect whether at least one meal has real macros parsed.
+  const anyRealMacros = day.meals.some(m => m.prot != null || m.carbs != null || m.fat != null);
+
   day.meals.forEach((m, j) => {
     const st = estado[`d${i}m${j}`] || {};
     const kcal = st.customText ? (st.customKcal || 0) : (m.kcal || 0);
     totalKcal += kcal;
     if (st.cumplido) { doneCount++; doneKcal += kcal; }
+
+    // Per-meal macros: real values first, proportional fallback.
+    let mProt = null, mCarbs = null, mFat = null;
+    if (m.prot != null || m.carbs != null || m.fat != null) {
+      mProt = m.prot || 0; mCarbs = m.carbs || 0; mFat = m.fat || 0;
+    } else if (haveMacroTargets && plannedDayKcal > 0) {
+      const ratio = (m.kcal || 0) / plannedDayKcal;
+      mProt  = Math.round((_alimHeader.targetProt  || 0) * ratio);
+      mCarbs = Math.round((_alimHeader.targetCarbs || 0) * ratio);
+      mFat   = Math.round((_alimHeader.targetFat   || 0) * ratio);
+    }
+    if (mProt != null) {
+      totalProt  += mProt;  totalCarbs += mCarbs;  totalFat += mFat;
+      if (st.cumplido) { doneProt += mProt; doneCarbs += mCarbs; doneFat += mFat; }
+    }
   });
+  // Macros row visible if EITHER real values exist OR we can estimate.
+  const showMacros = anyRealMacros || haveMacroTargets;
 
   // Update summary card
   document.getElementById('alim-summary-eyebrow').textContent = `${lang==='es'?'HOY':'TODAY'} · ${day.dayName}`;
   document.getElementById('alim-summary-count').textContent = `${doneCount}/${day.meals.length}`;
   document.getElementById('alim-summary-done-kcal').textContent = doneKcal;
   document.getElementById('alim-summary-total-kcal').textContent = totalKcal;
+  // Macros row — visible if real per-meal macros OR daily targets available
+  const macrosRow = document.getElementById('alim-summary-macros');
+  if (macrosRow) {
+    if (showMacros) {
+      macrosRow.style.display = '';
+      document.getElementById('alim-summary-done-prot').textContent  = doneProt;
+      document.getElementById('alim-summary-done-carbs').textContent = doneCarbs;
+      document.getElementById('alim-summary-done-fat').textContent   = doneFat;
+      document.getElementById('alim-summary-total-prot').textContent  = totalProt;
+      document.getElementById('alim-summary-total-carbs').textContent = totalCarbs;
+      document.getElementById('alim-summary-total-fat').textContent   = totalFat;
+    } else {
+      macrosRow.style.display = 'none';
+    }
+  }
   const progress = document.getElementById('alim-summary-progress');
   const pct = day.meals.length ? Math.round((doneCount / day.meals.length) * 100) : 0;
   progress.style.width = pct + '%';
@@ -18065,13 +18164,19 @@ function parseDietaContenido(text) {
     const meta = MEAL_PREFIX[prefix];
     if (!meta) continue;
     const rest = mm[2].trim();
-    const kcalMatch = rest.match(/[—–-]\s*(\d+)\s*(?:kcal|cal)\s*$/i);
-    let content = rest, kcal = null;
-    if (kcalMatch) {
-      kcal = parseInt(kcalMatch[1]);
-      content = rest.substring(0, kcalMatch.index).replace(/[—–-]\s*$/, '').trim();
+    // Match "— 450 kcal · P:25g C:42g G:8g" (new format) OR just "— 450 kcal" (legacy).
+    // Macros are optional; if missing they default to null (summary card will
+    // fall back to proportional estimation from the daily header targets).
+    const extMatch = rest.match(/[—–-]\s*(\d+)\s*(?:kcal|cal)\s*(?:[·|·\-]\s*P\s*:?\s*(\d+)\s*g?\s*[,·\s]*C\s*:?\s*(\d+)\s*g?\s*[,·\s]*[GF]\s*:?\s*(\d+)\s*g?)?\s*$/i);
+    let content = rest, kcal = null, prot = null, carbs = null, fat = null;
+    if (extMatch) {
+      kcal = parseInt(extMatch[1]);
+      if (extMatch[2]) prot  = parseInt(extMatch[2]);
+      if (extMatch[3]) carbs = parseInt(extMatch[3]);
+      if (extMatch[4]) fat   = parseInt(extMatch[4]);
+      content = rest.substring(0, extMatch.index).replace(/[—–-]\s*$/, '').trim();
     }
-    current.meals.push({ key: meta.key, name: meta.name, emoji: meta.emoji, content, kcal });
+    current.meals.push({ key: meta.key, name: meta.name, emoji: meta.emoji, content, kcal, prot, carbs, fat });
   }
   if (current) days.push(current);
   return { header, days };
