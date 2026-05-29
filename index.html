@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260529-1856-macros-exceeded-visible">
+<meta name="app-version" content="20260529-1908-animaciones-kcal-logro-y-alerta">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -2866,6 +2866,53 @@ body .cai-alim-summary-kcal.kcal-exceeded #alim-summary-done-kcal,
 body .cai-alim-summary-kcal.kcal-exceeded #alim-summary-total-kcal {
   color: #B91C1C !important;
   transition: color 0.3s ease;
+}
+/* === Transition animations (one-shot on state change) === */
+/* Achievement: bouncy pulse + green glow halo. Dispara cuando el estado
+   pasa de "under" a "achieved" — comunica "logro" sin saltar fuera de la
+   card. ~800ms total. */
+@keyframes kcal-achieve-pulse {
+  0%   { transform: scale(1);    text-shadow: 0 0 0 rgba(21,128,61,0); }
+  25%  { transform: scale(1.12); text-shadow: 0 0 12px rgba(21,128,61,0.55); }
+  60%  { transform: scale(0.98); text-shadow: 0 0 6px rgba(21,128,61,0.30); }
+  100% { transform: scale(1);    text-shadow: 0 0 0 rgba(21,128,61,0); }
+}
+/* Aplicamos la animación al CONTENEDOR completo (no solo al <strong>) para
+   que el "kcal" eyebrow + los números pulsen/sacudan juntos como una sola
+   unidad visual. transform-origin: right respeta el alineado a la derecha. */
+.cai-alim-summary-kcal.kcal-anim-achieve {
+  animation: kcal-achieve-pulse 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: right center;
+}
+
+/* Exceeded: shake horizontal sutil + el 🚨 emoji aparece y se queda
+   mientras el estado siga en rojo. El shake es UNA pasada cuando
+   transiciona de un estado a exceeded — no se repite cada render. */
+@keyframes kcal-exceed-shake {
+  0%   { transform: translateX(0); }
+  20%  { transform: translateX(-4px); }
+  40%  { transform: translateX(4px); }
+  60%  { transform: translateX(-3px); }
+  80%  { transform: translateX(3px); }
+  100% { transform: translateX(0); }
+}
+.cai-alim-summary-kcal.kcal-anim-exceed {
+  animation: kcal-exceed-shake 0.45s ease-in-out;
+}
+
+/* 🔥 emoji injected after the target number when state = exceeded.
+   Fade-in suave la primera vez que aparece. Queda hasta que el estado
+   cambie (volver a achieved/under destildando algo). */
+.cai-alim-summary-kcal .kcal-fire-emoji {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 16px;
+  vertical-align: -1px;
+  animation: kcal-fire-fadein 0.4s ease-out;
+}
+@keyframes kcal-fire-fadein {
+  0%   { opacity: 0; transform: scale(0.5) rotate(-20deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
 }
 /* Macros row — sits between the kcal/comidas row and the progress bar.
    Three pills (P/C/G), monospaced numbers so they don't jiggle as they tick. */
@@ -15544,10 +15591,48 @@ async function renderMiAlimentacion() {
   if (kcalBlock && targetKcal > 0) {
     kcalBlock.classList.remove('kcal-achieved', 'kcal-exceeded');
     const tolerance = targetKcal * 0.03;
+    let newKcalState = 'under';
     if (doneKcal > targetKcal + tolerance) {
       kcalBlock.classList.add('kcal-exceeded');
+      newKcalState = 'exceeded';
     } else if (doneKcal >= targetKcal - tolerance && doneKcal > 0) {
       kcalBlock.classList.add('kcal-achieved');
+      newKcalState = 'achieved';
+    }
+    // Transition animation — only fires when the state actually CHANGES, so
+    // we don't re-animate on every render. Stored on the element itself so
+    // the tracking survives if renderMiAlimentacion gets called multiple times.
+    const prevState = kcalBlock.dataset.kcalState || null;
+    if (prevState !== null && prevState !== newKcalState) {
+      if (newKcalState === 'achieved') {
+        kcalBlock.classList.remove('kcal-anim-achieve');
+        // Force reflow so the animation re-triggers if class was already there
+        void kcalBlock.offsetWidth;
+        kcalBlock.classList.add('kcal-anim-achieve');
+        setTimeout(() => kcalBlock.classList.remove('kcal-anim-achieve'), 850);
+      } else if (newKcalState === 'exceeded') {
+        kcalBlock.classList.remove('kcal-anim-exceed');
+        void kcalBlock.offsetWidth;
+        kcalBlock.classList.add('kcal-anim-exceed');
+        setTimeout(() => kcalBlock.classList.remove('kcal-anim-exceed'), 500);
+      }
+    }
+    kcalBlock.dataset.kcalState = newKcalState;
+    // 🚨 sirena emoji — visible mientras estado siga en exceeded.
+    const targetSpan = document.getElementById('alim-summary-total-kcal');
+    const existingFire = kcalBlock.querySelector('.kcal-fire-emoji');
+    if (newKcalState === 'exceeded') {
+      if (!existingFire && targetSpan) {
+        const fire = document.createElement('span');
+        fire.className = 'kcal-fire-emoji';
+        fire.textContent = '🚨';
+        fire.setAttribute('aria-label', 'excedido');
+        // Insert AFTER the .total span (so fire appears at the end of the line)
+        const totalSpan = kcalBlock.querySelector('.total');
+        totalSpan?.parentNode.insertBefore(fire, totalSpan.nextSibling);
+      }
+    } else if (existingFire) {
+      existingFire.remove();
     }
   }
   // Macros row — visible if real per-meal macros OR daily targets available
