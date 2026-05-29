@@ -7731,6 +7731,24 @@ footer {
   font-size: 10.5px; color: var(--muted); text-align: center;
   margin-top: 6px; line-height: 1.5; padding: 0 4px;
 }
+/* Tip about precision — sits between the textarea and the action buttons.
+   Slightly more visible than .alim-edit-hint because it shapes how the
+   user types, which directly affects the AI estimate's accuracy. */
+.alim-edit-tip {
+  font-size: 11.5px;
+  color: var(--accent-bright);
+  background: rgba(124,106,255,0.07);
+  border: 1px solid rgba(124,106,255,0.18);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin: 10px 0 4px;
+  line-height: 1.4;
+}
+body.theme-king .alim-edit-tip {
+  color: var(--accent) !important;
+  background: rgba(255,79,123,0.06) !important;
+  border-color: rgba(255,79,123,0.20) !important;
+}
 .entreno-serie-saved {
   font-size: 11px; color: var(--accent3);
   opacity: 0; transition: opacity 0.3s; margin-left: 2px;
@@ -11917,13 +11935,14 @@ footer {
     <button class="alim-edit-close" onclick="closeAlimEdit()" aria-label="Cerrar">×</button>
     <div class="alim-edit-title" id="alim-edit-title">—</div>
     <div class="alim-edit-planned" id="alim-edit-planned"></div>
-    <textarea id="alim-edit-text" placeholder="Ej: 200g de pechuga + 200g arroz integral + ensalada" rows="3"></textarea>
+    <textarea id="alim-edit-text" placeholder="Ej: pechuga de pollo 200g + arroz integral 100g + ensalada de hojas verdes" rows="3"></textarea>
+    <div class="alim-edit-tip" data-es="✨ Tip: cargá alimentos con cantidad (ej: pechuga 200g, arroz 100g, palta 1/2). Cuanto más preciso lo escribas, más exactos van a ser los kcal y macros." data-en="✨ Tip: include foods with quantities (e.g. chicken 200g, rice 100g, avocado 1/2). The more precise you write it, the more accurate kcal and macros will be.">✨ Tip: cargá alimentos con cantidad (ej: pechuga 200g, arroz 100g, palta 1/2). Cuanto más preciso lo escribas, más exactos van a ser los kcal y macros.</div>
     <div class="alim-edit-actions">
       <button class="alim-edit-cancel" onclick="closeAlimEdit()" type="button">Cancelar</button>
       <button class="alim-edit-save" id="alim-edit-save-btn" onclick="saveAlimEdit()" type="button">Guardar</button>
     </div>
     <div class="alim-edit-status" id="alim-edit-status"></div>
-    <div class="alim-edit-hint">Si modificás el texto la IA estima las calorías nuevas (tarda unos segundos). Si lo dejás igual, se cuenta como cumplido con las calorías del plan.</div>
+    <div class="alim-edit-hint">Si modificás el texto la IA calcula los kcal + macros nuevos (tarda unos segundos). Si lo dejás igual, se cuenta como cumplido con los valores del plan.</div>
   </div>
 </div>
 
