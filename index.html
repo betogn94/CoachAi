@@ -17446,7 +17446,7 @@ function renderHomeProximaComida() {
 
   if (!_alimDays || _alimDays.length === 0) {
     nameEl.textContent = isEs ? 'Sin plan' : 'No plan';
-    if (detailEl) detailEl.innerHTML = `<div class="cai-home-card-body-row" style="color:var(--muted2)">${isEs?'Pedile tu dieta al coach':'Ask your coach for a plan'}</div>`;
+    if (detailEl) detailEl.innerHTML = `<div class="cai-home-card-body-row" style="color:var(--muted2)"><span>${isEs?'Pedile tu dieta al coach':'Ask your coach for a plan'}</span></div>`;
     return;
   }
 
@@ -17465,7 +17465,7 @@ function renderHomeProximaComida() {
 
   if (!next) {
     nameEl.textContent = isEs ? '¡Día completo!' : 'All done!';
-    if (detailEl) detailEl.innerHTML = `<div class="cai-home-card-body-row" style="color:var(--accent3)">✓ ${isEs?'Tildaste todas las comidas de hoy':'All meals checked off today'}</div>`;
+    if (detailEl) detailEl.innerHTML = `<div class="cai-home-card-body-row" style="color:var(--accent3)"><span>✓ ${isEs?'Tildaste todas las comidas de hoy':'All meals checked off today'}</span></div>`;
     return;
   }
 
@@ -17478,7 +17478,7 @@ function renderHomeProximaComida() {
       <span>${_esc(l)}</span>
     </div>
   `).join('');
-  if (detailEl) detailEl.innerHTML = bullets || `<div class="cai-home-card-body-row" style="color:var(--muted2)">${_esc(next.content || '')}</div>`;
+  if (detailEl) detailEl.innerHTML = bullets || `<div class="cai-home-card-body-row" style="color:var(--muted2)"><span>${_esc(next.content || '')}</span></div>`;
 }
 
 // Hoy toca — uses the same buildTrainingDayMapping helper we built for Mi Entreno.
@@ -17496,13 +17496,13 @@ function renderHomeHoyToca() {
   const mapping = buildTrainingDayMapping();
   if (!mapping) {
     nameEl.textContent = isEs ? 'Sin rutina' : 'No routine';
-    if (detailEl) detailEl.innerHTML = `<div class="cai-home-card-body-row" style="color:var(--muted2)">${isEs?'Pedile tu rutina al coach':'Ask your coach for a routine'}</div>`;
+    if (detailEl) detailEl.innerHTML = `<div class="cai-home-card-body-row" style="color:var(--muted2)"><span>${isEs?'Pedile tu rutina al coach':'Ask your coach for a routine'}</span></div>`;
     return;
   }
 
   if (mapping.isTodayRest) {
     nameEl.textContent = isEs ? 'DESCANSO' : 'REST';
-    if (detailEl) detailEl.innerHTML = `<div class="cai-home-card-body-row" style="color:var(--muted)">${isEs?'Día de recuperación':'Recovery day'}</div>`;
+    if (detailEl) detailEl.innerHTML = `<div class="cai-home-card-body-row" style="color:var(--muted)"><span>${isEs?'Día de recuperación':'Recovery day'}</span></div>`;
     return;
   }
 
