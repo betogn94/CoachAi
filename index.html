@@ -18243,7 +18243,13 @@ function synthesizePlainTextDieta(text) {
       const p = (line.match(/P\s*:\s*(\d+)/i) || [])[1];
       const c = (line.match(/C\s*:\s*(\d+)/i) || [])[1];
       const g = (line.match(/G\s*:\s*(\d+)/i) || [])[1];
-      if (p || c || g) current.kcal = parseInt(p || 0) * 4 + parseInt(c || 0) * 4 + parseInt(g || 0) * 9;
+      if (p || c || g) {
+        current.kcal = parseInt(p || 0) * 4 + parseInt(c || 0) * 4 + parseInt(g || 0) * 9;
+        // Store macros too — the summary card uses them to sum per-comida.
+        current.prot  = p ? parseInt(p) : null;
+        current.carbs = c ? parseInt(c) : null;
+        current.fat   = g ? parseInt(g) : null;
+      }
       continue;
     }
     if (current) {
