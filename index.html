@@ -4503,6 +4503,22 @@ input:focus, select:focus, textarea:focus {
 select option { background: var(--surface2); }
 textarea { resize: vertical; min-height: 80px; }
 
+/* ===== iOS input auto-zoom fix =====
+   iOS Safari auto-zooms in when the user focuses ANY input/textarea/select
+   with font-size < 16px (and does NOT zoom back out on blur — leaves the
+   viewport stuck at ~110%, pushing the topbar off-screen). The fix is to
+   force >= 16px on all form fields on mobile-sized screens. We use
+   !important to override component-specific rules without having to edit
+   each one. Non-text inputs (checkbox/radio) are excluded because their
+   font-size doesn't affect rendering. */
+@media (max-width: 768px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 /* CHIP SELECTOR */
 .chip-group {
   display: flex;
