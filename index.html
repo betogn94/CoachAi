@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260529-1808-auto-update-fix">
+<meta name="app-version" content="20260529-1819-parser-rutina-fix">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -18229,6 +18229,35 @@ function parseRutinaContenido(text) {
     return false;
   };
   const isRest = s => /descanso/i.test(s) && !isExercise(s) && !isNoteLine(s) && !/·\s*desc\s|descanso:\s*\d+\s*s/i.test(s);
+  // Intensifier annotation that BELONGS to the previous exercise, even though
+  // it may contain words like "rep" or have an em-dash that would otherwise
+  // match isExercise. Real examples from AI-generated routines:
+  //   "Intens set 3: drop set — al llegar a fallo, bajá el peso 30%..."
+  //   "Intens set 2: rest-pause — 5s descanso, 5 reps, etc"
+  //   "Intensificador: superset con curl martillo"
+  const isIntensifierLine = s => {
+    const c = clean(s);
+    return /^(intens(?:ificador)?[\s.]*(?:set\s*\d+)?|drop\s+set|rest[\s-]?pause|superset|cluster\s+set|pausa\s+muerta)\b\s*[:.]/i.test(c);
+  };
+  // Section break — anything that signals "the day blocks ended". After a
+  // section break, bullets like "- Pesá cada semana..." (general tips) must
+  // NOT be appended to the previous day as fake exercises. Triggers on:
+  //   - "---" or "===" separators
+  //   - Emoji-prefixed non-day sections (🏃 Cardio, 🛋️ Descanso, 📌 Notas,
+  //     💡 Tips, ⚠️ Importante)
+  //   - Bold section titles that aren't days ("**Clave para resultados:**")
+  const isSectionBreak = s => {
+    const trimmed = s.trim();
+    if (/^-{3,}$/.test(trimmed)) return true;
+    if (/^={3,}$/.test(trimmed)) return true;
+    if (isDayHeader(s)) return false; // protect actual day headers
+    // Emoji prefixes that mark a non-day section
+    if (/^(🏃|🛋️|📌|💡|⚠️|🎯|📝)\s/.test(trimmed)) return true;
+    // "Clave para resultados:", "Tips importantes", "Notas:", "Recordatorios:"
+    const c = clean(s).toLowerCase();
+    if (/^(clave\b|tips?\b|notas?\b|consejos?\b|importante\b|recordatorios?\b|cardio\s*:|descanso\s*:)/i.test(c)) return true;
+    return false;
+  };
   const isSkippable = s => {
     const c = clean(s).toLowerCase();
     if (!c) return true;
@@ -18252,11 +18281,30 @@ function parseRutinaContenido(text) {
       current = null;
       continue;
     }
-    if (isSkippable(s)) continue;
+    // Section break — bullets/lines after this point must NOT attach to the
+    // previous day as fake exercises ("Clave para resultados", "Tips", etc).
+    if (isSectionBreak(s)) {
+      current = null;
+      continue;
+    }
+    if (isSkippable(s)) {
+      current = null; // also reset on separators so post-day bullets don't leak
+      continue;
+    }
 
     if (isDayHeader(s)) {
       current = { label: clean(s), isRest: false, exercises: [] };
       days.push(current);
+      continue;
+    }
+
+    // Intensifier lines are notes for the previous exercise — check BEFORE
+    // isExercise because they often contain words like "rep" that would
+    // otherwise match the exercise pattern.
+    if (isIntensifierLine(s) && current && current.exercises.length) {
+      const last = current.exercises[current.exercises.length - 1];
+      const noteBody = clean(s);
+      last.note = last.note ? `${last.note} • ${noteBody}` : noteBody;
       continue;
     }
 
