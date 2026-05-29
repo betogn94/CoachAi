@@ -3567,6 +3567,14 @@ button.cai-home-card:hover { border-color: rgba(124,106,255,0.20); }
   font-size: 22px; letter-spacing: 1px; line-height: 1.0;
   color: var(--text);
   margin-top: 4px;
+  /* Cap titles at 2 lines max — keeps card heights uniform even when the
+     plan day name is long ("CUÁDRICEPS/GLÚTEOS + ISQUIOS" etc). */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
 }
 .cai-home-card-title-grad {
   background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%);
