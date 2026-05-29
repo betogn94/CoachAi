@@ -3582,10 +3582,29 @@ button.cai-home-card:hover { border-color: rgba(124,106,255,0.20); }
   display: flex; flex-direction: column; gap: 4px;
 }
 .cai-home-card-body-row {
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: flex-start; gap: 6px;
   font-size: 12px;
+  min-width: 0; /* allow children to truncate inside flex */
 }
-.cai-home-card-body-row svg { width: 14px; height: 14px; color: var(--accent3); flex-shrink: 0; }
+.cai-home-card-body-row svg {
+  width: 14px; height: 14px; color: var(--accent3); flex-shrink: 0;
+  margin-top: 2px;
+}
+/* Long meal/exercise text wraps but is capped at 2 visual lines with
+   ellipsis — keeps home cards visually balanced regardless of content
+   length. Without this, "Yogur griego 200g + granola 45g + nueces 25g"
+   on a 165px-wide mobile column pushes the card to 7+ lines tall and
+   forces the neighbor card to stretch to match. */
+.cai-home-card-body-row > span {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+  flex: 1; min-width: 0;
+  line-height: 1.35;
+}
 .cai-home-card-cta {
   margin-top: 10px;
   align-self: flex-end;
