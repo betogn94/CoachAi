@@ -15230,12 +15230,39 @@ async function syncProgresoDiarioForDay(dayIdx) {
       cols[meal.key] = text;
     }
   }
-  // Macro estimate from daily header targets + kcal ratio. If header is
-  // missing (older dieta plans without TOTAL ESTIMADO footer) we fall back
-  // to null so we don't fabricate numbers from nothing.
+  // Compute macros consumed: prefer REAL per-meal values (custom from
+  // edited meals, or planned from dieta line). Only fall back to the
+  // proportional header-based estimate if no real per-meal macros exist
+  // anywhere in the day. The real-value path is what gives Mi Alimentación
+  // (and the weekly cierre analysis) accurate adherence numbers.
   let prot = null, carbs = null, fat = null;
-  if (hasAny && _alimHeader && plannedKcal > 0) {
-    const ratio = Math.min(totalKcal / plannedKcal, 1.5);  // clamp wild edits
+  let sumProtReal = 0, sumCarbsReal = 0, sumFatReal = 0, anyRealMacros = false;
+  for (let j = 0; j < day.meals.length; j++) {
+    const meal = day.meals[j];
+    const st = _alimEstado[`d${dayIdx}m${j}`] || {};
+    if (!st.cumplido) continue;
+    if (st.customText) {
+      // Edited meal — use customProt/customCarbs/customFat if AI returned them
+      if (st.customProt != null || st.customCarbs != null || st.customFat != null) {
+        sumProtReal  += st.customProt  || 0;
+        sumCarbsReal += st.customCarbs || 0;
+        sumFatReal   += st.customFat   || 0;
+        anyRealMacros = true;
+      }
+    } else if (meal.prot != null || meal.carbs != null || meal.fat != null) {
+      // Planned meal with real macros from the dieta line
+      sumProtReal  += meal.prot  || 0;
+      sumCarbsReal += meal.carbs || 0;
+      sumFatReal   += meal.fat   || 0;
+      anyRealMacros = true;
+    }
+  }
+  if (anyRealMacros) {
+    prot = sumProtReal; carbs = sumCarbsReal; fat = sumFatReal;
+  } else if (hasAny && _alimHeader && plannedKcal > 0) {
+    // Fallback: proportional from header target (legacy plans without
+    // per-meal macros).
+    const ratio = Math.min(totalKcal / plannedKcal, 1.5);
     if (_alimHeader.targetProt)  prot  = Math.round(_alimHeader.targetProt  * ratio);
     if (_alimHeader.targetCarbs) carbs = Math.round(_alimHeader.targetCarbs * ratio);
     if (_alimHeader.targetFat)   fat   = Math.round(_alimHeader.targetFat   * ratio);
@@ -15359,9 +15386,15 @@ async function renderMiAlimentacion() {
     totalKcal += kcal;
     if (st.cumplido) { doneCount++; doneKcal += kcal; }
 
-    // Per-meal macros: real values first, proportional fallback.
+    // Per-meal macros — source priority:
+    //   1. Custom macros from edited meal (st.customProt/Carbs/Fat) — AI-estimated
+    //   2. Planned macros (m.prot/carbs/fat) from the dieta line
+    //   3. Proportional fallback from daily header targets
     let mProt = null, mCarbs = null, mFat = null;
-    if (m.prot != null || m.carbs != null || m.fat != null) {
+    const hasCustom = st.customText && (st.customProt != null || st.customCarbs != null || st.customFat != null);
+    if (hasCustom) {
+      mProt = st.customProt || 0; mCarbs = st.customCarbs || 0; mFat = st.customFat || 0;
+    } else if (m.prot != null || m.carbs != null || m.fat != null) {
       mProt = m.prot || 0; mCarbs = m.carbs || 0; mFat = m.fat || 0;
     } else if (haveMacroTargets && plannedDayKcal > 0) {
       const ratio = (m.kcal || 0) / plannedDayKcal;
@@ -15420,12 +15453,18 @@ async function renderMiAlimentacion() {
     const showText = _displayMealContent(st.customText || m.content);
     const showKcal = st.customText ? st.customKcal : m.kcal;
     const hour = _ALIM_MEAL_HOURS[m.key] || '';
-    // Macros line: shown discreetly under the kcal chip when the meal
-    // has real per-meal macros parsed (new dieta format). Edited meals
-    // don't have macros (st.customText), so we only show on planned data.
-    const showMacros = !st.customText && (m.prot != null || m.carbs != null || m.fat != null);
-    const macrosLine = showMacros
-      ? `<span class="cai-meal-macros">P${m.prot ?? 0} · C${m.carbs ?? 0} · G${m.fat ?? 0}</span>`
+    // Macros line: shown discreetly under the kcal chip. Source priority:
+    //   1. Custom macros (st.customProt etc) if the meal was edited and the
+    //      AI returned macros from estimateMealNutrition
+    //   2. Planned macros (m.prot etc) if not edited and the dieta line had them
+    //   3. Hidden entirely for legacy plans / failed estimations
+    const hasCustomMacros = st.customText && (st.customProt != null || st.customCarbs != null || st.customFat != null);
+    const hasPlannedMacros = !st.customText && (m.prot != null || m.carbs != null || m.fat != null);
+    const macP  = hasCustomMacros ? (st.customProt  ?? 0) : (m.prot  ?? 0);
+    const macC  = hasCustomMacros ? (st.customCarbs ?? 0) : (m.carbs ?? 0);
+    const macG  = hasCustomMacros ? (st.customFat   ?? 0) : (m.fat   ?? 0);
+    const macrosLine = (hasCustomMacros || hasPlannedMacros)
+      ? `<span class="cai-meal-macros">P${macP} · C${macC} · G${macG}</span>`
       : '';
     return `
       <div class="cai-meal${cumplido ? ' done' : ''}">
@@ -15502,14 +15541,41 @@ function closeAlimEdit(event) {
   _alimEditCtx = null;
 }
 
-async function estimateKcalForMeal(mealText) {
+// Estimates kcal + macros (P/C/G) for a single meal described in natural
+// language. Same rigor as the main dieta-generation prompt: reference values
+// for common foods + math self-check before returning.
+//
+// Returns { kcal, prot, carbs, fat } where each is a non-negative integer,
+// or null if the call/parse failed.
+async function estimateMealNutrition(mealText) {
   try {
     const resp = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        system: 'Sos un nutricionista experto. Estimás las calorías totales de UNA comida descrita en lenguaje natural. Respondés SOLO con un JSON válido: {"kcal":<número entero>}. Sin texto adicional.',
-        messages: [{ role: 'user', content: `Estimá las calorías de esta comida (una sola):\n${mealText}\n\nRespondé SOLO con: {"kcal":número}` }]
+        system: `Sos un nutricionista experto. Calculás kcal + macros (P/C/G en gramos) de UNA comida descrita en lenguaje natural por una clienta.
+
+REGLAS:
+1. Cantidades cocidas salvo que diga "crudo" o "seco".
+2. Si no especifica cantidad, asumí porciones estándar (pollo 150g, arroz 200g cocido, papa 200g, huevo 50g c/u).
+3. Usá tu conocimiento nutricional para calcular con precisión.
+4. VALIDACIÓN OBLIGATORIA antes de responder: |kcal - (P*4 + C*4 + G*9)| ≤ 5% del kcal. Si no cuadra, ajustá.
+5. Si los datos son muy vagos ("algo rico", "lo que había") → todos los valores en 0.
+
+TABLA RÁPIDA (por 100g cocido salvo aclaración):
+  Pollo pechuga: 165kcal/P31C0G4 · Carne magra: 180/27/0/7 · Carne molida magra: 170/22/0/9
+  Merluza/pescado blanco: 75/17/0/1 · Salmón: 210/22/0/13 · Atún natural: 110/25/0/1
+  Huevo entero(1): 72/6/0/5 · Clara(1): 17/4/0/0 · Whey 1 scoop(30g): 120/24/3/2
+  Yogur griego: 60/10/4/1.5 · Leche entera 100ml: 65/3.3/5/3.6 · Leche descrem 100ml: 35/3.4/5/0.1
+  Avena cruda: 380/13/67/7 · Arroz blanco cocido: 130/3/28/0.3 · Pan integral: 250/9/45/4
+  Tostada arroz(1): 30/0.7/7/0.2 · Tostada integral(1): 65/2.5/12/1
+  Papa cocida: 78/2/17/0 · Batata: 90/1.6/21/0 · Banana med: 105/1.3/27/0.4 · Manzana med: 95/0.5/25/0.3
+  Cereal arroz inflado: 380/6/87/1 · Pasta cocida: 130/5/25/1 · Granola: 450/10/60/18
+  Aceite oliva(1cda 10ml): 90/0/0/10 · Palta 1/2: 120/1.5/6/11 · Almendras 30g: 175/6/6/15
+  Verduras verdes 100g: 30/2.5/5/0 · Ensalada mix 100g: 20/1/4/0
+
+Respondé SOLO con JSON: {"kcal":<int>,"prot":<int>,"carbs":<int>,"fat":<int>}. Sin texto adicional.`,
+        messages: [{ role: 'user', content: `Estimá la comida (una sola):\n${mealText}` }]
       })
     });
     if (!resp.ok) return null;
@@ -15518,11 +15584,22 @@ async function estimateKcalForMeal(mealText) {
     const m = txt.match(/\{[\s\S]*?\}/);
     if (!m) return null;
     const parsed = JSON.parse(m[0]);
-    return (typeof parsed.kcal === 'number' && parsed.kcal > 0) ? Math.round(parsed.kcal) : null;
+    const kcal  = typeof parsed.kcal  === 'number' && parsed.kcal  >= 0 ? Math.round(parsed.kcal)  : null;
+    const prot  = typeof parsed.prot  === 'number' && parsed.prot  >= 0 ? Math.round(parsed.prot)  : null;
+    const carbs = typeof parsed.carbs === 'number' && parsed.carbs >= 0 ? Math.round(parsed.carbs) : null;
+    const fat   = typeof parsed.fat   === 'number' && parsed.fat   >= 0 ? Math.round(parsed.fat)   : null;
+    if (kcal == null) return null;
+    return { kcal, prot, carbs, fat };
   } catch (e) {
-    console.error('[CoachAI] estimateKcalForMeal:', e);
+    console.error('[CoachAI] estimateMealNutrition:', e);
     return null;
   }
+}
+
+// Backward-compat alias — some legacy code paths may still call this.
+async function estimateKcalForMeal(mealText) {
+  const r = await estimateMealNutrition(mealText);
+  return r?.kcal ?? null;
 }
 
 async function saveAlimEdit() {
@@ -15533,33 +15610,48 @@ async function saveAlimEdit() {
   const btn = document.getElementById('alim-edit-save-btn');
   if (!newText) { status.textContent = lang === 'es' ? '⚠ Escribí qué comiste.' : '⚠ Write what you ate.'; return; }
   btn.disabled = true;
-  btn.textContent = lang === 'es' ? '⏳ Estimando kcal...' : '⏳ Estimating kcal...';
-  status.textContent = lang === 'es' ? 'Pidiéndole a la IA que calcule las calorías de esta comida...' : 'Asking AI to estimate calories...';
+  btn.textContent = lang === 'es' ? '⏳ Calculando...' : '⏳ Calculating...';
+  status.textContent = lang === 'es' ? 'Pidiéndole a la IA kcal + macros precisos de esta comida...' : 'Asking AI for accurate kcal + macros...';
 
   const meal = _alimDays[i]?.meals[j];
   const plannedTextUnchanged = meal && newText === meal.content;
-  // If the user didn't actually change the text, treat it as a plain "cumplí" — no AI call needed, use planned kcal
-  let kcal = null;
+  // If the user didn't actually change the text, treat it as a plain "cumplí"
+  // — no AI call needed, use planned kcal AND planned macros (if present).
+  let kcal = null, prot = null, carbs = null, fat = null;
   if (plannedTextUnchanged) {
-    kcal = meal.kcal || null;
+    kcal  = meal.kcal  || null;
+    prot  = meal.prot  ?? null;
+    carbs = meal.carbs ?? null;
+    fat   = meal.fat   ?? null;
   } else {
-    kcal = await estimateKcalForMeal(newText);
+    const r = await estimateMealNutrition(newText);
+    if (r) { kcal = r.kcal; prot = r.prot; carbs = r.carbs; fat = r.fat; }
   }
 
   const sk = `d${i}m${j}`;
   _alimEstado[sk] = {
     cumplido: true,
-    customText: plannedTextUnchanged ? null : newText,
-    customKcal: plannedTextUnchanged ? null : kcal,
+    customText:  plannedTextUnchanged ? null : newText,
+    customKcal:  plannedTextUnchanged ? null : kcal,
+    // Custom macros persist too. Even if the AI returned null for some, we
+    // store the rest — Mi Alimentación renders them iff at least one is set.
+    customProt:  plannedTextUnchanged ? null : prot,
+    customCarbs: plannedTextUnchanged ? null : carbs,
+    customFat:   plannedTextUnchanged ? null : fat,
   };
   _alimDirtyDays.add(i);
   _alimSaveDebounced();
 
+  const macroSummary = [
+    prot  != null ? `P${prot}` : null,
+    carbs != null ? `C${carbs}` : null,
+    fat   != null ? `G${fat}` : null,
+  ].filter(Boolean).join('·');
   status.textContent = plannedTextUnchanged
     ? (lang === 'es' ? '✓ Marcado como cumplido' : '✓ Marked as done')
     : (kcal != null
-        ? (lang === 'es' ? `✓ Guardado · ${kcal} kcal estimadas` : `✓ Saved · ${kcal} kcal estimated`)
-        : (lang === 'es' ? '✓ Guardado (no pudimos estimar kcal)' : '✓ Saved (could not estimate kcal)'));
+        ? (lang === 'es' ? `✓ Guardado · ${kcal} kcal${macroSummary ? ' · ' + macroSummary : ''}` : `✓ Saved · ${kcal} kcal${macroSummary ? ' · ' + macroSummary : ''}`)
+        : (lang === 'es' ? '✓ Guardado (no pudimos calcular)' : '✓ Saved (could not estimate)'));
   btn.textContent = lang === 'es' ? '✓ Listo' : '✓ Done';
 
   setTimeout(() => {
