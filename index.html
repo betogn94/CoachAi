@@ -12329,6 +12329,27 @@ async function saveWeeklyPlan(tipo, contenido) {
     updated_at: new Date().toISOString()
   }, { onConflict: 'usuario_id,tipo,semana_iso' }).select().single();
   if (error) { console.error('saveWeeklyPlan error', error); return null; }
+
+  // Capa 2 — validate dieta consistency and log issues to Tower-readable
+  // table. Fire-and-forget; never block plan persistence on validation.
+  if (tipo === 'dieta' && data) {
+    try {
+      const parsed = parseDietaContenido(contenido);
+      const issues = validateDietaConsistency(parsed);
+      if (issues.length) {
+        const rows = issues.map(i => ({
+          usuario_id: currentUser.id,
+          plan_id: data.id,
+          source: 'ai', // saveWeeklyPlan is invoked from the AI chat flow
+          severity: i.severity,
+          issue_type: i.type,
+          details: i,
+        }));
+        sbClient.from('dieta_consistency_alerts').insert(rows)
+          .then(({ error }) => { if (error) console.warn('[dieta validator]', error); });
+      }
+    } catch (e) { console.warn('[dieta validator] runtime:', e); }
+  }
   return data;
 }
 
@@ -14161,9 +14182,67 @@ MIÉRCOLES
 Des: ...
 [continuar igual hasta DOMINGO]
 
-OBLIGATORIO: cada comida lleva sus 4 valores numéricos (kcal + P/C/G en gramos). La suma de los 7 días debe estar cerca del target del header. Los valores son aproximados pero realistas — calculalos a partir de los alimentos y cantidades reales que pusiste.
-
 ¿Dudas sobre el plan? Cargá tus comidas en Mi Alimentación 📝
+
+VALIDACIÓN OBLIGATORIA — antes de entregar, verificá cada comida:
+1. Math check: |kcal_anunciado − (P·4 + C·4 + G·9)| ≤ 5% del kcal_anunciado.
+   Si Cena dice "— 380 kcal · P:36g C:54g G:2g": 36·4+54·4+2·9 = 378 → diff 2 kcal → ✓ pasa.
+2. Coherencia plato↔kcal: el kcal anunciado DEBE reflejar las cantidades REALES.
+   Ejemplo de ERROR: "merluza 180g + papa 300g — 200 kcal" → 180g de merluza solos ya son 135 kcal, más 300g de papa son ~234 kcal → total real ≥ 370 kcal. NO pongas 200.
+   Usá la TABLA DE REFERENCIA abajo para calcular.
+3. Total del día (suma de las 4-5 comidas) dentro de ±10% del Target del header.
+
+Si alguna regla no cuadra, ajustá ANTES de mostrar. La clienta pesa la comida y nota errores al toque.
+
+TABLA DE REFERENCIA NUTRICIONAL (alimentos comunes — Argentina/LatAm). Por cada 100g cocido salvo aclaración:
+
+PROTEÍNAS:
+  Pollo pechuga: 165kcal · P31 C0 G4
+  Carne magra (lomo/vacío): 180kcal · P27 C0 G7
+  Carne molida magra: 170kcal · P22 C0 G9
+  Merluza/blanco: 75kcal · P17 C0 G1
+  Salmón: 210kcal · P22 C0 G13
+  Atún natural (lata escurrida): 110kcal · P25 C0 G1
+  Huevo entero (1, ~50g): 72kcal · P6 C0 G5
+  Clara (1, ~33g): 17kcal · P4 C0 G0
+  Whey 1 scoop (30g): 120kcal · P24 C3 G2
+
+LÁCTEOS:
+  Yogur griego natural: 60kcal · P10 C4 G1.5
+  Leche entera (100ml): 65kcal · P3.3 C5 G3.6
+  Leche descremada (100ml): 35kcal · P3.4 C5 G0.1
+  Queso untable light: 130kcal · P12 C3 G8
+  Queso fresco/port salut: 290kcal · P22 C1 G22
+
+CARBOHIDRATOS:
+  Avena cruda: 380kcal · P13 C67 G7
+  Arroz blanco COCIDO: 130kcal · P3 C28 G0.3
+  Arroz integral COCIDO: 125kcal · P3 C26 G1
+  Pan integral: 250kcal · P9 C45 G4
+  Tostada arroz (1, ~9g): 30kcal · P0.7 C7 G0.2
+  Tostada integral (1, ~25g): 65kcal · P2.5 C12 G1
+  Papa cocida: 78kcal · P2 C17 G0
+  Batata cocida: 90kcal · P1.6 C21 G0
+  Banana mediana (~120g): 105kcal · P1.3 C27 G0.4
+  Manzana mediana (~180g): 95kcal · P0.5 C25 G0.3
+  Cereal arroz inflado: 380kcal · P6 C87 G1
+  Pasta cocida: 130kcal · P5 C25 G1
+  Granola: 450kcal · P10 C60 G18
+  Quinoa cocida: 120kcal · P4 C21 G2
+
+GRASAS / FRUTOS SECOS:
+  Aceite oliva (1 cucharada, 10ml): 90kcal · P0 C0 G10
+  Palta 1/2 (~75g): 120kcal · P1.5 C6 G11
+  Almendras (30g): 175kcal · P6 C6 G15
+  Nueces (30g): 200kcal · P5 C4 G19
+
+VERDURAS (asumir 100g):
+  Verdes (brócoli/espinaca/etc): 30kcal · P2.5 C5 G0
+  Tomate: 18kcal · P1 C4 G0
+  Ensalada mix: 20kcal · P1 C4 G0
+  Zanahoria: 41kcal · P1 C10 G0
+
+Si usás un alimento que no está acá, estimá conservadoramente y validá el math check.
 
 REGLAS CRÍTICAS:
 - NUNCA uses tablas (|pipes|). NUNCA uses "...similar para el resto". Los 7 días son OBLIGATORIOS.
@@ -14277,9 +14356,66 @@ WEDNESDAY
 
 [continue identically through THURSDAY, FRIDAY, SATURDAY, SUNDAY]
 
-MANDATORY: every meal must include all 4 numeric values (kcal + P/C/F grams). The sum across all 7 days should be close to the target in the header. Values are approximate but realistic — calculate them from the actual foods and quantities you listed.
-
 Any questions about the plan? Log your meals in My Day 📝
+
+MANDATORY VALIDATION — before delivering, verify each meal:
+1. Math check: |kcal_announced − (P·4 + C·4 + F·9)| ≤ 5% of kcal_announced.
+   Example: "Din — 380 kcal · P:36g C:54g F:2g" → 36·4+54·4+2·9 = 378 → diff 2 → ✓.
+2. Plate↔kcal coherence: announced kcal MUST reflect the REAL quantities.
+   ERROR example: "180g hake + 300g potato — 200 kcal" → 180g hake alone is ~135 kcal, 300g potato ~234 kcal → real total ≥ 370 kcal. NEVER announce 200.
+   Use the REFERENCE TABLE below.
+3. Day total (sum of meals) within ±10% of header Target.
+
+If any rule fails, fix BEFORE showing. Clients weigh their food and catch errors immediately.
+
+NUTRITIONAL REFERENCE TABLE (common foods — Argentina/LatAm). Per 100g cooked unless noted:
+
+PROTEINS:
+  Chicken breast: 165kcal · P31 C0 F4
+  Lean beef (loin): 180kcal · P27 C0 F7
+  Lean ground beef: 170kcal · P22 C0 F9
+  White fish/hake: 75kcal · P17 C0 F1
+  Salmon: 210kcal · P22 C0 F13
+  Canned tuna (in water): 110kcal · P25 C0 F1
+  Whole egg (1, ~50g): 72kcal · P6 C0 F5
+  Egg white (1, ~33g): 17kcal · P4 C0 F0
+  Whey 1 scoop (30g): 120kcal · P24 C3 F2
+
+DAIRY:
+  Plain Greek yogurt: 60kcal · P10 C4 F1.5
+  Whole milk (100ml): 65kcal · P3.3 C5 F3.6
+  Skim milk (100ml): 35kcal · P3.4 C5 F0.1
+  Light cream cheese: 130kcal · P12 C3 F8
+
+CARBS:
+  Raw oats: 380kcal · P13 C67 F7
+  White rice COOKED: 130kcal · P3 C28 F0.3
+  Brown rice COOKED: 125kcal · P3 C26 F1
+  Whole grain bread: 250kcal · P9 C45 F4
+  Rice cake (1, ~9g): 30kcal · P0.7 C7 F0.2
+  Whole grain toast (1, ~25g): 65kcal · P2.5 C12 F1
+  Cooked potato: 78kcal · P2 C17 F0
+  Cooked sweet potato: 90kcal · P1.6 C21 F0
+  Medium banana (~120g): 105kcal · P1.3 C27 F0.4
+  Medium apple (~180g): 95kcal · P0.5 C25 F0.3
+  Puffed rice cereal: 380kcal · P6 C87 F1
+  Cooked pasta: 130kcal · P5 C25 F1
+  Granola: 450kcal · P10 C60 F18
+  Cooked quinoa: 120kcal · P4 C21 F2
+
+FATS / NUTS:
+  Olive oil (1 tbsp, 10ml): 90kcal · P0 C0 F10
+  Avocado 1/2 (~75g): 120kcal · P1.5 C6 F11
+  Almonds (30g): 175kcal · P6 C6 F15
+  Walnuts (30g): 200kcal · P5 C4 F19
+
+VEGETABLES (assume 100g):
+  Greens (broccoli/spinach/etc): 30kcal · P2.5 C5 F0
+  Tomato: 18kcal · P1 C4 F0
+  Mixed salad: 20kcal · P1 C4 F0
+  Carrot: 41kcal · P1 C10 F0
+
+If you use a food not in the table, estimate conservatively and run the math check.
 
 CRITICAL RULES:
 - NEVER use tables (|pipes|). NEVER write "...similar for the rest". All 7 days MANDATORY.
@@ -14372,8 +14508,28 @@ async function migrateClientPreloadedPlans() {
     if (inv.pre_dieta)  rows.push({ usuario_id: uid, tipo: 'dieta',  semana_iso: semanaIso, fecha_entrega: fechaEntrega, contenido: inv.pre_dieta });
     if (!rows.length) return null;
 
-    const { error } = await sbClient.from('planes_semanales').insert(rows);
+    const { data: insertedRows, error } = await sbClient.from('planes_semanales').insert(rows).select();
     if (error) { console.warn('[CoachAI] migration insert failed:', error); return null; }
+
+    // Capa 2 — validate the migrated dieta (source='migration' so Tower can
+    // distinguish coach-typed issues from AI-generated). Don't block on this.
+    try {
+      if (inv.pre_dieta && insertedRows?.length) {
+        const dietaRow = insertedRows.find(r => r.tipo === 'dieta');
+        if (dietaRow) {
+          const parsed = parseDietaContenido(inv.pre_dieta);
+          const issues = validateDietaConsistency(parsed);
+          if (issues.length) {
+            const alertRows = issues.map(i => ({
+              usuario_id: uid, plan_id: dietaRow.id, source: 'migration',
+              severity: i.severity, issue_type: i.type, details: i,
+            }));
+            sbClient.from('dieta_consistency_alerts').insert(alertRows)
+              .then(({ error: e }) => { if (e) console.warn('[migration validator]', e); });
+          }
+        }
+      }
+    } catch (e) { console.warn('[migration validator] runtime:', e); }
 
     // One-shot: clear the pre-loaded text so a second login doesn't re-insert
     await sbClient.from('beta_invitados')
@@ -18180,6 +18336,105 @@ function parseDietaContenido(text) {
   }
   if (current) days.push(current);
   return { header, days };
+}
+
+// ============================
+// DIETA CONSISTENCY VALIDATOR
+// ============================
+// Runs after a parser succeeds. Returns an array of issues; empty array = clean.
+// Caller (persistPlan, migration flow) can ship issues to dieta_consistency_alerts
+// for Tower-side visibility — without blocking the user.
+//
+// Issue shapes:
+//   { type: 'macros_math',   severity, dayName, mealName, kcal, computed, deltaPct }
+//   { type: 'day_total',     severity, dayName, sumKcal, targetKcal, deltaPct }
+//   { type: 'meal_kcal_low', severity, dayName, mealName, kcal, expectedMinKcal, content }
+//
+// Heuristic for meal_kcal_low (Capa 1 rule #2): protein-rich foods give cheap
+// minimum-kcal estimates from gram quantities mentioned in content.
+function validateDietaConsistency(parsed) {
+  const issues = [];
+  if (!parsed || !parsed.days || !parsed.days.length) return issues;
+
+  // Minimum kcal per gram for common protein-dense foods (cooked).
+  // Conservative lower-bounds so we only flag clear errors, not normal variance.
+  const KCAL_PER_G = {
+    pollo: 1.5, pechuga: 1.5, pavo: 1.5,
+    carne: 1.7, lomo: 1.7, vacio: 1.7, bife: 1.7,
+    merluza: 0.7, pescado: 0.7, atun: 1.0,
+    salmon: 2.0,
+    papa: 0.75, batata: 0.85,
+    arroz: 1.2, // cooked. Raw would be ~3.5 but coaches usually mean cooked.
+    avena: 3.7, // raw
+  };
+
+  const stripAcc = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  function expectedMinKcalFromContent(content) {
+    if (!content) return 0;
+    const lower = stripAcc(content.toLowerCase());
+    let total = 0;
+    // Find "<food> Xg" patterns and accumulate
+    for (const food in KCAL_PER_G) {
+      // Match "food ... 150g" or "150g food"
+      const re = new RegExp(`(?:${food}[^\\d]{0,20}(\\d{2,4})\\s*g)|((?:\\d{2,4})\\s*g[^\\d]{0,20}${food})`, 'gi');
+      let m;
+      while ((m = re.exec(lower)) !== null) {
+        const grams = parseInt(m[1] || m[2]);
+        if (grams && grams >= 30 && grams <= 600) total += grams * KCAL_PER_G[food];
+      }
+    }
+    return Math.round(total);
+  }
+
+  for (const day of parsed.days) {
+    let dayKcalSum = 0;
+    for (const m of day.meals) {
+      if (m.kcal == null) continue;
+      dayKcalSum += m.kcal;
+
+      // Issue 1: macros math (only if macros present)
+      if (m.prot != null && m.carbs != null && m.fat != null) {
+        const computed = m.prot * 4 + m.carbs * 4 + m.fat * 9;
+        const delta = Math.abs(m.kcal - computed);
+        const deltaPct = m.kcal > 0 ? delta / m.kcal : 0;
+        if (deltaPct > 0.05) {
+          issues.push({
+            type: 'macros_math',
+            severity: deltaPct > 0.15 ? 'error' : 'warning',
+            dayName: day.dayName, mealName: m.name,
+            kcal: m.kcal, computed, deltaPct: Math.round(deltaPct * 1000) / 10,
+          });
+        }
+      }
+
+      // Issue 2: meal kcal implausibly low for the food quantities
+      const expectedMin = expectedMinKcalFromContent(m.content);
+      if (expectedMin > 0 && m.kcal < expectedMin * 0.7) {
+        issues.push({
+          type: 'meal_kcal_low',
+          severity: m.kcal < expectedMin * 0.5 ? 'error' : 'warning',
+          dayName: day.dayName, mealName: m.name,
+          kcal: m.kcal, expectedMinKcal: expectedMin, content: m.content,
+        });
+      }
+    }
+
+    // Issue 3: day total vs header target (if header has one)
+    if (parsed.header && parsed.header.targetKcal && dayKcalSum > 0) {
+      const target = parsed.header.targetKcal;
+      const deltaPct = Math.abs(dayKcalSum - target) / target;
+      if (deltaPct > 0.10) {
+        issues.push({
+          type: 'day_total',
+          severity: deltaPct > 0.20 ? 'error' : 'warning',
+          dayName: day.dayName,
+          sumKcal: dayKcalSum, targetKcal: target,
+          deltaPct: Math.round(deltaPct * 1000) / 10,
+        });
+      }
+    }
+  }
+  return issues;
 }
 
 // Plain-text dieta → structured days. Used when a coach pastes a single-day

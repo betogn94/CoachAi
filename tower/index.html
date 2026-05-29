@@ -985,6 +985,12 @@
         API / Costos
       </div>
 
+      <div class="nav-section">Calidad</div>
+      <div class="nav-item" data-route="dieta_alerts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        Alertas dietas
+      </div>
+
       <div class="nav-section">Sistema</div>
       <div class="nav-item" data-route="logs">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="17" x2="13" y2="17"></line></svg>
@@ -1299,6 +1305,7 @@
       users:        { label: 'Usuarios',      render: () => placeholder('Usuarios', 'Vista global de todos los usuarios (across tenants). Llega luego — entrá por Tenants → click un tenant para ver sus usuarios.') },
       financiero:   { label: 'Financiero',    render: () => placeholder('Financiero', 'Suscripciones, pagos, vencimientos. Stripe + Mercado Pago + transferencia manual. Fase 4–6.') },
       costos:       { label: 'API / Costos',  render: renderCostos },
+      dieta_alerts: { label: 'Alertas dietas', render: renderDietaAlerts },
       logs:         { label: 'Logs',          render: () => placeholder('Logs', 'Eventos del sistema, errores, bug reports de usuarios. Próxima iteración.') },
       config:       { label: 'Configuración', render: () => placeholder('Configuración', 'Precios por tenant, splits, notificaciones, alertas internas.') },
     };
@@ -1693,6 +1700,125 @@
           else { toast('No se pudo eliminar', 'error'); }
         });
       });
+    }
+
+    // ---------- Views: ALERTAS DE DIETAS ----------
+    async function renderDietaAlerts(el) {
+      el.innerHTML = `
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Alertas de dietas</h1>
+            <p class="page-sub">Inconsistencias detectadas en planes nutricionales (AI + migraciones). Las clientas no las ven.</p>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <select id="da_filter_severity" class="btn">
+              <option value="">Todas las severidades</option>
+              <option value="error">Solo errores</option>
+              <option value="warning">Solo warnings</option>
+            </select>
+            <select id="da_filter_source" class="btn">
+              <option value="">Todas las fuentes</option>
+              <option value="ai">AI generadas</option>
+              <option value="migration">Migradas</option>
+            </select>
+          </div>
+        </div>
+        <div id="daTotals" class="cards-grid"></div>
+        <div id="daTable" class="table-wrap" style="margin-top:8px;"><div class="placeholder"><span class="spinner"></span> &nbsp; Cargando alertas…</div></div>
+      `;
+      document.getElementById('da_filter_severity').addEventListener('change', loadDietaAlerts);
+      document.getElementById('da_filter_source').addEventListener('change', loadDietaAlerts);
+      await loadDietaAlerts();
+    }
+
+    async function loadDietaAlerts() {
+      const sev = document.getElementById('da_filter_severity')?.value || '';
+      const src = document.getElementById('da_filter_source')?.value || '';
+      const params = ['resolved=false'];
+      if (sev) params.push('severity=' + sev);
+      if (src) params.push('source=' + src);
+      const wrap = document.getElementById('daTable');
+      const totalsEl = document.getElementById('daTotals');
+      const { ok, data } = await api('/api/tower/dieta_alerts?' + params.join('&'));
+      if (!ok || !data?.ok) {
+        wrap.innerHTML = `<div class="placeholder"><strong>Error</strong>${escapeHtml(data?.detail || data?.error || 'No se pudo cargar')}</div>`;
+        return;
+      }
+      const c = data.counts;
+      totalsEl.innerHTML = `
+        ${statCard('Alertas abiertas', fmtInt(c.total), 'Sin resolver')}
+        ${statCard('Errores', fmtInt(c.by_severity.error || 0), 'Severidad alta')}
+        ${statCard('Warnings', fmtInt(c.by_severity.warning || 0), 'Severidad media')}
+        ${statCard('Por AI / Migración', `${fmtInt(c.by_source.ai || 0)} / ${fmtInt(c.by_source.migration || 0)}`, 'Origen del plan')}
+      `;
+      const rows = data.alerts;
+      if (!rows.length) {
+        wrap.innerHTML = `<div class="placeholder"><strong>Sin alertas 🎯</strong>Todas las dietas pasan validación.</div>`;
+        return;
+      }
+      wrap.innerHTML = `
+        <table class="data-table">
+          <thead><tr>
+            <th>Severidad</th>
+            <th>Tipo</th>
+            <th>Usuario</th>
+            <th>Origen</th>
+            <th>Detalle</th>
+            <th>Fecha</th>
+            <th></th>
+          </tr></thead>
+          <tbody>
+            ${rows.map(r => renderAlertRow(r)).join('')}
+          </tbody>
+        </table>
+      `;
+      wrap.querySelectorAll('[data-resolve]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.resolve;
+          const { ok } = await api('/api/tower/dieta_alerts', {
+            method: 'POST', body: JSON.stringify({ ids: [id], resolved: true }),
+          });
+          if (ok) { toast('Alerta resuelta', 'success'); loadDietaAlerts(); }
+          else { toast('No se pudo resolver', 'error'); }
+        });
+      });
+    }
+
+    function renderAlertRow(r) {
+      const sevBadge = r.severity === 'error'
+        ? '<span class="badge badge-danger">ERROR</span>'
+        : '<span class="badge badge-warning">WARNING</span>';
+      const typeLabel = {
+        macros_math:   'Macros ≠ kcal',
+        meal_kcal_low: 'kcal bajo vs porciones',
+        day_total:     'Total día fuera de target',
+      }[r.issue_type] || r.issue_type;
+      const u = r.usuarios || {};
+      const d = r.details || {};
+      let detail = '';
+      if (r.issue_type === 'macros_math') {
+        detail = `${d.dayName} · ${d.mealName}: anunciado <strong>${d.kcal} kcal</strong>, macros suman <strong>${d.computed} kcal</strong> (${d.deltaPct}% diff)`;
+      } else if (r.issue_type === 'meal_kcal_low') {
+        detail = `${d.dayName} · ${d.mealName}: anunciado <strong>${d.kcal} kcal</strong> pero las porciones ya suman ≥ <strong>${d.expectedMinKcal} kcal</strong>`;
+      } else if (r.issue_type === 'day_total') {
+        detail = `${d.dayName}: total día <strong>${d.sumKcal} kcal</strong> vs target <strong>${d.targetKcal} kcal</strong> (${d.deltaPct}% diff)`;
+      } else {
+        detail = JSON.stringify(d).slice(0, 100);
+      }
+      return `
+        <tr>
+          <td>${sevBadge}</td>
+          <td>${escapeHtml(typeLabel)}</td>
+          <td>
+            <div style="font-weight:500;">${escapeHtml(u.nombre || '—')}</div>
+            <div class="cell-mono cell-dim" style="font-size:11px;">${escapeHtml(u.email || '')}</div>
+          </td>
+          <td><span class="badge">${escapeHtml(r.source)}</span></td>
+          <td style="max-width:340px;">${detail}</td>
+          <td class="cell-dim">${fmtRelative(r.created_at)}</td>
+          <td class="cell-right"><button class="btn btn-primary-sm" data-resolve="${escapeHtml(r.id)}" title="Marcar como resuelta">✓</button></td>
+        </tr>
+      `;
     }
 
     async function openAddCostModal() {
