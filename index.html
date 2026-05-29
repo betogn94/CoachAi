@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260529-1852-kcal-color-block-completo">
+<meta name="app-version" content="20260529-1856-macros-exceeded-visible">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15468,7 +15468,12 @@ async function renderMiAlimentacion() {
   // (legacy plan or coach didn't include), fall back to proportional
   // estimation from the daily header target (kcal-weighted).
   let doneProt = 0, doneCarbs = 0, doneFat = 0;
+  // totalProt/Carbs/Fat = sum of EFFECTIVE macros (mixing custom + planned).
+  // plannedProt/Carbs/Fat = sum of PLANNED macros only (coach's target).
+  // We display "done / planned" so when user edits a meal up the target
+  // stays fixed and exceeded macros show naturally (P 200/170g).
   let totalProt = 0, totalCarbs = 0, totalFat = 0;
+  let plannedProt = 0, plannedCarbs = 0, plannedFat = 0;
   let plannedDayKcal = 0;
   day.meals.forEach(m => { plannedDayKcal += (m.kcal || 0); });
   const haveMacroTargets = !!(_alimHeader && (_alimHeader.targetProt || _alimHeader.targetCarbs || _alimHeader.targetFat));
@@ -15481,7 +15486,23 @@ async function renderMiAlimentacion() {
     totalKcal += kcal;
     if (st.cumplido) { doneCount++; doneKcal += kcal; }
 
-    // Per-meal macros — source priority:
+    // Accumulate PLANNED macros (always from m.prot/carbs/fat — never custom)
+    // for the fixed target display. Falls back to header-based estimation
+    // for legacy plans without per-meal macros.
+    let plannedM_P = 0, plannedM_C = 0, plannedM_F = 0;
+    if (m.prot != null || m.carbs != null || m.fat != null) {
+      plannedM_P = m.prot || 0; plannedM_C = m.carbs || 0; plannedM_F = m.fat || 0;
+    } else if (haveMacroTargets && plannedDayKcal > 0) {
+      const ratio = (m.kcal || 0) / plannedDayKcal;
+      plannedM_P = Math.round((_alimHeader.targetProt  || 0) * ratio);
+      plannedM_C = Math.round((_alimHeader.targetCarbs || 0) * ratio);
+      plannedM_F = Math.round((_alimHeader.targetFat   || 0) * ratio);
+    }
+    plannedProt  += plannedM_P;
+    plannedCarbs += plannedM_C;
+    plannedFat   += plannedM_F;
+
+    // Per-meal macros for the DONE side — source priority:
     //   1. Custom macros from edited meal (st.customProt/Carbs/Fat) — AI-estimated
     //   2. Planned macros (m.prot/carbs/fat) from the dieta line
     //   3. Proportional fallback from daily header targets
@@ -15492,10 +15513,7 @@ async function renderMiAlimentacion() {
     } else if (m.prot != null || m.carbs != null || m.fat != null) {
       mProt = m.prot || 0; mCarbs = m.carbs || 0; mFat = m.fat || 0;
     } else if (haveMacroTargets && plannedDayKcal > 0) {
-      const ratio = (m.kcal || 0) / plannedDayKcal;
-      mProt  = Math.round((_alimHeader.targetProt  || 0) * ratio);
-      mCarbs = Math.round((_alimHeader.targetCarbs || 0) * ratio);
-      mFat   = Math.round((_alimHeader.targetFat   || 0) * ratio);
+      mProt = plannedM_P; mCarbs = plannedM_C; mFat = plannedM_F;
     }
     if (mProt != null) {
       totalProt  += mProt;  totalCarbs += mCarbs;  totalFat += mFat;
@@ -15540,9 +15558,12 @@ async function renderMiAlimentacion() {
       document.getElementById('alim-summary-done-prot').textContent  = doneProt;
       document.getElementById('alim-summary-done-carbs').textContent = doneCarbs;
       document.getElementById('alim-summary-done-fat').textContent   = doneFat;
-      document.getElementById('alim-summary-total-prot').textContent  = totalProt;
-      document.getElementById('alim-summary-total-carbs').textContent = totalCarbs;
-      document.getElementById('alim-summary-total-fat').textContent   = totalFat;
+      // Show PLANNED macros as the target (fixed) — not totalProt/etc
+      // which mixes custom edits and would hide exceeded states the same
+      // way the kcal fix does.
+      document.getElementById('alim-summary-total-prot').textContent  = plannedProt;
+      document.getElementById('alim-summary-total-carbs').textContent = plannedCarbs;
+      document.getElementById('alim-summary-total-fat').textContent   = plannedFat;
     } else {
       macrosRow.style.display = 'none';
     }
