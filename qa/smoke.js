@@ -190,12 +190,14 @@ async function main() {
         // Override fetch for /api/chat to return a long, plan-shaped reply
         // that triggers the persist gate. Different content per tipo so the
         // type-detection works correctly.
+        // New format: every meal includes per-meal macros (P:Xg C:Xg G:Xg) so
+        // the parser's macros extraction + the summary card sum get exercised.
         const buildDietaReply = () =>
           'Plan nutricional — TestB | Target: 2280 kcal/dia | P:171g C:228g G:76g\n\n' +
-          'LUNES\nDesayuno: avena 50g + leche 200ml + plátano — 320 kcal\nAlmuerzo: pollo 200g + arroz 150g + brócoli — 620 kcal\nMerienda: yogur + nueces — 280 kcal\nCena: salmón 180g + batata 200g — 540 kcal\n\n' +
-          'MARTES\nDesayuno: huevos 3 + avena 40g — 340 kcal\nAlmuerzo: ternera 180g + quinoa 120g — 580 kcal\nMerienda: queso + frutas — 250 kcal\nCena: pollo 200g + verduras — 480 kcal\n\n' +
-          'MIERCOLES\nDesayuno: tostadas + palta + huevos — 410 kcal\nAlmuerzo: atún + arroz + ensalada — 560 kcal\nMerienda: licuado proteína — 320 kcal\nCena: pavo + papas — 520 kcal\n\n' +
-          'JUEVES\nDesayuno: avena + frutos rojos — 360 kcal\nAlmuerzo: pollo + arroz integral — 600 kcal\nMerienda: yogur griego — 240 kcal\nCena: pescado + verduras — 460 kcal\n';
+          'LUNES\nDesayuno: avena 50g + leche 200ml + plátano — 320 kcal · P:15g C:50g G:5g\nAlmuerzo: pollo 200g + arroz 150g + brócoli — 620 kcal · P:55g C:65g G:12g\nMerienda: yogur + nueces — 280 kcal · P:18g C:15g G:14g\nCena: salmón 180g + batata 200g — 540 kcal · P:38g C:42g G:20g\n\n' +
+          'MARTES\nDesayuno: huevos 3 + avena 40g — 340 kcal · P:22g C:35g G:13g\nAlmuerzo: ternera 180g + quinoa 120g — 580 kcal · P:50g C:55g G:15g\nMerienda: queso + frutas — 250 kcal · P:14g C:20g G:13g\nCena: pollo 200g + verduras — 480 kcal · P:55g C:18g G:18g\n\n' +
+          'MIERCOLES\nDesayuno: tostadas + palta + huevos — 410 kcal · P:22g C:30g G:22g\nAlmuerzo: atún + arroz + ensalada — 560 kcal · P:45g C:60g G:12g\nMerienda: licuado proteína — 320 kcal · P:35g C:30g G:6g\nCena: pavo + papas — 520 kcal · P:50g C:40g G:15g\n\n' +
+          'JUEVES\nDesayuno: avena + frutos rojos — 360 kcal · P:14g C:55g G:8g\nAlmuerzo: pollo + arroz integral — 600 kcal · P:50g C:65g G:14g\nMerienda: yogur griego — 240 kcal · P:25g C:18g G:8g\nCena: pescado + verduras — 460 kcal · P:42g C:30g G:18g\n';
         // Routine body + per-persona CARDIO line appended at the end.
         // (The parser does a top-down scan for the first CARDIO line so
         // position doesn't matter, but the AI prompt places it after the
@@ -378,6 +380,108 @@ async function main() {
         return !!w && getComputedStyle(w).display !== 'none' && w.offsetHeight > 100;
       });
       if (!ok) throw new Error('diario-wrapper not visible / empty after showDiario()');
+      st.pass();
+    } catch (e) { st.fail(e); }
+
+    // --- Step 10b: Per-meal macros parsed from dieta ---
+    st = startStep('dieta_macros_per_meal_parsed');
+    try {
+      const r = await page.evaluate(() => {
+        if (typeof _alimDays === 'undefined' || !_alimDays?.length) return { error: 'no _alimDays loaded' };
+        // Check every meal of every day has at least one of prot/carbs/fat set
+        const sample = _alimDays[0].meals[0]; // first meal
+        const allHaveMacros = _alimDays.every(d => d.meals.every(m => m.prot != null && m.carbs != null && m.fat != null));
+        return { sample: { kcal: sample.kcal, prot: sample.prot, carbs: sample.carbs, fat: sample.fat }, allHaveMacros };
+      });
+      if (r.error) throw new Error(r.error);
+      if (!r.allHaveMacros) throw new Error('not all meals have macros parsed: sample=' + JSON.stringify(r.sample));
+      if (r.sample.prot == null || r.sample.carbs == null || r.sample.fat == null) {
+        throw new Error('first meal missing macros: ' + JSON.stringify(r.sample));
+      }
+      report.dietaSampleMeal = r.sample;
+      st.pass();
+    } catch (e) { st.fail(e); }
+
+    // --- Step 10c: Summary card has macros pills + meal cards have macros chip ---
+    st = startStep('mi_alim_macros_ui_rendered');
+    try {
+      const r = await page.evaluate(() => {
+        return {
+          macrosRowVisible: !!document.getElementById('alim-summary-macros') &&
+                            getComputedStyle(document.getElementById('alim-summary-macros')).display !== 'none',
+          pillsCount:       document.querySelectorAll('#alim-summary-macros .m-pill').length,
+          mealMacrosChips:  document.querySelectorAll('.cai-meal-macros').length,
+          firstChipText:    document.querySelector('.cai-meal-macros')?.textContent || null,
+        };
+      });
+      if (!r.macrosRowVisible) throw new Error('summary macros row not visible');
+      if (r.pillsCount !== 3)  throw new Error(`expected 3 macro pills (P/C/G), got ${r.pillsCount}`);
+      if (r.mealMacrosChips < 4) throw new Error(`expected at least 4 meal macros chips, got ${r.mealMacrosChips}`);
+      if (!/^P\d+\s*·\s*C\d+\s*·\s*G\d+$/.test(r.firstChipText?.trim() || '')) {
+        throw new Error('first chip wrong format: ' + r.firstChipText);
+      }
+      report.macrosUI = r;
+      st.pass();
+    } catch (e) { st.fail(e); }
+
+    // --- Step 10d: Tildando una comida suma macros reales en el resumen ---
+    st = startStep('macros_sum_on_check');
+    try {
+      const r = await page.evaluate(async () => {
+        // Find today's day index + first meal
+        const todayJsDow = new Date().getDay();
+        const todayIdx = todayJsDow === 0 ? 6 : todayJsDow - 1;
+        const i = todayIdx < (_alimDays?.length || 0) ? todayIdx : 0;
+        const firstMeal = _alimDays[i].meals[0];
+        const expectedP = firstMeal.prot || 0;
+        const expectedC = firstMeal.carbs || 0;
+        const expectedG = firstMeal.fat || 0;
+        // Tildar la primera comida
+        if (typeof toggleAlimComida !== 'function') return { error: 'toggleAlimComida missing' };
+        await toggleAlimComida(i, 0);
+        // Esperar a que renderice
+        await new Promise(r => setTimeout(r, 600));
+        const p = parseInt(document.getElementById('alim-summary-done-prot')?.textContent || '0');
+        const c = parseInt(document.getElementById('alim-summary-done-carbs')?.textContent || '0');
+        const g = parseInt(document.getElementById('alim-summary-done-fat')?.textContent || '0');
+        return { expectedP, expectedC, expectedG, gotP: p, gotC: c, gotG: g };
+      });
+      if (r.error) throw new Error(r.error);
+      // After tildar, summary should have AT LEAST the macros of that meal (could
+      // already have other prior checks from previous QA runs in same session).
+      if (r.gotP < r.expectedP || r.gotC < r.expectedC || r.gotG < r.expectedG) {
+        throw new Error(`sum below expected — got P${r.gotP}/C${r.gotC}/G${r.gotG} vs expected ≥ P${r.expectedP}/C${r.expectedC}/G${r.expectedG}`);
+      }
+      report.macrosSum = r;
+      st.pass();
+    } catch (e) { st.fail(e); }
+
+    // --- Step 10e: Edit modal has the precision tip + estimateMealNutrition exists ---
+    st = startStep('edit_modal_precision_tip');
+    try {
+      const r = await page.evaluate(() => {
+        // Open edit modal for the first meal
+        if (typeof editAlimComida !== 'function') return { error: 'editAlimComida missing' };
+        editAlimComida(0, 0);
+        const hasFn = typeof estimateMealNutrition === 'function';
+        const tip = document.querySelector('.alim-edit-tip');
+        const ta = document.getElementById('alim-edit-text');
+        return {
+          modalOpen: !!document.querySelector('.alim-edit-overlay.open'),
+          tipPresent: !!tip,
+          tipMentionsPlus: /(\+|por|cantidad)/i.test(tip?.textContent || ''),
+          placeholderHasExample: /\+|\dg|\d+\s+claras/i.test(ta?.placeholder || ''),
+          estimateFnExists: hasFn,
+        };
+      });
+      if (r.error) throw new Error(r.error);
+      if (!r.modalOpen) throw new Error('edit modal did not open');
+      if (!r.tipPresent) throw new Error('precision tip element missing');
+      if (!r.tipMentionsPlus) throw new Error('tip text does not mention separator/quantity');
+      if (!r.placeholderHasExample) throw new Error('textarea placeholder missing example: ' + r.placeholderHasExample);
+      if (!r.estimateFnExists) throw new Error('estimateMealNutrition function not defined');
+      // Close modal so subsequent steps run cleanly
+      await page.evaluate(() => { if (typeof closeAlimEdit === 'function') closeAlimEdit(); });
       st.pass();
     } catch (e) { st.fail(e); }
 
