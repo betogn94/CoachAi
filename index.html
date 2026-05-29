@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260529-1838-kcal-target-color">
+<meta name="app-version" content="20260529-1852-kcal-color-block-completo">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -2833,25 +2833,39 @@ body.app-active:has(.form-wrapper[style*="block"]) { padding-bottom: 0; }
 }
 .cai-alim-summary-kcal strong .total {
   color: var(--muted); font-size: 14px;
+}
+/* Achievement states — el bloque ENTERO (kcal eyebrow + número done + "/"
+   + número target) toma el color de estado. Tonos saturados que destacan
+   sobre King theme rosa y default oscuro. Necesitamos sobrescribir las 3
+   capas: el div padre (para "kcal"), el strong (para el done), y el
+   .total span (para "/" + target). */
+body .cai-alim-summary-kcal.kcal-achieved,
+body.theme-king .cai-alim-summary-kcal.kcal-achieved {
+  color: #15803D !important;
   transition: color 0.3s ease;
 }
-/* Achievement states on the "/ target" span. Green when the user hit the
-   target (within 3% tolerance), red when they exceeded it noticeably.
-   Universal semantic colors so the signal reads the same in default AND
-   king themes (where the brand accent is pink — green/red would otherwise
-   collide visually).
-   The body-prefixed selectors raise specificity higher than the
-   `body.theme-king .cai-alim-summary-kcal strong .total { color: muted }`
-   rule so the achievement color wins in King too. */
-body .cai-alim-summary-kcal strong .total.total-achieved,
-body.theme-king .cai-alim-summary-kcal strong .total.total-achieved {
-  color: #22C55E !important;
-  font-weight: 500;
+body .cai-alim-summary-kcal.kcal-achieved strong,
+body.theme-king .cai-alim-summary-kcal.kcal-achieved strong,
+body .cai-alim-summary-kcal.kcal-achieved strong .total,
+body.theme-king .cai-alim-summary-kcal.kcal-achieved strong .total,
+body .cai-alim-summary-kcal.kcal-achieved #alim-summary-done-kcal,
+body .cai-alim-summary-kcal.kcal-achieved #alim-summary-total-kcal {
+  color: #15803D !important;
+  transition: color 0.3s ease;
 }
-body .cai-alim-summary-kcal strong .total.total-exceeded,
-body.theme-king .cai-alim-summary-kcal strong .total.total-exceeded {
-  color: #EF4444 !important;
-  font-weight: 500;
+body .cai-alim-summary-kcal.kcal-exceeded,
+body.theme-king .cai-alim-summary-kcal.kcal-exceeded {
+  color: #B91C1C !important;
+  transition: color 0.3s ease;
+}
+body .cai-alim-summary-kcal.kcal-exceeded strong,
+body.theme-king .cai-alim-summary-kcal.kcal-exceeded strong,
+body .cai-alim-summary-kcal.kcal-exceeded strong .total,
+body.theme-king .cai-alim-summary-kcal.kcal-exceeded strong .total,
+body .cai-alim-summary-kcal.kcal-exceeded #alim-summary-done-kcal,
+body .cai-alim-summary-kcal.kcal-exceeded #alim-summary-total-kcal {
+  color: #B91C1C !important;
+  transition: color 0.3s ease;
 }
 /* Macros row — sits between the kcal/comidas row and the progress bar.
    Three pills (P/C/G), monospaced numbers so they don't jiggle as they tick. */
@@ -15501,19 +15515,21 @@ async function renderMiAlimentacion() {
   // overshoot. We want target = "what coach planned for the day".
   const targetKcal = plannedDayKcal || totalKcal; // fallback if plan has no kcal
   document.getElementById('alim-summary-total-kcal').textContent = targetKcal;
-  // Color-code the "/ target" span based on adherence:
+  // Color-code the WHOLE kcal block based on adherence — both "done" and
+  // "/ target" turn green/red together so the signal is unmissable. The
+  // class lives on the wrapper so we can also style the eyebrow/border.
   //   - Green (achieved) when done ≈ target (±3% tolerance for rounding/edits)
   //   - Red (exceeded) when done is clearly over target (>3% over)
   //   - No color when under target (user still has meals to tildar)
   const totalKcalEl = document.getElementById('alim-summary-total-kcal');
-  const kcalSpan = totalKcalEl?.closest('.total');
-  if (kcalSpan && targetKcal > 0) {
-    kcalSpan.classList.remove('total-achieved', 'total-exceeded');
+  const kcalBlock = totalKcalEl?.closest('.cai-alim-summary-kcal');
+  if (kcalBlock && targetKcal > 0) {
+    kcalBlock.classList.remove('kcal-achieved', 'kcal-exceeded');
     const tolerance = targetKcal * 0.03;
     if (doneKcal > targetKcal + tolerance) {
-      kcalSpan.classList.add('total-exceeded');
+      kcalBlock.classList.add('kcal-exceeded');
     } else if (doneKcal >= targetKcal - tolerance && doneKcal > 0) {
-      kcalSpan.classList.add('total-achieved');
+      kcalBlock.classList.add('kcal-achieved');
     }
   }
   // Macros row — visible if real per-meal macros OR daily targets available
