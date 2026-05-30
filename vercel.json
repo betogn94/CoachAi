@@ -27,6 +27,10 @@
     {
       "source": "/king",
       "destination": "/index.html"
+    },
+    {
+      "source": "/studio",
+      "destination": "/studio/index.html"
     }
   ]
 }

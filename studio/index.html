@@ -1,0 +1,2133 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <!-- Stop iOS from auto-linkifying phone numbers / dates / addresses inside
+       the clienta detail view. Without this, "62 kg, 159 cm (IMC 24,5)" in
+       the dieta body gets turned into tappable phone-call links. -->
+  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+  <meta name="theme-color" content="#0B0F17" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#F6F8FB" media="(prefers-color-scheme: light)">
+  <title>STUDIO — CoachAI</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B0F17'/%3E%3Cpath d='M8 8h16v3H8zM10 13h12v3H10zM12 18h8v3h-8zM14 23h4v3h-4z' fill='%23FF4F7B'/%3E%3C/svg%3E">
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="STUDIO">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <link rel="preconnect" href="https://rsms.me/">
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    /* ---------- THEME TOKENS (per-tenant accent injected at runtime) ----- */
+    :root {
+      /* Default tenant accent (violet/teal). Overridden by JS for King etc. */
+      --accent:       #7c6aff;
+      --accent-hover: #9a8bff;
+      --accent-soft:  rgba(124, 106, 255, 0.12);
+    }
+    :root[data-theme="dark"] {
+      --bg:           #0B0F17;
+      --bg-elev:      #141A24;
+      --bg-elev-2:    #1C2330;
+      --border:       #2A3441;
+      --border-soft:  #1F2733;
+      --text:         #E8ECF3;
+      --text-muted:   #8B95A7;
+      --text-dim:     #4A5468;
+      --danger:       #EF4444;
+      --warning:      #F59E0B;
+      --success:      #22C55E;
+      --neutral:      #6B7280;
+      --shadow-card:  none;
+      --input-bg:     #0F141D;
+    }
+    /* KING tenant — dark mode uses true black instead of the default's dark
+       navy, so the coral pink accent (#FF4F7B) reads properly against the
+       background instead of clashing with the cool blue undertone. */
+    :root[data-theme="dark"][data-tenant="jesus"] {
+      --bg:           #000000;
+      --bg-elev:      #0D0D0D;
+      --bg-elev-2:    #161616;
+      --border:       #262626;
+      --border-soft:  #141414;
+      --input-bg:     #0A0A0A;
+      --text-dim:     #4D4D4D;
+    }
+    :root[data-theme="light"] {
+      --bg:           #F6F8FB;
+      --bg-elev:      #FFFFFF;
+      --bg-elev-2:    #F0F3F8;
+      --border:       #DCE2EA;
+      --border-soft:  #E8EDF3;
+      --text:         #121821;
+      --text-muted:   #5C6877;
+      --text-dim:     #9BA6B5;
+      --danger:       #DC2626;
+      --warning:      #D97706;
+      --success:      #16A34A;
+      --neutral:      #6B7280;
+      --shadow-card:  0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
+      --input-bg:     #FFFFFF;
+    }
+
+    /* ---------- BASE ---------- */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; }
+    html {
+      /* Prevent rubber-band overscroll from bleeding past the page on iOS,
+         and stop pull-to-refresh in standalone PWA mode (always unwanted —
+         Studio has its own refresh path). */
+      overscroll-behavior-y: contain;
+      /* iOS auto-scales fonts up when device is rotated landscape; pin it. */
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-feature-settings: 'cv02','cv03','cv04','cv11';
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      font-size: 14px;
+      line-height: 1.45;
+      /* iOS-specific UI chrome cleanups: remove the gray flash on tap and
+         the long-press callout/share menu over UI elements. Inputs and
+         body text are excluded below so text selection still works there. */
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      /* No horizontal scroll ever — the responsive layout handles overflow
+         through .table-wrap and word-break, not by widening the viewport. */
+      overflow-x: hidden;
+    }
+    /* Body text and form fields keep native long-press / text selection */
+    input, textarea, .markdown-body, .kv-grid dd, .stat-value, .what,
+    .timeline-item .when, .cell-mono, .page-sub, .page-title {
+      -webkit-touch-callout: default;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+    /* UI chrome — sidebar, nav, badges, headers — never selectable on tap.
+       Stops "select all" iOS prompts when long-pressing a sidebar item. */
+    .sidebar, .topbar, .nav-item, .badge, .tl, .crumb strong,
+    .detail-section-title, .form-label, .stat-label, .macro-label,
+    .back-link, .form-toggle-label, .gate-card h1 {
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .mono {
+      font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: var(--accent-hover); }
+    button { font: inherit; cursor: pointer; }
+
+    .hidden { display: none !important; }
+    .faded {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: -2px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---------- BOOT / GATE SCREEN ---------- */
+    .boot, .gate {
+      position: fixed; inset: 0;
+      display: grid; place-items: center;
+      background: var(--bg);
+      color: var(--text-muted);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      z-index: 80;
+      transition: opacity 0.18s ease, visibility 0.18s;
+    }
+    .gate {
+      z-index: 60;
+      letter-spacing: normal;
+      font-size: 14px;
+      color: var(--text);
+    }
+    .gate-card {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px 28px;
+      max-width: 380px;
+      width: 92%;
+      text-align: center;
+      box-shadow: var(--shadow-card);
+    }
+    .gate-card svg {
+      width: 36px; height: 36px;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .gate-card h1 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .gate-card p {
+      margin: 0 0 18px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .gate-card a {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: background 0.15s;
+    }
+    .gate-card a:hover { background: var(--accent-hover); color: #fff; }
+
+    /* ---------- APP SHELL ---------- */
+    .app {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+    .sidebar {
+      background: var(--bg-elev);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 16px 12px;
+      padding-top: max(16px, env(safe-area-inset-top, 0px));
+      padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+      padding-left: max(12px, env(safe-area-inset-left, 0px));
+    }
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 8px 20px;
+      border-bottom: 1px solid var(--border-soft);
+      margin-bottom: 16px;
+    }
+    .sidebar-brand .brand-mark {
+      width: 24px; height: 24px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+      display: grid; place-items: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
+    }
+    .sidebar-brand .wm {
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      font-size: 13px;
+    }
+    .sidebar-brand .tenant-tag {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-left: auto;
+    }
+    .nav-section {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      padding: 14px 10px 6px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s;
+      user-select: none;
+    }
+    .nav-item:hover { background: var(--bg-elev-2); color: var(--text); }
+    .nav-item.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .nav-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+    .sidebar-foot {
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-soft);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 10px;
+    }
+    .avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      color: var(--accent);
+      display: grid; place-items: center;
+      font-weight: 600;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .sidebar-foot .name {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      display: grid; place-items: center;
+      transition: background 0.12s, color 0.12s;
+    }
+    .icon-btn:hover { background: var(--bg-elev-2); color: var(--text); }
+    .icon-btn svg { width: 14px; height: 14px; }
+
+    .main {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .topbar {
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-right: max(24px, env(safe-area-inset-right, 0px));
+      height: calc(48px + env(safe-area-inset-top, 0px));
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .crumb {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .crumb strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+    .crumb a {
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .crumb a:hover { color: var(--text); }
+    .topbar-actions {
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    .content {
+      padding: 28px 32px;
+      padding-bottom: max(28px, env(safe-area-inset-bottom, 0px));
+      padding-right: max(32px, env(safe-area-inset-right, 0px));
+      overflow-y: auto;
+    }
+    .page-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .page-title {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .page-sub {
+      margin: 4px 0 0;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .placeholder {
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      padding: 60px 24px;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 13px;
+      background: var(--bg-elev);
+    }
+    .placeholder strong {
+      display: block;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      box-shadow: var(--shadow-card);
+    }
+    .stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+      font-size: 24px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1;
+    }
+    .stat-sub {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    /* ---------- TRAFFIC LIGHT ---------- */
+    .tl {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+    }
+    .tl-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .tl-green  .tl-dot { background: var(--success); box-shadow: 0 0 6px rgba(34, 197, 94, 0.5); }
+    .tl-yellow .tl-dot { background: var(--warning); box-shadow: 0 0 6px rgba(245, 158, 11, 0.5); }
+    .tl-red    .tl-dot { background: var(--danger);  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5); }
+    .tl-gray   .tl-dot { background: var(--neutral); }
+
+    /* ---------- TABLES ---------- */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+    }
+    .data-table thead th {
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      background: var(--bg-elev-2);
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+    }
+    .data-table thead th.sort-active {
+      color: var(--accent);
+    }
+    .data-table tbody td {
+      padding: 12px 14px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border-soft);
+      vertical-align: middle;
+    }
+    .data-table tbody tr:last-child td { border-bottom: none; }
+    .data-table tbody tr.clickable { cursor: pointer; transition: background 0.1s; }
+    .data-table tbody tr.clickable:hover { background: var(--bg-elev-2); }
+    .data-table .cell-mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 12px; }
+    .data-table .cell-dim  { color: var(--text-dim); }
+    .data-table .cell-right { text-align: right; }
+    .table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch; /* iOS momentum on horizontal scroll */
+    }
+
+    /* ---------- DETAIL VIEW (clienta drill-down) ---------- */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+      font-size: 10.5px;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      cursor: pointer;
+      margin-bottom: 8px;
+      user-select: none;
+      transition: color 0.12s;
+    }
+    .back-link:hover { color: var(--accent); }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 16px;
+    }
+    .detail-section {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      box-shadow: var(--shadow-card);
+    }
+    .detail-section.full-width { grid-column: 1 / -1; }
+    .detail-section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .detail-section-title .meta {
+      font-size: 10px;
+      color: var(--text-dim);
+      font-weight: 500;
+      letter-spacing: 0.05em;
+    }
+    .kv-grid {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 8px 16px;
+      font-size: 13px;
+    }
+    .kv-grid dt {
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      align-self: center;
+    }
+    .kv-grid dd {
+      margin: 0;
+      color: var(--text);
+    }
+    .kv-grid dd.dim { color: var(--text-dim); font-style: italic; }
+    .macro-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .macro-chip {
+      flex: 1;
+      min-width: 80px;
+      background: var(--bg-elev-2);
+      border: 1px solid var(--border-soft);
+      border-radius: 8px;
+      padding: 10px 12px;
+      text-align: center;
+    }
+    .macro-chip .macro-label {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .macro-chip .macro-value {
+      font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1;
+    }
+    .markdown-body {
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 480px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .markdown-body::-webkit-scrollbar { width: 6px; }
+    .markdown-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .timeline-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--bg-elev-2);
+      border-radius: 8px;
+      border: 1px solid var(--border-soft);
+    }
+    .timeline-item .when {
+      font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+      font-size: 10.5px;
+      color: var(--text-dim);
+      white-space: nowrap;
+      flex-shrink: 0;
+      padding-top: 1px;
+    }
+    .timeline-item .what {
+      font-size: 13px;
+      color: var(--text);
+      flex: 1;
+      word-break: break-word;
+    }
+    .timeline-item.bug { border-left: 3px solid var(--danger); }
+    .empty-row {
+      color: var(--text-dim);
+      font-style: italic;
+      font-size: 12.5px;
+      padding: 8px 0;
+    }
+
+    /* ---------- COLLAPSIBLE CARDS (dieta / rutina) ----------
+       Default state is collapsed — only header, summary chips and a preview
+       blurb are visible. Clicking "Ver completa" expands the markdown body.
+       Keeps the page short and predictable; the coach picks what to dive
+       into instead of scrolling through everything. */
+    .collapsible-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.28s ease;
+    }
+    .collapsible.open .collapsible-body {
+      max-height: 2400px; /* large enough for any plan; clipping is fine */
+    }
+    .collapsible-preview {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      max-height: 3em;
+      overflow: hidden;
+      position: relative;
+      margin-bottom: 12px;
+    }
+    .collapsible-preview::after {
+      content: '';
+      position: absolute; left: 0; right: 0; bottom: 0;
+      height: 1.2em;
+      background: linear-gradient(to bottom, transparent, var(--bg-elev));
+      pointer-events: none;
+    }
+    .collapsible.open .collapsible-preview { display: none; }
+    .collapsible-toggle {
+      background: var(--bg-elev-2);
+      border: 1px solid var(--border-soft);
+      color: var(--text-muted);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .collapsible-toggle:hover { border-color: var(--border); color: var(--text); }
+    .collapsible-toggle .chev {
+      width: 10px; height: 10px;
+      transition: transform 0.2s;
+    }
+    .collapsible.open .collapsible-toggle .chev { transform: rotate(180deg); }
+    .collapsible-toggle-row {
+      display: flex;
+      justify-content: flex-start;
+      margin-top: 12px;
+    }
+    .summary-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .summary-stats .pill {
+      background: var(--bg-elev-2);
+      border: 1px solid var(--border-soft);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+    }
+    .summary-stats .pill strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* ---------- ACTIVITY CARD ----------
+       Replaces the per-event timeline with a small set of aggregate stats
+       the coach actually cares about: how often is she using the app, when
+       was she last seen, etc. */
+    .activity-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .activity-stat {
+      background: var(--bg-elev-2);
+      border: 1px solid var(--border-soft);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .activity-stat .label {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .activity-stat .value {
+      font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+      font-size: 16px;
+      color: var(--text);
+      font-weight: 500;
+      line-height: 1.1;
+    }
+    .activity-stat .value.lg {
+      font-size: 22px;
+      font-weight: 600;
+    }
+    .activity-stat .sub {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    /* ---------- PLACEHOLDER (próximamente) inside a detail section ---- */
+    .coming-soon {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px;
+      background: var(--bg-elev-2);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-size: 12.5px;
+    }
+    .coming-soon .badge-soon {
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 3px 8px;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+
+    /* ---------- FORMS ---------- */
+    .form-card {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 560px;
+      box-shadow: var(--shadow-card);
+    }
+    .form-row { margin-bottom: 16px; }
+    .form-row:last-child { margin-bottom: 0; }
+    .form-label {
+      display: block;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .form-label .req { color: var(--accent); margin-left: 3px; }
+    .form-label .optional { color: var(--text-dim); font-weight: 400; text-transform: none; letter-spacing: 0; margin-left: 6px; }
+    .form-input, .form-textarea {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-family: inherit;
+      /* 16px minimum — iOS Safari zooms in on focus if the input font is
+         smaller than 16px. The visual size is still fine on mobile. */
+      font-size: 16px;
+      transition: border-color 0.12s, box-shadow 0.12s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    /* Use :focus-visible so the accent ring only appears on keyboard focus,
+       not when a touch user taps the input (which already gets the iOS
+       native caret + selection). Cleaner on iOS. */
+    .form-input:focus-visible, .form-textarea:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .form-input:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .form-textarea {
+      min-height: 100px;
+      resize: vertical;
+      font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    .form-hint {
+      font-size: 11.5px;
+      color: var(--text-dim);
+      margin-top: 5px;
+    }
+    .form-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      user-select: none;
+      padding: 10px 12px;
+      background: var(--bg-elev-2);
+      border: 1px solid var(--border-soft);
+      border-radius: 8px;
+      transition: border-color 0.12s, background 0.12s;
+    }
+    .form-toggle:hover { border-color: var(--border); }
+    .form-toggle input { margin: 0; cursor: pointer; accent-color: var(--accent); }
+    .form-toggle-label {
+      font-size: 13px;
+      color: var(--text);
+    }
+    .form-toggle-label .desc {
+      display: block;
+      font-size: 11.5px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+    .form-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-soft);
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: filter 0.12s, transform 0.12s;
+    }
+    .btn-primary:hover { filter: brightness(1.1); }
+    .btn-primary:active { transform: translateY(1px); }
+    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; filter: none; }
+    .form-msg {
+      font-size: 12.5px;
+      min-height: 1.4em;
+    }
+    .form-msg.ok  { color: var(--success); }
+    .form-msg.err { color: var(--danger); }
+
+    /* ---------- BADGES ---------- */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      background: var(--bg-elev-2);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .badge-accent { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+    .badge-warning { background: rgba(245,158,11,0.12); color: var(--warning); border-color: transparent; }
+    .badge-danger  { background: rgba(239,68,68,0.12);  color: var(--danger);  border-color: transparent; }
+    .badge-pending { background: rgba(107,114,128,0.12); color: var(--neutral); border-color: transparent; }
+
+    /* ---------- RESPONSIVE ---------- */
+    .hamburger {
+      display: none;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      align-items: center; justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .hamburger svg { width: 16px; height: 16px; }
+    .sidebar-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 49;
+    }
+    .topbar-brand {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      font-size: 13px;
+    }
+    .topbar-brand .brand-mark {
+      width: 20px; height: 20px;
+      border-radius: 5px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+      display: grid; place-items: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 10px;
+    }
+    @media (max-width: 768px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar {
+        position: fixed;
+        top: 0; left: 0; bottom: 0;
+        width: 260px; max-width: 80vw;
+        z-index: 50;
+        transform: translateX(-100%);
+        transition: transform 0.2s ease-out;
+        box-shadow: 4px 0 24px rgba(0,0,0,0.3);
+      }
+      .app.menu-open .sidebar { transform: translateX(0); }
+      .app.menu-open .sidebar-overlay { display: block; }
+      .hamburger { display: inline-flex; }
+      .topbar-brand { display: inline-flex; }
+      .topbar {
+        padding-left: 12px;
+        padding-right: max(12px, env(safe-area-inset-right, 0px));
+      }
+      .crumb { display: none; }
+      .content {
+        padding: 16px 12px;
+        padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+        padding-right: max(12px, env(safe-area-inset-right, 0px));
+      }
+      .page-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .page-title { font-size: 18px; }
+      .cards-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .stat-card { padding: 14px; }
+      .stat-value { font-size: 20px; }
+      .data-table thead th { padding: 8px 10px; font-size: 9px; }
+      .data-table tbody td { padding: 10px 10px; font-size: 12px; }
+    }
+    @media (max-width: 420px) {
+      .cards-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ---------- iOS: kill sticky :hover on touch ----------
+       On devices without a precise pointer (mobile), :hover sticks after
+       tap until the next tap elsewhere — a tapped row/button keeps its
+       "hovered" highlight. Here we neutralize every hover delta so the
+       UI snaps back to its idle look as soon as the tap is released.
+       Devices WITH hover (desktop + iPad with trackpad) keep the original
+       hover styles untouched. */
+    @media (hover: none) {
+      a:hover                              { color: var(--accent); }
+      .gate-card a:hover                   { background: var(--accent); color: #fff; }
+      .nav-item:hover                      { background: transparent; color: var(--text-muted); }
+      .nav-item.active:hover               { background: var(--accent-soft); color: var(--accent); }
+      .icon-btn:hover                      { background: transparent; color: var(--text-muted); }
+      .crumb a:hover                       { color: var(--text-muted); }
+      .data-table tbody tr.clickable:hover { background: transparent; }
+      .back-link:hover                     { color: var(--text-muted); }
+      .form-toggle:hover                   { border-color: var(--border-soft); }
+      .btn-primary:hover                   { filter: none; }
+      /* Use :active for tactile feedback on tap — fires only while the
+         finger is down, can't get stuck. */
+      .nav-item:active                     { background: var(--bg-elev-2); }
+      .data-table tbody tr.clickable:active{ background: var(--bg-elev-2); }
+      .icon-btn:active                     { background: var(--bg-elev-2); }
+      .btn-primary:active                  { filter: brightness(1.1); }
+    }
+
+    /* ---------- iOS: momentum scroll + safe-area on body ----------
+       The content area scrolls (sticky topbar above). On iOS PWA, momentum
+       scrolling must be explicit; without it, scroll feels "stuck". */
+    .content { -webkit-overflow-scrolling: touch; }
+    /* Markdown body and timeline are also scrollable inside their cards
+       (max-height capped to keep the page from exploding on long plans). */
+    .markdown-body { -webkit-overflow-scrolling: touch; }
+
+    /* ---------- Long emails on narrow screens ----------
+       In the clientas table the email is shown below the name. Rather than
+       breaking it mid-character (which looked awful on iPhone), we truncate
+       with ellipsis on the email line only. The full address is still
+       visible in the drill-down view title. */
+    .data-table .cell-mono {
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: inline-block;
+    }
+    .data-table tbody td   { vertical-align: top; }
+
+    /* ---------- iOS: tap targets ≥ 44px (Apple HIG) ----------
+       The icon-btn defaults to 28px which is below the 44x44 guideline.
+       On touch devices we expand the tappable area without changing the
+       visible icon by using padding instead of fixed size. */
+    @media (hover: none) and (pointer: coarse) {
+      .icon-btn {
+        min-width: 36px;
+        min-height: 36px;
+      }
+      .nav-item {
+        padding: 11px 10px; /* a touch taller for thumb-friendly tapping */
+      }
+      .hamburger {
+        min-width: 40px;
+        min-height: 40px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Boot loader (shown until auth gate resolves) -->
+  <div id="boot" class="boot">
+    <div><span class="spinner"></span> &nbsp; STUDIO</div>
+  </div>
+
+  <!-- Auth gate: shown when the visitor isn't an admin of this tenant -->
+  <div id="gate" class="gate faded">
+    <div class="gate-card">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+      <h1 id="gate-title">Acceso restringido</h1>
+      <p id="gate-msg">Esta sección es solo para coaches con permisos de administrador.</p>
+      <a id="gate-cta" href="/">Volver a la app</a>
+    </div>
+  </div>
+
+  <!-- App shell — always mounted (per Tower pattern); faded until gate passes -->
+  <div id="app" class="app faded">
+    <div id="sidebarOverlay" class="sidebar-overlay" aria-hidden="true"></div>
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-mark">S</div>
+        <span class="wm">STUDIO</span>
+        <span class="tenant-tag" id="tenant-tag">—</span>
+      </div>
+
+      <div class="nav-section">General</div>
+      <div class="nav-item active" data-route="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" data-route="clientas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        Clientes
+      </div>
+
+      <div class="nav-section">Gestión</div>
+      <div class="nav-item" data-route="invitar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+        Invitar
+      </div>
+      <div class="nav-item" data-route="feedback">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        Feedback
+      </div>
+      <div class="nav-item" data-route="capacidad">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        Capacidad
+      </div>
+
+      <div class="sidebar-foot">
+        <div id="userAvatar" class="avatar">?</div>
+        <div id="userName" class="name">—</div>
+        <button id="themeToggle" class="icon-btn" title="Cambiar tema" aria-label="Cambiar tema">
+          <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>
+        </button>
+        <a href="/" class="icon-btn" title="Volver a la app" aria-label="Volver a la app">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </a>
+      </div>
+    </aside>
+
+    <section class="main">
+      <header class="topbar">
+        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+          <button id="hamburgerBtn" class="hamburger" aria-label="Abrir menú">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+          <div class="topbar-brand">
+            <div class="brand-mark">S</div>
+            <span>STUDIO</span>
+          </div>
+          <div id="crumb" class="crumb"><strong>Dashboard</strong></div>
+        </div>
+        <div class="topbar-actions">
+          <span class="tl tl-gray" title="Versión"><span class="tl-dot"></span><span class="mono">v0.1</span></span>
+        </div>
+      </header>
+
+      <main id="content" class="content"></main>
+    </section>
+  </div>
+
+  <script>
+  // =====================================================================
+  // STUDIO — per-tenant coach admin panel
+  // =====================================================================
+  // Reuses the main app's Supabase session (localStorage) instead of having
+  // its own auth like Tower does. The gate:
+  //   1. Read localStorage 'coachai_session_v1' for email
+  //   2. Fetch usuarios row by email
+  //   3. Resolve current tenant from hostname
+  //   4. Verify user.tenant_id === currentTenant.id AND user.role === 'admin'
+  //   5. If pass → render. If not → show gate with redirect.
+  // =====================================================================
+
+  // ---- Supabase ----
+  const SUPABASE_URL = 'https://vmvhlgzwufkardaruutt.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtdmhsZ3p3dWZrYXJkYXJ1dXR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNzA4NjcsImV4cCI6MjA5Mjg0Njg2N30.x9-lV9xi3Kdu_zpHcGC0PC80-GiXpc1WD4lnAuFI_iM';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // ---- Tenant resolution from hostname ----
+  // king.coachaipro.ai → 'jesus', coachaipro.ai (and localhost) → 'coachai-default'.
+  // Mirrors the logic in main index.html's tenant resolver.
+  function resolveTenantSlug() {
+    const host = window.location.hostname.toLowerCase();
+    if (/^king\./.test(host)) return 'jesus';
+    // local dev fallback: ?tenant=jesus query string
+    const qp = new URLSearchParams(window.location.search).get('tenant');
+    if (qp) return qp;
+    return 'coachai-default';
+  }
+
+  // ---- Per-tenant accent (applied via CSS var) ----
+  const TENANT_ACCENTS = {
+    'jesus':         { accent: '#FF4F7B', hover: '#FF6B95', soft: 'rgba(255, 79, 123, 0.12)', name: 'KING' },
+    'coachai-default': { accent: '#7c6aff', hover: '#9a8bff', soft: 'rgba(124, 106, 255, 0.12)', name: 'CoachAI' },
+  };
+  function applyTenantAccent(slug) {
+    const cfg = TENANT_ACCENTS[slug] || TENANT_ACCENTS['coachai-default'];
+    const root = document.documentElement;
+    root.style.setProperty('--accent', cfg.accent);
+    root.style.setProperty('--accent-hover', cfg.hover);
+    root.style.setProperty('--accent-soft', cfg.soft);
+    // data-tenant lets the stylesheet pick a different palette per tenant
+    // (e.g. King's dark mode is true black so the coral accent pops).
+    root.setAttribute('data-tenant', slug);
+    document.getElementById('tenant-tag').textContent = cfg.name;
+  }
+
+  // ---- Theme (dark/light) ----
+  const THEME_KEY = 'studio.theme';
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    try { localStorage.setItem(THEME_KEY, t); } catch {}
+    updateThemeIcon(t);
+  }
+  function updateThemeIcon(t) {
+    const moon = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>`;
+    const sun  = `<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>`;
+    const el = document.getElementById('themeIcon');
+    if (el) el.innerHTML = t === 'dark' ? sun : moon;
+  }
+  function toggleTheme() {
+    const cur = document.documentElement.getAttribute('data-theme');
+    applyTheme(cur === 'dark' ? 'light' : 'dark');
+  }
+  (function initTheme() {
+    let t = null; try { t = localStorage.getItem(THEME_KEY); } catch {}
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    applyTheme(t);
+  })();
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('#themeToggle')) { e.preventDefault(); toggleTheme(); }
+  });
+
+  // ---- State ----
+  let currentUser = null;       // usuarios row for the logged-in admin
+  let currentTenant = null;     // tenants row matching the hostname
+
+  // ---- Auth gate ----
+  async function runAuthGate() {
+    try {
+      const slug = resolveTenantSlug();
+      applyTenantAccent(slug);
+
+      // 1. Read main-app session
+      let session = null;
+      try {
+        const raw = localStorage.getItem('coachai_session_v1');
+        if (raw) session = JSON.parse(raw);
+      } catch {}
+      if (!session?.email) {
+        return showGate(
+          'Sin sesión activa',
+          'Tenés que estar logueado en la app principal antes de entrar a Studio.',
+          { ctaText: 'Ir al login', ctaHref: '/' }
+        );
+      }
+
+      // 2. Fetch usuarios row
+      const { data: user, error: userErr } = await sb
+        .from('usuarios')
+        .select('id, email, nombre, role, tenant_id')
+        .eq('email', session.email)
+        .maybeSingle();
+      if (userErr || !user) {
+        return showGate(
+          'Usuario no encontrado',
+          'No pudimos encontrar tu cuenta. Probá cerrar sesión y volver a entrar.',
+          { ctaText: 'Volver', ctaHref: '/' }
+        );
+      }
+
+      // 3. Resolve current tenant by slug
+      const { data: tenant, error: tenantErr } = await sb
+        .from('tenants')
+        .select('id, slug, name, branding_config, limits')
+        .eq('slug', slug)
+        .maybeSingle();
+      if (tenantErr || !tenant) {
+        return showGate(
+          'Tenant inválido',
+          `No pudimos resolver el tenant para ${slug}.`,
+          { ctaText: 'Volver', ctaHref: '/' }
+        );
+      }
+
+      // 4. Check tenant + role
+      if (user.tenant_id !== tenant.id) {
+        return showGate(
+          'Tenant equivocado',
+          'Tu cuenta pertenece a otro coach. Pedile al admin de tu tenant que te dé acceso o volvé al login correcto.',
+          { ctaText: 'Volver', ctaHref: '/' }
+        );
+      }
+      if (user.role !== 'admin') {
+        return showGate(
+          'No tenés permisos de admin',
+          'Studio es solo para coaches. Si pensás que esto es un error, contactá al equipo de CoachAI.',
+          { ctaText: 'Volver a la app', ctaHref: '/' }
+        );
+      }
+
+      // 5. PASS — set state and enter
+      currentUser = user;
+      currentTenant = tenant;
+      enterApp();
+    } catch (err) {
+      console.error('[studio] auth gate error:', err);
+      showGate('Error', 'No pudimos validar tu acceso. Probá recargar la página.', { ctaText: 'Recargar', ctaHref: location.pathname });
+    }
+  }
+
+  function showGate(title, msg, { ctaText, ctaHref } = {}) {
+    document.getElementById('boot').classList.add('faded');
+    document.getElementById('app').classList.add('faded');
+    const gate = document.getElementById('gate');
+    document.getElementById('gate-title').textContent = title;
+    document.getElementById('gate-msg').textContent = msg;
+    const cta = document.getElementById('gate-cta');
+    cta.textContent = ctaText || 'Volver';
+    cta.setAttribute('href', ctaHref || '/');
+    gate.classList.remove('faded');
+  }
+
+  function enterApp() {
+    document.getElementById('boot').classList.add('faded');
+    document.getElementById('gate').classList.add('faded');
+    document.getElementById('app').classList.remove('faded');
+    document.getElementById('userName').textContent = currentUser.nombre || currentUser.email;
+    document.getElementById('userAvatar').textContent = (currentUser.nombre || currentUser.email).charAt(0).toUpperCase();
+    route('dashboard');
+  }
+
+  // ---- Routing ----
+  // Top-level routes appear in the sidebar. The 'clienta' route is a detail
+  // view drilled into from the Clientas table — it doesn't have a sidebar
+  // entry and renders a "Clientas / Nombre" breadcrumb instead.
+  const ROUTES = {
+    dashboard:  { label: 'Dashboard',  render: renderDashboard, navItem: 'dashboard' },
+    clientas:   { label: 'Clientes',   render: renderClientas,  navItem: 'clientas' },
+    clienta:    { label: 'Cliente',    render: renderClienta,   navItem: 'clientas' }, // detail view
+    invitar:    { label: 'Invitar',    render: renderInvitar, navItem: 'invitar' },
+    feedback:   { label: 'Feedback',   render: () => placeholder('Feedback', 'Bugs y feedback reportados por tus clientes. Próximamente.'), navItem: 'feedback' },
+    capacidad:  { label: 'Capacidad',  render: () => placeholder('Capacidad', 'Detalle del cupo de alumnas de tu paquete. Próximamente.'), navItem: 'capacidad' },
+  };
+  function route(name, arg) {
+    const r = ROUTES[name] || ROUTES.dashboard;
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.route === r.navItem));
+    // Crumb: top-level routes show their label alone; detail routes show a
+    // parent chain (e.g. "Clientas / Virginia"). renderClienta overrides the
+    // crumb itself with the clienta's name once data is loaded.
+    if (name === 'clienta') {
+      document.getElementById('crumb').innerHTML = `<a data-route="clientas">Clientes</a> <span style="opacity:.5">/</span> <strong>—</strong>`;
+    } else {
+      document.getElementById('crumb').innerHTML = `<strong>${r.label}</strong>`;
+    }
+    const content = document.getElementById('content');
+    content.innerHTML = '';
+    r.render(content, arg);
+    closeMobileMenu();
+  }
+  document.addEventListener('click', (e) => {
+    const ni = e.target.closest('.nav-item');
+    if (ni && ni.dataset.route) { route(ni.dataset.route); return; }
+    // Breadcrumb back-link (rendered by route('clienta'))
+    const crumbBack = e.target.closest('#crumb a[data-route]');
+    if (crumbBack) { e.preventDefault(); route(crumbBack.dataset.route); }
+  });
+
+  // Mobile menu
+  function openMobileMenu()  { document.getElementById('app').classList.add('menu-open'); }
+  function closeMobileMenu() { document.getElementById('app').classList.remove('menu-open'); }
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('#hamburgerBtn')) { e.preventDefault(); document.getElementById('app').classList.toggle('menu-open'); }
+    if (e.target.closest('#sidebarOverlay')) closeMobileMenu();
+  });
+
+  // ---- Utilities ----
+  const $$ = (s) => document.querySelectorAll(s);
+  function esc(s) {
+    if (s == null) return '';
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function fmtInt(n) { return Number(n || 0).toLocaleString('es-AR'); }
+  function fmtRelative(iso) {
+    if (!iso) return '—';
+    const t = new Date(iso).getTime();
+    if (!Number.isFinite(t)) return '—';
+    const diff = Date.now() - t;
+    const sec = Math.floor(diff / 1000);
+    if (sec < 60) return 'hace ' + sec + 's';
+    const min = Math.floor(sec / 60);
+    if (min < 60) return 'hace ' + min + ' min';
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return 'hace ' + hr + ' h';
+    const d = Math.floor(hr / 24);
+    if (d < 30) return 'hace ' + d + ' d';
+    const mo = Math.floor(d / 30);
+    return 'hace ' + mo + ' meses';
+  }
+  function tlBadge(color, reason) {
+    return `<span class="tl tl-${color}" title="${esc(reason)}"><span class="tl-dot"></span>${esc(reason || '')}</span>`;
+  }
+
+  // ---- Traffic-light computation for a clienta ----
+  // Simple rules (Studio is a per-tenant lens; the source of truth for the more
+  // sophisticated semáforo logic stays in Tower's tenants.js).
+  //   green:  active in last 7 days
+  //   yellow: active 7-14 days ago, OR has open bugs but recently active
+  //   red:    inactive >14 days, OR has open bugs and not active
+  //   gray:   invitada sin onboardear (no usuario row yet) or status=archived
+  function computeClientaTrafficLight(c) {
+    if (c._isInvited) return { color: 'gray', reason: 'Pendiente — no entró aún' };
+    if (!c.last_active) return { color: 'gray', reason: 'Nunca abrió la app' };
+    const days = Math.floor((Date.now() - new Date(c.last_active).getTime()) / 86400000);
+    if (c._openBugs > 0 && days > 7)  return { color: 'red',    reason: `${c._openBugs} bug · ${days}d sin actividad` };
+    if (days > 14)                    return { color: 'red',    reason: `Inactiva hace ${days}d` };
+    if (c._openBugs > 0)              return { color: 'yellow', reason: `${c._openBugs} bug abierto` };
+    if (days > 7)                     return { color: 'yellow', reason: `Sin actividad hace ${days}d` };
+    return { color: 'green', reason: `Activa hace ${days}d` };
+  }
+
+  // ---- Views: DASHBOARD ----
+  async function renderDashboard(el) {
+    el.innerHTML = `
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Hola, ${esc(currentUser.nombre || 'Coach')}</h1>
+          <p class="page-sub">Resumen de tus clientes en <strong>${esc(currentTenant.name)}</strong>.</p>
+        </div>
+      </div>
+      <div id="dashGrid" class="cards-grid">
+        ${statCardSkeleton('Clientes activos')}
+        ${statCardSkeleton('Pendientes de onboarding')}
+        ${statCardSkeleton('Activos últimos 7d')}
+        ${statCardSkeleton('Bugs abiertos')}
+      </div>
+      <div id="dashTl" class="cards-grid"></div>
+    `;
+    // Fetch fresh — Studio is small enough that we don't need to cache.
+    const data = await fetchClientasData();
+    if (!data) {
+      document.getElementById('dashGrid').innerHTML = `<div class="placeholder"><strong>Error</strong>No se pudieron cargar los datos.</div>`;
+      return;
+    }
+    const { activos, invitados, bucket } = data;
+    const sevenDaysAgo = Date.now() - 7 * 86400000;
+    const activeRecent = activos.filter(u => u.last_active && new Date(u.last_active).getTime() > sevenDaysAgo).length;
+    const openBugs = activos.reduce((n, u) => n + (u._openBugs || 0), 0);
+
+    document.getElementById('dashGrid').innerHTML = `
+      ${statCard('Clientes activos', fmtInt(activos.length), `${invitados.length} pendientes de onboarding`)}
+      ${statCard('Pendientes', fmtInt(invitados.length), 'Aún no completaron onboarding')}
+      ${statCard('Activos últimos 7d', fmtInt(activeRecent), pct(activeRecent, activos.length) + ' del total')}
+      ${statCard('Bugs abiertos', fmtInt(openBugs), 'En todos tus clientes')}
+    `;
+    document.getElementById('dashTl').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-label">Distribución del semáforo</div>
+        <div style="display:flex; gap:14px; align-items:center; margin-top:4px; flex-wrap:wrap;">
+          <span class="tl tl-green"><span class="tl-dot"></span>${fmtInt(bucket.green)}</span>
+          <span class="tl tl-yellow"><span class="tl-dot"></span>${fmtInt(bucket.yellow)}</span>
+          <span class="tl tl-red"><span class="tl-dot"></span>${fmtInt(bucket.red)}</span>
+          <span class="tl tl-gray"><span class="tl-dot"></span>${fmtInt(bucket.gray)}</span>
+        </div>
+        <div class="stat-sub">Tap en un cliente para ver el detalle</div>
+      </div>
+    `;
+  }
+
+  function pct(n, total) { if (!total) return '—'; return Math.round((n / total) * 100) + '%'; }
+  function statCard(label, value, sub) {
+    return `<div class="stat-card">
+      <div class="stat-label">${esc(label)}</div>
+      <div class="stat-value">${value}</div>
+      <div class="stat-sub">${esc(sub || '')}</div>
+    </div>`;
+  }
+  function statCardSkeleton(label) {
+    return `<div class="stat-card">
+      <div class="stat-label">${esc(label)}</div>
+      <div class="stat-value"><span class="spinner"></span></div>
+      <div class="stat-sub">cargando…</div>
+    </div>`;
+  }
+  function placeholder(title, body) {
+    document.getElementById('content').innerHTML = `
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">${esc(title)}</h1>
+          <p class="page-sub">Sección en construcción.</p>
+        </div>
+      </div>
+      <div class="placeholder">
+        <strong>Próximamente</strong>
+        ${esc(body)}
+      </div>
+    `;
+  }
+
+  // ---- Views: CLIENTAS ----
+  let _clientasCache = null;
+  async function fetchClientasData() {
+    if (_clientasCache) return _clientasCache;
+    try {
+      // ALL usuarios in this tenant — used to build the "already onboarded"
+      // email set so coaches/admins don't show up as pending invites in their
+      // own table. We filter admins out for display below.
+      const { data: allUsuarios } = await sb
+        .from('usuarios')
+        .select('id, email, nombre, last_active, session_count, created_at, role')
+        .eq('tenant_id', currentTenant.id)
+        .order('last_active', { ascending: false, nullsFirst: false });
+
+      // Anyone already in usuarios → not a pending invite (even admins/self).
+      const onboardedEmails = new Set((allUsuarios || []).map(u => u.email.toLowerCase()));
+
+      // Displayable rows: drop admins (coaches don't list themselves) and
+      // drop the currently-logged-in user defensively in case role is missing.
+      const myEmail = (currentUser.email || '').toLowerCase();
+      const usuarios = (allUsuarios || []).filter(u =>
+        u.role !== 'admin' && u.email.toLowerCase() !== myEmail
+      );
+
+      // Pending invites (not yet onboarded). Also drop the coach's own email
+      // in case they invited themselves before being promoted to admin.
+      const { data: invitados } = await sb
+        .from('beta_invitados')
+        .select('email, nombre, created_at')
+        .eq('tenant_slug', currentTenant.slug);
+
+      const pendingInvites = (invitados || [])
+        .filter(i => !onboardedEmails.has(i.email.toLowerCase()))
+        .filter(i => i.email.toLowerCase() !== myEmail)
+        .map(i => ({ ...i, _isInvited: true, _openBugs: 0 }));
+
+      // Bug counts per user (parallel, but only a handful so it's fine)
+      const activos = await Promise.all((usuarios || []).map(async (u) => {
+        const { count } = await sb
+          .from('feedback')
+          .select('id', { count: 'exact', head: true })
+          .eq('usuario_id', u.id);
+        return { ...u, _openBugs: count || 0 };
+      }));
+
+      // Compute traffic-light bucket counts for dashboard
+      const bucket = { green: 0, yellow: 0, red: 0, gray: 0 };
+      activos.concat(pendingInvites).forEach(c => {
+        bucket[computeClientaTrafficLight(c).color]++;
+      });
+
+      _clientasCache = { activos, invitados: pendingInvites, bucket };
+      return _clientasCache;
+    } catch (e) {
+      console.error('[studio] fetchClientasData:', e);
+      return null;
+    }
+  }
+
+  async function renderClientas(el) {
+    el.innerHTML = `
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Clientes</h1>
+          <p class="page-sub">Todos los clientes de <strong>${esc(currentTenant.name)}</strong> — activos y pendientes. Click en una fila para ver el detalle.</p>
+        </div>
+      </div>
+      <div id="clientasTable" class="table-wrap"><div class="placeholder"><span class="spinner"></span> &nbsp; Cargando clientes…</div></div>
+    `;
+    const data = await fetchClientasData();
+    if (!data) {
+      document.getElementById('clientasTable').innerHTML = `<div class="placeholder"><strong>Error</strong>No se pudieron cargar los clientes.</div>`;
+      return;
+    }
+    const all = data.activos.concat(data.invitados);
+    if (!all.length) {
+      document.getElementById('clientasTable').innerHTML = `<div class="placeholder"><strong>Sin clientes todavía</strong>Aún no invitaste a nadie a tu tenant.</div>`;
+      return;
+    }
+    // Sort: red → yellow → green → gray (worst first, so the coach acts on them)
+    const ORDER = { red: 0, yellow: 1, green: 2, gray: 3 };
+    const enriched = all.map(c => ({ ...c, _tl: computeClientaTrafficLight(c) }));
+    enriched.sort((a, b) => (ORDER[a._tl.color] - ORDER[b._tl.color]) || (b.last_active || '').localeCompare(a.last_active || ''));
+
+    // Index by id so the click handler can route to the detail view without
+    // re-fetching. Invitadas have no usuario id; we index those by email.
+    _clientaIndex.clear();
+    enriched.forEach(c => _clientaIndex.set(c.id || ('invite:' + c.email), c));
+
+    document.getElementById('clientasTable').innerHTML = `
+      <table class="data-table">
+        <thead><tr>
+          <th>Estado</th>
+          <th>Cliente</th>
+          <th>Tipo</th>
+          <th>Última actividad</th>
+          <th class="cell-right">Sesiones</th>
+          <th class="cell-right">Bugs</th>
+        </tr></thead>
+        <tbody>
+          ${enriched.map(c => `
+            <tr class="clickable" data-key="${esc(c.id || ('invite:' + c.email))}">
+              <td>${tlBadge(c._tl.color, c._tl.reason)}</td>
+              <td>
+                <div style="font-weight:500;">${esc(c.nombre || c.email)}</div>
+                <div class="cell-mono cell-dim" style="font-size:11px;">${esc(c.email)}</div>
+              </td>
+              <td>${c._isInvited ? '<span class="badge badge-pending">pendiente</span>' : '<span class="badge badge-accent">activo</span>'}</td>
+              <td class="cell-dim">${fmtRelative(c.last_active || c.created_at)}</td>
+              <td class="cell-right cell-mono">${c.session_count != null ? fmtInt(c.session_count) : '—'}</td>
+              <td class="cell-right">
+                ${c._openBugs > 0 ? `<span class="badge badge-danger">${c._openBugs}</span>` : '<span class="cell-dim">0</span>'}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+    document.querySelectorAll('#clientasTable tr.clickable').forEach(tr => {
+      tr.addEventListener('click', () => {
+        const c = _clientaIndex.get(tr.dataset.key);
+        if (!c) return;
+        if (c._isInvited) {
+          // No drill-down for invitadas — they have no usuario row yet, so
+          // there's no dieta/rutina/cierres to show. Just confirm the state.
+          alert(`${c.nombre || c.email}\n\nPendiente — todavía no completó el onboarding.\nCuando entre por primera vez, vas a ver todos sus datos acá.`);
+          return;
+        }
+        route('clienta', c);
+      });
+    });
+  }
+
+  // Index of clientas by id (or 'invite:email' for invitadas), populated by
+  // renderClientas so the drill-down view can look up the clicked row without
+  // a re-fetch.
+  const _clientaIndex = new Map();
+
+  // ---- Views: CLIENTA (drill-down) ----
+  // Renders the full detail view of one clienta: personal data, active diet
+  // and routine (markdown), latest weekly closing analysis, recent bugs and
+  // events. Intentionally OMITS peso/medidas to respect the clienta's
+  // privacy — the coach sees plans + analysis + activity, not body data.
+  async function renderClienta(el, clienta) {
+    if (!clienta) {
+      el.innerHTML = `<div class="placeholder"><strong>Sin datos</strong>No se pudo cargar el cliente.</div>`;
+      return;
+    }
+    // Update breadcrumb now that we have the clienta name
+    const crumbStrong = document.querySelector('#crumb strong');
+    if (crumbStrong) crumbStrong.textContent = clienta.nombre || clienta.email;
+
+    el.innerHTML = `
+      <div class="page-header">
+        <div>
+          <div class="back-link" data-crumb-back>← VOLVER A CLIENTAS</div>
+          <h1 class="page-title">${esc(clienta.nombre || clienta.email)}</h1>
+          <p class="page-sub">
+            <span class="cell-mono">${esc(clienta.email)}</span>
+            &nbsp;·&nbsp; ${tlBadge(clienta._tl.color, clienta._tl.reason)}
+            &nbsp;·&nbsp; <span class="cell-dim">${fmtInt(clienta.session_count || 0)} sesiones</span>
+            &nbsp;·&nbsp; <span class="cell-dim">desde ${fmtRelative(clienta.created_at)}</span>
+          </p>
+        </div>
+      </div>
+      <div class="detail-grid">
+        <section class="detail-section">
+          <div class="detail-section-title">Datos personales</div>
+          ${renderDatosPersonales(clienta)}
+        </section>
+        <section class="detail-section" id="cli-actividad">
+          <div class="detail-section-title">Actividad en la app</div>
+          ${renderActividadCard(clienta)}
+        </section>
+        <section class="detail-section" id="cli-dieta">
+          <div class="detail-section-title">Dieta activa <span class="meta">cargando…</span></div>
+          <div class="empty-row"><span class="spinner"></span> &nbsp; Cargando…</div>
+        </section>
+        <section class="detail-section" id="cli-rutina">
+          <div class="detail-section-title">Rutina activa <span class="meta">cargando…</span></div>
+          <div class="empty-row"><span class="spinner"></span> &nbsp; Cargando…</div>
+        </section>
+        <section class="detail-section full-width" id="cli-analisis">
+          <div class="detail-section-title">Último análisis semanal <span class="meta">cargando…</span></div>
+          <div class="empty-row"><span class="spinner"></span> &nbsp; Cargando…</div>
+        </section>
+        <section class="detail-section" id="cli-bugs">
+          <div class="detail-section-title">Bugs reportados <span class="meta">cargando…</span></div>
+          <div class="empty-row"><span class="spinner"></span> &nbsp; Cargando…</div>
+        </section>
+        <section class="detail-section" id="cli-consumo">
+          <div class="detail-section-title">Consumo estimado <span class="meta">próximamente</span></div>
+          <div class="coming-soon">
+            <span class="badge-soon">SOON</span>
+            <span>Acá vas a ver el costo de tokens + compute por mes de este cliente, y el promedio del tenant para comparar.</span>
+          </div>
+        </section>
+      </div>
+    `;
+
+    // Back link → route back to Clientas list
+    el.querySelector('[data-crumb-back]')?.addEventListener('click', () => route('clientas'));
+
+    // Fetch the full usuarios row + detail data in parallel. The list query
+    // only selects a few columns to keep the table fast — for the drill-down
+    // we need the rest (sexo/edad/objetivo/nivel/dias/etc) so we re-fetch.
+    const uid = clienta.id;
+    const [fullUserRes, planes, cierres, bugs] = await Promise.all([
+      sb.from('usuarios').select('*').eq('id', uid).maybeSingle(),
+      sb.from('planes_semanales').select('tipo,fecha_entrega,semana_iso,contenido,updated_at').eq('usuario_id', uid).order('fecha_entrega', { ascending: false }).limit(10),
+      sb.from('cierres_semanales').select('*').eq('usuario_id', uid).order('semana_num', { ascending: false }).limit(1),
+      sb.from('feedback').select('mensaje,created_at').eq('usuario_id', uid).order('created_at', { ascending: false }).limit(10),
+    ]);
+
+    // Re-render datos personales with the full row (the initial paint used
+    // the lighter list-query data so sexo/edad/etc were undefined). Same
+    // for actividad — session_count / last_active are in both but created_at
+    // matters for the "activa hace X" computation.
+    if (fullUserRes.data) {
+      const fullUser = fullUserRes.data;
+      const dpSection = document.querySelector('#cli-actividad')?.previousElementSibling;
+      if (dpSection) {
+        dpSection.innerHTML = `<div class="detail-section-title">Datos personales</div>${renderDatosPersonales(fullUser)}`;
+      }
+      const actSection = document.getElementById('cli-actividad');
+      if (actSection) {
+        actSection.innerHTML = `<div class="detail-section-title">Actividad en la app</div>${renderActividadCard(fullUser)}`;
+      }
+    }
+
+    paintDieta(planes.data || []);
+    paintRutina(planes.data || []);
+    paintAnalisis((cierres.data || [])[0] || null);
+    paintBugs(bugs.data || []);
+
+    // Wire up the collapsible toggles for dieta + rutina (the buttons are
+    // rendered by paintDieta/paintRutina above).
+    el.querySelectorAll('.collapsible-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const card = btn.closest('.collapsible');
+        if (!card) return;
+        card.classList.toggle('open');
+        // Update the toggle label so it always reflects the next action.
+        const label = btn.querySelector('.toggle-label');
+        if (label) label.textContent = card.classList.contains('open') ? 'Ocultar' : 'Ver completa';
+      });
+    });
+  }
+
+  // ---- Actividad en la app ----
+  // Compact stats card: how this clienta is using the product. Source is
+  // the existing usuarios.session_count + last_active fields the main app
+  // already maintains via the heartbeat. Days-active is derived from
+  // created_at → today; avg sessions/day = session_count / days-active.
+  function renderActividadCard(u) {
+    const sessionCount = u?.session_count || 0;
+    const createdAt = u?.created_at ? new Date(u.created_at) : null;
+    const lastActive = u?.last_active ? new Date(u.last_active) : null;
+    const daysSinceJoined = createdAt ? Math.max(1, Math.floor((Date.now() - createdAt.getTime()) / 86400000)) : 1;
+    const avgPerDay = (sessionCount / daysSinceJoined);
+    const avgLabel = avgPerDay >= 1 ? avgPerDay.toFixed(1) : avgPerDay.toFixed(2);
+    return `<div class="activity-grid">
+      <div class="activity-stat">
+        <div class="label">Sesiones</div>
+        <div class="value lg">${fmtInt(sessionCount)}</div>
+        <div class="sub">desde que arrancó</div>
+      </div>
+      <div class="activity-stat">
+        <div class="label">Promedio</div>
+        <div class="value lg">${avgLabel}<span style="font-size:11px; color:var(--text-dim); margin-left:4px;">/día</span></div>
+        <div class="sub">${daysSinceJoined} ${daysSinceJoined === 1 ? 'día' : 'días'} en la app</div>
+      </div>
+      <div class="activity-stat">
+        <div class="label">Última actividad</div>
+        <div class="value">${lastActive ? esc(fmtRelative(u.last_active)) : '—'}</div>
+        <div class="sub">${lastActive ? lastActive.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }) : 'nunca abrió'}</div>
+      </div>
+      <div class="activity-stat">
+        <div class="label">Onboarding</div>
+        <div class="value">${createdAt ? esc(fmtRelative(u.created_at)) : '—'}</div>
+        <div class="sub">${createdAt ? createdAt.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</div>
+      </div>
+    </div>`;
+  }
+
+  function renderDatosPersonales(c) {
+    // Privacy-conscious: we deliberately skip peso/altura/cuello/cintura/cadera.
+    // The coach sees objetivo/nivel/dias to evaluate plan fit, not body data.
+    const SEXO_LABEL    = { femenino: 'Femenino', masculino: 'Masculino', otro: 'Otro' };
+    const OBJETIVO_LABEL = { definir: '🔥 Definir', volumen: '💪 Volumen', ganar_musculo: '💪 Ganar músculo', mantener: '⚖️ Mantener', mantenimiento: '⚖️ Mantenimiento' };
+    const NIVEL_LABEL    = { principiante: 'Principiante', intermedio: 'Intermedio', avanzado: 'Avanzado' };
+    const LUGAR_LABEL    = { gym: 'Gimnasio', casa: 'En casa', mixto: 'Mixto' };
+    const ACTIVIDAD_LABEL = { sedentario: 'Sedentario', ligero: 'Ligero', moderado: 'Moderado', activo: 'Activo' };
+    const DIA_LABEL = { lun: 'Lun', mar: 'Mar', mie: 'Mié', jue: 'Jue', vie: 'Vie', sab: 'Sáb', dom: 'Dom' };
+    const dias = Array.isArray(c.dias_entreno) && c.dias_entreno.length
+      ? c.dias_entreno.map(d => DIA_LABEL[d] || d).join(', ')
+      : null;
+    const dimOrVal = (label, v) => `<dt>${label}</dt>` + (v ? `<dd>${esc(v)}</dd>` : `<dd class="dim">—</dd>`);
+    return `<dl class="kv-grid">
+      ${dimOrVal('Sexo',       SEXO_LABEL[c.sexo] || c.sexo)}
+      ${dimOrVal('Edad',       c.edad ? c.edad + ' años' : null)}
+      ${dimOrVal('Objetivo',   OBJETIVO_LABEL[c.objetivo] || c.objetivo)}
+      ${dimOrVal('Nivel',      NIVEL_LABEL[c.nivel] || c.nivel)}
+      ${dimOrVal('Días',       dias)}
+      ${dimOrVal('Duración',   c.duracion_sesion ? c.duracion_sesion + ' min' : null)}
+      ${dimOrVal('Lugar',      LUGAR_LABEL[c.lugar_entreno] || c.lugar_entreno)}
+      ${dimOrVal('Actividad',  ACTIVIDAD_LABEL[c.actividad] || c.actividad)}
+      ${dimOrVal('Comidas/día', c.comidas_dia)}
+      ${dimOrVal('Restricciones', Array.isArray(c.restricciones_dieta) && c.restricciones_dieta.length ? c.restricciones_dieta.join(', ') : null)}
+      ${dimOrVal('Alergias',   Array.isArray(c.alergias) && c.alergias.length ? c.alergias.join(', ') : null)}
+      ${dimOrVal('Lesiones',   Array.isArray(c.lesiones) && c.lesiones.length ? c.lesiones.join(', ') : null)}
+      ${dimOrVal('No le gusta', c.no_le_gusta)}
+      ${dimOrVal('Teléfono',   c.telefono)}
+    </dl>`;
+  }
+
+  // The `contenido` field of planes_semanales is a markdown string the coach
+  // writes; parseMacrosFromMarkdown only reads macros from an explicit daily
+  // target header — the exact same line shape the main app's
+  // parseDietaContenido looks for: "Target: 2380 kcal/día | P:135g C:280g G:78g".
+  // Per-meal macros (e.g. "Desayuno: ... — 590 kcal · P:35g") are NEVER used
+  // — pulling those would mislead the coach into reading one meal's grams
+  // as the daily target. If there's no Target line we return null and the
+  // chip row is skipped.
+  function parseMacrosFromMarkdown(md) {
+    if (!md || typeof md !== 'string') return null;
+    // Only look at lines that contain a Target marker. Take the first one
+    // (additional Targets would be duplicates from older weeks).
+    const targetLine = md.split('\n').find(l => /Target\s*:\s*\d/i.test(l));
+    if (!targetLine) return null;
+    const grab = (re) => { const m = targetLine.match(re); return m ? Number(m[1]) : null; };
+    const kcal  = grab(/Target\s*:\s*(\d+)\s*kcal/i);
+    const prot  = grab(/\bP\s*:\s*(\d+)\s*g/i);
+    const hc    = grab(/\bC\s*:\s*(\d+)\s*g/i); // C = Carbos (main app convention)
+    const grasa = grab(/\bG\s*:\s*(\d+)\s*g/i);
+    if (kcal == null && prot == null && grasa == null && hc == null) return null;
+    return { kcal, prot, grasa, hc };
+  }
+
+  // Heuristic that mirrors the main app's parseDietaContenido: a real dieta
+  // has at least one of (a) a "Target: Xkcal …" header line, (b) a day
+  // header like "LUNES"/"MARTES"/... at the start of a line, or (c) a
+  // recognized meal prefix ("Desayuno:", "Almuerzo:", "Cena:", etc.). When
+  // none are present, the contenido is just the AI's chat preamble and
+  // there's no plan to show — we surface that state explicitly so Beto
+  // doesn't think we're hiding something.
+  function isStructuredDieta(text) {
+    if (!text || typeof text !== 'string') return false;
+    if (/Target\s*:\s*\d/i.test(text)) return true;
+    if (/^(LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)\b/im.test(text)) return true;
+    if (/^(Desayuno|Almuerzo|Merienda|Cena|Colaci[oó]n|Snack|Pre[\s-]*entreno|Post[\s-]*entreno)\s*:/im.test(text)) return true;
+    return false;
+  }
+
+  // SVG chevron used by every collapsible toggle button. Inline string so we
+  // don't have to import an icon library.
+  const CHEV_DOWN_SVG = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+
+  // Pull a 2-line preview of a markdown plan — used as the collapsed-state
+  // teaser so the coach gets a hint of content without expanding.
+  function previewLines(md, n = 2) {
+    if (!md) return '';
+    return md.split('\n').filter(l => l.trim()).slice(0, n).join(' · ');
+  }
+
+  function paintDieta(planes) {
+    const dietaPlan = planes.find(p => p.tipo === 'dieta');
+    const sec = document.getElementById('cli-dieta');
+    if (!sec) return;
+    if (!dietaPlan) {
+      sec.innerHTML = `<div class="detail-section-title">Dieta activa <span class="meta">sin plan</span></div>
+        <div class="empty-row">Todavía no tiene dieta cargada.</div>`;
+      return;
+    }
+    // Chat-style (no Target line, no day headers, no meal prefixes) — not
+    // a real dieta. Show empty state + collapsible chat msg for context.
+    if (!isStructuredDieta(dietaPlan.contenido)) {
+      sec.innerHTML = `
+        <div class="detail-section-title">Dieta activa <span class="meta">sin estructura</span></div>
+        <div class="empty-row" style="margin-bottom:12px;">
+          Este cliente no tiene una dieta estructurada cargada — solo hay el resumen del chat inicial.
+        </div>
+        <details style="font-size:12.5px;">
+          <summary style="cursor:pointer; color:var(--text-muted); font-family:'JetBrains Mono', monospace; font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase; padding:6px 0;">
+            Ver mensaje del chat
+          </summary>
+          <div class="markdown-body" style="margin-top:8px; max-height:200px; opacity:0.8;">${esc(dietaPlan.contenido || '')}</div>
+        </details>`;
+      return;
+    }
+    const macros = parseMacrosFromMarkdown(dietaPlan.contenido);
+    const macroHtml = macros ? `
+      <div class="macro-row">
+        ${macros.kcal != null  ? `<div class="macro-chip"><div class="macro-label">Kcal</div><div class="macro-value">${fmtInt(macros.kcal)}</div></div>` : ''}
+        ${macros.prot != null  ? `<div class="macro-chip"><div class="macro-label">Prot</div><div class="macro-value">${fmtInt(macros.prot)}g</div></div>` : ''}
+        ${macros.grasa != null ? `<div class="macro-chip"><div class="macro-label">Grasa</div><div class="macro-value">${fmtInt(macros.grasa)}g</div></div>` : ''}
+        ${macros.hc != null    ? `<div class="macro-chip"><div class="macro-label">Hidr.</div><div class="macro-value">${fmtInt(macros.hc)}g</div></div>` : ''}
+      </div>
+    ` : '';
+    // Lightweight summary of what's inside (number of days the dieta covers).
+    const dayCount = countDays(dietaPlan.contenido);
+    sec.classList.add('collapsible');
+    sec.innerHTML = `
+      <div class="detail-section-title">Dieta activa
+        <span class="meta">${esc(dietaPlan.semana_iso || '')} · entregada ${fmtRelative(dietaPlan.fecha_entrega || dietaPlan.updated_at)}</span>
+      </div>
+      ${macroHtml}
+      ${dayCount > 0 ? `<div class="summary-stats"><span class="pill"><strong>${dayCount}</strong> días</span></div>` : ''}
+      <div class="collapsible-preview">${esc(previewLines(dietaPlan.contenido))}</div>
+      <div class="collapsible-body"><div class="markdown-body" style="max-height:none;">${esc(dietaPlan.contenido || '')}</div></div>
+      <div class="collapsible-toggle-row">
+        <button class="collapsible-toggle" type="button">${CHEV_DOWN_SVG}<span class="toggle-label">Ver completa</span></button>
+      </div>
+    `;
+  }
+
+  function paintRutina(planes) {
+    const rutinaPlan = planes.find(p => p.tipo === 'rutina');
+    const sec = document.getElementById('cli-rutina');
+    if (!sec) return;
+    if (!rutinaPlan) {
+      sec.innerHTML = `<div class="detail-section-title">Rutina activa <span class="meta">sin plan</span></div>
+        <div class="empty-row">Todavía no tiene rutina cargada.</div>`;
+      return;
+    }
+    // Heuristic counts: # of training days (LUNES/MARTES/... headers) and
+    // approx # of exercises (lines that look like "Exercise — N series x N reps").
+    const dayCount = countDays(rutinaPlan.contenido);
+    const exerciseCount = countExercises(rutinaPlan.contenido);
+    sec.classList.add('collapsible');
+    sec.innerHTML = `
+      <div class="detail-section-title">Rutina activa
+        <span class="meta">${esc(rutinaPlan.semana_iso || '')} · entregada ${fmtRelative(rutinaPlan.fecha_entrega || rutinaPlan.updated_at)}</span>
+      </div>
+      <div class="summary-stats">
+        ${dayCount > 0 ? `<span class="pill"><strong>${dayCount}</strong> días</span>` : ''}
+        ${exerciseCount > 0 ? `<span class="pill"><strong>${exerciseCount}</strong> ejercicios</span>` : ''}
+      </div>
+      <div class="collapsible-preview">${esc(previewLines(rutinaPlan.contenido))}</div>
+      <div class="collapsible-body"><div class="markdown-body" style="max-height:none;">${esc(rutinaPlan.contenido || '')}</div></div>
+      <div class="collapsible-toggle-row">
+        <button class="collapsible-toggle" type="button">${CHEV_DOWN_SVG}<span class="toggle-label">Ver completa</span></button>
+      </div>
+    `;
+  }
+
+  function countDays(md) {
+    if (!md) return 0;
+    const matches = md.match(/^(LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)\b/gim);
+    return matches ? new Set(matches.map(m => m.toUpperCase())).size : 0;
+  }
+  function countExercises(md) {
+    if (!md) return 0;
+    // Match lines that include "X series x Y reps" — the standard format
+    // coaches write exercise prescriptions in.
+    const re = /\d+\s*series?\s*x\s*\d+/gi;
+    const matches = md.match(re);
+    return matches ? matches.length : 0;
+  }
+
+  function paintAnalisis(cierre) {
+    const sec = document.getElementById('cli-analisis');
+    if (!sec) return;
+    if (!cierre) {
+      sec.innerHTML = `<div class="detail-section-title">Último análisis semanal <span class="meta">sin cierres</span></div>
+        <div class="empty-row">Todavía no cerró ninguna semana — el análisis aparece después del primer cierre.</div>`;
+      return;
+    }
+    const stats = cierre.stats || {};
+    // Stats shape varies week-to-week; we render whatever keys came back as
+    // chips, and the full prose análisis (if present) as the body.
+    const statsHtml = Object.keys(stats).length
+      ? `<div class="macro-row">${Object.entries(stats).map(([k, v]) => `
+          <div class="macro-chip"><div class="macro-label">${esc(k)}</div><div class="macro-value">${esc(typeof v === 'number' ? fmtInt(v) : String(v))}</div></div>
+        `).join('')}</div>` : '';
+    const prose = cierre.analisis || cierre.resumen || cierre.observaciones || '';
+    sec.innerHTML = `
+      <div class="detail-section-title">Último análisis semanal
+        <span class="meta">Semana ${esc(cierre.semana_num || '?')} · ${fmtRelative(cierre.fecha_fin || cierre.created_at)}</span>
+      </div>
+      ${statsHtml}
+      ${prose ? `<div class="markdown-body">${esc(prose)}</div>` : '<div class="empty-row">Cierre sin texto de análisis.</div>'}
+    `;
+  }
+
+  function paintBugs(bugs) {
+    const sec = document.getElementById('cli-bugs');
+    if (!sec) return;
+    sec.innerHTML = `
+      <div class="detail-section-title">Bugs reportados <span class="meta">${bugs.length} total</span></div>
+      ${bugs.length === 0
+        ? '<div class="empty-row">Sin bugs reportados. 🎉</div>'
+        : `<div class="timeline">${bugs.map(b => `
+            <div class="timeline-item bug">
+              <span class="when">${esc(fmtRelative(b.created_at))}</span>
+              <span class="what">${esc(b.mensaje || '(sin mensaje)')}</span>
+            </div>
+          `).join('')}</div>`
+      }
+    `;
+  }
+
+  // ---- Views: INVITAR ----
+  // Form to invite a new clienta to the current tenant. Mirrors the legacy
+  // admin panel's beta_invitados insert + /api/send-invite POST, but the
+  // tenant_slug is implicit (= currentTenant.slug) — an admin can only
+  // invite into their own tenant, never another coach's.
+  function renderInvitar(el) {
+    el.innerHTML = `
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Invitar cliente</h1>
+          <p class="page-sub">Sumá un cliente nuevo a <strong>${esc(currentTenant.name)}</strong>. Le llega un mail con el link para entrar.</p>
+        </div>
+      </div>
+      <form id="inviteForm" class="form-card" autocomplete="off" novalidate>
+        <div class="form-row">
+          <label class="form-label" for="inv-email">Email <span class="req">*</span></label>
+          <input class="form-input" type="email" id="inv-email" placeholder="cliente@ejemplo.com" required autocomplete="off" inputmode="email">
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="inv-nombre">Nombre <span class="optional">(opcional, pero recomendado)</span></label>
+          <input class="form-input" type="text" id="inv-nombre" placeholder="Mariana" maxlength="60" autocomplete="off">
+          <div class="form-hint">Lo usamos para personalizar el mail de invitación.</div>
+        </div>
+        <div class="form-row">
+          <label class="form-toggle">
+            <input type="checkbox" id="inv-migrada">
+            <div class="form-toggle-label">
+              Tiene plan previo para precargar
+              <span class="desc">Si ya tenía rutina y/o dieta antes, las precargamos para que las vea al entrar.</span>
+            </div>
+          </label>
+        </div>
+        <div id="inv-migrada-fields" style="display:none">
+          <div class="form-row">
+            <label class="form-label" for="inv-pre-rutina">Rutina existente <span class="optional">(opcional)</span></label>
+            <textarea class="form-textarea" id="inv-pre-rutina" placeholder="Pegá acá la rutina actual del cliente (markdown libre)…"></textarea>
+          </div>
+          <div class="form-row">
+            <label class="form-label" for="inv-pre-dieta">Dieta existente <span class="optional">(opcional)</span></label>
+            <textarea class="form-textarea" id="inv-pre-dieta" placeholder="Pegá acá la dieta actual (markdown libre)…"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" id="inv-submit">Invitar</button>
+          <span class="form-msg" id="inv-msg"></span>
+        </div>
+      </form>
+    `;
+    // Toggle migrada fields
+    const migrada = document.getElementById('inv-migrada');
+    const migFields = document.getElementById('inv-migrada-fields');
+    migrada.addEventListener('change', () => {
+      migFields.style.display = migrada.checked ? 'block' : 'none';
+    });
+    // Submit
+    document.getElementById('inviteForm').addEventListener('submit', handleInviteSubmit);
+  }
+
+  async function handleInviteSubmit(e) {
+    e.preventDefault();
+    const btn = document.getElementById('inv-submit');
+    const msg = document.getElementById('inv-msg');
+    const email   = (document.getElementById('inv-email').value || '').trim().toLowerCase();
+    const nombre  = (document.getElementById('inv-nombre').value || '').trim();
+    const isMig   = document.getElementById('inv-migrada').checked;
+    const preRut  = isMig ? (document.getElementById('inv-pre-rutina').value || '').trim() : '';
+    const preDie  = isMig ? (document.getElementById('inv-pre-dieta').value || '').trim() : '';
+
+    msg.textContent = '';
+    msg.className = 'form-msg';
+
+    if (!email || !email.includes('@') || email.length < 4) {
+      msg.textContent = 'Ingresá un email válido.';
+      msg.className = 'form-msg err';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Invitando…';
+
+    try {
+      // Insert into beta_invitados. The DB has a UNIQUE(email) constraint
+      // (legacy from when beta was single-tenant) — duplicates surface as
+      // Postgres error code 23505.
+      const invitadoPor = currentUser?.email || 'admin';
+      const { error } = await sb.from('beta_invitados').insert([{
+        email,
+        nombre: nombre || null,
+        invitado_por: invitadoPor,
+        tenant_slug: currentTenant.slug,
+        // migrada_de_coach left null: with per-tenant Studio, the inviting
+        // coach is implied by tenant_slug. The column stays for legacy data
+        // but Studio never writes it.
+        migrada_de_coach: null,
+        pre_rutina: preRut || null,
+        pre_dieta:  preDie || null,
+      }]);
+      if (error) {
+        if (error.code === '23505') {
+          msg.textContent = 'Ese email ya estaba invitado.';
+        } else {
+          msg.textContent = 'No se pudo invitar: ' + error.message;
+        }
+        msg.className = 'form-msg err';
+        return;
+      }
+
+      // DB write succeeded — fire the courtesy email. Same endpoint the
+      // legacy admin uses; failure here is non-fatal (the invite already
+      // exists in DB and the link works as soon as she opens it).
+      let mailStatus = '';
+      try {
+        const resp = await fetch('/api/send-invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, nombre: nombre || null, invitadoPor, tenantSlug: currentTenant.slug })
+        });
+        if (resp.ok) mailStatus = ' · mail enviado 📬';
+        else {
+          console.warn('[studio] invite mail failed', resp.status);
+          mailStatus = ' · mail no se pudo enviar (avisale vos)';
+        }
+      } catch (mailErr) {
+        console.warn('[studio] invite mail network error', mailErr);
+        mailStatus = ' · mail no se pudo enviar (avisale vos)';
+      }
+
+      msg.textContent = `✓ ${email} invitado${mailStatus}`;
+      msg.className = 'form-msg ok';
+
+      // Reset form so the coach can immediately invite the next clienta.
+      document.getElementById('inviteForm').reset();
+      document.getElementById('inv-migrada-fields').style.display = 'none';
+
+      // Bust the clientas cache so the new invite shows up next time the
+      // coach navigates to /clientas.
+      _clientasCache = null;
+    } catch (err) {
+      console.error('[studio] invite error:', err);
+      msg.textContent = 'Error inesperado. Probá de nuevo.';
+      msg.className = 'form-msg err';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Invitar';
+    }
+  }
+
+  // ---- Boot ----
+  runAuthGate();
+  </script>
+</body>
+</html>
