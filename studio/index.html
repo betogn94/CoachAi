@@ -1382,7 +1382,15 @@
   function resolveTenantSlug() {
     const host = window.location.hostname.toLowerCase();
     if (/^king\./.test(host)) return 'jesus';
-    // local dev fallback: ?tenant=jesus query string
+    // Local dev / cached fallback: the main app's boot resolver persists the
+    // detected slug in this localStorage key as soon as it knows the origin.
+    // Reading it means Studio agrees with the main app on tenant identity
+    // even when navigating from `/?tenant=jesus` → `/studio` (no subdomain,
+    // no query string survives the navigation).
+    try {
+      const cached = localStorage.getItem('coachai_preview_tenant_v1');
+      if (cached) return cached;
+    } catch {}
     const qp = new URLSearchParams(window.location.search).get('tenant');
     if (qp) return qp;
     return 'coachai-default';

@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260530-1621-remove-admin-entry-fix-tenant-race">
+<meta name="app-version" content="20260530-1632-admin-choice-gateway">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12127,18 +12127,46 @@ async function loginOrRegister(email, nombre) {
     // where each coach manages their own private list of clientas.
     try {
       // Resolve expected tenant from currentTenant if already loaded, else
-      // fall back to a synchronous hostname check (same as the init resolver).
-      // The bug this fixes: currentTenant is fetched async on boot; if the
-      // user clicks "Ingresar" before that fetch completes, we'd default
-      // expectedSlug to 'coachai-default' and reject every King user with
-      // a confusing "cuenta en otro coach" — even though they were correctly
-      // at king.coachaipro.ai. Hostname is synchronous + authoritative.
+      // fall back to a synchronous mirror of the boot resolver: hostname
+      // (king.* → jesus), then ?tenant= query, then #tenant= hash, then
+      // path-based (/jesus, /king). One of these is always present in
+      // a real navigation; only an unbookmarked landing at coachaipro.ai
+      // falls through to coachai-default.
+      // Fixes the race where currentTenant is fetched async on boot and the
+      // user can click Ingresar before it resolves — without this guard,
+      // every King user got "cuenta en otro coach" because expectedSlug
+      // defaulted to coachai-default.
       let expectedSlug = currentTenant?.slug;
       if (!expectedSlug) {
         try {
+          // The boot tenant resolver caches the detected slug in localStorage
+          // under 'coachai_preview_tenant_v1' as soon as it identifies the
+          // origin (hostname/query/hash/path). This is the SAME signal the
+          // app uses everywhere else for tenant identity — checking it first
+          // means we never disagree with the boot resolver's decision.
+          const cached = localStorage.getItem('coachai_preview_tenant_v1');
+          if (cached) expectedSlug = cached;
+        } catch {}
+      }
+      if (!expectedSlug) {
+        try {
           const host = (window.location.hostname || '').toLowerCase();
-          if (/^king\./.test(host)) expectedSlug = 'jesus';
-          else expectedSlug = 'coachai-default';
+          if (/^king\./.test(host)) {
+            expectedSlug = 'jesus';
+          } else {
+            const params = new URLSearchParams(window.location.search);
+            const qp = params.get('tenant');
+            if (qp) expectedSlug = qp;
+            else if (window.location.hash) {
+              const m = window.location.hash.match(/[#&]tenant=([^&]+)/);
+              if (m) expectedSlug = decodeURIComponent(m[1]);
+            }
+            if (!expectedSlug) {
+              const p = (window.location.pathname || '').toLowerCase().replace(/^\/+|\/+$/g, '');
+              if (p === 'jesus' || p === 'king') expectedSlug = 'jesus';
+            }
+            if (!expectedSlug) expectedSlug = 'coachai-default';
+          }
         } catch { expectedSlug = 'coachai-default'; }
       }
       const { data: expectedTenant } = await sbClient
@@ -12726,6 +12754,95 @@ function buildHistorySummary() {
 // ============================
 // EMAIL LOGIN
 // ============================
+// ============================================================
+// ADMIN CHOICE GATEWAY
+// ============================================================
+// Shown to users with role='admin' after a successful login, before any
+// onboarding or launchCoach call. Lets the coach decide between opening
+// Studio (their primary workspace) or continuing as a regular user (e.g.
+// to train themselves or test the app from a clienta's perspective).
+//
+// State on entry: the localStorage session is already set, the landing is
+// still visible, the email/name fields still have the values typed by the
+// coach. State on exit: either we navigated to /studio (Studio's auth gate
+// takes over) or we triggered the user flow (landing hides, onboarding
+// or launchCoach runs).
+function showAdminChoice(result, nombre) {
+  const overlay = document.getElementById('admin-choice-overlay');
+  if (!overlay) {
+    // Defensive fallback — if the overlay HTML isn't present in this build
+    // (e.g. running an older cached index.html), skip straight to Studio
+    // since that's the coach's primary destination.
+    window.location.href = '/studio';
+    return;
+  }
+  // Personalize the greeting with the coach's name (or "coach" as fallback)
+  const nameEl = document.getElementById('admin-choice-name');
+  if (nameEl) nameEl.textContent = result.user?.nombre || nombre || 'coach';
+  overlay.style.display = 'block';
+
+  // Wire up the three buttons. We re-bind each time so callbacks always
+  // close over the FRESH result/nombre values, not stale ones from a
+  // previous login attempt.
+  const studioBtn = document.getElementById('admin-choice-studio');
+  const userBtn   = document.getElementById('admin-choice-user');
+  const logoutBtn = document.getElementById('admin-choice-logout');
+
+  const goStudio = () => {
+    // Studio's auth gate reads coachai_session_v1 directly, which is
+    // already set by the time we got here. Just navigate.
+    window.location.href = '/studio';
+  };
+
+  const continueAsUser = async () => {
+    overlay.style.display = 'none';
+    // Continue with the normal post-login flow that would have run if the
+    // coach weren't an admin: hide landing, show main app shell, then
+    // either onboarding (incomplete profile) or launchCoach (complete).
+    document.getElementById('landing-wrapper').style.display = 'none';
+    document.getElementById('main-header').style.display = 'flex';
+    document.body.classList.add('app-active');
+    const p = result.user;
+    if (p.nombre)    document.getElementById('f-nombre').value    = p.nombre || '';
+    if (p.edad)      document.getElementById('f-edad').value      = p.edad || '';
+    if (p.sexo)      document.getElementById('f-sexo').value      = p.sexo || '';
+    if (p.peso)      document.getElementById('f-peso').value      = p.peso || '';
+    if (p.altura)    document.getElementById('f-altura').value    = p.altura || '';
+    if (p.actividad) document.getElementById('f-actividad').value = p.actividad || '';
+    if (p.objetivo)  selections.objetivo = p.objetivo;
+    if (p.nivel)     selections.nivel    = p.nivel;
+    if (p.dias_entreno) selectedDias = p.dias_entreno;
+    // Same full-profile gate as the normal user path.
+    if (p.objetivo && p.nivel && p.peso && p.altura && p.edad && p.sexo) {
+      await launchCoach();
+    } else {
+      document.getElementById('hero-section').style.display = 'block';
+      document.querySelector('.form-wrapper').style.display = 'block';
+      document.querySelector('.progress-bar-container').style.display = 'block';
+      requestAnimationFrame(() => initOnboardingPanels());
+    }
+  };
+
+  const doLogout = () => {
+    overlay.style.display = 'none';
+    clearSession();
+    document.getElementById('el-nombre').value = '';
+    document.getElementById('el-email').value = '';
+  };
+
+  // Replace handlers (clones-without-listeners trick) so we never stack
+  // listeners from previous invocations.
+  const swap = (el, fn) => {
+    const clone = el.cloneNode(true);
+    el.parentNode.replaceChild(clone, el);
+    clone.addEventListener('click', fn);
+    return clone;
+  };
+  if (studioBtn) swap(studioBtn, goStudio);
+  if (userBtn)   swap(userBtn,   continueAsUser);
+  if (logoutBtn) swap(logoutBtn, doLogout);
+}
+
 async function handleEmailLogin() {
   if (document.activeElement) document.activeElement.blur();
   const nombre = document.getElementById('el-nombre').value.trim();
@@ -12819,6 +12936,18 @@ async function handleEmailLogin() {
     // Beta analytics: bump session_count + last_active, log session_start.
     // Fire-and-forget — does not block the login flow.
     trackBetaActivity(true);
+
+    // Admin gateway: a user with role='admin' is a coach. Before dropping
+    // them into onboarding/launchCoach (which would assume they're here to
+    // train), show a choice screen: open Studio or continue as user. This
+    // covers the case where a coach has an incomplete profile (no peso/edad/
+    // etc.) and otherwise would have been forced through the trainee flow.
+    if (!result.isNew && result.user?.role === 'admin') {
+      showAdminChoice(result, nombre);
+      btn.disabled = false;
+      loading.style.display = 'none';
+      return;
+    }
 
     document.getElementById('landing-wrapper').style.display = 'none';
     document.getElementById('main-header').style.display = 'flex';
@@ -22567,6 +22696,49 @@ async function forceAppUpdate() {
   </button>
 
   <div class="landing-footer-text" id="landing-footer-text">Powered by Anthropic Claude</div>
+</div>
+
+<!-- ADMIN CHOICE GATEWAY — shown after a successful login when the user has
+     role='admin'. Two options: open Studio (coach mode) or continue as a
+     regular user (onboarding or launchCoach). Without this, a coach with an
+     incomplete profile gets dropped straight into onboarding, which is the
+     wrong default — they're here to coach, not to train. -->
+<div id="admin-choice-overlay" style="display:none; position:fixed; inset:0; z-index:2000; background:linear-gradient(135deg, var(--bg, #1a1535) 0%, var(--bg, #1a1535) 100%); padding:24px; padding-top:max(24px, env(safe-area-inset-top,0px)); padding-bottom:max(24px, env(safe-area-inset-bottom,0px)); overflow-y:auto; -webkit-overflow-scrolling:touch;">
+  <div style="max-width:440px; margin:0 auto; padding-top:min(8vh, 60px); text-align:center;">
+    <div id="admin-choice-logo" style="font-family:'Bebas Neue', sans-serif; font-size:36px; letter-spacing:0.18em; color:var(--accent-bright, #FF4F7B); margin-bottom:6px;">COACHAI</div>
+    <div style="font-size:11px; letter-spacing:0.2em; color:var(--muted, #8B95A7); text-transform:uppercase; margin-bottom:36px;">Modo coach detectado</div>
+
+    <h1 id="admin-choice-greeting" style="font-size:22px; font-weight:600; margin:0 0 8px; color:var(--text, #fff);">Hola <span id="admin-choice-name">coach</span></h1>
+    <p style="font-size:14px; color:var(--muted, #8B95A7); margin:0 0 32px; line-height:1.55;">¿Cómo querés entrar hoy?</p>
+
+    <button id="admin-choice-studio" type="button"
+      style="display:flex; align-items:center; gap:14px; width:100%; background:linear-gradient(135deg, var(--accent-bright, #FF4F7B), var(--accent2, #FF6B95)); border:none; color:#fff; padding:18px 22px; border-radius:14px; cursor:pointer; text-align:left; margin-bottom:12px; box-shadow:0 8px 24px rgba(255,79,123,0.25); font-family:inherit; transition:transform 0.12s, filter 0.12s;"
+      onmouseover="this.style.filter='brightness(1.08)'" onmouseout="this.style.filter=''">
+      <span style="width:42px; height:42px; border-radius:10px; background:rgba(255,255,255,0.18); display:grid; place-items:center; font-weight:700; font-size:15px; letter-spacing:0.04em; flex-shrink:0;">S</span>
+      <span style="flex:1;">
+        <span style="display:block; font-size:14px; font-weight:600; letter-spacing:0.04em;">ABRIR STUDIO</span>
+        <span style="display:block; font-size:12px; opacity:0.85; margin-top:2px;">Panel privado para gestionar tus clientes</span>
+      </span>
+      <span style="font-size:18px; opacity:0.8;">→</span>
+    </button>
+
+    <button id="admin-choice-user" type="button"
+      style="display:flex; align-items:center; gap:14px; width:100%; background:transparent; border:1px solid rgba(255,255,255,0.18); color:var(--text, #fff); padding:16px 22px; border-radius:14px; cursor:pointer; text-align:left; font-family:inherit; transition:background 0.12s, border-color 0.12s;"
+      onmouseover="this.style.background='rgba(255,255,255,0.04)'; this.style.borderColor='rgba(255,255,255,0.32)'" onmouseout="this.style.background='transparent'; this.style.borderColor='rgba(255,255,255,0.18)'">
+      <span style="width:42px; height:42px; border-radius:10px; background:rgba(255,255,255,0.08); display:grid; place-items:center; font-size:18px; flex-shrink:0;">👤</span>
+      <span style="flex:1;">
+        <span style="display:block; font-size:13.5px; font-weight:500;">Continuar como usuario</span>
+        <span style="display:block; font-size:11.5px; opacity:0.65; margin-top:2px;">Usar la app como cualquier cliente (entrenar, comer, progreso)</span>
+      </span>
+      <span style="font-size:16px; opacity:0.6;">→</span>
+    </button>
+
+    <button id="admin-choice-logout" type="button"
+      style="background:transparent; border:none; color:var(--muted, #8B95A7); font-size:12px; margin-top:24px; cursor:pointer; padding:8px; font-family:inherit; opacity:0.7;"
+      onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+      Salir
+    </button>
+  </div>
 </div>
 
 <!-- ADMIN ACTION MODAL (edit profile / edit plan / delete) -->
