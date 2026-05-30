@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260530-1559-studio-fix-exercise-count">
+<meta name="app-version" content="20260530-1621-remove-admin-entry-fix-tenant-race">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12126,7 +12126,21 @@ async function loginOrRegister(email, nombre) {
     // point them to the right URL. This is critical for the Studio launch
     // where each coach manages their own private list of clientas.
     try {
-      const expectedSlug = currentTenant?.slug || 'coachai-default';
+      // Resolve expected tenant from currentTenant if already loaded, else
+      // fall back to a synchronous hostname check (same as the init resolver).
+      // The bug this fixes: currentTenant is fetched async on boot; if the
+      // user clicks "Ingresar" before that fetch completes, we'd default
+      // expectedSlug to 'coachai-default' and reject every King user with
+      // a confusing "cuenta en otro coach" — even though they were correctly
+      // at king.coachaipro.ai. Hostname is synchronous + authoritative.
+      let expectedSlug = currentTenant?.slug;
+      if (!expectedSlug) {
+        try {
+          const host = (window.location.hostname || '').toLowerCase();
+          if (/^king\./.test(host)) expectedSlug = 'jesus';
+          else expectedSlug = 'coachai-default';
+        } catch { expectedSlug = 'coachai-default'; }
+      }
       const { data: expectedTenant } = await sbClient
         .from('tenants').select('id, slug, name, domain')
         .eq('slug', expectedSlug).maybeSingle();
@@ -22527,7 +22541,10 @@ async function forceAppUpdate() {
     <button class="btn-email-login" id="el-btn" onclick="handleEmailLogin()">INGRESAR →</button>
     <div class="email-login-loading" id="el-loading">Conectando...</div>
   </div>
-  <div class="landing-admin-link" onclick="showAdminLogin()">⚙️ Acceso administrador</div>
+  <!-- Legacy admin entry point removed: coaches now log in with their normal
+       email (role='admin' surfaces the "MODO COACH / ABRIR STUDIO" card in
+       Perfil). The admin panel code itself is still reachable programmatically
+       until Task #14 ports edit-profile + delete-user to Studio. -->
 
   <!-- PWA install button — always visible on landing; click opens a platform-
        aware modal (or fires the native prompt if Android Chrome captured it) -->
