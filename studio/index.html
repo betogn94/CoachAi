@@ -2176,9 +2176,13 @@
   }
   function countExercises(md) {
     if (!md) return 0;
-    // Match lines that include "X series x Y reps" — the standard format
-    // coaches write exercise prescriptions in.
-    const re = /\d+\s*series?\s*x\s*\d+/gi;
+    // Match exercise prescription patterns:
+    //   - "4 series x 8" / "4 series x 8 reps" — verbose, common in raw paste
+    //   - "4×8" / "4x10"                       — canonical (what the AI
+    //                                            normalizer outputs per its
+    //                                            system prompt)
+    //   - "4×12-10-8"                          — piramidal counts as 1
+    const re = /\d+\s*(?:series?\s*)?[×x]\s*\d+/gi;
     const matches = md.match(re);
     return matches ? matches.length : 0;
   }
