@@ -13,6 +13,10 @@ const ALLOWED_ORIGINS = [
   'https://www.coachaipro.ai',
   'https://coachaipro.com',
   'https://www.coachaipro.com',
+  // Per-tenant subdomains — Studio invites originate from these. Add a new
+  // entry here every time a tenant gets its own subdomain (king.* was the
+  // first; future ones will follow the same pattern).
+  'https://king.coachaipro.ai',
   'https://coach-ai-pearl.vercel.app',
 ];
 
