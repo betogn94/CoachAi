@@ -746,6 +746,189 @@
       margin-top: 2px;
     }
 
+    /* ---------- PLAN EDITOR (modal) ----------
+       Used for both "Cargar dieta/rutina" (empty) and "Editar dieta/rutina"
+       (existing plan). Renders full-screen on mobile, centered card on
+       desktop. Two-step save: 1st click normalizes via AI, 2nd commits. */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 60;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      padding-top: max(24px, env(safe-area-inset-top, 0px));
+      padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+      animation: modal-fade 0.18s ease;
+    }
+    @keyframes modal-fade { from { opacity: 0; } to { opacity: 1; } }
+    .modal {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 720px;
+      max-height: calc(100vh - 48px);
+      max-height: calc(100dvh - 48px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+      animation: modal-pop 0.22s ease;
+    }
+    @keyframes modal-pop {
+      from { opacity: 0; transform: translateY(8px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .modal-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-soft);
+      flex-shrink: 0;
+    }
+    .modal-title {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      flex: 1;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .modal-title .tipo-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .modal-close {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      display: grid; place-items: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.12s, color 0.12s;
+    }
+    .modal-close:hover { background: var(--bg-elev-2); color: var(--text); }
+    .modal-close svg { width: 14px; height: 14px; }
+    .modal-body {
+      padding: 18px 20px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      flex: 1;
+    }
+    .modal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .modal-textarea {
+      width: 100%;
+      min-height: 320px;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+      font-size: 14px;
+      line-height: 1.55;
+      resize: vertical;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .modal-textarea:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .modal-foot {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
+      border-top: 1px solid var(--border-soft);
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    .modal-msg {
+      font-size: 12.5px;
+      flex: 1;
+      min-width: 200px;
+      min-height: 1.4em;
+    }
+    .modal-msg.ok   { color: var(--success); }
+    .modal-msg.warn { color: var(--warning); }
+    .modal-msg.err  { color: var(--danger); }
+    .modal-msg.hint { color: var(--accent); }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-weight: 500;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: border-color 0.12s, color 0.12s;
+    }
+    .btn-ghost:hover { border-color: var(--text-muted); color: var(--text); }
+    @media (max-width: 600px) {
+      .modal-overlay { padding: 0; }
+      .modal {
+        border-radius: 0;
+        max-width: 100%;
+        height: 100vh; height: 100dvh;
+        max-height: 100vh; max-height: 100dvh;
+      }
+      .modal-grid { grid-template-columns: 1fr; }
+      .modal-textarea { min-height: 220px; font-size: 13.5px; }
+    }
+
+    /* Per-card "Editar" / "+ Cargar" button — sits in the toggle row next
+       to "Ver completa". Uses ghost styling so it doesn't compete with the
+       primary content. */
+    .plan-action {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: border-color 0.12s, color 0.12s, background 0.12s;
+      margin-left: auto;
+    }
+    .plan-action:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .plan-action.primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .plan-action.primary:hover { filter: brightness(1.1); }
+
     /* ---------- PLACEHOLDER (próximamente) inside a detail section ---- */
     .coming-soon {
       display: flex;
@@ -1068,6 +1251,43 @@
       <h1 id="gate-title">Acceso restringido</h1>
       <p id="gate-msg">Esta sección es solo para coaches con permisos de administrador.</p>
       <a id="gate-cta" href="/">Volver a la app</a>
+    </div>
+  </div>
+
+  <!-- Plan editor modal (hidden by default; shown when openPlanEditor runs).
+       Mounted outside the app shell so the overlay covers the sidebar too. -->
+  <div id="planEditor" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal" role="document">
+      <div class="modal-head">
+        <h2 class="modal-title">
+          <span id="pe-title">Editar plan</span>
+          <span class="tipo-pill" id="pe-tipo">DIETA</span>
+        </h2>
+        <button class="modal-close" id="pe-close" type="button" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-grid">
+          <div>
+            <label class="form-label" for="pe-semana">Semana ISO</label>
+            <input class="form-input" type="text" id="pe-semana" placeholder="2026-W22" autocomplete="off" spellcheck="false">
+            <div class="form-hint">Formato: AAAA-Wnn — default = semana actual.</div>
+          </div>
+          <div>
+            <label class="form-label" for="pe-fecha">Fecha de entrega</label>
+            <input class="form-input" type="date" id="pe-fecha" autocomplete="off">
+            <div class="form-hint">Cuándo entró en vigor — default = hoy.</div>
+          </div>
+        </div>
+        <label class="form-label" for="pe-contenido">Contenido del plan</label>
+        <textarea class="modal-textarea" id="pe-contenido" spellcheck="false" placeholder="Pegá la dieta o rutina acá. Puede venir en cualquier formato — la IA la reordena al canónico de la app cuando le des Guardar."></textarea>
+      </div>
+      <div class="modal-foot">
+        <span class="modal-msg" id="pe-msg"></span>
+        <button class="btn-ghost" id="pe-cancel" type="button">Cancelar</button>
+        <button class="btn-primary" id="pe-save" type="button">Guardar</button>
+      </div>
     </div>
   </div>
 
@@ -1625,6 +1845,8 @@
       el.innerHTML = `<div class="placeholder"><strong>Sin datos</strong>No se pudo cargar el cliente.</div>`;
       return;
     }
+    // Stash the current clienta for the plan-editor click handler below
+    _currentDetailClienta = clienta;
     // Update breadcrumb now that we have the clienta name
     const crumbStrong = document.querySelector('#crumb strong');
     if (crumbStrong) crumbStrong.textContent = clienta.nombre || clienta.email;
@@ -1842,29 +2064,50 @@
     return md.split('\n').filter(l => l.trim()).slice(0, n).join(' · ');
   }
 
+  // Edit/create button HTML used by both dieta and rutina cards. `existing`
+  // is the planes_semanales row (or null when creating from scratch). The
+  // button stores params on data-* attrs that openPlanEditor reads.
+  function planActionBtn(tipo, existing, label, primary) {
+    const cls = primary ? 'plan-action primary' : 'plan-action';
+    const semana = existing?.semana_iso || '';
+    const fecha = existing?.fecha_entrega || '';
+    const contenido = existing?.contenido || '';
+    // Stash contenido in a Map keyed by a synthetic id to avoid huge data
+    // attributes (some plans are 3k+ chars). The button only carries the
+    // key — openPlanEditor pulls the actual text from _planContentByKey.
+    const key = tipo + ':' + (existing?.id || 'new') + ':' + Math.random().toString(36).slice(2, 8);
+    _planContentByKey.set(key, contenido);
+    return `<button class="${cls}" type="button" data-edit-plan data-tipo="${esc(tipo)}" data-semana="${esc(semana)}" data-fecha="${esc(fecha)}" data-key="${esc(key)}">${label}</button>`;
+  }
+  const _planContentByKey = new Map();
+
   function paintDieta(planes) {
     const dietaPlan = planes.find(p => p.tipo === 'dieta');
     const sec = document.getElementById('cli-dieta');
     if (!sec) return;
     if (!dietaPlan) {
       sec.innerHTML = `<div class="detail-section-title">Dieta activa <span class="meta">sin plan</span></div>
-        <div class="empty-row">Todavía no tiene dieta cargada.</div>`;
+        <div class="empty-row" style="margin-bottom:12px;">Todavía no tiene dieta cargada.</div>
+        <div class="collapsible-toggle-row">${planActionBtn('dieta', null, '+ Cargar dieta', true)}</div>`;
       return;
     }
     // Chat-style (no Target line, no day headers, no meal prefixes) — not
-    // a real dieta. Show empty state + collapsible chat msg for context.
+    // a real dieta. Show empty state + collapsible chat msg for context +
+    // a "Cargar dieta real" CTA (key for migrations: replaces the chat
+    // message with a proper structured plan on save).
     if (!isStructuredDieta(dietaPlan.contenido)) {
       sec.innerHTML = `
         <div class="detail-section-title">Dieta activa <span class="meta">sin estructura</span></div>
         <div class="empty-row" style="margin-bottom:12px;">
           Este cliente no tiene una dieta estructurada cargada — solo hay el resumen del chat inicial.
         </div>
-        <details style="font-size:12.5px;">
+        <details style="font-size:12.5px; margin-bottom:14px;">
           <summary style="cursor:pointer; color:var(--text-muted); font-family:'JetBrains Mono', monospace; font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase; padding:6px 0;">
             Ver mensaje del chat
           </summary>
           <div class="markdown-body" style="margin-top:8px; max-height:200px; opacity:0.8;">${esc(dietaPlan.contenido || '')}</div>
-        </details>`;
+        </details>
+        <div class="collapsible-toggle-row">${planActionBtn('dieta', { ...dietaPlan, contenido: '' }, '+ Cargar dieta real', true)}</div>`;
       return;
     }
     const macros = parseMacrosFromMarkdown(dietaPlan.contenido);
@@ -1889,6 +2132,7 @@
       <div class="collapsible-body"><div class="markdown-body" style="max-height:none;">${esc(dietaPlan.contenido || '')}</div></div>
       <div class="collapsible-toggle-row">
         <button class="collapsible-toggle" type="button">${CHEV_DOWN_SVG}<span class="toggle-label">Ver completa</span></button>
+        ${planActionBtn('dieta', dietaPlan, '✏️ Editar', false)}
       </div>
     `;
   }
@@ -1899,7 +2143,8 @@
     if (!sec) return;
     if (!rutinaPlan) {
       sec.innerHTML = `<div class="detail-section-title">Rutina activa <span class="meta">sin plan</span></div>
-        <div class="empty-row">Todavía no tiene rutina cargada.</div>`;
+        <div class="empty-row" style="margin-bottom:12px;">Todavía no tiene rutina cargada.</div>
+        <div class="collapsible-toggle-row">${planActionBtn('rutina', null, '+ Cargar rutina', true)}</div>`;
       return;
     }
     // Heuristic counts: # of training days (LUNES/MARTES/... headers) and
@@ -1919,6 +2164,7 @@
       <div class="collapsible-body"><div class="markdown-body" style="max-height:none;">${esc(rutinaPlan.contenido || '')}</div></div>
       <div class="collapsible-toggle-row">
         <button class="collapsible-toggle" type="button">${CHEV_DOWN_SVG}<span class="toggle-label">Ver completa</span></button>
+        ${planActionBtn('rutina', rutinaPlan, '✏️ Editar', false)}
       </div>
     `;
   }
@@ -2125,6 +2371,248 @@
       btn.textContent = 'Invitar';
     }
   }
+
+  // ============================================================
+  // PLAN EDITOR
+  // ============================================================
+  // Used to upsert dieta/rutina rows in planes_semanales. Mirrors the
+  // legacy admin panel's flow: two-step save where the first click runs
+  // the content through AI to normalize the format (paste-from-anywhere
+  // → canonical structure the app's parsers understand), and the second
+  // click commits to DB. The AI step is non-blocking: if /api/chat fails
+  // or returns nothing, the coach can still save the raw text.
+
+  // The clienta whose plan is being edited. Set when openPlanEditor runs,
+  // read by savePlan to know whose usuarios row to upsert against.
+  let _editingClienta = null;
+  // Whether the textarea has already been AI-normalized this open. Lets us
+  // implement the "first click = normalize, second click = commit" flow.
+  let _planNormalized = false;
+  let _planTipo = 'dieta';
+
+  // ISO week key in YYYY-Www format — same shape the main app uses, so a
+  // plan saved from Studio for the current week shows up correctly in the
+  // user's app as "this week's plan". Copied from the main app's
+  // getISOWeekKey to avoid cross-file imports.
+  function isoWeekKey(date = new Date()) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+  }
+  function todayKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function openPlanEditor({ tipo, semana, fecha, contenido }) {
+    _planTipo = tipo;
+    _planNormalized = false;
+    document.getElementById('pe-title').textContent = contenido ? `Editar ${tipo}` : `Cargar ${tipo}`;
+    document.getElementById('pe-tipo').textContent = tipo.toUpperCase();
+    document.getElementById('pe-semana').value = semana || isoWeekKey();
+    document.getElementById('pe-fecha').value = fecha || todayKey();
+    document.getElementById('pe-contenido').value = contenido || '';
+    const msg = document.getElementById('pe-msg');
+    msg.textContent = '';
+    msg.className = 'modal-msg';
+    const btn = document.getElementById('pe-save');
+    btn.textContent = 'Guardar';
+    btn.disabled = false;
+    document.getElementById('planEditor').classList.remove('hidden');
+    // Focus the textarea after the modal animation settles so iOS keyboard
+    // doesn't pop awkwardly mid-transition.
+    setTimeout(() => document.getElementById('pe-contenido')?.focus(), 250);
+  }
+
+  function closePlanEditor() {
+    document.getElementById('planEditor').classList.add('hidden');
+    _editingClienta = null;
+    _planNormalized = false;
+  }
+
+  // Reformat-only AI pass: coach pastes a plan in ANY format; the AI
+  // restructures it into the canonical format the app's parsers understand
+  // (LUNES day headers, Desayuno:/Almuerzo:/etc meal prefixes, exercise
+  // lines with "N series x N reps") WITHOUT changing a single exercise,
+  // serie, rep, peso, day or note. Returns the normalized text, or null
+  // if the AI call fails (caller falls back to the raw text).
+  async function aiNormalizePlan(tipo, raw) {
+    const isRutina = tipo === 'rutina';
+    const system = isRutina
+      ? `Sos un FORMATEADOR de rutinas de entrenamiento. Recibís una rutina en CUALQUIER formato y la devolvés con EXACTAMENTE el mismo contenido, solo reordenada al formato canónico de abajo.
+
+PROHIBIDO ABSOLUTO: cambiar, agregar, quitar o inventar ejercicios, series, repeticiones, pesos, días, descansos o notas del coach. Si un dato no está en el original, NO lo inventes — omitilo.
+
+FORMATO CANÓNICO:
+Día 1 · [Grupo o nombre del día]
+1. [Ejercicio] — [series]×[reps] · [peso/intensidad si está] · desc [tiempo si está]
+2. [Ejercicio] — ...
+Día 2 · [...]
+Descanso: [días de descanso si se mencionan]
+
+REGLAS:
+- Cada ejercicio numerado (1. 2. 3...), uno por línea.
+- El número de SERIES va ANTES de la × (ej: "4×10" = 4 series de 10 reps). Si son reps variables/piramidal mantenelas (ej: 4×12-10-8).
+- Si el coach dejó una nota de ejecución/técnica, va en una línea debajo del ejercicio, tal cual.
+- OBLIGATORIO: si el original menciona días de descanso/off, incluí una línea exacta "Descanso: [días]" al final. No la omitas.
+- Sin introducción, sin comentarios, sin explicaciones tuyas.
+Respondé SOLO con la rutina formateada.`
+      : `Sos un FORMATEADOR de planes de alimentación. Recibís una dieta en CUALQUIER formato y la devolvés con EXACTAMENTE el mismo contenido, solo ordenada y legible.
+
+PROHIBIDO ABSOLUTO: cambiar, agregar, quitar o inventar comidas, cantidades, calorías o macros. Si un dato no está, NO lo inventes.
+
+Agrupá por día (LUNES, MARTES, ... o "Día 1, Día 2" si así viene) y dentro de cada día las comidas (Desayuno, Almuerzo, Merienda, Cena u las que haya), una por línea. Sin introducción ni comentarios. Respondé SOLO con la dieta formateada.`;
+
+    try {
+      const resp = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ system, messages: [{ role: 'user', content: raw }] }),
+      });
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      let txt = (data.content && data.content[0] && data.content[0].text) || '';
+      // Strip markdown code fences if the AI wrapped its output
+      txt = txt.replace(/^```[a-zA-Z]*\s*\n?/, '').replace(/\n?```\s*$/, '').trim();
+      return txt || null;
+    } catch (e) {
+      console.warn('[studio] aiNormalizePlan failed:', e);
+      return null;
+    }
+  }
+
+  // Save flow: first click → AI normalize + show in textarea for review.
+  // Second click → upsert to planes_semanales. Done as one handler with
+  // _planNormalized state so the button stays a single "Guardar" → then
+  // "Confirmar y guardar".
+  async function handlePlanSave() {
+    if (!_editingClienta) return;
+    const btn = document.getElementById('pe-save');
+    const msg = document.getElementById('pe-msg');
+    const ta  = document.getElementById('pe-contenido');
+    const semanaEl = document.getElementById('pe-semana');
+    const fechaEl  = document.getElementById('pe-fecha');
+    const contenido = (ta.value || '').trim();
+    const semana    = (semanaEl.value || '').trim() || isoWeekKey();
+    const fecha     = (fechaEl.value || '').trim() || todayKey();
+
+    msg.textContent = '';
+    msg.className = 'modal-msg';
+
+    if (!contenido) {
+      msg.textContent = 'El plan no puede estar vacío.';
+      msg.className = 'modal-msg err';
+      return;
+    }
+    if (!/^\d{4}-W\d{2}$/.test(semana)) {
+      msg.textContent = 'Semana inválida — formato esperado AAAA-Wnn (ej: 2026-W22).';
+      msg.className = 'modal-msg err';
+      return;
+    }
+
+    // STEP 1 — normalize with AI and let the coach review the result.
+    if (!_planNormalized) {
+      btn.disabled = true;
+      btn.textContent = '⏳ Procesando con IA…';
+      msg.textContent = '';
+      const norm = await aiNormalizePlan(_planTipo, contenido);
+      if (norm) {
+        ta.value = norm;
+        msg.textContent = '✨ La IA ordenó el plan (sin cambiar contenido). Revisalo y tocá "Confirmar y guardar".';
+        msg.className = 'modal-msg hint';
+      } else {
+        msg.textContent = '⚠ No se pudo formatear con IA. Revisá el texto y guardalo tal cual.';
+        msg.className = 'modal-msg warn';
+      }
+      _planNormalized = true;
+      btn.disabled = false;
+      btn.textContent = 'Confirmar y guardar';
+      return;
+    }
+
+    // STEP 2 — commit to DB.
+    btn.disabled = true;
+    btn.textContent = 'Guardando…';
+    try {
+      const { error } = await sb.from('planes_semanales').upsert({
+        usuario_id:     _editingClienta.id,
+        tipo:           _planTipo,
+        semana_iso:     semana,
+        fecha_entrega:  fecha,
+        contenido:      ta.value.trim(),
+        updated_at:     new Date().toISOString(),
+      }, { onConflict: 'usuario_id,tipo,semana_iso' });
+      if (error) throw error;
+
+      msg.textContent = `✓ ${_planTipo} guardada.`;
+      msg.className = 'modal-msg ok';
+      // Refresh the drill-down so the new plan shows up immediately
+      const cli = _editingClienta;
+      setTimeout(() => {
+        closePlanEditor();
+        route('clienta', cli);
+      }, 400);
+    } catch (e) {
+      console.error('[studio] savePlan error:', e);
+      msg.textContent = 'Error guardando: ' + (e.message || 'reintentá.');
+      msg.className = 'modal-msg err';
+      btn.disabled = false;
+      btn.textContent = 'Confirmar y guardar';
+    }
+  }
+
+  // Wire up modal handlers once on boot
+  document.getElementById('pe-close')?.addEventListener('click', closePlanEditor);
+  document.getElementById('pe-cancel')?.addEventListener('click', closePlanEditor);
+  document.getElementById('pe-save')?.addEventListener('click', handlePlanSave);
+  document.getElementById('planEditor')?.addEventListener('click', (e) => {
+    // Click on overlay (not the modal card) closes
+    if (e.target.id === 'planEditor') closePlanEditor();
+  });
+  // ESC closes
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !document.getElementById('planEditor').classList.contains('hidden')) {
+      closePlanEditor();
+    }
+  });
+  // If the coach edits the textarea after the AI normalization, treat it
+  // as still "review needed" → don't skip the second click.
+  document.getElementById('pe-contenido')?.addEventListener('input', () => {
+    if (_planNormalized) {
+      // Re-arm: another normalization pass before commit. We don't reset
+      // _planNormalized to false here — that would re-trigger AI on next
+      // click. Instead we just make the button reflect the new state.
+      const btn = document.getElementById('pe-save');
+      if (btn) btn.textContent = 'Confirmar y guardar';
+    }
+  });
+
+  // Event delegation for [data-edit-plan] buttons (rendered inside dieta
+  // and rutina cards). Pulls the params off data-* attrs and opens the
+  // editor with the current clienta context.
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-edit-plan]');
+    if (!btn) return;
+    // Find the current clienta from the drill-down context — _clientaIndex
+    // contains all rendered rows. We need the one whose detail is open.
+    // The breadcrumb's strong holds the name; simpler: walk back to the
+    // last route('clienta', x) call. We stash it on a module global.
+    if (!_currentDetailClienta) return;
+    _editingClienta = _currentDetailClienta;
+    openPlanEditor({
+      tipo: btn.dataset.tipo,
+      semana: btn.dataset.semana,
+      fecha: btn.dataset.fecha,
+      contenido: _planContentByKey.get(btn.dataset.key) || '',
+    });
+  });
+
+  // Track which clienta's detail view is currently open so the edit
+  // buttons know whose plan to upsert against.
+  let _currentDetailClienta = null;
 
   // ---- Boot ----
   runAuthGate();
