@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260530-1632-admin-choice-gateway">
+<meta name="app-version" content="20260530-1638-chat-structure-gate">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15338,7 +15338,39 @@ async function sendToAI(userMessage, isFirst = false) {
                      ', reply scan says', tipoFromReply, '. Trusting user intent.');
       }
 
-      if (tipo && (!weeklyPlans[tipo] || weeklyPlans[tipo].closed || tipoFromReply)) {
+      // STRUCTURE GATE — only persist a reply as the user's plan if the
+      // reply ACTUALLY contains a structured plan, not just a chat message
+      // that mentions one ("tu dieta está lista en Mi Alimentación").
+      // Without this, the AI's welcome message after onboarding overwrote
+      // freshly-migrated plans (we hit it with Beto: the AI greeting that
+      // happened to mention "dieta" replaced his 2767-char structured plan
+      // with a 566-char chat preamble. Same bug Virginia had).
+      //
+      // Dieta needs: Target line OR day header (LUNES/MARTES/...) OR
+      //              recognized meal prefix (Desayuno/Almuerzo/Cena/...).
+      // Rutina needs: day header (Día N / LUNES/...) AND ≥1 exercise line
+      //               matching "N×N" or "N series x N" reps notation.
+      const replyHasStructure = (() => {
+        if (!reply) return false;
+        if (tipo === 'dieta') {
+          if (/Target\s*:\s*\d/i.test(reply)) return true;
+          if (/^(LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)\b/im.test(reply)) return true;
+          if (/^(Desayuno|Almuerzo|Merienda|Cena|Colaci[oó]n|Snack|Pre[\s-]*entreno|Post[\s-]*entreno)\s*:/im.test(reply)) return true;
+          return false;
+        }
+        if (tipo === 'rutina') {
+          const hasDay = /^(D[ií]a\s*\d|LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)/im.test(reply);
+          const hasExercise = /\d+\s*(?:series?\s*)?[×x]\s*\d+/.test(reply);
+          return hasDay && hasExercise;
+        }
+        return false;
+      })();
+
+      if (!replyHasStructure) {
+        console.info('[CoachAI] reply mentioned', tipo, 'but lacks structure — skipping plan save to preserve existing plan');
+      }
+
+      if (tipo && replyHasStructure && (!weeklyPlans[tipo] || weeklyPlans[tipo].closed || tipoFromReply)) {
         pendingPlanDelivery = null;
         const saved = await saveWeeklyPlan(tipo, reply);
         weeklyPlans[tipo] = saved || {
