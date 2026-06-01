@@ -3493,14 +3493,20 @@ body.theme-king .cai-meal-macros {
   -webkit-tap-highlight-color: transparent;
   transition: transform 0.18s cubic-bezier(0.18, 1.1, 0.4, 1.05), border-color 0.15s ease, background 0.15s ease;
 }
-.cai-ent-subcard:hover,
 .cai-ent-subcard:active {
   border-color: rgba(124,106,255,0.30);
   background: rgba(124,106,255,0.05);
+  transform: scale(0.985);
 }
-.cai-ent-subcard:active { transform: scale(0.985); }
 .cai-ent-subcard.rest { cursor: default; }
-.cai-ent-subcard.rest:hover { border-color: rgba(255,255,255,0.05); background: rgba(0,0,0,0.22); }
+.cai-ent-subcard.rest:active { border-color: rgba(255,255,255,0.05); background: rgba(0,0,0,0.22); transform: none; }
+@media (hover: hover) and (pointer: fine) {
+  .cai-ent-subcard:hover {
+    border-color: rgba(124,106,255,0.30);
+    background: rgba(124,106,255,0.05);
+  }
+  .cai-ent-subcard.rest:hover { border-color: rgba(255,255,255,0.05); background: rgba(0,0,0,0.22); }
+}
 .cai-ent-subcard-left {
   display: flex; align-items: center; gap: 12px;
   min-width: 0; flex: 1;
@@ -5072,10 +5078,12 @@ body:has(#chat-wrapper[style*="block"]) footer {
   font-family: 'DM Sans', sans-serif;
 }
 
-.qbtn:hover {
-  border-color: rgba(124,106,255,0.35);
-  color: var(--text);
-  background: rgba(124,106,255,0.06);
+@media (hover: hover) and (pointer: fine) {
+  .qbtn:hover {
+    border-color: rgba(124,106,255,0.35);
+    color: var(--text);
+    background: rgba(124,106,255,0.06);
+  }
 }
 
 .qbtn-main {
@@ -5090,11 +5098,13 @@ body:has(#chat-wrapper[style*="block"]) footer {
   flex: 1;
   min-width: 140px;
 }
-.qbtn-main:hover {
-  background:
-    linear-gradient(rgba(124,106,255,0.08), rgba(46,207,181,0.08)) padding-box,
-    linear-gradient(135deg, rgba(124,106,255,0.85), rgba(46,207,181,0.85)) border-box;
-  color: var(--accent-bright);
+@media (hover: hover) and (pointer: fine) {
+  .qbtn-main:hover {
+    background:
+      linear-gradient(rgba(124,106,255,0.08), rgba(46,207,181,0.08)) padding-box,
+      linear-gradient(135deg, rgba(124,106,255,0.85), rgba(46,207,181,0.85)) border-box;
+    color: var(--accent-bright);
+  }
 }
 
 .chat-input-row {
@@ -8900,7 +8910,9 @@ body.theme-king .alim-edit-tip {
   font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 2px;
   cursor: pointer; transition: all 0.2s;
 }
-.btn-email-login:hover { transform: translateY(-1px); }
+@media (hover: hover) and (pointer: fine) {
+  .btn-email-login:hover { transform: translateY(-1px); }
+}
 .btn-email-login:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 .email-login-error { font-size: 12px; color: var(--accent2); margin-bottom: 10px; min-height: 18px; }
 .email-login-loading { font-size: 13px; color: var(--muted); margin-top: 10px; display: none; }
@@ -9052,6 +9064,65 @@ body.theme-king .alim-edit-tip {
   /* chat-messages flex naturally on small screens */
   .welcome-back         { padding: 0 16px; }
   .cierre-stats-grid    { grid-template-columns: 1fr 1fr; }
+}
+
+/* ================================================================
+   TOUCH-DEVICE HOVER NEUTRALIZATION
+   On iOS Safari + Android the first tap fires :hover and that state
+   "sticks" until the user taps somewhere else or scrolls — leaving
+   a stale highlight on the last-tapped card/button. Wrapping every
+   :hover rule individually would touch 100+ lines, so we neutralize
+   the most visible offenders in one block, scoped to touch devices
+   only (`hover: none`). Desktop and trackpad-equipped iPads keep all
+   the hover effects intact (they report `hover: hover`).
+   `revert` removes the :hover override and falls back to the base
+   rule for the element. `!important` is necessary because some of
+   the targeted selectors are `body.theme-king ...` which has higher
+   specificity than a single class.
+   ================================================================ */
+@media (hover: none) {
+  button:hover,
+  .qbtn:hover, .qbtn-main:hover, .qbtn-card:hover,
+  .send-btn:hover,
+  .chip:hover, .level-card:hover, .objetivo-card:hover, .dia-card:hover,
+  .coach-card:hover,
+  .semana-card:hover, .semana-card.activa:hover, .semana-header:hover,
+  .cai-home-card:hover, button.cai-home-card:hover,
+  .cai-ent-subcard:hover, .cai-ent-subcard.rest:hover,
+  .cai-ent-ex-info-btn:hover,
+  .cai-bottom-nav .nav-item:hover,
+  .nav-drawer .nav-item:hover,
+  .perfil-transform-card:hover, .perfil-transform-card.is-current:hover,
+  .perfil-stat:hover,
+  .cai-perfil-plan-head:hover, .cai-perfil-info-head:hover,
+  .perfil-plan-view-btn:hover, .btn-perfil-ver-analisis:hover,
+  .btn-mi-info-save:hover, .btn-back-chat:hover,
+  .btn-edit-profile:hover, .btn-continue:hover, .btn-reset:hover,
+  .btn-email-login:hover, .btn-launch:hover, .btn-next:hover, .btn-back:hover,
+  .onb-back-btn:hover, .onb-next-btn:hover,
+  .alim-edit-close:hover, .alim-edit-cancel:hover, .alim-edit-save:hover,
+  .ej-modal-close:hover,
+  .tour-close:hover, .tour-btn-skip:hover, .tour-btn-next:hover, .tour-replay-btn:hover,
+  .progress-skip-link:hover,
+  .plan-toggle-btn:hover,
+  .feedback-fab:hover, #feedback-fab:hover,
+  .btn-cerrar-semana:hover,
+  .btn-mark-trained:hover, .btn-dashboard:hover,
+  .btn-log:hover, .btn-save-medidas:hover,
+  .streak-day:hover, .color-option:hover, .logo-upload-area:hover,
+  .btn-apply-wl:hover, .btn-reset-wl:hover, .btn-whitelabel:hover,
+  .hamburger-btn:hover,
+  .foto-upload-area:hover,
+  .cierre-photo.upload .frame:hover,
+  .btn-cierre-cerrar:hover,
+  .cai-home-card-dots .rot-dot:hover {
+    background-color: revert !important;
+    background: revert !important;
+    border-color: revert !important;
+    transform: none !important;
+    box-shadow: revert !important;
+    color: revert !important;
+  }
 }
 
 
@@ -17756,12 +17827,20 @@ async function ejecutarCierreSemana() {
   cierreInflight = true;
 
   const btn = document.getElementById('btn-generar-analisis');
+  // Defensive: the cierre modal can be closed/re-rendered mid-tap if the user
+  // navigated away. In that case btn is null and every subsequent btn.disabled
+  // call throws TypeError. Bail gracefully so cierreInflight resets via finally.
+  if (!btn) {
+    cierreInflight = false;
+    return;
+  }
   // Helper: update the button's text without destroying its inline SVG icon.
   // The button now contains an SVG + a <span id="btn-generar-analisis-text">,
   // so we mutate the span rather than the button itself.
   const _setBtnTxt = (s) => {
     const t = document.getElementById('btn-generar-analisis-text');
-    if (t) t.textContent = s; else btn.textContent = s;
+    if (t) t.textContent = s;
+    else if (btn) btn.textContent = s;
   };
   const result = document.getElementById('cierre-analisis-result');
   const retryBanner = document.getElementById('cierre-retry-banner');
@@ -18139,6 +18218,12 @@ Use real numbers, be specific.${photoInstructions}`;
     messageContent = textContent;
   }
 
+  // Hard error path: if /api/chat fails (500 / timeout / truncated JSON),
+  // the previous version silently returned null and the caller persisted a
+  // cierre row with `analisis = null`. That looked like a successful analysis
+  // to the user (no error message) but the perfil "Análisis" tab showed empty
+  // cards forever. Throw on non-ok responses + on missing content so the
+  // caller's catch path runs and the user sees a real error.
   const response = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -18147,8 +18232,18 @@ Use real numbers, be specific.${photoInstructions}`;
       messages: [{ role: 'user', content: messageContent }]
     })
   });
-  const data = await response.json();
-  return data.content?.[0]?.text || null;
+  if (!response.ok) {
+    const errBody = await response.text().catch(() => '');
+    throw new Error(`weekly_analysis_api_${response.status}` + (errBody ? `: ${errBody.slice(0, 200)}` : ''));
+  }
+  let data;
+  try { data = await response.json(); }
+  catch (e) { throw new Error('weekly_analysis_invalid_json'); }
+  const text = data?.content?.[0]?.text;
+  if (!text || typeof text !== 'string' || text.trim().length < 40) {
+    throw new Error('weekly_analysis_empty_response');
+  }
+  return text;
 }
 
 // ============================
@@ -18338,7 +18433,10 @@ function renderHomeProximaComida() {
 
   const todayJsDow = new Date().getDay();
   const todayIdx = todayJsDow === 0 ? 6 : todayJsDow - 1;
-  const day = _alimDays[todayIdx < _alimDays.length ? todayIdx : 0];
+  // If the dieta has fewer than 7 unique days (a partial/cycling plan), cycle
+  // through them with modulo instead of always defaulting to Monday. That avoids
+  // showing the Monday meals on a Saturday with no indicator that it isn't real.
+  const day = _alimDays[todayIdx] || _alimDays[todayIdx % _alimDays.length];
   if (!day || !day.meals?.length) {
     nameEl.textContent = isEs ? 'Sin comidas' : 'No meals';
     if (detailEl) detailEl.innerHTML = '';
@@ -18518,7 +18616,9 @@ function renderHomeKcalChart() {
 
   const todayJsDow = new Date().getDay();
   const todayIdx = todayJsDow === 0 ? 6 : todayJsDow - 1;
-  const day = _alimDays[todayIdx < _alimDays.length ? todayIdx : 0];
+  // Same modulo guard as renderHomeProximaComida — partial dietas (<7 days)
+  // wrap around instead of defaulting to Lunes for Sat/Dom.
+  const day = _alimDays[todayIdx] || _alimDays[todayIdx % _alimDays.length];
   if (!day) return;
   const dayIdx = _alimDays.indexOf(day);
   const estado = _alimEstado || {};
