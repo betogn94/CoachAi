@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260601-1309-fix-entreno-input-ios-zoom">
+<meta name="app-version" content="20260601-1317-fix-ios-zoom-all-user-inputs">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -3409,11 +3409,26 @@ body.theme-king .cai-meal-macros {
    input with font-size < 16px, which on this row makes the input look like
    it only fits one digit (Carina reported this with reps + weight). Bumping
    to 16px on touch devices keeps the layout clean on desktop while killing
-   the zoom on iPhone. Padding tightened so the visual height matches. */
+   the zoom on iPhone. Padding tightened so the visual height matches.
+
+   Covers every input the regular user touches:
+     - Login screen (.email-login-input, was 14px)
+     - Chat textarea where they message the AI (.chat-textarea, was 14px)
+     - Mi Entreno reps + weight (.cai-ent-serie-input, was 12px)
+     - Perfil edit fields (.cai-perfil-info-field input, was 13.5px)
+     - Legacy modal inputs (.modal-input, was 15px) — still mounted
+   Onboarding form (.form-wrapper input/select/textarea) was already
+   handled by an older `@media (max-width: 640px)` block — left as is. */
 @media (hover: none) and (pointer: coarse) {
   .cai-ent-serie-input {
     font-size: 16px;
     padding: 5px 4px;
+  }
+  .email-login-input,
+  .chat-textarea,
+  .cai-perfil-info-field input,
+  .modal-input {
+    font-size: 16px;
   }
 }
 .cai-ent-serie-input:focus { border-color: var(--accent); }
