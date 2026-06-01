@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260601-1749-perfil-transform-diptych">
+<meta name="app-version" content="20260601-1757-cierre-gate-after-inflight-reset">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -17500,9 +17500,6 @@ function openCierreSemana(weekNum) {
     if (input) input.value = '';
     document.getElementById(`cierre-foto-upload-${v}-slot`)?.classList.remove('has-photo');
   });
-  // Disable "Generar análisis" until both photos are uploaded; status text
-  // tells the user exactly which one is still missing.
-  refreshCierreFotosReadiness();
   // If there's an analysis still running (user closed the modal mid-flight
   // and reopened), reflect that in the button instead of leaving it idle —
   // otherwise a tap silently no-ops because cierreInflight is still true.
@@ -17514,9 +17511,15 @@ function openCierreSemana(weekNum) {
     generarBtn.disabled = true;
     if (generarTxt) generarTxt.textContent = isEs ? '⏳ Análisis en curso...' : '⏳ Analysis in progress...';
   } else {
-    generarBtn.disabled = false;
+    // Reset the label only — the disabled state is owned by the photo gate
+    // below. If we set .disabled=false here, refreshCierreFotosReadiness()
+    // would have to re-fight that decision and timing races can leave the
+    // button hot before the gate snaps it back.
     if (generarTxt) generarTxt.textContent = isEs ? 'Generar análisis de mi semana' : 'Generate my week analysis';
   }
+  // Gate the button on the 2 cierre photos. MUST run AFTER the cierreInflight
+  // block so its disabled=true wins when both photos are missing.
+  refreshCierreFotosReadiness();
 
   // Reset & async-fill the two baseline slots (frente + espalda). Both start
   // as dashed-empty placeholders. loadFotosProgreso returns ALL inicio photos
