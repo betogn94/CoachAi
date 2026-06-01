@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260601-1517-studio-edit-profile-delete">
+<meta name="app-version" content="20260601-1655-weekly-target-unified">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -17178,7 +17178,7 @@ function openCierreSemana(weekNum) {
   // user sees adherence at a glance instead of having to remember their goal.
   // The first card uses the brand gradient ("grad" variant) to anchor visually;
   // adherence % goes in the .sub line under the number.
-  const _plannedDays = (currentUser?.dias_entreno && currentUser.dias_entreno.length) || 0;
+  const _plannedDays = getWeeklyTrainingTarget();
   const _tgtKcal = _alimHeader?.targetKcal;
   const _tgtProt = _alimHeader?.targetProt;
   const adherenciaPct = _plannedDays
@@ -17868,9 +17868,7 @@ async function renderHomeRing() {
   const range = getISOWeekRange();
   const trainedRows = await loadThisWeekTraining(range.start, range.end);
   const completed = trainedRows.length;
-  const target = (currentUser.dias_entreno && currentUser.dias_entreno.length > 0)
-    ? currentUser.dias_entreno.length
-    : 4;
+  const target = getWeeklyTrainingTarget();
   const pct = Math.min(completed / target, 1);
   const circ = 2 * Math.PI * 48;  // r = 48
   const ring = document.getElementById('home-ring-fill');
@@ -20205,6 +20203,46 @@ async function renderDashboard() {
   }
 }
 
+// Single source of truth for the weekly training target — used by every
+// "X / Y entrenados" widget across the app (home ring, alimentación
+// header, perfil card, semana card). Precedence:
+//   1. Count day headers in the user's ACTIVE rutina (LUNES/MARTES/...,
+//      Día 1/Día 2/..., **LUNES** with markdown bold). This is what the
+//      user actually trains, so it MUST drive the denominator.
+//   2. Length of usuarios.dias_entreno array (intake form value).
+//   3. Hard fallback of 4 if neither signal is available.
+// Without this the home shows "0/4" (default) while the perfil semana
+// card shows "0/3" (rutina-derived) — same data, two different numbers,
+// confusing for the user.
+function getWeeklyTrainingTarget() {
+  try {
+    const contenido = (typeof weeklyPlans !== 'undefined' && weeklyPlans?.rutina?.contenido) || '';
+    if (contenido) {
+      // Calendar day headers + numbered "Día N" headers. Strip leading
+      // markdown bold (**LUNES**), accept accents and no-accent variants.
+      const calendar = (contenido.match(/^\**\s*(LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)\b/gim) || [])
+        .map(m => m.replace(/^\**\s*/, '').toUpperCase());
+      const numbered = contenido.match(/^D[ií]a\s+\d+/gim) || [];
+      // Treat "Descanso" tokens as non-training days so they don't pad the
+      // denominator (a rutina with LUNES/MARTES/JUEVES + MIÉRCOLES descanso
+      // should target 3, not 4).
+      const calendarTrain = calendar.filter(d => {
+        // Look at the next ~80 chars after this day header for a Descanso/Off marker
+        const idx = contenido.toUpperCase().indexOf(d);
+        const slice = idx >= 0 ? contenido.slice(idx, idx + 80) : '';
+        return !/descanso|\boff\b|cardio.*solo|sin\s+entreno/i.test(slice);
+      });
+      const numberedTrain = numbered; // numbered always implies a training day
+      const total = new Set([...calendarTrain, ...numberedTrain.map(n => n.toLowerCase())]).size;
+      if (total > 0) return total;
+    }
+  } catch {}
+  if (typeof currentUser !== 'undefined' && Array.isArray(currentUser?.dias_entreno) && currentUser.dias_entreno.length > 0) {
+    return currentUser.dias_entreno.length;
+  }
+  return 4;
+}
+
 function getISOWeekRange(date = new Date()) {
   // Local-time ISO week (Mon-Sun) — consistent with how `fecha` columns are stored
   const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -20253,9 +20291,7 @@ async function renderAdherencia() {
   // ── RING ──────────────────────────────────────────────
   const trainedRows = await loadThisWeekTraining(range.start, range.end);
   const completed   = trainedRows.length;
-  const target      = (currentUser.dias_entreno && currentUser.dias_entreno.length > 0)
-    ? currentUser.dias_entreno.length
-    : 4;
+  const target      = getWeeklyTrainingTarget();
   const pct         = Math.min(completed / target, 1);
   const circ        = 2 * Math.PI * 48;           // r = 48 → ≈ 301.6
 
