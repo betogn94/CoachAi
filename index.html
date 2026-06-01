@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260601-1810-fotos-gate-mirrors-floating-nav-and-target-day-line-only">
+<meta name="app-version" content="20260601-1814-kill-dashed-border-loaded-photos">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -470,19 +470,23 @@ body.theme-king .btn-next * { color: #fff !important; }
 /* Foto inicial upload (step 5) — dashed violet → dashed coral.
    Scope to the EMPTY state only (placeholder visible) so the loaded
    state — which removes the dashed border via :has() — isn't fought
-   back into existence by our overrides. */
-body.theme-king .onb-track .foto-upload-area:not(:has(#foto-upload-placeholder[style*="none"])) {
+   back into existence by our overrides. Uses [id^=] prefix match so
+   it catches BOTH the legacy single-photo placeholder
+   (#foto-upload-placeholder) AND the new per-vista placeholders
+   (#foto-upload-placeholder-frente / -espalda). Without the prefix
+   match the dashed border lingered on the new vista slots even after
+   a photo was loaded. */
+body.theme-king .onb-track .foto-upload-area:not(:has([id^="foto-upload-placeholder"][style*="none"])) {
   border: 2px dashed rgba(255,79,123,0.40) !important;
   background: rgba(255,79,123,0.04) !important;
 }
-body.theme-king .onb-track .foto-upload-area:not(:has(#foto-upload-placeholder[style*="none"])):hover {
+body.theme-king .onb-track .foto-upload-area:not(:has([id^="foto-upload-placeholder"][style*="none"])):hover {
   border-color: rgba(255,79,123,0.65) !important;
   background: rgba(255,79,123,0.08) !important;
 }
 /* When the photo has been loaded, no border / no tint — let the image
-   sit clean. The base CSS already does this via :has(); we just have to
-   not stomp on it with our overrides. */
-body.theme-king .onb-track .foto-upload-area:has(#foto-upload-placeholder[style*="none"]) {
+   sit clean. */
+body.theme-king .onb-track .foto-upload-area:has([id^="foto-upload-placeholder"][style*="none"]) {
   border: none !important;
   background: none !important;
 }
@@ -2455,15 +2459,17 @@ body:has(.form-wrapper[style*="block"]) .home-wrapper { display: none !important
 }
 /* Photo-loaded state: kill the dashed frame + tint, let the container hug
    the image's actual ratio instead of forcing a square. Detected via
-   :has() — when the placeholder has display:none (set by previewFotoInicial). */
-.onb-track .foto-upload-area:has(#foto-upload-placeholder[style*="none"]) {
+   :has() — when the placeholder has display:none (set by previewFotoInicial
+   or previewFotoVista). Uses [id^="foto-upload-placeholder"] so it catches
+   the legacy single-photo placeholder AND the per-vista ones. */
+.onb-track .foto-upload-area:has([id^="foto-upload-placeholder"][style*="none"]) {
   aspect-ratio: auto;
   max-width: 320px;
   border: none;
   background: none;
   padding: 0;
 }
-.onb-track .foto-upload-area:has(#foto-upload-placeholder[style*="none"]):hover {
+.onb-track .foto-upload-area:has([id^="foto-upload-placeholder"][style*="none"]):hover {
   border: none;
   background: none;
 }
@@ -10351,14 +10357,17 @@ body.theme-king .alim-edit-tip {
   width: 100%;
 }
 .cierre-overlay .cierre-photo.upload .frame:hover { border-color: rgba(180,167,255,.7); background: linear-gradient(180deg, rgba(124,106,255,.10), rgba(46,207,181,.06)); }
+/* Once a photo is loaded into the cierre upload slot, drop ALL chrome —
+   no dashed frame, no subtle outline — so the image sits clean against
+   the modal background. The previous 1px white outline ended up reading
+   as a "leftover border" in user testing. */
 .cierre-overlay .cierre-photo.upload .frame.has-photo {
   padding: 0;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-style: solid;
+  border: none;
   background: transparent;
 }
 .cierre-overlay .cierre-photo.upload .frame.has-photo:hover {
-  border-color: rgba(255,255,255,0.08);
+  border: none;
   background: transparent;
 }
 .cierre-overlay .cierre-photo .frame .frame-empty-ico {
