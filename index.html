@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260601-1655-weekly-target-unified">
+<meta name="app-version" content="20260601-1727-two-vistas-fotos-obligatorias">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11427,32 +11427,58 @@ body.theme-king .alim-edit-tip {
       </div>
     </div>
 
-    <!-- ============ PANEL 5.2 · FOTO INICIAL ============ -->
+    <!-- ============ PANEL 5.2 · FOTOS INICIALES (2 vistas, obligatorias) ============
+         Two angle uploads (frente, espalda) matching how Jesús's clientas
+         already work pre-app. Mandatory before launchCoach to enforce the
+         visual baseline for the weekly transformation comparison.
+         previewFotoVista() pre-builds the preview from the file and stores
+         it on the input element so launchCoach can upload both at "start"
+         time (same pattern as the original single-photo step). -->
     <div class="step-panel" data-step="5" data-panel="2">
       <div class="section-card" id="step5-foto">
         <div class="section-header">
           <div class="section-number">05</div>
           <div class="section-info">
-            <div class="section-title" data-es="FOTO INICIAL" data-en="INITIAL PHOTO">FOTO INICIAL</div>
-            <div class="section-desc" data-es="Opcional · para ver tu evolución" data-en="Optional · to see your progress">Opcional · para ver tu evolución</div>
+            <div class="section-title" data-es="TU PUNTO DE INICIO" data-en="YOUR STARTING POINT">TU PUNTO DE INICIO</div>
+            <div class="section-desc" data-es="2 fotos · obligatorias" data-en="2 photos · required">2 fotos · obligatorias</div>
           </div>
         </div>
         <div class="section-body">
           <div style="margin: 4px 0 8px">
-            <div style="font-size:13px;color:var(--muted);margin-bottom:12px;text-align:center" id="foto-inicial-label">
-              📸 <strong style="color:var(--text)">Foto inicial (opcional)</strong> — guardala para ver tu evolución semana a semana
+            <div style="font-size:13px;color:var(--muted);margin-bottom:14px;text-align:center; line-height:1.5;" id="foto-inicial-label">
+              📸 <strong style="color:var(--text)">Cargá una foto de frente y otra de espalda.</strong><br>
+              Las vamos a comparar con las que te saques cada semana al cerrar.
             </div>
-            <div class="foto-upload-area" id="foto-upload-area">
-              <input type="file" accept="image/*" id="foto-inicial-input" onchange="previewFotoInicial(event)">
-              <div id="foto-upload-placeholder">
-                <div class="foto-upload-icon">📷</div>
-                <div class="foto-upload-label">Tocá para subir una foto de frente<br><strong>JPG, PNG o WEBP · máx 5MB</strong></div>
+            <div class="fotos-inicio-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+              <!-- FRENTE -->
+              <div class="foto-vista-slot" data-vista="frente" style="position:relative;">
+                <input type="file" accept="image/*" id="foto-inicial-frente-input" onchange="previewFotoVista(event,'frente')" style="position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; z-index:2;">
+                <div class="foto-upload-area" id="foto-upload-area-frente" style="aspect-ratio:3/4; padding:0; min-height:0;">
+                  <div id="foto-upload-placeholder-frente" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:14px; text-align:center;">
+                    <div style="font-size:28px; line-height:1;">📷</div>
+                    <div style="font-size:11px; font-weight:600; letter-spacing:0.6px;" data-es="FRENTE" data-en="FRONT">FRENTE</div>
+                  </div>
+                  <img class="foto-preview" id="foto-inicial-frente-preview" src="" alt="frente" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:inherit;">
+                </div>
               </div>
-              <img class="foto-preview" id="foto-inicial-preview" src="" alt="preview">
+              <!-- ESPALDA -->
+              <div class="foto-vista-slot" data-vista="espalda" style="position:relative;">
+                <input type="file" accept="image/*" id="foto-inicial-espalda-input" onchange="previewFotoVista(event,'espalda')" style="position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; z-index:2;">
+                <div class="foto-upload-area" id="foto-upload-area-espalda" style="aspect-ratio:3/4; padding:0; min-height:0;">
+                  <div id="foto-upload-placeholder-espalda" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:14px; text-align:center;">
+                    <div style="font-size:28px; line-height:1;">📷</div>
+                    <div style="font-size:11px; font-weight:600; letter-spacing:0.6px;" data-es="ESPALDA" data-en="BACK">ESPALDA</div>
+                  </div>
+                  <img class="foto-preview" id="foto-inicial-espalda-preview" src="" alt="espalda" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:inherit;">
+                </div>
+              </div>
             </div>
-            <div style="font-size:11px;color:var(--muted2);text-align:center;margin-top:4px" id="foto-status"></div>
+            <div style="font-size:11px;color:var(--muted2);text-align:center;margin-top:10px;min-height:14px" id="foto-status"></div>
+            <div style="font-size:11px;color:var(--muted2);text-align:center;margin-top:8px; line-height:1.5;">
+              💡 Ropa cómoda (sin remera o calza/short para que se vean los cambios). Las fotos son <strong style="color:var(--text)">privadas</strong> — solo tu coach las ve.
+            </div>
           </div>
-          <button class="btn-launch" onclick="launchCoach()" data-es="🚀 COMENZAR CON MI COACH" data-en="🚀 START WITH MY COACH">🚀 COMENZAR CON MI COACH</button>
+          <button class="btn-launch" id="btn-launch-coach" onclick="launchCoach()" disabled data-es="🚀 COMENZAR CON MI COACH" data-en="🚀 START WITH MY COACH">🚀 COMENZAR CON MI COACH</button>
         </div>
       </div>
       <div class="step-panel-dots">
@@ -11832,28 +11858,44 @@ body.theme-king .alim-edit-tip {
       <span data-es="COMPARÁ TU EVOLUCIÓN" data-en="COMPARE YOUR EVOLUTION">COMPARÁ TU EVOLUCIÓN</span>
     </div>
 
-    <div class="cierre-photos">
-      <!-- Starting-point photo (filled async by openCierreSemana via innerHTML on #cierre-foto-inicial-slot) -->
+    <!-- Cierre semanal: 2x2 grid — inicio frente/espalda on top row, esta-semana
+         frente/espalda on bottom row. The inicio frames are filled by
+         openCierreSemana() with the 2 inicio vista photos from fotos_progreso.
+         The "esta semana" slots are upload labels (file inputs hidden); picking
+         a photo runs previewCierreFotoVista which swaps placeholder for preview
+         and stages the file for save. -->
+    <div class="cierre-photos" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+      <!-- TOP ROW: PUNTO DE INICIO (frente + espalda) -->
       <div class="cierre-photo">
-        <div class="cap" id="cierre-foto-caption-inicial" data-es="PUNTO DE INICIO" data-en="STARTING POINT">PUNTO DE INICIO</div>
-        <div class="frame" id="cierre-foto-inicial-slot">
+        <div class="cap" data-es="INICIO · FRENTE" data-en="START · FRONT">INICIO · FRENTE</div>
+        <div class="frame" id="cierre-foto-inicial-frente-slot">
           <div class="frame-empty-ico">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/>
             </svg>
-            <div id="cierre-foto-inicial-empty" data-es="Sin foto inicial" data-en="No initial photo">Sin foto inicial</div>
+            <div data-es="Sin foto" data-en="No photo">Sin foto</div>
+          </div>
+        </div>
+      </div>
+      <div class="cierre-photo">
+        <div class="cap" data-es="INICIO · ESPALDA" data-en="START · BACK">INICIO · ESPALDA</div>
+        <div class="frame" id="cierre-foto-inicial-espalda-slot">
+          <div class="frame-empty-ico">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/>
+            </svg>
+            <div data-es="Sin foto" data-en="No photo">Sin foto</div>
           </div>
         </div>
       </div>
 
-      <!-- Upload slot — clicking the <label> opens the file input, picking a photo
-           flips display of #cierre-foto-placeholder / #cierre-foto-preview via
-           the existing previewCierreFoto handler. -->
+      <!-- BOTTOM ROW: ESTA SEMANA — 2 upload slots -->
       <div class="cierre-photo upload">
-        <div class="cap" id="cierre-foto-caption-actual" data-es="ESTA SEMANA" data-en="THIS WEEK">ESTA SEMANA</div>
-        <label class="frame" for="cierre-foto-input" id="cierre-foto-upload-slot">
-          <div id="cierre-foto-placeholder">
+        <div class="cap" data-es="ESTA SEMANA · FRENTE" data-en="THIS WEEK · FRONT">ESTA SEMANA · FRENTE</div>
+        <label class="frame" for="cierre-foto-frente-input" id="cierre-foto-upload-frente-slot">
+          <div id="cierre-foto-placeholder-frente">
             <div class="upload-ico">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="url(#grad-brand)"
                    stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -11861,13 +11903,33 @@ body.theme-king .alim-edit-tip {
               </svg>
             </div>
             <div class="upload-cta">
-              <div class="t" id="cierre-foto-upload-hint" data-es="SUBÍ TU FOTO" data-en="UPLOAD PHOTO">SUBÍ TU FOTO</div>
+              <div class="t" data-es="SUBÍ FOTO" data-en="UPLOAD">SUBÍ FOTO</div>
               <div class="s" data-es="OPCIONAL" data-en="OPTIONAL">OPCIONAL</div>
             </div>
           </div>
-          <img id="cierre-foto-preview" src="" alt="preview" style="display:none">
+          <img id="cierre-foto-frente-preview" src="" alt="preview frente" style="display:none">
         </label>
-        <input type="file" accept="image/*" id="cierre-foto-input" onchange="previewCierreFoto(event)" style="display:none">
+        <input type="file" accept="image/*" id="cierre-foto-frente-input" onchange="previewCierreFotoVista(event,'frente')" style="display:none">
+      </div>
+
+      <div class="cierre-photo upload">
+        <div class="cap" data-es="ESTA SEMANA · ESPALDA" data-en="THIS WEEK · BACK">ESTA SEMANA · ESPALDA</div>
+        <label class="frame" for="cierre-foto-espalda-input" id="cierre-foto-upload-espalda-slot">
+          <div id="cierre-foto-placeholder-espalda">
+            <div class="upload-ico">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="url(#grad-brand)"
+                   stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/>
+              </svg>
+            </div>
+            <div class="upload-cta">
+              <div class="t" data-es="SUBÍ FOTO" data-en="UPLOAD">SUBÍ FOTO</div>
+              <div class="s" data-es="OPCIONAL" data-en="OPTIONAL">OPCIONAL</div>
+            </div>
+          </div>
+          <img id="cierre-foto-espalda-preview" src="" alt="preview espalda" style="display:none">
+        </label>
+        <input type="file" accept="image/*" id="cierre-foto-espalda-input" onchange="previewCierreFotoVista(event,'espalda')" style="display:none">
       </div>
     </div>
 
@@ -13861,6 +13923,27 @@ function updateOnboardingChrome() {
 // it kicks off launchCoach() (final submit) instead of trying to slide further.
 function onbNextOrLaunch() {
   if (currentPanelIdx === onbPanels.length - 1) {
+    // Last panel = step 5.2 = inicio photos. Same gate the inline launch
+    // button enforces — for initial onboarding the 3 vistas must be picked,
+    // otherwise the floating SIGUIENTE button can sneak past the photo step.
+    // Edit-mode users (complete profile already in DB) skip this gate; same
+    // rule as refreshFotosInicioReadiness.
+    const isEditingExistingProfile = !!(
+      typeof currentUser !== 'undefined' && currentUser &&
+      currentUser.peso && currentUser.altura && currentUser.edad && currentUser.sexo && currentUser.objetivo
+    );
+    if (!isEditingExistingProfile) {
+      const all2 = ['frente', 'espalda'].every(v => {
+        const el = document.getElementById(`foto-inicial-${v}-input`);
+        return el && el.files && el.files[0];
+      });
+      if (!all2) {
+        // Surface the same helper text the inline status uses so the user
+        // sees exactly what's missing.
+        if (typeof refreshFotosInicioReadiness === 'function') refreshFotosInicioReadiness();
+        return;
+      }
+    }
     launchCoach();
   } else {
     nextPanel();
@@ -16471,6 +16554,9 @@ async function compressImage(file, maxWidth = 1400, quality = 0.88) {
 }
 
 function previewFotoInicial(event) {
+  // Legacy single-photo preview — still used by older Perfil "Foto de inicio"
+  // CTAs when a user's `inicio_fotos_required` flow ran before this change.
+  // The new 3-vistas onboarding uses previewFotoVista instead.
   const file = event.target.files[0];
   if (!file) return;
   try { validateImageFile(file); }
@@ -16485,12 +16571,80 @@ function previewFotoInicial(event) {
   preview.style.display = 'block';
   placeholder.style.display = 'none';
   document.getElementById('foto-status').textContent = lang === 'es' ? '✓ Foto lista para subir al comenzar' : '✓ Photo ready to upload';
-  // The panel just got taller — re-measure the onboarding viewport so the
-  // card grows to fit the preview image (instead of clipping).
   if (typeof morphOnboardingHeight === 'function') morphOnboardingHeight();
 }
 
-async function uploadFoto(file, tipo = 'progreso') {
+// New 3-vistas preview — frente / espalda / perfil — used by the onboarding
+// step 5.2. Pre-fills a preview <img> in the slot the user tapped, validates
+// the file, and re-evaluates whether the launchCoach button can be enabled.
+// The actual upload happens at "start" time in launchCoach so the user can
+// still swap a photo before committing.
+function previewFotoVista(event, vista) {
+  const file = event.target.files[0];
+  const statusEl = document.getElementById('foto-status');
+  if (!file) return;
+  try { validateImageFile(file); }
+  catch (e) {
+    event.target.value = '';
+    if (statusEl) statusEl.textContent = '⚠ ' + e.message;
+    return;
+  }
+  const preview     = document.getElementById(`foto-inicial-${vista}-preview`);
+  const placeholder = document.getElementById(`foto-upload-placeholder-${vista}`);
+  if (preview)     { setPreviewSrc(preview, file); preview.style.display = 'block'; }
+  if (placeholder) placeholder.style.display = 'none';
+  refreshFotosInicioReadiness();
+  if (typeof morphOnboardingHeight === 'function') morphOnboardingHeight();
+}
+
+// Enable the "Comenzar con mi coach" button only when ALL 3 inicio photos are
+// present. Updates the helper status text to guide the user toward the missing
+// vista (e.g. "Falta la foto de espalda").
+//
+// Edit-mode exception: if the user is going through the wizard to UPDATE an
+// existing profile (currentUser already has peso/altura/edad/sexo/objetivo),
+// don't gate on photos. They likely uploaded them at original signup and are
+// here for some other field. Initial onboarding still requires the 3 photos.
+function refreshFotosInicioReadiness() {
+  const inputs = {
+    frente:  document.getElementById('foto-inicial-frente-input'),
+    espalda: document.getElementById('foto-inicial-espalda-input'),
+  };
+  const missing = Object.entries(inputs)
+    .filter(([_, el]) => !el || !el.files || !el.files[0])
+    .map(([vista]) => vista);
+  const btn = document.getElementById('btn-launch-coach');
+  const status = document.getElementById('foto-status');
+
+  const isEditingExistingProfile = !!(
+    typeof currentUser !== 'undefined' && currentUser &&
+    currentUser.peso && currentUser.altura && currentUser.edad && currentUser.sexo && currentUser.objetivo
+  );
+
+  if (isEditingExistingProfile) {
+    if (btn) btn.disabled = false;
+    if (status) status.textContent = missing.length === 0
+      ? (lang === 'es' ? '✓ 2 fotos listas' : '✓ 2 photos ready')
+      : (lang === 'es' ? 'Modo edición — las fotos son opcionales' : 'Edit mode — photos are optional');
+    return;
+  }
+
+  if (missing.length === 0) {
+    if (btn) btn.disabled = false;
+    if (status) status.textContent = lang === 'es' ? '✓ 2 fotos listas — tocá COMENZAR' : '✓ 2 photos ready — tap START';
+  } else {
+    if (btn) btn.disabled = true;
+    const labelEs = { frente: 'frente', espalda: 'espalda' };
+    const labelEn = { frente: 'front', espalda: 'back' };
+    const labels  = lang === 'es' ? labelEs : labelEn;
+    const missingLabels = missing.map(v => labels[v]).join(', ');
+    if (status) status.textContent = lang === 'es'
+      ? `📸 Falta${missing.length > 1 ? 'n' : ''}: ${missingLabels}`
+      : `📸 Missing: ${missingLabels}`;
+  }
+}
+
+async function uploadFoto(file, tipo = 'progreso', vista = null) {
   if (!sbClient || !currentUser) return null;
   // Lock the user id at call time. compressImage + storage upload can take
   // seconds; without this, a session switch mid-upload would land User A's
@@ -16502,13 +16656,19 @@ async function uploadFoto(file, tipo = 'progreso') {
   if (!blob) throw new Error(lang === 'es' ? 'No pudimos procesar la imagen. Probá con otra.' : 'Could not process the image. Try another.');
   const fecha = getTodayKey();
   // Append a random suffix so two uploads in the same millisecond don't collide
-  // on the storage path (upsert:false would 409 the second one).
+  // on the storage path (upsert:false would 409 the second one). Embedding the
+  // vista in the filename also makes the storage browser self-documenting.
   const rand = (crypto.randomUUID?.() || Math.random().toString(36)).slice(0, 8);
-  const path = `${uid}/${fecha}-${Date.now()}-${rand}.jpg`;
+  const vistaTag = vista ? `-${vista}` : '';
+  const path = `${uid}/${fecha}${vistaTag}-${Date.now()}-${rand}.jpg`;
   const { error: upErr } = await sbClient.storage.from('progress-photos').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
   if (upErr) throw upErr;
   const { data: { publicUrl } } = sbClient.storage.from('progress-photos').getPublicUrl(path);
-  const { error: dbErr } = await sbClient.from('fotos_progreso').insert([{ usuario_id: uid, fecha, url_foto: publicUrl, tipo }]);
+  // Vista is one of 'frente' | 'espalda' | 'perfil' (matches the DB check
+  // constraint); pass null only for legacy single-photo callers.
+  const row = { usuario_id: uid, fecha, url_foto: publicUrl, tipo };
+  if (vista) row.vista = vista;
+  const { error: dbErr } = await sbClient.from('fotos_progreso').insert([row]);
   if (dbErr) {
     // Roll back the storage blob so we don't accumulate orphans on DB failure.
     sbClient.storage.from('progress-photos').remove([path]).catch(() => {});
@@ -16518,18 +16678,54 @@ async function uploadFoto(file, tipo = 'progreso') {
 }
 
 async function uploadFotoInicial() {
-  const input = document.getElementById('foto-inicial-input');
+  // Upload both vistas (frente / espalda) that the onboarding step collected.
+  // Runs in parallel — Supabase Storage tolerates concurrent uploads to
+  // different paths. Any failure surfaces the partial-success state so the
+  // user can retry the missing one without re-uploading the one that landed.
+  //
+  // Legacy single-input fallback: if the new vista inputs don't exist (older
+  // browser caches loading an older HTML), gracefully use the original
+  // foto-inicial-input as a single 'inicio' upload with vista=null.
   const status = document.getElementById('foto-status');
+  const vistaInputs = {
+    frente:  document.getElementById('foto-inicial-frente-input'),
+    espalda: document.getElementById('foto-inicial-espalda-input'),
+  };
+  const haveBoth = vistaInputs.frente?.files[0] && vistaInputs.espalda?.files[0];
+  if (haveBoth) {
+    try {
+      if (status) status.textContent = lang === 'es' ? 'Subiendo 2 fotos...' : 'Uploading 2 photos...';
+      const results = await Promise.allSettled([
+        uploadFoto(vistaInputs.frente.files[0],  'inicio', 'frente'),
+        uploadFoto(vistaInputs.espalda.files[0], 'inicio', 'espalda'),
+      ]);
+      const failed = results.filter(r => r.status === 'rejected');
+      if (failed.length === 0) {
+        if (status) status.textContent = lang === 'es' ? '✓ 2 fotos guardadas' : '✓ 2 photos saved';
+        Object.values(vistaInputs).forEach(el => { if (el) el.value = ''; });
+      } else {
+        console.warn('[fotos-inicio] partial failures:', failed);
+        if (status) status.textContent = lang === 'es'
+          ? `⚠ ${failed.length} de 2 fotos fallaron — podés reintentar desde Perfil`
+          : `⚠ ${failed.length} of 2 photos failed — retry from Profile`;
+      }
+    } catch (e) {
+      console.error(e);
+      if (status) status.textContent = '⚠ ' + (e.message || (lang === 'es' ? 'Error al subir las fotos' : 'Upload failed'));
+    }
+    return;
+  }
+  // Legacy single-photo path (kept for cached HTML pre-this-migration)
+  const input = document.getElementById('foto-inicial-input');
   if (!input?.files[0]) return;
   try {
-    status.textContent = lang === 'es' ? 'Subiendo foto...' : 'Uploading photo...';
+    if (status) status.textContent = lang === 'es' ? 'Subiendo foto...' : 'Uploading photo...';
     await uploadFoto(input.files[0], 'inicio');
-    status.textContent = lang === 'es' ? '✓ Foto inicial guardada' : '✓ Initial photo saved';
-    // Clear the input so re-picking the same file fires `change` again.
+    if (status) status.textContent = lang === 'es' ? '✓ Foto inicial guardada' : '✓ Initial photo saved';
     input.value = '';
   } catch(e) {
     console.error(e);
-    status.textContent = '⚠ ' + (e.message || (lang === 'es' ? 'Error al subir la foto' : 'Upload failed'));
+    if (status) status.textContent = '⚠ ' + (e.message || (lang === 'es' ? 'Error al subir la foto' : 'Upload failed'));
   }
 }
 
@@ -17226,18 +17422,25 @@ function openCierreSemana(weekNum) {
   const retryBanner = document.getElementById('cierre-retry-banner');
   if (retryBanner) retryBanner.style.display = 'none';
   lastCierrePending = null;
-  const cierrePreview = document.getElementById('cierre-foto-preview');
-  cierrePreview.style.display = 'none';
-  if (cierrePreview.dataset.objUrl) {
-    URL.revokeObjectURL(cierrePreview.dataset.objUrl);
-    delete cierrePreview.dataset.objUrl;
-  }
-  cierrePreview.src = '';
-  // Use 'flex' (not 'block') so the CSS rule that centers .upload-ico +
-   // .upload-cta as a column flex isn't overridden by this inline style.
-  document.getElementById('cierre-foto-placeholder').style.display = 'flex';
-  document.getElementById('cierre-foto-input').value = '';
-  document.getElementById('cierre-foto-upload-slot')?.classList.remove('has-photo');
+  // Reset BOTH cierre-this-week upload slots (frente + espalda). A second
+  // openCierreSemana() call must not leak preview <img>s, blob URLs, or
+  // file input values from a previous attempt.
+  ['frente', 'espalda'].forEach(v => {
+    const preview = document.getElementById(`cierre-foto-${v}-preview`);
+    if (preview) {
+      preview.style.display = 'none';
+      if (preview.dataset.objUrl) {
+        URL.revokeObjectURL(preview.dataset.objUrl);
+        delete preview.dataset.objUrl;
+      }
+      preview.src = '';
+    }
+    const placeholder = document.getElementById(`cierre-foto-placeholder-${v}`);
+    if (placeholder) placeholder.style.display = 'flex';
+    const input = document.getElementById(`cierre-foto-${v}-input`);
+    if (input) input.value = '';
+    document.getElementById(`cierre-foto-upload-${v}-slot`)?.classList.remove('has-photo');
+  });
   // If there's an analysis still running (user closed the modal mid-flight
   // and reopened), reflect that in the button instead of leaving it idle —
   // otherwise a tap silently no-ops because cierreInflight is still true.
@@ -17253,24 +17456,43 @@ function openCierreSemana(weekNum) {
     if (generarTxt) generarTxt.textContent = isEs ? 'Generar análisis de mi semana' : 'Generate my week analysis';
   }
 
-  // Reset & async-fill the baseline ("punto de inicio") slot. Empty state =
-  // dashed frame placeholder; populated = full-bleed img that fills .frame.
-  const inicialSlot = document.getElementById('cierre-foto-inicial-slot');
-  const _emptyInicialMarkup = `
+  // Reset & async-fill the two baseline slots (frente + espalda). Both start
+  // as dashed-empty placeholders. loadFotosProgreso returns ALL inicio photos
+  // and we pick by vista; legacy single-photo inicios (vista=NULL) fall back
+  // to the "frente" slot so older users still see something.
+  const slots = {
+    frente:  document.getElementById('cierre-foto-inicial-frente-slot'),
+    espalda: document.getElementById('cierre-foto-inicial-espalda-slot'),
+  };
+  const emptyMarkup = `
     <div class="frame-empty-ico">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
            stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
         <path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/>
       </svg>
-      <div>${isEs?'Sin foto inicial':'No initial photo'}</div>
+      <div>${isEs?'Sin foto':'No photo'}</div>
     </div>`;
-  inicialSlot.innerHTML = _emptyInicialMarkup;
+  if (slots.frente)  slots.frente.innerHTML  = emptyMarkup;
+  if (slots.espalda) slots.espalda.innerHTML = emptyMarkup;
   loadFotosProgreso().then(fotos => {
-    const baseline = pickBaselinePhoto(fotos);
-    if (baseline) {
-      inicialSlot.innerHTML = `<img src="${baseline.url_foto}" alt="Foto inicial" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;
-    }
-  }).catch(err => console.error('Could not load baseline photo for cierre:', err));
+    const inicios = (fotos || []).filter(f => f.tipo === 'inicio');
+    const frente  = inicios.find(f => f.vista === 'frente')
+                 || (slots.espalda ? null : inicios.find(f => !f.vista));
+    const espalda = inicios.find(f => f.vista === 'espalda');
+    // Legacy single-photo fallback: if no per-vista rows exist, drop the
+    // single legacy inicio into the "frente" slot so the user isn't left
+    // with two empty placeholders.
+    const legacyFallback = !frente && !espalda
+      ? inicios.find(f => !f.vista) || pickBaselinePhoto(fotos)
+      : null;
+    const renderInto = (slot, foto) => {
+      if (slot && foto?.url_foto) {
+        slot.innerHTML = `<img src="${foto.url_foto}" alt="Foto inicial" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`;
+      }
+    };
+    renderInto(slots.frente,  frente  || legacyFallback);
+    renderInto(slots.espalda, espalda);
+  }).catch(err => console.error('Could not load baseline photos for cierre:', err));
 
   document.getElementById('cierre-overlay').classList.add('open');
 }
@@ -17297,6 +17519,30 @@ function closeCierrePanel() {
   document.getElementById('cierre-overlay').classList.remove('open');
 }
 
+// Per-vista preview for the weekly cierre. Vista is 'frente' | 'espalda'.
+// Both inputs share the same flow — pick the file, validate, swap placeholder
+// for preview, mark the slot has-photo. The two inputs are staged
+// independently so the user can pick frente, change espalda, etc., without
+// upload happening until ejecutarCierreSemana runs.
+function previewCierreFotoVista(event, vista) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try { validateImageFile(file); }
+  catch (e) {
+    event.target.value = '';
+    alert('⚠ ' + e.message);
+    return;
+  }
+  const preview     = document.getElementById(`cierre-foto-${vista}-preview`);
+  const placeholder = document.getElementById(`cierre-foto-placeholder-${vista}`);
+  const slot        = document.getElementById(`cierre-foto-upload-${vista}-slot`);
+  if (preview)     { setPreviewSrc(preview, file); preview.style.display = 'block'; }
+  if (placeholder) placeholder.style.display = 'none';
+  if (slot)        slot.classList.add('has-photo');
+}
+
+// Legacy single-input handler kept for backwards compat (cached HTML loading
+// the old single-photo cierre modal). New code uses previewCierreFotoVista.
 function previewCierreFoto(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -17307,11 +17553,10 @@ function previewCierreFoto(event) {
     return;
   }
   const preview = document.getElementById('cierre-foto-preview');
+  if (!preview) return;
   setPreviewSrc(preview, file);
   preview.style.display = 'block';
-  document.getElementById('cierre-foto-placeholder').style.display = 'none';
-  // Drop the dashed-empty styling once we have a real photo so the frame
-  // matches the "Punto de inicio" slot visually (solid border, no padding).
+  document.getElementById('cierre-foto-placeholder')?.style && (document.getElementById('cierre-foto-placeholder').style.display = 'none');
   document.getElementById('cierre-foto-upload-slot')?.classList.add('has-photo');
 }
 
@@ -17388,24 +17633,41 @@ async function ejecutarCierreSemana() {
     const nombre = document.getElementById('f-nombre').value;
     const objetivo = selections.objetivo || '';
 
-    // Upload photo if provided (failure here doesn't block analysis)
+    // Upload both this-week photos (frente + espalda) in parallel if the user
+    // picked them. Either is optional; missing slots don't block analysis.
+    // foto_url on cierres_semanales = frente (canonical "main" photo for the
+    // weekly comparison). The espalda goes only to fotos_progreso so the
+    // existing schema stays untouched.
     let fotoUrl = null;
     try {
-      const fotoInput = document.getElementById('cierre-foto-input');
-      if (fotoInput.files[0]) {
-        fotoUrl = await uploadFoto(fotoInput.files[0], 'semana');
+      const frenteInput  = document.getElementById('cierre-foto-frente-input');
+      const espaldaInput = document.getElementById('cierre-foto-espalda-input');
+      const tasks = [];
+      if (frenteInput?.files[0])  tasks.push(['frente',  frenteInput.files[0]]);
+      if (espaldaInput?.files[0]) tasks.push(['espalda', espaldaInput.files[0]]);
+      if (tasks.length) {
+        const results = await Promise.allSettled(
+          tasks.map(([vista, file]) => uploadFoto(file, 'semana', vista))
+        );
+        // Pick the frente URL as the canonical headline photo for the cierres_semanales row.
+        const frenteIdx = tasks.findIndex(([v]) => v === 'frente');
+        if (frenteIdx >= 0 && results[frenteIdx]?.status === 'fulfilled') {
+          fotoUrl = results[frenteIdx].value;
+        }
       }
     } catch(e) {
       console.error('Photo upload failed, continuing without:', e);
     }
 
-    // Load initial photo for visual comparison. Never use a 'semana' photo as
-    // baseline — that would compare a closure photo against itself.
+    // Load baseline (inicio) photo for the AI visual comparison. Prefer the
+    // frente inicio (matches the cierre frente better than espalda). Falls
+    // back to the legacy pickBaselinePhoto for users created pre-vista-column.
     let fotoInicialUrl = null;
     try {
       const fotos = await loadFotosProgreso();
-      const inicial = pickBaselinePhoto(fotos);
-      fotoInicialUrl = inicial?.url_foto || null;
+      const inicioFrente = (fotos || []).find(f => f.tipo === 'inicio' && f.vista === 'frente')
+                       || pickBaselinePhoto(fotos);
+      fotoInicialUrl = inicioFrente?.url_foto || null;
     } catch(e) {
       console.error('Could not load initial photo, continuing without comparison:', e);
     }
