@@ -1371,6 +1371,171 @@
     </div>
   </div>
 
+  <!-- Profile editor — opened by "✏️ Editar datos" inside the drill-down's
+       Datos personales card. UPDATEs the usuarios row in DB. -->
+  <div id="profileEditor" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal" role="document">
+      <div class="modal-head">
+        <h2 class="modal-title">
+          <span id="prof-title">Editar datos</span>
+        </h2>
+        <button class="modal-close" id="prof-close" type="button" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-grid">
+          <div>
+            <label class="form-label" for="prof-nombre">Nombre</label>
+            <input class="form-input" type="text" id="prof-nombre" autocomplete="off" maxlength="60">
+          </div>
+          <div>
+            <label class="form-label" for="prof-edad">Edad</label>
+            <input class="form-input" type="text" id="prof-edad" inputmode="numeric" pattern="\d+" maxlength="3">
+          </div>
+        </div>
+        <div class="modal-grid">
+          <div>
+            <label class="form-label" for="prof-sexo">Sexo</label>
+            <select class="form-input" id="prof-sexo">
+              <option value="">—</option>
+              <option value="femenino">Femenino</option>
+              <option value="masculino">Masculino</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label" for="prof-objetivo">Objetivo</label>
+            <select class="form-input" id="prof-objetivo">
+              <option value="">—</option>
+              <option value="definir">🔥 Definir</option>
+              <option value="volumen">💪 Volumen</option>
+              <option value="ganar_musculo">💪 Ganar músculo</option>
+              <option value="mantener">⚖️ Mantener</option>
+              <option value="mantenimiento">⚖️ Mantenimiento</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-grid">
+          <div>
+            <label class="form-label" for="prof-peso">Peso (kg)</label>
+            <input class="form-input" type="text" id="prof-peso" inputmode="decimal" placeholder="62" maxlength="6">
+          </div>
+          <div>
+            <label class="form-label" for="prof-altura">Altura (cm)</label>
+            <input class="form-input" type="text" id="prof-altura" inputmode="numeric" placeholder="159" maxlength="3">
+          </div>
+        </div>
+        <div class="modal-grid">
+          <div>
+            <label class="form-label" for="prof-nivel">Nivel</label>
+            <select class="form-input" id="prof-nivel">
+              <option value="">—</option>
+              <option value="principiante">Principiante</option>
+              <option value="intermedio">Intermedio</option>
+              <option value="avanzado">Avanzado</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label" for="prof-actividad">Actividad diaria</label>
+            <select class="form-input" id="prof-actividad">
+              <option value="">—</option>
+              <option value="sedentario">Sedentario</option>
+              <option value="ligero">Ligero</option>
+              <option value="moderado">Moderado</option>
+              <option value="activo">Activo</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row" style="margin-bottom: 16px;">
+          <label class="form-label">Días de entreno</label>
+          <div id="prof-dias" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
+            <!-- 7 checkboxes injected by JS so each tenant_palette stays clean -->
+          </div>
+          <div class="form-hint">Tocá los días que la clienta entrena.</div>
+        </div>
+        <div class="modal-grid">
+          <div>
+            <label class="form-label" for="prof-duracion">Duración sesión (min)</label>
+            <input class="form-input" type="text" id="prof-duracion" inputmode="numeric" placeholder="60" maxlength="3">
+          </div>
+          <div>
+            <label class="form-label" for="prof-lugar">Lugar de entreno</label>
+            <select class="form-input" id="prof-lugar">
+              <option value="">—</option>
+              <option value="gym">Gimnasio</option>
+              <option value="casa">En casa</option>
+              <option value="mixto">Mixto</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-grid">
+          <div>
+            <label class="form-label" for="prof-comidas">Comidas/día</label>
+            <input class="form-input" type="text" id="prof-comidas" inputmode="numeric" placeholder="4" maxlength="2">
+          </div>
+          <div>
+            <label class="form-label" for="prof-telefono">Teléfono <span class="optional">(opc.)</span></label>
+            <input class="form-input" type="text" id="prof-telefono" maxlength="30" autocomplete="tel" inputmode="tel">
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="prof-lesiones">Lesiones <span class="optional">(separadas por coma)</span></label>
+          <input class="form-input" type="text" id="prof-lesiones" autocomplete="off">
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="prof-restricciones">Restricciones dieta <span class="optional">(separadas por coma)</span></label>
+          <input class="form-input" type="text" id="prof-restricciones" autocomplete="off">
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="prof-alergias">Alergias <span class="optional">(separadas por coma)</span></label>
+          <input class="form-input" type="text" id="prof-alergias" autocomplete="off">
+        </div>
+        <div class="form-row">
+          <label class="form-label" for="prof-no-gusta">No le gusta <span class="optional">(opcional)</span></label>
+          <textarea class="form-textarea" id="prof-no-gusta" rows="2" style="min-height:60px;"></textarea>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <span class="modal-msg" id="prof-msg"></span>
+        <button class="btn-ghost" id="prof-cancel" type="button">Cancelar</button>
+        <button class="btn-primary" id="prof-save" type="button">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete-client confirmation — opened by "🗑 Eliminar cliente" at the
+       bottom of the drill-down. Two-step: requires the admin to type the
+       client's email verbatim before the Confirmar button enables. -->
+  <div id="deleteConfirm" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal" role="document" style="max-width: 520px;">
+      <div class="modal-head">
+        <h2 class="modal-title" style="color: var(--danger);">
+          <span>⚠️ Eliminar cliente</span>
+        </h2>
+        <button class="modal-close" id="del-close" type="button" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p style="margin: 0 0 14px; font-size: 14px; line-height: 1.55;">
+          Estás por eliminar a <strong id="del-name">—</strong> y <strong>todos sus datos</strong>:
+          planes, cierres, progreso, fotos, chat, eventos, feedback. <strong>Esta acción es irreversible.</strong>
+        </p>
+        <p style="margin: 0 0 14px; font-size: 13px; color: var(--text-muted); line-height: 1.55;">
+          Para confirmar, escribí su email completo abajo (tal cual está):
+          <br><span class="cell-mono" id="del-email-hint" style="display:inline-block; margin-top:4px; padding:2px 8px; background:var(--bg-elev-2); border-radius:4px; font-size:12px;">—</span>
+        </p>
+        <input class="form-input" type="email" id="del-email-input" autocomplete="off" placeholder="email@ejemplo.com" spellcheck="false">
+      </div>
+      <div class="modal-foot">
+        <span class="modal-msg" id="del-msg"></span>
+        <button class="btn-ghost" id="del-cancel" type="button">Cancelar</button>
+        <button class="btn-primary" id="del-confirm" type="button" disabled style="background: var(--danger); border-color: var(--danger);">Eliminar para siempre</button>
+      </div>
+    </div>
+  </div>
+
   <!-- App shell — always mounted (per Tower pattern); faded until gate passes -->
   <div id="app" class="app faded">
     <div id="sidebarOverlay" class="sidebar-overlay" aria-hidden="true"></div>
@@ -1957,8 +2122,11 @@
         </div>
       </div>
       <div class="detail-grid">
-        <section class="detail-section">
-          <div class="detail-section-title">Datos personales</div>
+        <section class="detail-section" id="cli-datos">
+          <div class="detail-section-title">
+            Datos personales
+            <button class="plan-action" type="button" id="cli-datos-edit" style="font-size:10px; padding:5px 10px; margin-left:auto;">✏️ Editar</button>
+          </div>
           ${renderDatosPersonales(clienta)}
         </section>
         <section class="detail-section" id="cli-actividad">
@@ -1988,11 +2156,32 @@
             <span>Acá vas a ver el costo de tokens + compute por mes de este cliente, y el promedio del tenant para comparar.</span>
           </div>
         </section>
+        <section class="detail-section full-width danger-zone">
+          <div class="detail-section-title" style="color: var(--danger);">Zona peligrosa</div>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:200px; font-size:12.5px; color:var(--text-muted); line-height:1.55;">
+              Eliminar a este cliente borra <strong>todos sus datos</strong> de forma irreversible: planes, cierres, progreso, fotos, chat, eventos, feedback. Requiere confirmación tipeando el email.
+            </div>
+            <button class="plan-action" id="cli-danger-delete" type="button" style="background:rgba(239,68,68,0.10); border-color:var(--danger); color:var(--danger);">🗑 Eliminar cliente</button>
+          </div>
+        </section>
       </div>
     `;
 
     // Back link → route back to Clientas list
     el.querySelector('[data-crumb-back]')?.addEventListener('click', () => route('clientas'));
+
+    // Edit profile button — opens the profile editor modal pre-filled with
+    // the FRESH user row (once the fetch below completes). We attach the
+    // handler now and read _currentDetailClienta + the freshly-loaded full
+    // user from the closure / state when the button fires.
+    el.querySelector('#cli-datos-edit')?.addEventListener('click', () => {
+      if (_fullUserForEdit) openProfileEditor(_fullUserForEdit);
+    });
+    // Delete button — opens the typed-email confirmation modal.
+    el.querySelector('#cli-danger-delete')?.addEventListener('click', () => {
+      if (_currentDetailClienta) openDeleteConfirm(_currentDetailClienta);
+    });
 
     // Fetch the full usuarios row + detail data in parallel. The list query
     // only selects a few columns to keep the table fast — for the drill-down
@@ -2011,9 +2200,19 @@
     // matters for the "activa hace X" computation.
     if (fullUserRes.data) {
       const fullUser = fullUserRes.data;
-      const dpSection = document.querySelector('#cli-actividad')?.previousElementSibling;
+      // Stash for the "Editar datos" button — it opens with this fresh row.
+      _fullUserForEdit = fullUser;
+      const dpSection = document.getElementById('cli-datos');
       if (dpSection) {
-        dpSection.innerHTML = `<div class="detail-section-title">Datos personales</div>${renderDatosPersonales(fullUser)}`;
+        dpSection.innerHTML = `
+          <div class="detail-section-title">
+            Datos personales
+            <button class="plan-action" type="button" id="cli-datos-edit" style="font-size:10px; padding:5px 10px; margin-left:auto;">✏️ Editar</button>
+          </div>${renderDatosPersonales(fullUser)}`;
+        // Re-wire the button since we just replaced the innerHTML.
+        document.getElementById('cli-datos-edit')?.addEventListener('click', () => {
+          if (_fullUserForEdit) openProfileEditor(_fullUserForEdit);
+        });
       }
       const actSection = document.getElementById('cli-actividad');
       if (actSection) {
@@ -2790,6 +2989,235 @@ Agrupá por día (LUNES, MARTES, ... o "Día 1, Día 2" si así viene) y dentro 
   // Track which clienta's detail view is currently open so the edit
   // buttons know whose plan to upsert against.
   let _currentDetailClienta = null;
+
+  // ============================================================
+  // PROFILE EDITOR + DELETE CONFIRM
+  // ============================================================
+  // The two pieces of Task #14 — coach edits the client's onboarding fields
+  // (sexo, edad, objetivo, etc.) without dropping back to legacy admin, and
+  // can delete a client atomically via the studio_delete_client RPC.
+  //
+  // Once Jesús uses these in production for a couple of weekends, we can
+  // kill the admin123 password + the entire legacy admin panel.
+
+  // Held while the profile editor is open; populated from the fresh fetch
+  // in renderClienta so the editor always opens with up-to-date data.
+  let _fullUserForEdit = null;
+  let _editingProfileForUserId = null;
+
+  const DIA_LABEL = { lun: 'Lun', mar: 'Mar', mie: 'Mié', jue: 'Jue', vie: 'Vie', sab: 'Sáb', dom: 'Dom' };
+  const DIA_KEYS  = ['lun','mar','mie','jue','vie','sab','dom'];
+
+  function openProfileEditor(user) {
+    if (!user) return;
+    _editingProfileForUserId = user.id;
+    document.getElementById('prof-title').textContent = `Editar datos · ${user.nombre || user.email}`;
+    document.getElementById('prof-nombre').value      = user.nombre || '';
+    document.getElementById('prof-edad').value        = user.edad || '';
+    document.getElementById('prof-sexo').value        = user.sexo || '';
+    document.getElementById('prof-objetivo').value    = user.objetivo || '';
+    document.getElementById('prof-peso').value        = user.peso != null ? String(user.peso) : '';
+    document.getElementById('prof-altura').value      = user.altura != null ? String(user.altura) : '';
+    document.getElementById('prof-nivel').value       = user.nivel || '';
+    document.getElementById('prof-actividad').value   = user.actividad || '';
+    document.getElementById('prof-duracion').value    = user.duracion_sesion || '';
+    document.getElementById('prof-lugar').value       = user.lugar_entreno || '';
+    document.getElementById('prof-comidas').value     = user.comidas_dia || '';
+    document.getElementById('prof-telefono').value    = user.telefono || '';
+    document.getElementById('prof-lesiones').value      = Array.isArray(user.lesiones)            ? user.lesiones.join(', ')            : '';
+    document.getElementById('prof-restricciones').value = Array.isArray(user.restricciones_dieta) ? user.restricciones_dieta.join(', ') : '';
+    document.getElementById('prof-alergias').value      = Array.isArray(user.alergias)            ? user.alergias.join(', ')            : '';
+    document.getElementById('prof-no-gusta').value    = user.no_le_gusta || '';
+
+    // Build the 7-day chip toggle row. Each chip is a label+checkbox; clicking
+    // toggles. Pre-checked based on user.dias_entreno (array of day keys).
+    const diasContainer = document.getElementById('prof-dias');
+    const selectedDias = new Set(Array.isArray(user.dias_entreno) ? user.dias_entreno : []);
+    diasContainer.innerHTML = DIA_KEYS.map(k => {
+      const checked = selectedDias.has(k);
+      return `<label class="dia-chip ${checked ? 'on' : ''}" data-key="${k}" style="cursor:pointer; user-select:none; padding:6px 12px; border-radius:999px; font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:0.06em; border:1px solid ${checked ? 'var(--accent)' : 'var(--border)'}; background:${checked ? 'var(--accent-soft)' : 'transparent'}; color:${checked ? 'var(--accent)' : 'var(--text-muted)'}; transition:all 0.12s;">
+        <input type="checkbox" value="${k}" ${checked ? 'checked' : ''} style="display:none;"> ${DIA_LABEL[k]}
+      </label>`;
+    }).join('');
+    // Toggle chip visual state on click
+    diasContainer.querySelectorAll('.dia-chip').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        e.preventDefault();
+        const cb = chip.querySelector('input');
+        cb.checked = !cb.checked;
+        chip.classList.toggle('on', cb.checked);
+        chip.style.borderColor = cb.checked ? 'var(--accent)' : 'var(--border)';
+        chip.style.background  = cb.checked ? 'var(--accent-soft)' : 'transparent';
+        chip.style.color       = cb.checked ? 'var(--accent)' : 'var(--text-muted)';
+      });
+    });
+
+    const msg = document.getElementById('prof-msg');
+    msg.textContent = '';
+    msg.className = 'modal-msg';
+    const saveBtn = document.getElementById('prof-save');
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Guardar cambios';
+    document.getElementById('profileEditor').classList.remove('hidden');
+  }
+
+  function closeProfileEditor() {
+    document.getElementById('profileEditor').classList.add('hidden');
+    _editingProfileForUserId = null;
+  }
+
+  // Comma-separated string → array of trimmed non-empty strings.
+  // Same shape `usuarios.lesiones`/`alergias`/`restricciones_dieta` use.
+  function csvToArray(s) {
+    if (!s) return [];
+    return s.split(',').map(x => x.trim()).filter(Boolean);
+  }
+
+  async function handleProfileSave() {
+    if (!_editingProfileForUserId) return;
+    const btn = document.getElementById('prof-save');
+    const msg = document.getElementById('prof-msg');
+    msg.textContent = '';
+    msg.className = 'modal-msg';
+
+    // Pull values from the form. Empty inputs become null so they don't
+    // override DB defaults with "".
+    const nombreVal = document.getElementById('prof-nombre').value.trim();
+    if (!nombreVal) {
+      msg.textContent = 'El nombre no puede quedar vacío.';
+      msg.className = 'modal-msg err';
+      return;
+    }
+    // Parse number-ish fields safely; invalid input → null.
+    const parseIntOrNull = (s) => { const n = parseInt(String(s).trim(), 10); return Number.isFinite(n) ? n : null; };
+    const parseFloatOrNull = (s) => { const n = parseFloat(String(s).trim().replace(',', '.')); return Number.isFinite(n) ? n : null; };
+    const updates = {
+      nombre:           nombreVal,
+      edad:             parseIntOrNull(document.getElementById('prof-edad').value),
+      sexo:             document.getElementById('prof-sexo').value || null,
+      objetivo:         document.getElementById('prof-objetivo').value || null,
+      peso:             parseFloatOrNull(document.getElementById('prof-peso').value),
+      altura:           parseIntOrNull(document.getElementById('prof-altura').value),
+      nivel:            document.getElementById('prof-nivel').value || null,
+      actividad:        document.getElementById('prof-actividad').value || null,
+      dias_entreno:     Array.from(document.querySelectorAll('#prof-dias input:checked')).map(cb => cb.value),
+      duracion_sesion:  parseIntOrNull(document.getElementById('prof-duracion').value),
+      lugar_entreno:    document.getElementById('prof-lugar').value || null,
+      comidas_dia:      parseIntOrNull(document.getElementById('prof-comidas').value),
+      telefono:         document.getElementById('prof-telefono').value.trim() || null,
+      lesiones:             csvToArray(document.getElementById('prof-lesiones').value),
+      restricciones_dieta:  csvToArray(document.getElementById('prof-restricciones').value),
+      alergias:             csvToArray(document.getElementById('prof-alergias').value),
+      no_le_gusta:      document.getElementById('prof-no-gusta').value.trim() || null,
+      updated_at:       new Date().toISOString(),
+    };
+
+    btn.disabled = true;
+    btn.textContent = 'Guardando…';
+    try {
+      const { error } = await sb.from('usuarios').update(updates).eq('id', _editingProfileForUserId);
+      if (error) throw error;
+      msg.textContent = '✓ Cambios guardados.';
+      msg.className = 'modal-msg ok';
+      // Refresh the drill-down so the Datos personales card shows new values.
+      _clientasCache = null;
+      const cli = _currentDetailClienta;
+      setTimeout(() => { closeProfileEditor(); if (cli) route('clienta', cli); }, 500);
+    } catch (e) {
+      console.error('[studio] profile save error:', e);
+      msg.textContent = 'No se pudo guardar: ' + (e.message || 'reintentá.');
+      msg.className = 'modal-msg err';
+      btn.disabled = false;
+      btn.textContent = 'Guardar cambios';
+    }
+  }
+
+  // -------- DELETE CONFIRM --------
+
+  let _deletingClienta = null;
+
+  function openDeleteConfirm(clienta) {
+    if (!clienta) return;
+    _deletingClienta = clienta;
+    document.getElementById('del-name').textContent = clienta.nombre || clienta.email;
+    document.getElementById('del-email-hint').textContent = clienta.email;
+    const input = document.getElementById('del-email-input');
+    input.value = '';
+    document.getElementById('del-msg').textContent = '';
+    document.getElementById('del-msg').className = 'modal-msg';
+    document.getElementById('del-confirm').disabled = true;
+    document.getElementById('del-confirm').textContent = 'Eliminar para siempre';
+    document.getElementById('deleteConfirm').classList.remove('hidden');
+    setTimeout(() => input.focus(), 200);
+  }
+
+  function closeDeleteConfirm() {
+    document.getElementById('deleteConfirm').classList.add('hidden');
+    _deletingClienta = null;
+  }
+
+  async function handleDeleteConfirm() {
+    if (!_deletingClienta) return;
+    const btn = document.getElementById('del-confirm');
+    const msg = document.getElementById('del-msg');
+    btn.disabled = true;
+    btn.textContent = '⏳ Eliminando…';
+    try {
+      const { data, error } = await sb.rpc('studio_delete_client', {
+        p_email:       _deletingClienta.email,
+        p_admin_email: currentUser.email,
+      });
+      if (error) throw error;
+      if (!data?.ok) {
+        const reason = data?.reason || 'unknown';
+        msg.textContent = 'No se pudo eliminar: ' + reason.replace(/_/g, ' ');
+        msg.className = 'modal-msg err';
+        btn.disabled = false;
+        btn.textContent = 'Eliminar para siempre';
+        return;
+      }
+      msg.textContent = '✓ Cliente eliminado.';
+      msg.className = 'modal-msg ok';
+      _clientasCache = null;
+      _currentDetailClienta = null;
+      setTimeout(() => { closeDeleteConfirm(); route('clientas'); }, 600);
+    } catch (e) {
+      console.error('[studio] delete client error:', e);
+      msg.textContent = 'Error al eliminar: ' + (e.message || 'reintentá.');
+      msg.className = 'modal-msg err';
+      btn.disabled = false;
+      btn.textContent = 'Eliminar para siempre';
+    }
+  }
+
+  // Wire up all the modals' static handlers ONCE on boot.
+  document.getElementById('prof-close')?.addEventListener('click', closeProfileEditor);
+  document.getElementById('prof-cancel')?.addEventListener('click', closeProfileEditor);
+  document.getElementById('prof-save')?.addEventListener('click', handleProfileSave);
+  document.getElementById('profileEditor')?.addEventListener('click', (e) => {
+    if (e.target.id === 'profileEditor') closeProfileEditor();
+  });
+  document.getElementById('del-close')?.addEventListener('click', closeDeleteConfirm);
+  document.getElementById('del-cancel')?.addEventListener('click', closeDeleteConfirm);
+  document.getElementById('del-confirm')?.addEventListener('click', handleDeleteConfirm);
+  document.getElementById('deleteConfirm')?.addEventListener('click', (e) => {
+    if (e.target.id === 'deleteConfirm') closeDeleteConfirm();
+  });
+  // Live email-match check: enable the Confirmar button only when the input
+  // matches the clienta's email exactly (case-insensitive trim). This is the
+  // typed-confirmation safety pattern — irreversible action behind a small
+  // friction step.
+  document.getElementById('del-email-input')?.addEventListener('input', (e) => {
+    const typed = (e.target.value || '').trim().toLowerCase();
+    const target = (_deletingClienta?.email || '').toLowerCase();
+    document.getElementById('del-confirm').disabled = !typed || typed !== target;
+  });
+  // Esc closes whichever modal is open.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!document.getElementById('profileEditor').classList.contains('hidden')) closeProfileEditor();
+    if (!document.getElementById('deleteConfirm').classList.contains('hidden')) closeDeleteConfirm();
+  });
 
   // ---- Boot ----
   runAuthGate();
