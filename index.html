@@ -4967,6 +4967,12 @@ body:has(#chat-wrapper[style*="block"]) footer {
   background: rgba(0,0,0,0.30);
   border: 1px solid rgba(255,255,255,0.06);
   box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
+  /* Long URLs / unbroken words from the AI (e.g. URL paths, hashes, or
+     foreign tokens) used to overflow the bubble horizontally on mobile and
+     push the chat row off-screen. overflow-wrap+word-break handles both
+     wrapping a long word AND keeping normal text breaking at spaces. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .msg.coach .msg-bubble {
@@ -17723,7 +17729,12 @@ function refreshCierreFotosReadiness() {
   const btn = document.getElementById('btn-generar-analisis');
   const status = document.getElementById('cierre-foto-status');
   if (missing.length === 0) {
-    if (btn) btn.disabled = false;
+    // Don't re-enable while analysis is in flight — cierreInflight is the
+    // source of truth for "we're already processing". An iOS user re-tapping
+    // a photo slot mid-flight could otherwise reset the disabled state and
+    // tap the button again (the inflight guard at the top of the handler
+    // returns early, but the visual state would be inconsistent).
+    if (btn && !cierreInflight) btn.disabled = false;
     if (status) status.textContent = isEs
       ? '✓ 2 fotos cargadas — listo para analizar'
       : '✓ 2 photos ready — ready to analyze';
