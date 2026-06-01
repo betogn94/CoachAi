@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260601-1735-cierre-fotos-mandatory-pair-compare">
+<meta name="app-version" content="20260601-1749-perfil-transform-diptych">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -4121,6 +4121,27 @@ button.cai-home-card:hover { border-color: rgba(124,106,255,0.20); }
 .cai-perfil-transform-card img {
   width: 100%; aspect-ratio: 3/4; object-fit: cover;
   display: block;
+}
+/* Diptych card: 2 portraits (frente | espalda) side-by-side as one visual.
+   Card widens to keep each photo readable; the diptych takes a 3/2 aspect
+   ratio so both 3/4 portraits fit naturally side-by-side. Subtle divider
+   between halves so the eye reads them as a pair, not one image. */
+.cai-perfil-transform-card:has(.cai-perfil-diptych) { width: 220px; }
+.cai-perfil-diptych {
+  display: flex;
+  width: 100%;
+  aspect-ratio: 3/2;
+  background: rgba(0,0,0,0.30);
+}
+.cai-perfil-diptych img {
+  width: 50%;
+  height: 100%;
+  aspect-ratio: auto; /* override the single-photo rule above */
+  object-fit: cover;
+  display: block;
+}
+.cai-perfil-diptych img + img {
+  border-left: 1px solid rgba(255,255,255,0.10);
 }
 .cai-perfil-transform-badge {
   position: absolute; top: 8px; right: 8px;
@@ -17014,7 +17035,40 @@ function closeEjercicioModal(event) {
 }
 
 function openLightbox(url) {
-  document.getElementById('lightbox-img').src = url;
+  // Reset to single-photo mode (clear any prior diptych state from a
+  // previous open). The single-photo <img> is the lightbox's default.
+  const single = document.getElementById('lightbox-img');
+  if (single) {
+    single.src = url;
+    single.style.display = '';
+  }
+  const dip = document.getElementById('lightbox-diptych');
+  if (dip) dip.style.display = 'none';
+  document.getElementById('foto-lightbox').classList.add('open');
+}
+
+// Open the lightbox in diptych mode — frente | espalda side-by-side at full
+// viewport size. Used by Perfil's transformation cards when both vistas
+// exist; falls back to openLightbox if either URL is missing.
+function openLightboxDiptych(urlFrente, urlEspalda) {
+  if (!urlFrente || !urlEspalda) return openLightbox(urlFrente || urlEspalda || '');
+  const single = document.getElementById('lightbox-img');
+  if (single) { single.style.display = 'none'; single.src = ''; }
+  let dip = document.getElementById('lightbox-diptych');
+  if (!dip) {
+    // Inject once on first call so we don't bloat the static HTML with a
+    // container that 90% of users never see.
+    dip = document.createElement('div');
+    dip.id = 'lightbox-diptych';
+    dip.style.cssText = 'display:none; flex-direction:row; gap:6px; max-width:100%; max-height:90vh; align-items:center; justify-content:center;';
+    dip.innerHTML = `
+      <img id="lightbox-diptych-frente"  alt="frente"  style="max-width:48vw; max-height:90vh; object-fit:contain; border-radius:8px;">
+      <img id="lightbox-diptych-espalda" alt="espalda" style="max-width:48vw; max-height:90vh; object-fit:contain; border-radius:8px;">`;
+    document.getElementById('foto-lightbox')?.appendChild(dip);
+  }
+  document.getElementById('lightbox-diptych-frente').src  = urlFrente;
+  document.getElementById('lightbox-diptych-espalda').src = urlEspalda;
+  dip.style.display = 'flex';
   document.getElementById('foto-lightbox').classList.add('open');
 }
 
@@ -17767,11 +17821,12 @@ async function ejecutarCierreSemana() {
     // retryCierreSave() reuses these values without re-calling Claude.
     const statsJson = { trained: stats.trained, avgCal: stats.avgCal, avgProt: stats.avgProt, totalLogs: stats.totalLogs };
     lastCierrePending = {
-      usuario_id: currentUser.id,
-      semana_num: cierreActualWeekNum,
-      fecha_inicio: range.start,
-      fecha_fin: range.end,
-      foto_url: fotoUrl,
+      usuario_id:        currentUser.id,
+      semana_num:        cierreActualWeekNum,
+      fecha_inicio:      range.start,
+      fecha_fin:         range.end,
+      foto_url:          fotoUrl,                  // canonical "frente" photo
+      foto_url_espalda:  semanaEspaldaUrl || null, // matching espalda for the diptych
       analisis,
       stats: statsJson
     };
@@ -18669,19 +18724,31 @@ function renderPerfilTransform(fotos, cierres) {
   const scroll = document.getElementById('perfil-transform-scroll');
   const isEs = lang === 'es';
 
-  // INICIO: from fotos_progreso (independent of weekly cierres).
-  const inicio = (fotos || []).find(f => f.tipo === 'inicio');
+  // INICIO: from fotos_progreso. Pick BOTH vistas if present, fall back to
+  // the legacy single-photo case (vista=null) for users created before the
+  // vista column. The diptych render gracefully handles "frente only".
+  const inicios = (fotos || []).filter(f => f.tipo === 'inicio');
+  const inicioFrente  = inicios.find(f => f.vista === 'frente') || inicios.find(f => !f.vista);
+  const inicioEspalda = inicios.find(f => f.vista === 'espalda');
+  const inicio = inicioFrente ? {
+    url_foto:         inicioFrente.url_foto,
+    url_foto_espalda: inicioEspalda?.url_foto || null,
+    fecha:            inicioFrente.fecha,
+    tipo:             'inicio',
+  } : null;
 
-  // SEMANAS: source of truth = cierres_semanales. A weekly photo only
-  // appears if its cierre row still exists. Orphan rows in fotos_progreso
-  // (e.g. cierre deleted manually) are intentionally ignored.
+  // SEMANAS: source of truth = cierres_semanales. A weekly entry only
+  // appears if its cierre row still exists. foto_url + foto_url_espalda
+  // are both populated for new closures (>=2026-06-01); legacy rows have
+  // only foto_url and render as single-photo on that side of the diptych.
   const weekly = (cierres || [])
     .filter(c => c.foto_url)
     .sort((a, b) => a.semana_num - b.semana_num)
     .map(c => ({
-      url_foto: c.foto_url,
-      fecha: c.fecha_fin || c.fecha_inicio,
-      semana_num: c.semana_num,
+      url_foto:         c.foto_url,
+      url_foto_espalda: c.foto_url_espalda || null,
+      fecha:            c.fecha_fin || c.fecha_inicio,
+      semana_num:       c.semana_num,
     }));
 
   const ordered = [];
@@ -18709,10 +18776,23 @@ function renderPerfilTransform(fotos, cierres) {
       ? `<div class="cai-perfil-transform-badge">${isEs?'ACTUAL':'CURRENT'}</div>`
       : '';
     const cls = isInicio ? 'is-inicio' : (isCurrent ? 'is-current' : '');
+    const safeFrente  = (f.url_foto || '').replace(/'/g, "\\'");
+    const safeEspalda = (f.url_foto_espalda || '').replace(/'/g, "\\'");
+    // Open lightbox in diptych mode when both vistas exist; single-photo
+    // otherwise. The lightbox renders side-by-side too.
+    const onClick = f.url_foto_espalda
+      ? `openLightboxDiptych('${safeFrente}','${safeEspalda}')`
+      : `openLightbox('${safeFrente}')`;
+    const diptychHtml = f.url_foto_espalda
+      ? `<div class="cai-perfil-diptych">
+           <img src="${f.url_foto}"         alt="${label} frente" loading="lazy">
+           <img src="${f.url_foto_espalda}" alt="${label} espalda" loading="lazy">
+         </div>`
+      : `<img src="${f.url_foto}" alt="${label}" loading="lazy">`;
     return `
-      <div class="cai-perfil-transform-card ${cls}" onclick="openLightbox('${f.url_foto}')">
+      <div class="cai-perfil-transform-card ${cls}" onclick="${onClick}">
         ${badge}
-        <img src="${f.url_foto}" alt="${label}" loading="lazy">
+        ${diptychHtml}
         <div class="cai-perfil-transform-meta">
           <div class="cai-perfil-transform-label">${label}</div>
           <div class="cai-perfil-transform-date">${date}</div>
