@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260601-1727-two-vistas-fotos-obligatorias">
+<meta name="app-version" content="20260601-1735-cierre-fotos-mandatory-pair-compare">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11891,7 +11891,7 @@ body.theme-king .alim-edit-tip {
         </div>
       </div>
 
-      <!-- BOTTOM ROW: ESTA SEMANA — 2 upload slots -->
+      <!-- BOTTOM ROW: ESTA SEMANA — 2 upload slots (REQUIRED for analysis) -->
       <div class="cierre-photo upload">
         <div class="cap" data-es="ESTA SEMANA · FRENTE" data-en="THIS WEEK · FRONT">ESTA SEMANA · FRENTE</div>
         <label class="frame" for="cierre-foto-frente-input" id="cierre-foto-upload-frente-slot">
@@ -11904,7 +11904,7 @@ body.theme-king .alim-edit-tip {
             </div>
             <div class="upload-cta">
               <div class="t" data-es="SUBÍ FOTO" data-en="UPLOAD">SUBÍ FOTO</div>
-              <div class="s" data-es="OPCIONAL" data-en="OPTIONAL">OPCIONAL</div>
+              <div class="s" data-es="REQUERIDA" data-en="REQUIRED">REQUERIDA</div>
             </div>
           </div>
           <img id="cierre-foto-frente-preview" src="" alt="preview frente" style="display:none">
@@ -11924,7 +11924,7 @@ body.theme-king .alim-edit-tip {
             </div>
             <div class="upload-cta">
               <div class="t" data-es="SUBÍ FOTO" data-en="UPLOAD">SUBÍ FOTO</div>
-              <div class="s" data-es="OPCIONAL" data-en="OPTIONAL">OPCIONAL</div>
+              <div class="s" data-es="REQUERIDA" data-en="REQUIRED">REQUERIDA</div>
             </div>
           </div>
           <img id="cierre-foto-espalda-preview" src="" alt="preview espalda" style="display:none">
@@ -11932,6 +11932,11 @@ body.theme-king .alim-edit-tip {
         <input type="file" accept="image/*" id="cierre-foto-espalda-input" onchange="previewCierreFotoVista(event,'espalda')" style="display:none">
       </div>
     </div>
+
+    <!-- Status line under the photo grid — fills with "Falta: espalda" etc. while
+         the user picks; clears when both are present. Same UX pattern as the
+         onboarding inicio-photos gate. -->
+    <div id="cierre-foto-status" style="font-size:11.5px; color:var(--muted2); text-align:center; margin-top:8px; min-height:14px;"></div>
 
     <button class="btn-generar-analisis" id="btn-generar-analisis" onclick="ejecutarCierreSemana()">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -17441,6 +17446,9 @@ function openCierreSemana(weekNum) {
     if (input) input.value = '';
     document.getElementById(`cierre-foto-upload-${v}-slot`)?.classList.remove('has-photo');
   });
+  // Disable "Generar análisis" until both photos are uploaded; status text
+  // tells the user exactly which one is still missing.
+  refreshCierreFotosReadiness();
   // If there's an analysis still running (user closed the modal mid-flight
   // and reopened), reflect that in the button instead of leaving it idle —
   // otherwise a tap silently no-ops because cierreInflight is still true.
@@ -17521,9 +17529,8 @@ function closeCierrePanel() {
 
 // Per-vista preview for the weekly cierre. Vista is 'frente' | 'espalda'.
 // Both inputs share the same flow — pick the file, validate, swap placeholder
-// for preview, mark the slot has-photo. The two inputs are staged
-// independently so the user can pick frente, change espalda, etc., without
-// upload happening until ejecutarCierreSemana runs.
+// for preview, mark the slot has-photo, then re-evaluate whether "Generar
+// análisis" can be enabled.
 function previewCierreFotoVista(event, vista) {
   const file = event.target.files[0];
   if (!file) return;
@@ -17539,6 +17546,40 @@ function previewCierreFotoVista(event, vista) {
   if (preview)     { setPreviewSrc(preview, file); preview.style.display = 'block'; }
   if (placeholder) placeholder.style.display = 'none';
   if (slot)        slot.classList.add('has-photo');
+  refreshCierreFotosReadiness();
+}
+
+// Enable "Generar análisis" only when both this-week photos (frente +
+// espalda) have been picked. The AI needs both to produce the side-by-side
+// comparison the user expects; without one of them the analysis would mix
+// frente + espalda or have a missing baseline. Mirrors the onboarding
+// inicio-photos gate pattern.
+function refreshCierreFotosReadiness() {
+  const isEs = lang === 'es';
+  const inputs = {
+    frente:  document.getElementById('cierre-foto-frente-input'),
+    espalda: document.getElementById('cierre-foto-espalda-input'),
+  };
+  const missing = Object.entries(inputs)
+    .filter(([_, el]) => !el || !el.files || !el.files[0])
+    .map(([vista]) => vista);
+  const btn = document.getElementById('btn-generar-analisis');
+  const status = document.getElementById('cierre-foto-status');
+  if (missing.length === 0) {
+    if (btn) btn.disabled = false;
+    if (status) status.textContent = isEs
+      ? '✓ 2 fotos cargadas — listo para analizar'
+      : '✓ 2 photos ready — ready to analyze';
+  } else {
+    if (btn && !cierreInflight) btn.disabled = true;
+    const labels = isEs
+      ? { frente: 'frente', espalda: 'espalda' }
+      : { frente: 'front',  espalda: 'back'    };
+    const missingLabels = missing.map(v => labels[v]).join(', ');
+    if (status) status.textContent = isEs
+      ? `📸 Subí las 2 fotos para generar tu análisis · falta${missing.length > 1 ? 'n' : ''}: ${missingLabels}`
+      : `📸 Upload both photos to generate analysis · missing: ${missingLabels}`;
+  }
 }
 
 // Legacy single-input handler kept for backwards compat (cached HTML loading
@@ -17610,6 +17651,22 @@ Cumpliste **3 de 4 entrenamientos (75% adherencia)** y registraste comidas 5 de 
 
 async function ejecutarCierreSemana() {
   if (cierreInflight) return;
+  // Hard gate: both this-week photos must be uploaded before we burn an AI
+  // call. Without both, the comparison would be lopsided (only frente or
+  // only espalda) and the analysis quality degrades. The button is already
+  // disabled by refreshCierreFotosReadiness, but this is the belt-and-
+  // suspenders check (race if the user picks the file then yanks it before
+  // hitting the button, etc.).
+  const frenteFile  = document.getElementById('cierre-foto-frente-input')?.files[0];
+  const espaldaFile = document.getElementById('cierre-foto-espalda-input')?.files[0];
+  if (!frenteFile || !espaldaFile) {
+    const status = document.getElementById('cierre-foto-status');
+    if (status) status.textContent = lang === 'es'
+      ? '📸 Cargá ambas fotos antes de generar el análisis'
+      : '📸 Upload both photos before generating analysis';
+    refreshCierreFotosReadiness();
+    return;
+  }
   cierreInflight = true;
 
   const btn = document.getElementById('btn-generar-analisis');
@@ -17633,49 +17690,64 @@ async function ejecutarCierreSemana() {
     const nombre = document.getElementById('f-nombre').value;
     const objetivo = selections.objetivo || '';
 
-    // Upload both this-week photos (frente + espalda) in parallel if the user
-    // picked them. Either is optional; missing slots don't block analysis.
-    // foto_url on cierres_semanales = frente (canonical "main" photo for the
-    // weekly comparison). The espalda goes only to fotos_progreso so the
-    // existing schema stays untouched.
-    let fotoUrl = null;
+    // Upload both this-week photos in parallel. We KNOW both are present
+    // because of the hard gate above. Failure of either is fatal — without
+    // both we can't run the side-by-side comparison the user is expecting,
+    // so we abort and let them retry (their inputs are still staged).
+    let semanaFrenteUrl  = null;
+    let semanaEspaldaUrl = null;
     try {
-      const frenteInput  = document.getElementById('cierre-foto-frente-input');
-      const espaldaInput = document.getElementById('cierre-foto-espalda-input');
-      const tasks = [];
-      if (frenteInput?.files[0])  tasks.push(['frente',  frenteInput.files[0]]);
-      if (espaldaInput?.files[0]) tasks.push(['espalda', espaldaInput.files[0]]);
-      if (tasks.length) {
-        const results = await Promise.allSettled(
-          tasks.map(([vista, file]) => uploadFoto(file, 'semana', vista))
-        );
-        // Pick the frente URL as the canonical headline photo for the cierres_semanales row.
-        const frenteIdx = tasks.findIndex(([v]) => v === 'frente');
-        if (frenteIdx >= 0 && results[frenteIdx]?.status === 'fulfilled') {
-          fotoUrl = results[frenteIdx].value;
-        }
+      const [frenteRes, espaldaRes] = await Promise.allSettled([
+        uploadFoto(frenteFile,  'semana', 'frente'),
+        uploadFoto(espaldaFile, 'semana', 'espalda'),
+      ]);
+      if (frenteRes.status === 'fulfilled')  semanaFrenteUrl  = frenteRes.value;
+      if (espaldaRes.status === 'fulfilled') semanaEspaldaUrl = espaldaRes.value;
+      if (!semanaFrenteUrl || !semanaEspaldaUrl) {
+        console.error('[cierre] photo upload partial failure', { frenteRes, espaldaRes });
+        btn.disabled = false;
+        _setBtnTxt(lang === 'es' ? '⚠ Falló subir fotos — reintentá' : '⚠ Photo upload failed — retry');
+        return;
       }
     } catch(e) {
-      console.error('Photo upload failed, continuing without:', e);
+      console.error('Photo upload failed:', e);
+      btn.disabled = false;
+      _setBtnTxt(lang === 'es' ? '⚠ Error subiendo fotos' : '⚠ Photo upload error');
+      return;
     }
+    // foto_url on cierres_semanales = the frente "headline" photo. Espalda
+    // lives only in fotos_progreso so the column schema stays untouched.
+    const fotoUrl = semanaFrenteUrl;
 
-    // Load baseline (inicio) photo for the AI visual comparison. Prefer the
-    // frente inicio (matches the cierre frente better than espalda). Falls
-    // back to the legacy pickBaselinePhoto for users created pre-vista-column.
-    let fotoInicialUrl = null;
+    // Load baseline (inicio) photos for the AI visual comparison — both
+    // vistas, prefer per-vista rows, fall back to legacy single-photo if
+    // the user predates the vista column.
+    let inicioFrenteUrl  = null;
+    let inicioEspaldaUrl = null;
     try {
       const fotos = await loadFotosProgreso();
-      const inicioFrente = (fotos || []).find(f => f.tipo === 'inicio' && f.vista === 'frente')
-                       || pickBaselinePhoto(fotos);
-      fotoInicialUrl = inicioFrente?.url_foto || null;
+      const inicios = (fotos || []).filter(f => f.tipo === 'inicio');
+      inicioFrenteUrl  = (inicios.find(f => f.vista === 'frente')?.url_foto)
+                     || (inicios.find(f => !f.vista)?.url_foto)
+                     || (pickBaselinePhoto(fotos)?.url_foto)
+                     || null;
+      inicioEspaldaUrl = inicios.find(f => f.vista === 'espalda')?.url_foto || null;
     } catch(e) {
-      console.error('Could not load initial photo, continuing without comparison:', e);
+      console.error('Could not load initial photos:', e);
     }
 
-    // Generate AI analysis — this is the only step that determines success/error UI
+    // Generate AI analysis with 4 photos (or 3 if espalda baseline missing
+    // for a legacy user). The analyzer compares each cierre vista against
+    // its matching inicio vista, integrates the training + nutrition stats,
+    // and produces a single multi-paragraph review.
     let analisis = null;
     try {
-      analisis = await generateWeeklyAnalysis(nombre, cierreActualWeekNum, stats, objetivo, lang, fotoUrl, fotoInicialUrl);
+      analisis = await generateWeeklyAnalysis(nombre, cierreActualWeekNum, stats, objetivo, lang, {
+        inicioFrente:  inicioFrenteUrl,
+        inicioEspalda: inicioEspaldaUrl,
+        semanaFrente:  semanaFrenteUrl,
+        semanaEspalda: semanaEspaldaUrl,
+      });
     } catch(e) {
       console.error('Weekly analysis generation failed:', e);
     }
@@ -17861,21 +17933,41 @@ async function retryCierreSave() {
   }
 }
 
-async function generateWeeklyAnalysis(nombre, weekNum, stats, objetivo, language, fotoUrl = null, fotoInicialUrl = null) {
+async function generateWeeklyAnalysis(nombre, weekNum, stats, objetivo, language, photos = {}) {
   const isEs = language === 'es';
   const systemPrompt = isEs
-    ? `Sos CoachAI, un coach personal experto. Generás análisis semanales honestos, motivadores y basados en datos reales. Escribís en español rioplatense (voseo), con energía positiva pero sin mentirle al cliente. Siempre hacés inferencias físicas científicamente válidas basadas en los datos de entrenamiento y nutrición.`
-    : `You are CoachAI, an expert personal coach. You generate honest, motivating, data-based weekly analyses. Always make scientifically valid physical inferences based on training and nutrition data.`;
+    ? `Sos CoachAI, un coach personal experto. Generás análisis semanales honestos, motivadores y basados en datos reales. Escribís en español rioplatense (voseo), con energía positiva pero sin mentirle al cliente. Siempre hacés inferencias físicas científicamente válidas basadas en los datos de entrenamiento, nutrición y las fotos.`
+    : `You are CoachAI, an expert personal coach. You generate honest, motivating, data-based weekly analyses. Always make scientifically valid physical inferences based on training, nutrition data, and photos.`;
 
-  const hasComparison = fotoUrl && fotoInicialUrl && fotoUrl !== fotoInicialUrl;
-  const photoInstructions = hasComparison
+  // Backwards compat: old 2-arg call signature (fotoUrl, fotoInicialUrl)
+  // gets mapped to the new shape so we don't break the legacy single-photo
+  // path during the deploy transition.
+  if (typeof photos === 'string') {
+    photos = { semanaFrente: photos, inicioFrente: arguments[6] || null };
+  }
+  const { inicioFrente, inicioEspalda, semanaFrente, semanaEspalda } = photos || {};
+
+  // Build the photo grid the model will see — order matters because the
+  // prompt below refers to them positionally. We always send pairs that
+  // exist; if espalda baseline is missing (legacy user pre-vista column),
+  // we still send frente-vs-frente and the cierre espalda alone.
+  const photosForModel = [];
+  if (inicioFrente)  photosForModel.push({ url: inicioFrente,  label: isEs ? 'INICIO · FRENTE'  : 'START · FRONT'  });
+  if (inicioEspalda) photosForModel.push({ url: inicioEspalda, label: isEs ? 'INICIO · ESPALDA' : 'START · BACK'   });
+  if (semanaFrente)  photosForModel.push({ url: semanaFrente,  label: isEs ? `SEMANA ${weekNum} · FRENTE`  : `WEEK ${weekNum} · FRONT` });
+  if (semanaEspalda) photosForModel.push({ url: semanaEspalda, label: isEs ? `SEMANA ${weekNum} · ESPALDA` : `WEEK ${weekNum} · BACK`  });
+
+  const hasFullCompare = !!(inicioFrente && inicioEspalda && semanaFrente && semanaEspalda);
+  const partialCompare = !hasFullCompare && photosForModel.length >= 2;
+
+  const photoInstructions = hasFullCompare
     ? (isEs
-        ? `\n\nDOS FOTOS ADJUNTAS PARA COMPARACIÓN: la PRIMERA es la foto INICIAL (día 1 del proceso) y la SEGUNDA es la foto ACTUAL (semana ${weekNum}). Compará ambas y comentá cambios visibles en postura, definición, simetría o composición general. NO hagas estimaciones de porcentaje de grasa corporal ni diagnósticos médicos. Los datos numéricos siguen siendo la fuente primaria del análisis; las fotos son contexto visual de apoyo.`
-        : `\n\nTWO PHOTOS ATTACHED FOR COMPARISON: the FIRST is the INITIAL photo (day 1) and the SECOND is the CURRENT photo (week ${weekNum}). Compare both and comment on visible changes in posture, definition, symmetry, or overall composition. Do NOT estimate body fat percentage or make medical diagnoses. Numeric data remains the primary analysis source; photos are supporting visual context.`)
-    : (fotoUrl || fotoInicialUrl)
+        ? `\n\nCUATRO FOTOS ADJUNTAS EN ESTE ORDEN: (1) INICIO frente, (2) INICIO espalda, (3) SEMANA ${weekNum} frente, (4) SEMANA ${weekNum} espalda.\n\nINSTRUCCIONES DE COMPARACIÓN VISUAL:\n- Comparativa FRENTE (foto 1 vs 3): mirá hombros, pecho, definición abdominal, simetría, postura, marcación de oblicuos y cintura.\n- Comparativa ESPALDA (foto 2 vs 4): mirá ancho dorsal, definición de la espalda baja y media, postura, simetría entre hemisferios, glúteos.\n- Combiná lo que ves con los datos numéricos (adherencia al entreno, kcal vs target, proteína) para interpretar los cambios: si entrenó pierna y hubo déficit, ¿se ve menos grasa en la parte baja? si subió proteína y entrenó espalda, ¿se ven más anchos los dorsales?\n\nREGLAS:\n- NO estimes porcentaje de grasa corporal ni hagas diagnósticos médicos.\n- Si los cambios son sutiles porque es la primera semana, decilo honestamente — no inventes diferencias para motivar.\n- Las fotos son tan importantes como los datos. Mencioná observaciones concretas de cada par.`
+        : `\n\nFOUR PHOTOS ATTACHED IN THIS ORDER: (1) START front, (2) START back, (3) WEEK ${weekNum} front, (4) WEEK ${weekNum} back.\n\nVISUAL COMPARISON INSTRUCTIONS:\n- FRONT pair (photo 1 vs 3): observe shoulders, chest, abdominal definition, symmetry, posture, oblique definition, waist.\n- BACK pair (photo 2 vs 4): observe lat width, lower/mid back definition, posture, left/right symmetry, glutes.\n- Combine what you see with the numeric data (training adherence, kcal vs target, protein) to interpret changes.\n\nRULES:\n- Do NOT estimate body fat percentage or make medical diagnoses.\n- If changes are subtle because it's the first week, say so honestly — don't invent differences to motivate.\n- Photos matter as much as the data. Reference concrete observations from each pair.`)
+    : partialCompare
       ? (isEs
-          ? `\n\nFOTO DE PROGRESO ADJUNTA: Usá la imagen como contexto visual de apoyo. Podés mencionar observaciones generales sobre postura, simetría o cambios visibles. NO hagas estimaciones de porcentaje de grasa corporal, diagnósticos médicos ni afirmaciones físicas precisas. Los datos numéricos son la fuente primaria del análisis.`
-          : `\n\nPROGRESS PHOTO ATTACHED: Use the image as supporting visual context only. You may mention general observations about posture, symmetry, or visible changes. Do NOT estimate body fat percentage, make medical diagnoses, or precise physical claims. Numeric data is the primary analysis source.`)
+          ? `\n\nFOTOS ADJUNTAS (parcial — falta alguna vista): ${photosForModel.map(p => p.label).join(' / ')}. Compará las que correspondan al mismo ángulo y comentá lo que veas; menciona que falta alguna foto para el análisis completo si aplica. NO estimes porcentaje de grasa corporal.`
+          : `\n\nPHOTOS ATTACHED (partial — some view missing): ${photosForModel.map(p => p.label).join(' / ')}. Compare matching angles and comment on what you see; note any missing view if applicable. Do NOT estimate body fat percentage.`)
       : '';
 
   // ── Enrich context: planned vs actual ──────────────────────────────────
@@ -17946,20 +18038,15 @@ Write a 4-5 paragraph analysis that:
 4. End with 2-3 concrete, achievable goals for next week, based on what was missing this week
 Use real numbers, be specific.${photoInstructions}`;
 
-  // Build multimodal content: include initial + current photo when both exist
-  // for comparison; otherwise include whichever single photo is available; or
-  // plain text when none.
+  // Build multimodal content. Order = the order the prompt references
+  // ((1) INICIO frente, (2) INICIO espalda, (3) SEMANA frente, (4) SEMANA
+  // espalda). When some photo is missing (legacy user or upload partial),
+  // we still send what we have and the prompt acknowledges the gap.
   let messageContent;
-  if (hasComparison) {
+  if (photosForModel.length > 0) {
     messageContent = [
-      { type: 'image', source: { type: 'url', url: fotoInicialUrl } },
-      { type: 'image', source: { type: 'url', url: fotoUrl } },
-      { type: 'text', text: textContent }
-    ];
-  } else if (fotoUrl || fotoInicialUrl) {
-    messageContent = [
-      { type: 'image', source: { type: 'url', url: fotoUrl || fotoInicialUrl } },
-      { type: 'text', text: textContent }
+      ...photosForModel.map(p => ({ type: 'image', source: { type: 'url', url: p.url } })),
+      { type: 'text', text: textContent },
     ];
   } else {
     messageContent = textContent;
