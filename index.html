@@ -9087,7 +9087,13 @@ body.theme-king .alim-edit-tip {
    specificity than a single class.
    ================================================================ */
 @media (hover: none) {
-  button:hover,
+  /* IMPORTANT: do NOT include a bare `button:hover` here. iOS Safari renders
+     <button> with a UA-default background; `background-color: revert` would
+     surface that default as a gray rectangle on every tap (regression seen
+     on the bottom nav items, which are <button>s). Always list specific
+     classes so revert falls back to OUR base styles, not the UA's. The
+     bottom-nav thumb is a separate floating element — `.nav-item:hover`
+     was already a no-op for the active state, removed from this list. */
   .qbtn:hover, .qbtn-main:hover, .qbtn-card:hover,
   .send-btn:hover,
   .chip:hover, .level-card:hover, .objetivo-card:hover, .dia-card:hover,
@@ -9096,7 +9102,6 @@ body.theme-king .alim-edit-tip {
   .cai-home-card:hover, button.cai-home-card:hover,
   .cai-ent-subcard:hover, .cai-ent-subcard.rest:hover,
   .cai-ent-ex-info-btn:hover,
-  .cai-bottom-nav .nav-item:hover,
   .nav-drawer .nav-item:hover,
   .perfil-transform-card:hover, .perfil-transform-card.is-current:hover,
   .perfil-stat:hover,
@@ -15190,6 +15195,13 @@ async function launchCoach() {
     // them up on the first render. migrationCoach is the coach name if we
     // migrated (used for the welcome bubble), or null.
     await saveProfileToSupabase(profileData).catch(console.error);
+    // Mirror profile into the in-memory currentUser so derived getters
+    // (getWeeklyTrainingTarget, IMC, AI system prompt, etc.) see the fresh
+    // values on the first home render instead of the pre-onboarding null
+    // state. Without this, the hero ring shows "0/4" (the hardcoded
+    // fallback) until the next full page reload because currentUser still
+    // reflects the DB row as loaded at login time, before saveProfile.
+    Object.assign(currentUser, profileData);
   }
   const migrationCoach = await migrateClientPreloadedPlans();
   window._migrationCoach = migrationCoach;   // read by the chat init below
@@ -18411,7 +18423,11 @@ async function renderHomeRing() {
   const trainedRows = await loadThisWeekTraining(range.start, range.end);
   const completed = trainedRows.length;
   const target = getWeeklyTrainingTarget();
-  const pct = Math.min(completed / target, 1);
+  // Guard against target=0 (no rutina + no dias_entreno + no selectedDias):
+  // completed/0 is Infinity which Math.min clamps to 1 and renders a 100%-
+  // full ring with zero completed — visually wrong. pct=0 keeps the ring
+  // empty and the number reads "0/0" until the user requests their plan.
+  const pct = target > 0 ? Math.min(completed / target, 1) : 0;
   const circ = 2 * Math.PI * 48;  // r = 48
   const ring = document.getElementById('home-ring-fill');
   if (ring) {
@@ -20838,7 +20854,18 @@ function getWeeklyTrainingTarget() {
   if (typeof currentUser !== 'undefined' && Array.isArray(currentUser?.dias_entreno) && currentUser.dias_entreno.length > 0) {
     return currentUser.dias_entreno.length;
   }
-  return 4;
+  // 3rd fallback: the in-memory onboarding selection (selectedDias) before
+  // currentUser has been refreshed in the launchCoach handshake. This catches
+  // the brief window right after finishing onboarding when the home renders
+  // but currentUser is still mid-sync with the DB write.
+  if (typeof selectedDias !== 'undefined' && Array.isArray(selectedDias) && selectedDias.length > 0) {
+    return selectedDias.length;
+  }
+  // Nothing known yet — return 0 instead of the legacy "4" so the hero ring
+  // shows "0/0" (honest empty state) rather than "0/4" out of nowhere when
+  // the user has no rutina + no day plan yet. Renderers handle target=0 by
+  // showing no fill and the literal "0/0".
+  return 0;
 }
 
 function getISOWeekRange(date = new Date()) {
