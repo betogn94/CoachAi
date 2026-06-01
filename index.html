@@ -10470,8 +10470,18 @@ body.theme-king .alim-edit-tip {
 .cierre-overlay .cierre-photo .upload-cta { text-align: center; padding: 0 6px; }
 .cierre-overlay .cierre-photo .upload-cta .t { font-family: 'Bebas Neue', sans-serif; font-size: 15px; color: #fff; letter-spacing: .04em; }
 .cierre-overlay .cierre-photo .upload-cta .s { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #2ecfb5; margin-top: 3px; letter-spacing: .14em; }
-.cierre-overlay .cierre-photo #cierre-foto-preview {
+/* CRITICAL: must match BOTH the legacy single-photo id (#cierre-foto-preview)
+   AND the new per-vista ids (#cierre-foto-frente-preview /
+   #cierre-foto-espalda-preview). Without width/height/object-fit, the
+   <img> renders at its NATURAL image size — a 4000×3000 phone photo blows
+   out the .frame container, covers the rest of the cierre modal (the
+   second slot + the GENERAR ANÁLISIS button), and the user can't continue.
+   Prefix match `[id^="cierre-foto-"][id$="-preview"]` is the smallest
+   change that catches all three ids and any future vista we add. */
+.cierre-overlay .cierre-photo #cierre-foto-preview,
+.cierre-overlay .cierre-photo img[id^="cierre-foto-"][id$="-preview"] {
   width: 100%; height: 100%; object-fit: cover; border-radius: inherit;
+  display: block;
 }
 
 /* CTA principal Generar análisis (override legacy) */
