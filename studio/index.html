@@ -1353,8 +1353,11 @@
           </div>
           <div>
             <label class="form-label" for="pe-fecha">Fecha de entrega</label>
-            <input class="form-input" type="date" id="pe-fecha" autocomplete="off">
-            <div class="form-hint">Cuándo entró en vigor — default = hoy.</div>
+            <div style="display:flex; gap:8px; align-items:stretch;">
+              <input class="form-input" type="text" id="pe-fecha" placeholder="AAAA-MM-DD" autocomplete="off" spellcheck="false" inputmode="numeric" pattern="\d{4}-\d{2}-\d{2}" style="flex:1;">
+              <button type="button" id="pe-fecha-today" style="background:var(--bg-elev-2); border:1px solid var(--border); color:var(--text-muted); border-radius:8px; padding:0 12px; font-family:'JetBrains Mono', monospace; font-size:11px; font-weight:600; letter-spacing:0.06em; cursor:pointer; white-space:nowrap;" title="Setear a hoy">HOY</button>
+            </div>
+            <div class="form-hint">Formato: AAAA-MM-DD (ej: 2026-06-01). Tocá HOY para usar el día actual.</div>
           </div>
         </div>
         <label class="form-label" for="pe-contenido">Contenido del plan</label>
@@ -2196,7 +2199,7 @@
           </summary>
           <div class="markdown-body" style="margin-top:8px; max-height:200px; opacity:0.8;">${esc(dietaPlan.contenido || '')}</div>
         </details>
-        <div class="collapsible-toggle-row">${planActionBtn('dieta', { ...dietaPlan, contenido: '' }, '+ Cargar dieta real', true)}</div>`;
+        <div class="collapsible-toggle-row">${planActionBtn('dieta', null, '+ Cargar dieta real', true)}</div>`;
       return;
     }
     const macros = parseMacrosFromMarkdown(dietaPlan.contenido);
@@ -2657,6 +2660,18 @@ Agrupá por día (LUNES, MARTES, ... o "Día 1, Día 2" si así viene) y dentro 
       msg.className = 'modal-msg err';
       return;
     }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+      msg.textContent = 'Fecha inválida — formato esperado AAAA-MM-DD (ej: 2026-06-01). Tocá HOY si querés autocompletar.';
+      msg.className = 'modal-msg err';
+      return;
+    }
+    // Belt-and-suspenders: verify the date actually parses to a real day
+    // (AAAA-MM-DD pattern alone would accept "2026-99-99").
+    if (Number.isNaN(new Date(fecha + 'T00:00:00').getTime())) {
+      msg.textContent = 'Fecha inválida — el día no existe en el calendario.';
+      msg.className = 'modal-msg err';
+      return;
+    }
 
     // STEP 1 — normalize with AI and let the coach review the result.
     if (!_planNormalized) {
@@ -2713,6 +2728,13 @@ Agrupá por día (LUNES, MARTES, ... o "Día 1, Día 2" si así viene) y dentro 
   document.getElementById('pe-close')?.addEventListener('click', closePlanEditor);
   document.getElementById('pe-cancel')?.addEventListener('click', closePlanEditor);
   document.getElementById('pe-save')?.addEventListener('click', handlePlanSave);
+  // "HOY" quick-button — sets fecha de entrega to today + bumps the ISO week
+  // to the current one too, since the most common reason to tap HOY is "this
+  // is a fresh plan for the current week, not a backdated edit".
+  document.getElementById('pe-fecha-today')?.addEventListener('click', () => {
+    document.getElementById('pe-fecha').value = todayKey();
+    document.getElementById('pe-semana').value = isoWeekKey();
+  });
   document.getElementById('planEditor')?.addEventListener('click', (e) => {
     // Click on overlay (not the modal card) closes
     if (e.target.id === 'planEditor') closePlanEditor();
