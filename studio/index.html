@@ -620,6 +620,83 @@
       word-break: break-word;
     }
     .timeline-item.bug { border-left: 3px solid var(--danger); }
+
+    /* ---------- BUG RESOLUTION ----------
+       Open bugs show the resolver button on the right. Resolved bugs render
+       crossed out + dim so they're still scannable but visually settled —
+       we want the historical record without the visual "shouting" of an
+       open item. */
+    .timeline-item.bug .bug-resolve {
+      margin-left: auto;
+      flex-shrink: 0;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+      white-space: nowrap;
+    }
+    .timeline-item.bug .bug-resolve:hover {
+      background: rgba(34, 197, 94, 0.10);
+      border-color: var(--success);
+      color: var(--success);
+    }
+    .timeline-item.bug .bug-resolve:disabled {
+      cursor: wait;
+      opacity: 0.6;
+    }
+    .timeline-item.bug.resolved {
+      border-left-color: var(--success);
+      opacity: 0.55;
+    }
+    .timeline-item.bug.resolved .what {
+      text-decoration: line-through;
+      text-decoration-color: var(--text-muted);
+    }
+    .timeline-item.bug.resolved .resolution-note {
+      display: block;
+      margin-top: 4px;
+      font-size: 11px;
+      color: var(--text-dim);
+      font-style: italic;
+      text-decoration: none;
+    }
+    .timeline-item.bug .resolved-meta {
+      margin-left: auto;
+      font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+      font-size: 10px;
+      color: var(--success);
+      opacity: 0.85;
+      flex-shrink: 0;
+    }
+    .bug-resolved-group {
+      margin-top: 6px;
+    }
+    .bug-resolved-group summary {
+      cursor: pointer;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+      font-size: 10.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 8px 0;
+      list-style: none;
+      user-select: none;
+    }
+    .bug-resolved-group summary::-webkit-details-marker { display: none; }
+    .bug-resolved-group summary::before {
+      content: '▶ ';
+      display: inline-block;
+      transition: transform 0.15s;
+    }
+    .bug-resolved-group[open] summary::before { content: '▼ '; }
+    .bug-resolved-group .timeline-item { margin-bottom: 6px; }
     .empty-row {
       color: var(--text-dim);
       font-style: italic;
@@ -1741,12 +1818,16 @@
         .filter(i => i.email.toLowerCase() !== myEmail)
         .map(i => ({ ...i, _isInvited: true, _openBugs: 0 }));
 
-      // Bug counts per user (parallel, but only a handful so it's fine)
+      // Open-bug counts per user — only un-resolved feedback rows. Resolved
+      // bugs (resolved_at IS NOT NULL) still live in DB for history and show
+      // crossed out in the drill-down, but they don't drag the traffic light
+      // back to yellow/red. Parallel queries are fine for a handful of users.
       const activos = await Promise.all((usuarios || []).map(async (u) => {
         const { count } = await sb
           .from('feedback')
           .select('id', { count: 'exact', head: true })
-          .eq('usuario_id', u.id);
+          .eq('usuario_id', u.id)
+          .is('resolved_at', null);
         return { ...u, _openBugs: count || 0 };
       }));
 
@@ -1918,7 +1999,7 @@
       sb.from('usuarios').select('*').eq('id', uid).maybeSingle(),
       sb.from('planes_semanales').select('tipo,fecha_entrega,semana_iso,contenido,updated_at').eq('usuario_id', uid).order('fecha_entrega', { ascending: false }).limit(10),
       sb.from('cierres_semanales').select('*').eq('usuario_id', uid).order('semana_num', { ascending: false }).limit(1),
-      sb.from('feedback').select('mensaje,created_at').eq('usuario_id', uid).order('created_at', { ascending: false }).limit(10),
+      sb.from('feedback').select('id,mensaje,created_at,resolved_at,resolved_by,resolution_note').eq('usuario_id', uid).order('created_at', { ascending: false }).limit(20),
     ]);
 
     // Re-render datos personales with the full row (the initial paint used
@@ -2223,18 +2304,70 @@
   function paintBugs(bugs) {
     const sec = document.getElementById('cli-bugs');
     if (!sec) return;
+    const open     = bugs.filter(b => !b.resolved_at);
+    const resolved = bugs.filter(b =>  b.resolved_at);
+    const metaTxt  = bugs.length === 0
+      ? '0 reportados'
+      : `${open.length} abierto${open.length === 1 ? '' : 's'}` +
+        (resolved.length ? ` · ${resolved.length} resuelto${resolved.length === 1 ? '' : 's'}` : '');
     sec.innerHTML = `
-      <div class="detail-section-title">Bugs reportados <span class="meta">${bugs.length} total</span></div>
+      <div class="detail-section-title">Bugs reportados <span class="meta">${esc(metaTxt)}</span></div>
       ${bugs.length === 0
         ? '<div class="empty-row">Sin bugs reportados. 🎉</div>'
-        : `<div class="timeline">${bugs.map(b => `
-            <div class="timeline-item bug">
-              <span class="when">${esc(fmtRelative(b.created_at))}</span>
-              <span class="what">${esc(b.mensaje || '(sin mensaje)')}</span>
-            </div>
-          `).join('')}</div>`
+        : `<div class="timeline">
+            ${open.map(b => `
+              <div class="timeline-item bug" data-bug-id="${esc(b.id)}">
+                <span class="when">${esc(fmtRelative(b.created_at))}</span>
+                <span class="what">${esc(b.mensaje || '(sin mensaje)')}</span>
+                <button type="button" class="bug-resolve" data-resolve="${esc(b.id)}" title="Marcar como resuelto">✓ Resolver</button>
+              </div>
+            `).join('')}
+            ${resolved.length ? `
+              <details class="bug-resolved-group" ${open.length === 0 ? 'open' : ''}>
+                <summary>Resueltos · ${resolved.length}</summary>
+                ${resolved.map(b => `
+                  <div class="timeline-item bug resolved" data-bug-id="${esc(b.id)}">
+                    <span class="when">${esc(fmtRelative(b.created_at))}</span>
+                    <span class="what">
+                      ${esc(b.mensaje || '(sin mensaje)')}
+                      ${b.resolution_note ? `<span class="resolution-note">— ${esc(b.resolution_note)}</span>` : ''}
+                    </span>
+                    <span class="resolved-meta">resuelto ${esc(fmtRelative(b.resolved_at))}</span>
+                  </div>
+                `).join('')}
+              </details>
+            ` : ''}
+          </div>`
       }
     `;
+    // Wire up the "Resolver" buttons we just rendered.
+    sec.querySelectorAll('[data-resolve]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const bugId = btn.dataset.resolve;
+        const note = prompt('Nota de resolución (opcional — ej: "fixed in 7f10598, iOS zoom"):', '') || '';
+        btn.disabled = true;
+        btn.textContent = '⏳ Resolviendo…';
+        try {
+          const { error } = await sb.from('feedback')
+            .update({
+              resolved_at: new Date().toISOString(),
+              resolved_by: currentUser?.email || 'unknown',
+              resolution_note: note.trim() || null,
+            })
+            .eq('id', bugId);
+          if (error) throw error;
+          // Refresh both the drill-down (so the bug moves to "resueltos") and
+          // bust the clientes cache so the table's bug count refreshes too.
+          _clientasCache = null;
+          if (_currentDetailClienta) route('clienta', _currentDetailClienta);
+        } catch (e) {
+          console.error('[studio] resolve bug failed:', e);
+          alert('No se pudo marcar como resuelto: ' + (e.message || 'reintentá'));
+          btn.disabled = false;
+          btn.textContent = '✓ Resolver';
+        }
+      });
+    });
   }
 
   // ---- Views: INVITAR ----
