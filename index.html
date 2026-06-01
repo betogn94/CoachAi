@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260601-1358-studio-fecha-editable-text">
+<meta name="app-version" content="20260601-1417-parser-dieta-comida-template">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15380,8 +15380,8 @@ async function sendToAI(userMessage, isFirst = false) {
         if (!reply) return false;
         if (tipo === 'dieta') {
           if (/Target\s*:\s*\d/i.test(reply)) return true;
-          if (/^(LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)\b/im.test(reply)) return true;
-          if (/^(Desayuno|Almuerzo|Merienda|Cena|Colaci[oó]n|Snack|Pre[\s-]*entreno|Post[\s-]*entreno)\s*:/im.test(reply)) return true;
+          if (/^\**\s*(LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)\b/im.test(reply)) return true;
+          if (/^(Desayuno|Almuerzo|Merienda|Cena|Colaci[oó]n|Snack|Pre[\s-]*entreno|Post[\s-]*entreno|Comida(?:\s+\d+)?)\s*:/im.test(reply)) return true;
           return false;
         }
         if (tipo === 'rutina') {
@@ -18959,6 +18959,10 @@ function parseDietaContenido(text) {
     'post':          { key:'post-entreno', name:'Post-entreno', emoji:'💪' },
     'postentreno':   { key:'post-entreno', name:'Post-entreno', emoji:'💪' },
     'snack':         { key:'snack',        name:'Snack',        emoji:'🍎' },
+    // Generic "Comida" prefix — Jesús's habitual style. Each "Comida 1:",
+    // "Comida 2:", ... line gets a numbered display name via the meal-counter
+    // logic below, so the original sequence is preserved.
+    'comida':        { key:'comida',       name:'Comida',       emoji:'🍽️' },
   };
   // Strip accents for prefix lookup (so "Colación:" → "colacion")
   const stripAcc = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -18996,17 +19000,48 @@ function parseDietaContenido(text) {
     // Total
     const total = clean.match(/^Total\s*:\s*(\d+)\s*(?:kcal|cal)?/i);
     if (total) { current.totalKcal = parseInt(total[1]); continue; }
-    // Meal: "Prefix: content — Xcal". The prefix accepts letters, accents
-    // AND hyphens — coaches like Jesús write "Post-entreno:" /
-    // "Pre-entreno:" with a hyphen between the two words. Before lookup
-    // we normalize: strip accents, lowercase, AND collapse hyphens so
-    // "Post-entreno" → "postentreno" matches MEAL_PREFIX['postentreno'].
-    const mm = clean.match(/^([\wáéíóúñÁÉÍÓÚÑ-]+)\s*:\s*(.+)$/);
+    // Bullet line — belongs to the most recent meal in the current day.
+    // Supports the multi-line meal style trainers like Jesús use:
+    //   Comida 1:
+    //   - 3 claras de huevo + 1 entero / 250g yogurt
+    //   - 3 galletas de arroz / 50g avena
+    //   ...
+    // Items get joined into the meal's content field at the end.
+    if (/^[-·•*]\s+/.test(clean) && current.meals.length) {
+      const lastMeal = current.meals[current.meals.length - 1];
+      const item = clean.replace(/^[-·•*]\s+/, '').trim();
+      if (item) {
+        if (!lastMeal._items) lastMeal._items = [];
+        lastMeal._items.push(item);
+      }
+      continue;
+    }
+    // Hidratación / Cardio / similar standalone notes get attached to the
+    // most recent meal as appended content (preserves Jesús's "Hidratación:
+    // 3L" line at the end of the dieta).
+    // ... handled by general meal regex below if it has a colon ...
+    // Meal: "Prefix: content — Xcal" OR "Prefix:" alone (multi-line, bullets
+    // following). Accepts letters, accents, hyphens AND an optional trailing
+    // " N" digit for the "Comida 1" / "Snack 3" style. After-colon content
+    // is OPTIONAL (`.*` not `.+`) so we recognize "Comida 1:" with bullets
+    // on next lines.
+    const mm = clean.match(/^([\wáéíóúñÁÉÍÓÚÑ-]+(?:\s+\d+)?)\s*:\s*(.*)$/);
     if (!mm) continue;
-    const prefix = stripAcc(mm[1].toLowerCase()).replace(/-/g, '');
+    const rawPrefix = mm[1].trim();
+    const prefixWord = rawPrefix.replace(/\s+\d+$/, '').trim();
+    const prefix = stripAcc(prefixWord.toLowerCase()).replace(/-/g, '');
     const meta = MEAL_PREFIX[prefix];
     if (!meta) continue;
     const rest = mm[2].trim();
+    // Per-meal display name: if the source had "Comida 1" / "Comida 2"
+    // explicit numbering, preserve it. Otherwise just use the meta name.
+    // (Multiple "Comida" lines with no number get auto-suffixed below.)
+    const explicitNumMatch = rawPrefix.match(/\s+(\d+)$/);
+    const sameKindSoFar = current.meals.filter(m => m.key === meta.key).length;
+    const explicitNum = explicitNumMatch ? parseInt(explicitNumMatch[1]) : null;
+    const displayName = explicitNum
+      ? `${meta.name} ${explicitNum}`
+      : (sameKindSoFar > 0 ? `${meta.name} ${sameKindSoFar + 1}` : meta.name);
     // Match "— 450 kcal · P:25g C:42g G:8g" (new format) OR just "— 450 kcal" (legacy).
     // Macros are optional; if missing they default to null (summary card will
     // fall back to proportional estimation from the daily header targets).
@@ -19019,9 +19054,45 @@ function parseDietaContenido(text) {
       if (extMatch[4]) fat   = parseInt(extMatch[4]);
       content = rest.substring(0, extMatch.index).replace(/[—–-]\s*$/, '').trim();
     }
-    current.meals.push({ key: meta.key, name: meta.name, emoji: meta.emoji, content, kcal, prot, carbs, fat });
+    current.meals.push({ key: meta.key, name: displayName, emoji: meta.emoji, content, kcal, prot, carbs, fat, _items: null });
   }
   if (current) days.push(current);
+
+  // Flatten any multi-line bullet items collected via _items into the
+  // meal's content field. Items are joined with " · " so the rendered
+  // card shows them as one "alternatives" line — visually matches
+  // Jesús's intent (each line is an option set within a meal).
+  for (const day of days) {
+    for (const meal of day.meals) {
+      if (meal._items && meal._items.length) {
+        const joined = meal._items.join(' · ');
+        meal.content = meal.content ? `${meal.content} · ${joined}` : joined;
+      }
+      delete meal._items;
+    }
+  }
+
+  // Template mode: a single day with meals is a common style for trainers
+  // who give "the same dieta every day" (Jesús writes Virginia like this).
+  // Replicate the day to all 7 so the user can navigate Lun→Dom and see the
+  // same meals every day. Days that already exist (e.g. user wrote both
+  // LUNES and MARTES with different content) are kept as authored.
+  if (days.length === 1 && days[0].meals.length > 0) {
+    const template = days[0];
+    const dayKeys  = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
+    const dayNames = ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO'];
+    const expanded = dayKeys.map((k, i) => ({
+      dayName: dayNames[i],
+      dayKey: k,
+      // Shallow clone of each meal so per-day done-state tracking stays
+      // independent across days (the user can check Comida 1 done on
+      // Lunes without affecting Martes).
+      meals: template.meals.map(m => ({ ...m })),
+      totalKcal: template.totalKcal,
+    }));
+    return { header, days: expanded };
+  }
+
   return { header, days };
 }
 
@@ -19132,7 +19203,7 @@ function validateDietaConsistency(parsed) {
 // (P · C · G) macros line (P*4 + C*4 + G*9), otherwise nullable.
 function synthesizePlainTextDieta(text) {
   if (!text || typeof text !== 'string') return { header: null, days: [] };
-  const MEAL_RE  = /^(DESAYUNO|ALMUERZO|MERIENDA|CENA|COLACI[ÓO]N(?:\s+\S+)?|PRE[\s-]?ENTRENO|POST[\s-]?ENTRENO|SNACK)\b/i;
+  const MEAL_RE  = /^(DESAYUNO|ALMUERZO|MERIENDA|CENA|COLACI[ÓO]N(?:\s+\S+)?|PRE[\s-]?ENTRENO|POST[\s-]?ENTRENO|SNACK|COMIDA(?:\s+\d+)?)\b/i;
   const MACRO_RE = /^\(.*[PpCcGg]\s*:.*\)$/;
   const TOTAL_RE = /^TOTAL\b/i;
   const stripAcc = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -19147,6 +19218,7 @@ function synthesizePlainTextDieta(text) {
     preentreno:  { key: 'pre-entreno',  name: 'Pre-entreno',  emoji: '⚡' },
     postentreno: { key: 'post-entreno', name: 'Post-entreno', emoji: '💪' },
     snack:       { key: 'snack',        name: 'Snack',        emoji: '🍎' },
+    comida:      { key: 'comida',       name: 'Comida',       emoji: '🍽️' },
   };
 
   const baseMeals = [];

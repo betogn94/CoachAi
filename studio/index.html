@@ -2140,8 +2140,11 @@
   function isStructuredDieta(text) {
     if (!text || typeof text !== 'string') return false;
     if (/Target\s*:\s*\d/i.test(text)) return true;
-    if (/^(LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)\b/im.test(text)) return true;
-    if (/^(Desayuno|Almuerzo|Merienda|Cena|Colaci[oó]n|Snack|Pre[\s-]*entreno|Post[\s-]*entreno)\s*:/im.test(text)) return true;
+    // Day headers — accept leading markdown bold (**LUNES**) too. Jesús
+    // formats his dietas with bold day names from ChatGPT.
+    if (/^\**\s*(LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)\b/im.test(text)) return true;
+    // Meal prefixes — "Comida N" is Jesús's house style; treated as valid.
+    if (/^(Desayuno|Almuerzo|Merienda|Cena|Colaci[oó]n|Snack|Pre[\s-]*entreno|Post[\s-]*entreno|Comida(?:\s+\d+)?)\s*:/im.test(text)) return true;
     return false;
   }
 
@@ -2263,8 +2266,15 @@
 
   function countDays(md) {
     if (!md) return 0;
-    const matches = md.match(/^(LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)\b/gim);
-    return matches ? new Set(matches.map(m => m.toUpperCase())).size : 0;
+    // Accept three day-header styles:
+    //   - "LUNES" / "MARTES" / ... (calendar)
+    //   - "**LUNES**" with markdown bold
+    //   - "Día 1" / "Día 2" / ... (numbered, Jesús's rutina style)
+    // Strip leading asterisks before counting so bold and plain both match.
+    const calendar = (md.match(/^\**\s*(LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)\b/gim) || [])
+      .map(m => m.replace(/^\**\s*/, '').toUpperCase());
+    const numbered = md.match(/^D[ií]a\s+\d+/gim) || [];
+    return new Set(calendar).size + new Set(numbered.map(m => m.toLowerCase())).size;
   }
   function countExercises(md) {
     if (!md) return 0;
