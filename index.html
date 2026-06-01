@@ -19137,7 +19137,25 @@ function parseRutinaContenido(text) {
     if (new RegExp(`^(${DAY_NAMES})\\b`, 'i').test(c)) return true;      // "LUNES — PUSH"
     return false;
   };
-  const isRest = s => /descanso/i.test(s) && !isExercise(s) && !isNoteLine(s) && !/·\s*desc\s|descanso:\s*\d+\s*s/i.test(s);
+  // A real rest-day marker is a STANDALONE line that begins with "descanso"
+  // (optionally prefixed with the 🛋️ emoji or "días de"). Exercise NOTES often
+  // contain the word "descanso" in mid-sentence prose — e.g. Jesús writes
+  // things like "último set al fallo + 15 segundos descanso + fallo nuevamente"
+  // as a coaching cue under an exercise. Treating those as rest days nulls
+  // `current` and orphans all subsequent exercises of that day (the cause of
+  // the "1 ej." bug in the "resto de la semana" subcard). Anchoring to the
+  // start of the line eliminates the false positives without giving up on the
+  // legitimate standalone markers ("Descanso", "Día de descanso",
+  // "Descanso: martes, jueves", "🛋️ Descanso").
+  const isRest = s => {
+    const c = clean(s);
+    if (!c) return false;
+    if (!/^(?:🛋️?\s*)?(?:d[ií]as?\s+de\s+)?descanso\b/i.test(c)) return false;
+    // Exclude the detail-of-exercise tag form: "descanso: 90s" / "descanso 90s"
+    if (/^descanso\s*:?\s*\d+\s*s/i.test(c)) return false;
+    if (isExercise(s) || isNoteLine(s)) return false;
+    return true;
+  };
   // Intensifier annotation that BELONGS to the previous exercise, even though
   // it may contain words like "rep" or have an em-dash that would otherwise
   // match isExercise. Real examples from AI-generated routines:
