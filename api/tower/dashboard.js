@@ -16,6 +16,11 @@ export default withAuth(async (req, res) => {
     tenantsActive,
     usersTotal,
     usersActive7d,
+    // Tower's "bugs" headline numbers are now SCOPED TO OPEN bugs only —
+    // matches what Studio shows per-cliente. Resolved bugs (resolved_at IS
+    // NOT NULL) are kept in DB as history but don't drive the dashboard
+    // counter (otherwise Tower would scream "30 bugs" forever even after
+    // everything's been fixed).
     bugsTotal,
     bugsLast30d,
     monthlyProjected,
@@ -24,8 +29,8 @@ export default withAuth(async (req, res) => {
     count('tenants', 'status=eq.active'),
     count('usuarios'),
     count('usuarios', `last_active=gte.${sevenDaysAgoIso}`),
-    count('feedback'),
-    count('feedback', `created_at=gte.${thirtyDaysAgoIso}`),
+    count('feedback', 'resolved_at=is.null'),
+    count('feedback', `resolved_at=is.null&created_at=gte.${thirtyDaysAgoIso}`),
     computeMonthlyProjected(),
   ]);
 

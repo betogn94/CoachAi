@@ -42,7 +42,13 @@ export default withAuth(async (req, res) => {
   const enriched = await Promise.all(users.map(async (u) => {
     const enc = encodeURIComponent(u.id);
     // Bugs reported by this user
-    const bugRows = await sb(`/feedback?select=id,mensaje,created_at&usuario_id=eq.${enc}&order=created_at.desc`);
+    // Bug rows include the resolution columns added in the
+    // add_feedback_resolution_columns migration. openBugs below filters by
+    // resolved_at IS NULL so the traffic light + count only react to bugs
+    // still in the backlog. Resolved bugs are returned for the per-user
+    // history view (Tower's bugs block shows them crossed out).
+    const bugRows = await sb(`/feedback?select=id,mensaje,created_at,resolved_at,resolved_by,resolution_note&usuario_id=eq.${enc}&order=created_at.desc`);
+    const openBugCount = bugRows.filter(b => !b.resolved_at).length;
     // Last 30 days of progreso_diario for adherence (entreno + dentro_del_plan)
     const diario = await sb(
       `/progreso_diario?select=fecha,entreno,dentro_del_plan&usuario_id=eq.${enc}&fecha=gte.${thirtyDaysAgo}`
@@ -74,7 +80,7 @@ export default withAuth(async (req, res) => {
       adherence,
       daysTrained30d,
       weeklyTarget,
-      openBugs: bugRows.length, // we don't track resolved state yet — all = open
+      openBugs: openBugCount,
       lastEvent: events[0]?.evento || null,
       lastEventAt: events[0]?.created_at || null,
     };
@@ -94,6 +100,9 @@ export default withAuth(async (req, res) => {
         id: b.id,
         mensaje: b.mensaje,
         created_at: b.created_at,
+        resolved_at: b.resolved_at || null,
+        resolved_by: b.resolved_by || null,
+        resolution_note: b.resolution_note || null,
       })),
     };
   }));

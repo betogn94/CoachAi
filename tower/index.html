@@ -1336,11 +1336,49 @@
     document.addEventListener('click', (e) => {
       if (e.target.closest('#hamburgerBtn'))     { e.preventDefault(); toggleMobileMenu(); }
       if (e.target.closest('#sidebarOverlay'))   { closeMobileMenu(); }
+      // Bug resolve buttons (rendered by renderBugsBlock per-tenant view)
+      const resolveBtn = e.target.closest('[data-bug-resolve]');
+      if (resolveBtn) { e.preventDefault(); resolveBugFromTower(resolveBtn); }
     });
     // Close on ESC + on hash change
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeMobileMenu();
     });
+
+    // POST /api/tower/resolve_bug to mark a feedback row as fixed. After
+    // success, refresh the current view so the bug moves to the "Resueltos"
+    // accordion and the count chip updates.
+    async function resolveBugFromTower(btn) {
+      const id = btn.dataset.bugResolve;
+      if (!id) return;
+      const note = prompt('Nota de resolución (opcional — ej: "fixed in 7f10598, iOS zoom on inputs"):', '');
+      if (note === null) return; // user hit Cancel
+      btn.disabled = true;
+      btn.textContent = '⏳ Resolviendo…';
+      try {
+        const r = await fetch('/api/tower/resolve_bug', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, note: (note || '').trim() }),
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok || !data?.ok) {
+          throw new Error(data?.error || data?.detail || `HTTP ${r.status}`);
+        }
+        // Refresh: re-trigger the currently active sidebar route so the
+        // bugs block re-renders with the new state. Falls back to a hard
+        // reload if for some reason the active nav can't be found.
+        const activeNav = document.querySelector('.nav-item.active');
+        const activeRoute = activeNav?.dataset.route;
+        if (activeRoute && typeof route === 'function') route(activeRoute);
+        else window.location.reload();
+      } catch (err) {
+        console.error('[tower] resolve bug failed:', err);
+        alert('No se pudo marcar como resuelto: ' + (err.message || 'reintentá'));
+        btn.disabled = false;
+        btn.textContent = '✓ Resolver';
+      }
+    }
 
     // ---------- Views: placeholder ----------
     function placeholder(title, body) {
@@ -1576,17 +1614,44 @@
         (u.bugs || []).forEach(b => allBugs.push({ ...b, usuario: u.nombre || u.email }));
       });
       if (!allBugs.length) return '';
+      const open     = allBugs.filter(b => !b.resolved_at);
+      const resolved = allBugs.filter(b =>  b.resolved_at);
+      const sub = `${open.length} abierto${open.length === 1 ? '' : 's'}` +
+                  (resolved.length ? ` · ${resolved.length} resuelto${resolved.length === 1 ? '' : 's'}` : '');
       return `
         <div style="margin-top:32px;">
-          <h2 style="font-size:14px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; margin:0 0 12px;">
+          <h2 style="font-size:14px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; margin:0 0 4px;">
             Bugs reportados
           </h2>
-          ${allBugs.map(b => `
-            <div class="bug-item">
-              <div>${escapeHtml(b.mensaje)}</div>
+          <div style="font-size:11.5px; color:var(--text-dim); margin-bottom:12px;">${escapeHtml(sub)}</div>
+          ${open.map(b => `
+            <div class="bug-item" data-bug-id="${escapeHtml(b.id)}">
+              <div style="display:flex; gap:12px; align-items:flex-start;">
+                <div style="flex:1; min-width:0;">${escapeHtml(b.mensaje)}</div>
+                <button type="button" class="btn-resolve-bug" data-bug-resolve="${escapeHtml(b.id)}"
+                        style="background:transparent; border:1px solid var(--border); color:var(--text-muted); border-radius:6px; padding:5px 10px; font-family:'JetBrains Mono', monospace; font-size:10.5px; font-weight:600; letter-spacing:0.06em; cursor:pointer; white-space:nowrap; flex-shrink:0;">
+                  ✓ Resolver
+                </button>
+              </div>
               <div class="bug-meta">${escapeHtml(b.usuario)} · ${fmtRelative(b.created_at)}</div>
             </div>
           `).join('')}
+          ${resolved.length ? `
+            <details style="margin-top:12px;">
+              <summary style="cursor:pointer; color:var(--text-muted); font-family:'JetBrains Mono', monospace; font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; padding:8px 0; user-select:none;">
+                ▶ Resueltos · ${resolved.length}
+              </summary>
+              <div style="margin-top:6px;">
+                ${resolved.map(b => `
+                  <div class="bug-item bug-item-resolved" style="opacity:0.55; border-left:3px solid #22c55e;">
+                    <div style="text-decoration:line-through; color:var(--text);">${escapeHtml(b.mensaje)}</div>
+                    ${b.resolution_note ? `<div style="font-size:11.5px; color:var(--text-dim); font-style:italic; margin-top:4px;">— ${escapeHtml(b.resolution_note)}</div>` : ''}
+                    <div class="bug-meta">${escapeHtml(b.usuario)} · reportado ${fmtRelative(b.created_at)} · <span style="color:#22c55e;">resuelto ${fmtRelative(b.resolved_at)}</span>${b.resolved_by ? ' · ' + escapeHtml(b.resolved_by) : ''}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </details>
+          ` : ''}
         </div>
       `;
     }
