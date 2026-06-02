@@ -7450,10 +7450,15 @@ footer {
 .foto-lightbox.open { display: flex; }
 .foto-lightbox img { max-width: 100%; max-height: 90vh; border-radius: 12px; object-fit: contain; }
 .foto-lightbox-close {
-  position: absolute; top: 20px; right: 20px;
+  position: absolute;
+  /* iPhone notch / status bar protection — the previous 20px sat the X
+     under the carrier signal + battery icons in PWA standalone mode. */
+  top:   calc(20px + env(safe-area-inset-top, 0px));
+  right: calc(20px + env(safe-area-inset-right, 0px));
   background: rgba(255,255,255,0.1); border: none; color: #fff;
   font-size: 24px; width: 44px; height: 44px; border-radius: 50%;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
+  z-index: 1;
 }
 @media (max-width: 640px) {
   .foto-gallery { grid-template-columns: repeat(2, 1fr); }
@@ -10256,6 +10261,30 @@ body.theme-king .alim-edit-tip {
   box-shadow: 0 0 24px rgba(124,106,255,.5);
   color: #b4a7ff;
 }
+/* New stacked diptych — replaces the slider. Rows = vista (frente, espalda).
+   Cols = inicio | semana. Each half is its own clickable lightbox target. */
+.cai-home-semanas .semana-transf-stack {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.cai-home-semanas .semana-transf-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+}
+.cai-home-semanas .semana-transf-half {
+  position: relative; aspect-ratio: 3/4; border-radius: 12px; overflow: hidden;
+  cursor: pointer; background: #0c0b1a;
+}
+.cai-home-semanas .semana-transf-half img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.cai-home-semanas .semana-transf-lbl {
+  position: absolute; bottom: 8px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  letter-spacing: .10em; text-transform: uppercase;
+  background: rgba(0,0,0,.45); padding: 3px 7px; border-radius: 6px;
+  color: #fff;
+}
+.cai-home-semanas .semana-transf-lbl.l { left: 8px; }
+.cai-home-semanas .semana-transf-lbl.r { right: 8px; color: #b4a7ff; }
 
 /* Análisis — proper subcard with breathing room per Design feedback.
    Sets white-space: normal explicitly because the legacy .semana-analisis
@@ -10288,6 +10317,24 @@ body.theme-king .alim-edit-tip {
 .cai-home-semanas .semana-analisis strong { color: #fff; font-weight: 600; }
 .cai-home-semanas .semana-analisis em { color: var(--muted2, #54526e); font-style: italic; }
 .cai-home-semanas .semana-analisis hr { border: 0; border-top: 1px solid rgba(255,255,255,.08); margin: 10px 0; }
+/* KING (light cream) override — the dark-theme rules above paint p/li in
+   #cfcde0 (light gray) and strong in #fff (white). On king's cream surface
+   both become near-invisible, so the bold spans show up as VOID GAPS in
+   the paragraph (Beto's screenshot: "El abdomen se ve [gap] , especialmente
+   en la línea media…"). Re-tint to the king text/accent palette. */
+body.theme-king .cai-home-semanas .semana-analisis p,
+body.theme-king .cai-home-semanas .semana-analisis li {
+  color: var(--text) !important;
+}
+body.theme-king .cai-home-semanas .semana-analisis strong {
+  color: var(--accent) !important;
+}
+body.theme-king .cai-home-semanas .semana-analisis em {
+  color: var(--muted) !important;
+}
+body.theme-king .cai-home-semanas .semana-analisis hr {
+  border-top: 1px solid var(--border) !important;
+}
 
 /* Footer (date + regenerar). Pill button copies Perfil's "← INICIO" back
    button: subtle white-2.5% bg + violet-18% border + accent-bright text +
@@ -17310,7 +17357,16 @@ async function renderSemanas() {
   ]);
   cierresSemanales = cierres;
 
-  const fotoInicial = pickBaselinePhoto(fotos);
+  // Compute baseline vistas explicitly so the home transformación grid can
+  // pair frente-vs-frente and espalda-vs-espalda. pickBaselinePhoto alone
+  // returns whichever inicio row sorted first (often espalda, because the
+  // two uploads happen ~100ms apart and order isn't guaranteed by vista),
+  // which produced the confusing diptych that mixed espalda-inicio with
+  // frente-semana in user testing.
+  const inicios = (fotos || []).filter(f => f.tipo === 'inicio');
+  const inicioFrente  = inicios.find(f => f.vista === 'frente') || inicios.find(f => !f.vista);
+  const inicioEspalda = inicios.find(f => f.vista === 'espalda');
+  const fotoInicial   = inicioFrente || pickBaselinePhoto(fotos);
 
   const weeks = [];
   for (let w = currentWeek; w >= 1; w--) weeks.push(w);
@@ -17426,8 +17482,24 @@ async function renderSemanas() {
         </div>
       </div>`;
 
-    // Transformación visual (before/after slider) — only when cerrada + both photos
+    // Transformación visual — 2 filas de comparativa lado a lado:
+    //   Row 1: INICIO frente | SEM X frente
+    //   Row 2: INICIO espalda | SEM X espalda  (sólo si ambas vistas existen)
+    // Cada imagen es clickable y abre el lightbox individual. Antes era un
+    // before/after slider que solapaba inicio (lado izquierdo) y semana
+    // (lado derecho clipado) en una sola imagen — funcional cuando ambas
+    // fotos eran del mismo ángulo, pero rompía visualmente cuando
+    // pickBaselinePhoto agarraba la inicio-espalda y la semana mostraba el
+    // frente (resultado: foto Frankenstein). El layout en grid es además
+    // mucho más obvio para comparar progreso.
     if (cierre?.foto_url && fotoInicial) {
+      const baselineFrenteUrl  = (inicioFrente?.url_foto)  || fotoInicial.url_foto;
+      const baselineEspaldaUrl = inicioEspalda?.url_foto || null;
+      const semFrenteUrl  = cierre.foto_url;
+      const semEspaldaUrl = cierre.foto_url_espalda || null;
+      const showEspaldaRow = !!(baselineEspaldaUrl && semEspaldaUrl);
+      const semLabel = `${isEs?'SEM':'W'} ${String(w).padStart(2,'0')}`;
+      const esc = u => String(u || '').replace(/'/g, "\\'");
       bodyHtml += `
         <div class="semana-transformacion">
           <div class="semana-transf-header">
@@ -17437,19 +17509,26 @@ async function renderSemanas() {
             </svg>
             ${isEs?'TRANSFORMACIÓN':'TRANSFORMATION'}
           </div>
-          <div class="semana-transf-compare" onclick="openLightbox('${cierre.foto_url}')">
-            <img src="${fotoInicial.url_foto}" alt="Inicio" loading="lazy">
-            <div class="lbl l">INICIO</div>
-            <div class="after">
-              <img src="${cierre.foto_url}" alt="Semana ${w}" loading="lazy">
+          <div class="semana-transf-stack">
+            <div class="semana-transf-row">
+              <div class="semana-transf-half" onclick="openLightbox('${esc(baselineFrenteUrl)}')">
+                <img src="${baselineFrenteUrl}" alt="${isEs?'Inicio frente':'Start front'}" loading="lazy">
+                <span class="semana-transf-lbl l">INICIO</span>
+              </div>
+              <div class="semana-transf-half" onclick="openLightbox('${esc(semFrenteUrl)}')">
+                <img src="${semFrenteUrl}" alt="${semLabel} ${isEs?'frente':'front'}" loading="lazy">
+                <span class="semana-transf-lbl r">${semLabel}</span>
+              </div>
             </div>
-            <div class="lbl r">SEM ${String(w).padStart(2,'0')}</div>
-            <div class="handle">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                   stroke-width="2" stroke-linecap="round">
-                <path d="m9 6-3 6 3 6"/><path d="m15 6 3 6-3 6"/>
-              </svg>
-            </div>
+            ${showEspaldaRow ? `
+            <div class="semana-transf-row">
+              <div class="semana-transf-half" onclick="openLightbox('${esc(baselineEspaldaUrl)}')">
+                <img src="${baselineEspaldaUrl}" alt="${isEs?'Inicio espalda':'Start back'}" loading="lazy">
+              </div>
+              <div class="semana-transf-half" onclick="openLightbox('${esc(semEspaldaUrl)}')">
+                <img src="${semEspaldaUrl}" alt="${semLabel} ${isEs?'espalda':'back'}" loading="lazy">
+              </div>
+            </div>` : ''}
           </div>
         </div>`;
     }
