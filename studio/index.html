@@ -704,6 +704,180 @@
       padding: 8px 0;
     }
 
+    /* ---------- TRANSFORMACIÓN VISUAL (timeline de fotos por cierre) ---------- */
+    .cli-transform-grid {
+      display: flex; flex-direction: column;
+      gap: 14px;
+      margin-top: 6px;
+    }
+    .cli-transform-row {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 14px;
+      align-items: center;
+      padding: 10px 12px;
+      background: var(--surface, rgba(255,255,255,0.02));
+      border: 1px solid var(--border-soft, rgba(255,255,255,0.06));
+      border-radius: 12px;
+    }
+    .cli-transform-rowtitle {
+      display: flex; flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+    .cli-transform-rowtitle-tag {
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 11px; font-weight: 600;
+      letter-spacing: .12em;
+      color: var(--accent);
+    }
+    .cli-transform-rowtitle-sub {
+      font-size: 10.5px;
+      color: var(--text-dim);
+      letter-spacing: .02em;
+    }
+    .cli-transform-thumbs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      min-width: 0;
+    }
+    .cli-transform-cell {
+      position: relative;
+      aspect-ratio: 3 / 4;
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      background: rgba(0,0,0,0.18);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .cli-transform-cell:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+    }
+    .cli-transform-cell img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      object-position: 50% 30%;       /* favor torso area */
+      display: block;
+    }
+    .cli-transform-cell.empty {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      border: 1px dashed var(--border-soft, rgba(255,255,255,0.10));
+      cursor: default;
+    }
+    .cli-transform-cell.empty:hover { transform: none; box-shadow: none; }
+    .cli-transform-empty {
+      color: var(--text-dim);
+      font-size: 18px; font-weight: 300;
+      margin-bottom: 4px;
+    }
+    .cli-transform-caption {
+      position: absolute; left: 4px; bottom: 4px;
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 8.5px; letter-spacing: .06em;
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      padding: 2px 5px;
+      border-radius: 4px;
+      pointer-events: none;
+      text-transform: uppercase;
+    }
+    .cli-transform-cell.empty .cli-transform-caption {
+      position: static;
+      background: none;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+    @media (max-width: 720px) {
+      .cli-transform-row { grid-template-columns: 70px 1fr; gap: 10px; padding: 8px; }
+      .cli-transform-rowtitle-tag { font-size: 10px; }
+      .cli-transform-rowtitle-sub { font-size: 9.5px; }
+      .cli-transform-thumbs { gap: 4px; }
+      .cli-transform-caption { font-size: 7.5px; padding: 2px 4px; }
+    }
+
+    /* ---------- STUDIO LIGHTBOX SWIPER (full-screen photo viewer) ---------- */
+    .studio-lightbox {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.94);
+      z-index: 9000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      animation: studioLbIn 0.18s ease-out;
+    }
+    @keyframes studioLbIn { from { opacity: 0; } to { opacity: 1; } }
+    .studio-lightbox-track {
+      display: flex;
+      height: 100%;
+      transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+      will-change: transform;
+    }
+    .studio-lightbox-slide {
+      position: relative;
+      flex-shrink: 0;
+      height: 100%;
+      display: flex;
+      align-items: center; justify-content: center;
+      padding: 32px 24px;
+      box-sizing: border-box;
+    }
+    .studio-lightbox-slide img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+      -webkit-user-drag: none;
+      user-select: none;
+    }
+    .studio-lightbox-lbl {
+      position: absolute;
+      top: 24px; left: 24px;
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 11px; letter-spacing: .14em;
+      background: rgba(0,0,0,0.65);
+      color: #fff;
+      padding: 5px 11px;
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
+    .studio-lightbox-close {
+      position: absolute;
+      top: 18px; right: 18px;
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.10);
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 2;
+    }
+    .studio-lightbox-close:hover { background: rgba(255,255,255,0.18); }
+    .studio-lightbox-dots {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex; gap: 8px;
+      z-index: 2;
+    }
+    .studio-lightbox-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.30);
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .studio-lightbox-dot.is-active {
+      background: #fff;
+      transform: scale(1.18);
+    }
+
     /* ---------- COLLAPSIBLE CARDS (dieta / rutina) ----------
        Default state is collapsed — only header, summary chips and a preview
        blurb are visible. Clicking "Ver completa" expands the markdown body.
@@ -2145,6 +2319,10 @@
           <div class="detail-section-title">Último análisis semanal <span class="meta">cargando…</span></div>
           <div class="empty-row"><span class="spinner"></span> &nbsp; Cargando…</div>
         </section>
+        <section class="detail-section full-width" id="cli-transformacion">
+          <div class="detail-section-title">Transformación visual <span class="meta">cargando…</span></div>
+          <div class="empty-row"><span class="spinner"></span> &nbsp; Cargando…</div>
+        </section>
         <section class="detail-section" id="cli-bugs">
           <div class="detail-section-title">Bugs reportados <span class="meta">cargando…</span></div>
           <div class="empty-row"><span class="spinner"></span> &nbsp; Cargando…</div>
@@ -2187,10 +2365,18 @@
     // only selects a few columns to keep the table fast — for the drill-down
     // we need the rest (sexo/edad/objetivo/nivel/dias/etc) so we re-fetch.
     const uid = clienta.id;
-    const [fullUserRes, planes, cierres, bugs] = await Promise.all([
+    const [fullUserRes, planes, cierres, allCierres, fotos, bugs] = await Promise.all([
       sb.from('usuarios').select('*').eq('id', uid).maybeSingle(),
       sb.from('planes_semanales').select('tipo,fecha_entrega,semana_iso,contenido,updated_at').eq('usuario_id', uid).order('fecha_entrega', { ascending: false }).limit(10),
       sb.from('cierres_semanales').select('*').eq('usuario_id', uid).order('semana_num', { ascending: false }).limit(1),
+      // Full list of cierres (newest first) for the Transformación timeline.
+      // Limit 50 = ~1 year of weekly closures; if a client somehow blows
+      // past that we'd add pagination, but for the migration cohort this
+      // is way more than needed.
+      sb.from('cierres_semanales').select('semana_num,fecha_inicio,fecha_fin,foto_url,foto_url_espalda').eq('usuario_id', uid).order('semana_num', { ascending: true }).limit(50),
+      // Inicio photos — the baseline both vistas. We don't fetch every
+      // progreso photo; just the immutable 'inicio' row(s).
+      sb.from('fotos_progreso').select('vista,url_foto,fecha,tipo').eq('usuario_id', uid).eq('tipo', 'inicio'),
       sb.from('feedback').select('id,mensaje,created_at,resolved_at,resolved_by,resolution_note').eq('usuario_id', uid).order('created_at', { ascending: false }).limit(20),
     ]);
 
@@ -2223,6 +2409,7 @@
     paintDieta(planes.data || []);
     paintRutina(planes.data || []);
     paintAnalisis((cierres.data || [])[0] || null);
+    paintTransformacion(fotos.data || [], allCierres.data || []);
     paintBugs(bugs.data || []);
 
     // Wire up the collapsible toggles for dieta + rutina (the buttons are
@@ -2511,6 +2698,212 @@
       ${statsHtml}
       ${prose ? `<div class="markdown-body">${esc(prose)}</div>` : '<div class="empty-row">Cierre sin texto de análisis.</div>'}
     `;
+  }
+
+  // ---- Transformación visual ----
+  // Table-shaped timeline of progress photos. One row per cierre semanal.
+  // Each row shows 4 thumbnails: inicio-frente | sem-N frente | inicio-espalda
+  // | sem-N espalda. Tap any thumb opens a full-screen swiper that lets the
+  // coach paginate through all 4 frames for that closure.
+  //
+  // Why row-per-cierre rather than column-per-vista or column-per-week?
+  // The coach is reading semana-a-semana — they scan top to bottom by ISO
+  // week and pause on the rows where they want to dig in. Putting all four
+  // frames in one row keeps the "same week" comparison adjacent without
+  // requiring the coach to scroll horizontally.
+  function paintTransformacion(fotos, cierres) {
+    const sec = document.getElementById('cli-transformacion');
+    if (!sec) return;
+    // Resolve the baseline (inicio) for each vista. Legacy users may have
+    // an inicio row without a vista (single-photo onboarding pre-migration),
+    // so we fall back to that for the frente slot.
+    const inicioFrente  = fotos.find(f => f.vista === 'frente') || fotos.find(f => !f.vista);
+    const inicioEspalda = fotos.find(f => f.vista === 'espalda');
+    const hasInicio = !!(inicioFrente || inicioEspalda);
+    // Filter cierres that actually have at least one photo — a closure without
+    // photos can't contribute to the visual timeline.
+    const rows = (cierres || []).filter(c => c.foto_url || c.foto_url_espalda);
+
+    if (!hasInicio && !rows.length) {
+      sec.innerHTML = `
+        <div class="detail-section-title">Transformación visual <span class="meta">sin fotos</span></div>
+        <div class="empty-row">El cliente todavía no subió fotos. Aparecerán acá apenas tenga onboarding + algún cierre con fotos.</div>`;
+      return;
+    }
+
+    // Helper: build a single <img> thumbnail cell. `url` may be null for
+    // missing vistas; we show a soft placeholder instead of an empty <img>.
+    const thumb = (url, label, allLabels) => {
+      if (!url) {
+        return `<div class="cli-transform-cell empty" title="${esc(label)}">
+                  <span class="cli-transform-empty">—</span>
+                  <span class="cli-transform-caption">${esc(label)}</span>
+                </div>`;
+      }
+      // openStudioSwiper expects ordered list of urls + labels; we encode
+      // the row's full set so swiping from any thumb shows the same 4-photo
+      // sequence in a consistent order: inicio-frente, sem-frente,
+      // inicio-espalda, sem-espalda. The index = where the user tapped.
+      const idx = allLabels.indexOf(label);
+      const safe = String(url).replace(/'/g, "\\'");
+      return `<div class="cli-transform-cell" data-row-photo="${safe}" data-row-idx="${idx}">
+                <img src="${url}" alt="${esc(label)}" loading="lazy">
+                <span class="cli-transform-caption">${esc(label)}</span>
+              </div>`;
+    };
+
+    // INICIO row first — even if there are no cierres yet, the coach should
+    // see the baseline.
+    const inicioRow = hasInicio ? `
+      <div class="cli-transform-row" data-week-label="INICIO">
+        <div class="cli-transform-rowtitle">
+          <span class="cli-transform-rowtitle-tag">INICIO</span>
+          <span class="cli-transform-rowtitle-sub">${inicioFrente?.fecha ? esc(fmtDateShort(inicioFrente.fecha)) : ''}</span>
+        </div>
+        <div class="cli-transform-thumbs">
+          ${thumb(inicioFrente?.url_foto  || null, 'Inicio frente',  ['Inicio frente','Inicio espalda'])}
+          ${thumb(inicioEspalda?.url_foto || null, 'Inicio espalda', ['Inicio frente','Inicio espalda'])}
+        </div>
+      </div>` : '';
+
+    // One row per semana cerrada. We show all 4 frames so the coach can
+    // compare against baseline in-place.
+    const cierreRows = rows.map(c => {
+      const semLabel = `SEM ${String(c.semana_num || '?').padStart(2,'0')}`;
+      const dateLabel = c.fecha_fin ? fmtDateShort(c.fecha_fin) : '';
+      const labels = ['Inicio frente', `${semLabel} frente`, 'Inicio espalda', `${semLabel} espalda`];
+      return `
+        <div class="cli-transform-row" data-week-label="${esc(semLabel)}">
+          <div class="cli-transform-rowtitle">
+            <span class="cli-transform-rowtitle-tag">${esc(semLabel)}</span>
+            <span class="cli-transform-rowtitle-sub">${esc(dateLabel)}</span>
+          </div>
+          <div class="cli-transform-thumbs">
+            ${thumb(inicioFrente?.url_foto  || null, labels[0], labels)}
+            ${thumb(c.foto_url            || null, labels[1], labels)}
+            ${thumb(inicioEspalda?.url_foto || null, labels[2], labels)}
+            ${thumb(c.foto_url_espalda    || null, labels[3], labels)}
+          </div>
+        </div>`;
+    }).join('');
+
+    sec.innerHTML = `
+      <div class="detail-section-title">Transformación visual
+        <span class="meta">${rows.length} ${rows.length === 1 ? 'cierre' : 'cierres'} · ${hasInicio ? 'baseline OK' : 'sin baseline'}</span>
+      </div>
+      <div class="cli-transform-grid">
+        ${inicioRow}
+        ${cierreRows}
+      </div>`;
+
+    // Wire thumbnail clicks → open the full-screen swiper. We capture the
+    // 4-photo sequence from the row and pass the start index based on which
+    // thumb was tapped.
+    sec.querySelectorAll('.cli-transform-row').forEach(row => {
+      const cells = row.querySelectorAll('.cli-transform-cell:not(.empty)');
+      // Build the URL+label arrays once per row from the DATA-attributes the
+      // thumb helper baked in. This keeps the click handler stateless.
+      const items = [];
+      cells.forEach(cell => {
+        items.push({
+          url: cell.dataset.rowPhoto,
+          label: cell.querySelector('.cli-transform-caption')?.textContent || '',
+        });
+      });
+      cells.forEach(cell => {
+        cell.addEventListener('click', () => {
+          const startIdx = Array.from(cells).indexOf(cell);
+          openStudioSwiper(items, Math.max(0, startIdx));
+        });
+      });
+    });
+  }
+
+  // Tiny date formatter for the row title — short month, no year unless
+  // far enough back. The full Date pipeline in renderActividadCard is
+  // overkill here.
+  function fmtDateShort(iso) {
+    if (!iso) return '';
+    const d = new Date(typeof iso === 'string' && iso.length === 10 ? iso + 'T12:00:00' : iso);
+    if (isNaN(d)) return '';
+    return d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
+  }
+
+  // ---- Studio lightbox swiper ----
+  // Same UX as the main app's openLightboxSwiper: one photo fills the
+  // viewport, swipe / arrow / dot to paginate. Self-contained so Studio
+  // doesn't need to share state with the user-facing PWA.
+  function openStudioSwiper(items, startIdx = 0) {
+    if (!Array.isArray(items) || !items.length) return;
+    // Tear down any prior lightbox
+    const old = document.getElementById('studio-lightbox');
+    if (old) old.remove();
+
+    const lb = document.createElement('div');
+    lb.id = 'studio-lightbox';
+    lb.className = 'studio-lightbox open';
+    lb.innerHTML = `
+      <button class="studio-lightbox-close" aria-label="Cerrar">✕</button>
+      <div class="studio-lightbox-track">
+        ${items.map(it => `
+          <div class="studio-lightbox-slide">
+            <img src="${esc(it.url)}" alt="${esc(it.label)}">
+            ${it.label ? `<span class="studio-lightbox-lbl">${esc(it.label)}</span>` : ''}
+          </div>`).join('')}
+      </div>
+      <div class="studio-lightbox-dots">
+        ${items.map((_, i) => `<span class="studio-lightbox-dot${i === startIdx ? ' is-active' : ''}" data-idx="${i}"></span>`).join('')}
+      </div>`;
+    document.body.appendChild(lb);
+
+    const track = lb.querySelector('.studio-lightbox-track');
+    const dots  = lb.querySelectorAll('.studio-lightbox-dot');
+    const N = items.length;
+    let currentIdx = Math.max(0, Math.min(N - 1, startIdx));
+    const goTo = (idx) => {
+      currentIdx = Math.max(0, Math.min(N - 1, idx));
+      track.style.transform = `translateX(-${currentIdx * (100 / N)}%)`;
+      dots.forEach((d, i) => d.classList.toggle('is-active', i === currentIdx));
+    };
+    // Width of the track is N * 100% of the viewport; each slide is 1/N.
+    track.style.width = `${N * 100}%`;
+    lb.querySelectorAll('.studio-lightbox-slide').forEach(s => s.style.width = `${100 / N}%`);
+    goTo(currentIdx);
+
+    // Touch swipe
+    let startX = 0, drag = 0, dragging = false;
+    track.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) return;
+      startX = e.touches[0].clientX; dragging = true; track.style.transition = 'none';
+    }, { passive: true });
+    track.addEventListener('touchmove', (e) => {
+      if (!dragging || e.touches.length !== 1) return;
+      drag = e.touches[0].clientX - startX;
+      const pct = currentIdx * (100 / N) - (drag / window.innerWidth * (100 / N));
+      track.style.transform = `translateX(-${pct}%)`;
+    }, { passive: true });
+    track.addEventListener('touchend', () => {
+      if (!dragging) return; dragging = false; track.style.transition = '';
+      const threshold = window.innerWidth * 0.15;
+      if (drag < -threshold && currentIdx < N - 1) goTo(currentIdx + 1);
+      else if (drag > threshold && currentIdx > 0) goTo(currentIdx - 1);
+      else goTo(currentIdx);
+      drag = 0;
+    });
+
+    // Dots + close + Esc + arrow keys
+    dots.forEach(d => d.addEventListener('click', () => goTo(parseInt(d.dataset.idx, 10))));
+    lb.querySelector('.studio-lightbox-close').addEventListener('click', () => lb.remove());
+    const onKey = (e) => {
+      if (e.key === 'Escape') { lb.remove(); document.removeEventListener('keydown', onKey); return; }
+      if (e.key === 'ArrowRight') goTo(currentIdx + 1);
+      if (e.key === 'ArrowLeft')  goTo(currentIdx - 1);
+    };
+    document.addEventListener('keydown', onKey);
+    // Clicking the dim backdrop (outside the active slide) closes too
+    lb.addEventListener('click', (e) => {
+      if (e.target === lb) { lb.remove(); document.removeEventListener('keydown', onKey); }
+    });
   }
 
   function paintBugs(bugs) {
