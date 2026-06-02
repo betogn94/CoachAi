@@ -798,20 +798,28 @@
       .cli-transform-caption { font-size: 7.5px; padding: 2px 4px; }
     }
 
-    /* ---------- STUDIO LIGHTBOX SWIPER (full-screen photo viewer) ---------- */
+    /* ---------- STUDIO LIGHTBOX SWIPER (full-screen photo viewer) ----------
+       NO flex centering on .studio-lightbox — the close button + dots
+       position themselves absolutely, and the track needs to start exactly
+       at the LEFT edge of the viewport so translateX math is predictable.
+       Previous version had display:flex+justify-content:center on the
+       overlay, which centered the (oversized) track horizontally — the
+       result was that slide 1 sat half-off-screen-left and slide 2 sat
+       half-visible-right, looking like "two photos side by side" instead
+       of a proper swiper. Each slide is now exactly 100vw and the track
+       is positioned absolutely from (0, 0). */
     .studio-lightbox {
       position: fixed; inset: 0;
       background: rgba(0,0,0,0.94);
       z-index: 9000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       overflow: hidden;
       animation: studioLbIn 0.18s ease-out;
     }
     @keyframes studioLbIn { from { opacity: 0; } to { opacity: 1; } }
     .studio-lightbox-track {
       display: flex;
+      position: absolute;
+      left: 0; top: 0;
       height: 100%;
       transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
       will-change: transform;
@@ -819,7 +827,8 @@
     .studio-lightbox-slide {
       position: relative;
       flex-shrink: 0;
-      height: 100%;
+      width: 100vw;
+      height: 100vh;
       display: flex;
       align-items: center; justify-content: center;
       padding: 32px 24px;
@@ -2860,17 +2869,24 @@
     const dots  = lb.querySelectorAll('.studio-lightbox-dot');
     const N = items.length;
     let currentIdx = Math.max(0, Math.min(N - 1, startIdx));
+    // Each slide is 100vw fixed by CSS — no need to size the track or slides
+    // from JS. Translation in PIXELS (not %) keeps the math agnostic of the
+    // track's intrinsic width and avoids percentage rounding surprises.
     const goTo = (idx) => {
       currentIdx = Math.max(0, Math.min(N - 1, idx));
-      track.style.transform = `translateX(-${currentIdx * (100 / N)}%)`;
+      track.style.transform = `translateX(-${currentIdx * window.innerWidth}px)`;
       dots.forEach((d, i) => d.classList.toggle('is-active', i === currentIdx));
     };
-    // Width of the track is N * 100% of the viewport; each slide is 1/N.
-    track.style.width = `${N * 100}%`;
-    lb.querySelectorAll('.studio-lightbox-slide').forEach(s => s.style.width = `${100 / N}%`);
     goTo(currentIdx);
 
-    // Touch swipe
+    // Re-snap on resize / orientation change. window.innerWidth changes mid
+    // session (rotation, browser chrome show/hide on iOS) and a stale base
+    // offset would leave the slide misaligned.
+    const onResize = () => { track.style.transition = 'none'; goTo(currentIdx); requestAnimationFrame(() => track.style.transition = ''); };
+    window.addEventListener('resize', onResize);
+
+    // Touch swipe — drag in pixels for accuracy. The threshold to actually
+    // advance is 15% of the viewport so accidental drags don't snap.
     let startX = 0, drag = 0, dragging = false;
     track.addEventListener('touchstart', (e) => {
       if (e.touches.length !== 1) return;
@@ -2879,8 +2895,9 @@
     track.addEventListener('touchmove', (e) => {
       if (!dragging || e.touches.length !== 1) return;
       drag = e.touches[0].clientX - startX;
-      const pct = currentIdx * (100 / N) - (drag / window.innerWidth * (100 / N));
-      track.style.transform = `translateX(-${pct}%)`;
+      const basePx   = currentIdx * window.innerWidth;
+      const offsetPx = basePx - drag;
+      track.style.transform = `translateX(-${offsetPx}px)`;
     }, { passive: true });
     track.addEventListener('touchend', () => {
       if (!dragging) return; dragging = false; track.style.transition = '';
@@ -2891,19 +2908,22 @@
       drag = 0;
     });
 
-    // Dots + close + Esc + arrow keys
+    // Centralized teardown — remove DOM + release listeners cleanly.
+    const teardown = () => {
+      window.removeEventListener('resize', onResize);
+      document.removeEventListener('keydown', onKey);
+      lb.remove();
+    };
     dots.forEach(d => d.addEventListener('click', () => goTo(parseInt(d.dataset.idx, 10))));
-    lb.querySelector('.studio-lightbox-close').addEventListener('click', () => lb.remove());
+    lb.querySelector('.studio-lightbox-close').addEventListener('click', teardown);
     const onKey = (e) => {
-      if (e.key === 'Escape') { lb.remove(); document.removeEventListener('keydown', onKey); return; }
+      if (e.key === 'Escape')     { teardown(); return; }
       if (e.key === 'ArrowRight') goTo(currentIdx + 1);
       if (e.key === 'ArrowLeft')  goTo(currentIdx - 1);
     };
     document.addEventListener('keydown', onKey);
-    // Clicking the dim backdrop (outside the active slide) closes too
-    lb.addEventListener('click', (e) => {
-      if (e.target === lb) { lb.remove(); document.removeEventListener('keydown', onKey); }
-    });
+    // Click on the dim backdrop (outside any slide) closes too.
+    lb.addEventListener('click', (e) => { if (e.target === lb) teardown(); });
   }
 
   function paintBugs(bugs) {
