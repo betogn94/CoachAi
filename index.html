@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260602-1530-mejora-prompt-macros-marca-conservador">
+<meta name="app-version" content="20260602-1610-openfoodfacts-hybrid-macros">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -16456,7 +16456,148 @@ function closeAlimEdit(event) {
 //
 // Returns { kcal, prot, carbs, fat } where each is a non-negative integer,
 // or null if the call/parse failed.
+// ============================================================
+// OPEN FOOD FACTS — brand+product nutrition lookup
+// ============================================================
+// Hybrid macro estimation: when the meal text looks like it mentions a
+// brand or named product (multi-word, capitalized, or matches a known
+// brand list), we hit Open Food Facts FIRST before falling back to the
+// Claude estimator. OFF returns the actual nutrition LABEL values for
+// the matched product, which is dramatically more accurate than an AI
+// estimate for branded items.
+//
+// Hard-coded safety:
+//   - 3-second timeout via AbortController — never blocks the UI
+//   - ANY error (network, parsing, missing fields) → return null and
+//     the existing AI path runs as before
+//   - Feature flag in localStorage so we can kill-switch instantly
+//     without redeploy if OFF starts misbehaving:
+//       localStorage.setItem('coachai-openfoodfacts-enabled', 'false')
+
+function _isOFFEnabled() {
+  try { return localStorage.getItem('coachai-openfoodfacts-enabled') !== 'false'; }
+  catch { return true; }
+}
+
+// Heuristic: does this look like a query where a brand lookup makes sense?
+// We skip generic queries ("pollo a la plancha", "ensalada mix") to avoid
+// useless API calls. Triggers:
+//   - Explicit "marca X" mention
+//   - A capitalized word in mid-sentence (proper noun likely = brand)
+//   - A known brand from a curated list (catches lowercased mentions)
+function _looksLikeBrandQuery(text) {
+  if (!text || typeof text !== 'string') return false;
+  if (/\bmarca\s+\w+/i.test(text)) return true;
+  // Strip the first word — it often capitalizes by sentence convention.
+  // We look for proper nouns in the REST of the text.
+  const rest = text.split(/\s+/).slice(1).join(' ');
+  if (/\b[A-ZÁÉÍÓÚÑ][a-záéíóúñ]{2,}/.test(rest)) return true;
+  const KNOWN_BRANDS = /\b(lucchetti|sancor|serenisima|serenísima|la\s+serenisima|la\s+serenísima|quaker|\bser\b|yogur[íi]simo|yoplait|knorr|arcor|bagley|marolio|matarazzo|matesi|don\s+atilio|bonafide|noel|terrabusi|trapani|granix|nuestra\s+huerta|granja\s+del\s+sol|paty|swift|tres\s+arroyos|cabaña\s+ar[gj]entina|sabor\s+i?diaz|cofler|ledesma|chocolate\s+aguila|aguila|nestl[eé]|kellog'?s|kelloggs|santiagueña)\b/i;
+  if (KNOWN_BRANDS.test(text)) return true;
+  return false;
+}
+
+// Extract a clean search query — strip quantities, prep markers, and
+// other noise that confuses OFF's text search.
+function _extractOFFQuery(text) {
+  return text
+    .replace(/\d+(?:[.,]\d+)?\s*(?:g|gramos|ml|l|litros?|kg|unidad(?:es)?|porciones?|tazas?|cdas?|cditas?|cucharad(?:a|ita)s?)/gi, ' ')
+    .replace(/\bcocid[oa]s?\b/gi, ' ')
+    .replace(/\bcrud[oa]s?\b/gi, ' ')
+    .replace(/\bsecos?\b/gi, ' ')
+    .replace(/\b(con|sin|y|o|de|del|el|la|los|las|un|una)\b/gi, ' ')
+    .replace(/[+\-:;]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 60);
+}
+
+// Score and pick the most reliable product from OFF's search results.
+// We prefer products with: complete macros, Argentina locale, Spanish name.
+function _pickBestOFFProduct(products) {
+  const scored = (products || [])
+    .filter(p => p.nutriments && (p.nutriments['energy-kcal_100g'] || p.nutriments['energy-kcal'] != null))
+    .map(p => {
+      let score = 0;
+      if (p.nutriments['proteins_100g'] != null) score += 10;
+      if (p.nutriments['carbohydrates_100g'] != null) score += 5;
+      if (p.nutriments['fat_100g'] != null) score += 5;
+      if (Array.isArray(p.countries_tags) && p.countries_tags.includes('en:argentina')) score += 8;
+      if (p.product_name_es) score += 4;
+      if (p.product_name) score += 2;
+      return { p, score };
+    })
+    .sort((a, b) => b.score - a.score);
+  return scored[0]?.p || null;
+}
+
+// Convert OFF's per-100g data into our macros shape, scaled by the
+// quantity the user mentioned (defaults to 100g if none).
+function _normalizeOFFProduct(product, originalText) {
+  const n = product.nutriments || {};
+  const kcal100 = Math.round(n['energy-kcal_100g'] ?? n['energy-kcal'] ?? 0);
+  const prot100 = Math.round(n['proteins_100g'] ?? 0);
+  const carb100 = Math.round(n['carbohydrates_100g'] ?? 0);
+  const fat100  = Math.round(n['fat_100g'] ?? 0);
+  if (kcal100 <= 0) return null;
+  // Extract user-provided weight; default 100g.
+  const gMatch = originalText.match(/(\d+(?:[.,]\d+)?)\s*(g|gramos|ml)\b/i);
+  const grams = gMatch ? parseFloat(gMatch[1].replace(',', '.')) : 100;
+  const factor = grams / 100;
+  return {
+    kcal:  Math.round(kcal100 * factor),
+    prot:  Math.round(prot100 * factor),
+    carbs: Math.round(carb100 * factor),
+    fat:   Math.round(fat100  * factor),
+    _source: 'openfoodfacts',
+    _productName: product.product_name_es || product.product_name || product.brands || 'unknown',
+    _grams: grams,
+  };
+}
+
+async function lookupOpenFoodFacts(mealText) {
+  if (!_isOFFEnabled()) return null;
+  if (!_looksLikeBrandQuery(mealText)) return null;
+  const query = _extractOFFQuery(mealText);
+  if (!query || query.length < 4) return null;
+
+  try {
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 3000);
+    const url = `https://world.openfoodfacts.org/cgi/search.pl?` +
+      `search_terms=${encodeURIComponent(query)}` +
+      `&search_simple=1&action=process&json=1&page_size=10` +
+      `&sort_by=popularity_key`;
+    const resp = await fetch(url, {
+      signal: ctrl.signal,
+      headers: { 'Accept': 'application/json' },
+    });
+    clearTimeout(timeoutId);
+    if (!resp.ok) return null;
+    const data = await resp.json().catch(() => null);
+    if (!data || !Array.isArray(data.products) || !data.products.length) return null;
+    const best = _pickBestOFFProduct(data.products);
+    if (!best) return null;
+    const normalized = _normalizeOFFProduct(best, mealText);
+    if (normalized) {
+      console.info('[OFF] match:', normalized._productName, '→', normalized.kcal + 'kcal / P' + normalized.prot);
+    }
+    return normalized;
+  } catch (e) {
+    if (e?.name === 'AbortError') console.warn('[OFF] timeout — falling back to AI');
+    else console.warn('[OFF] lookup error:', e?.message || e);
+    return null;
+  }
+}
+
 async function estimateMealNutrition(mealText) {
+  // HYBRID: try Open Food Facts FIRST when the text looks branded. OFF
+  // returns exact label values for matched products — way more accurate
+  // than an AI estimate. ANY failure (timeout, no match, parsing) falls
+  // through to the AI path below.
+  const off = await lookupOpenFoodFacts(mealText);
+  if (off) return off;
+
   try {
     const resp = await fetch('/api/chat', {
       method: 'POST',
