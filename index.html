@@ -15336,29 +15336,44 @@ async function launchCoach() {
     // BEFORE the generic AI greeting — so she sees the plan is already there
     // and isn't confused thinking the AI needs to generate it from scratch.
     if (window._migrationCoach) {
-      // Per-tenant override for the "venís migrada de X" label. Lets a
-      // whitelabel (Jesús/KING) always say its brand name in the welcome
-      // ("venís migrada de King") regardless of what the admin entered
-      // in beta_invitados.migrada_de_coach (which could be "Jesús",
-      // "Coach J", etc.). Defaults to the invite's coach name when the
-      // tenant doesn't override.
+      // Per-tenant override for the brand name shown in the welcome label.
+      // Lets a whitelabel (Jesús/KING) always say its brand name regardless
+      // of what the admin typed in beta_invitados.migrada_de_coach (which
+      // could be "Jesús", "Coach J", etc.). Defaults to the invite's coach
+      // name when the tenant doesn't override.
       const brandOverride = currentTenant?.branding_config?.migrationBrandName;
       const coach = brandOverride || window._migrationCoach;
       const nombreCliente = (document.getElementById('f-nombre')?.value || '').trim().split(' ')[0];
       const isEs = (lang === 'es');
+      // GENDER-NEUTRAL phrasing — earlier copy said "venís migrada" (feminine)
+      // which read wrong for male clients (Beto saw it during testing).
+      // "Ya tenés ... cargadas" works for any gender and is more direct than
+      // the previous "Veo que venís migrada de X — ya cargó tu rutina".
       const welcomeHtml = isEs
-        ? `${nombreCliente ? '¡Hola ' + nombreCliente + '!' : '¡Hola!'} 👋 Veo que venís migrada de <strong>${coach}</strong> — ya cargó tu rutina + dieta de esta semana. Las podés revisar acá:<br><br>` +
+        ? `${nombreCliente ? '¡Hola ' + nombreCliente + '!' : '¡Hola!'} 👋 <strong>${coach}</strong> ya te dejó cargadas tu rutina + dieta de esta semana. Las podés revisar acá:<br><br>` +
           `💪 <a href="#" onclick="showMiEntreno();return false" style="color:var(--accent-bright)">Mi Entreno</a> — tu rutina de la semana día por día<br>` +
           `🥗 <a href="#" onclick="showDiario();return false" style="color:var(--accent-bright)">Mi Alimentación</a> — las comidas de hoy (semana completa en tu <a href="#" onclick="showPerfil();return false" style="color:var(--accent-bright)">Perfil</a>)<br><br>` +
           `Cuando tengas dudas, quieras ajustar algo, o necesites mi ayuda, escribime acá nomás. ¡Vamos por todo! 🚀`
-        : `${nombreCliente ? 'Hi ' + nombreCliente + '!' : 'Hi!'} 👋 I see you're coming over from <strong>${coach}</strong> — he loaded your routine + diet for this week. You can review them here:<br><br>` +
+        : `${nombreCliente ? 'Hi ' + nombreCliente + '!' : 'Hi!'} 👋 <strong>${coach}</strong> has already loaded your routine + diet for this week. You can review them here:<br><br>` +
           `💪 <a href="#" onclick="showMiEntreno();return false" style="color:var(--accent-bright)">My Training</a> — your weekly routine day by day<br>` +
           `🥗 <a href="#" onclick="showDiario();return false" style="color:var(--accent-bright)">My Nutrition</a> — today's meals (full week in your <a href="#" onclick="showPerfil();return false" style="color:var(--accent-bright)">Profile</a>)<br><br>` +
           `When you have questions, want to adjust anything, or need my help — just write here. Let's go! 🚀`;
-      // addMessage(content, type, skipPersistFlag) — we DO want to persist this
-      // so the user sees it again on subsequent logins. Skip the AI welcome too.
       addMessage(welcomeHtml, 'coach', false);
       window._migrationCoach = null;  // one-shot
+      // PERSIST IMMEDIATELY. The previous version called addMessage but never
+      // touched the DB — saveChatToSupabase only fires inside sendToAI. So on
+      // the SECOND launchCoach (e.g. PWA reload before the user chatted), the
+      // history loaded empty, renderedAny was false, _migrationCoach was null
+      // (already nulled in step 1), the ELSE branch fired and we got a Claude
+      // welcome on top of/replacing the migration one. Two welcomes, two
+      // different messages across sessions, total user confusion.
+      // Persisting here makes the migration welcome the canonical first
+      // message: next load finds it in historial_chat, renderedAny=true,
+      // welcome logic skipped.
+      try {
+        saveChatToSupabase(chatMessages, todayConversation).catch(e =>
+          console.warn('[migration-welcome] persist failed:', e));
+      } catch (e) { console.warn('[migration-welcome] persist threw:', e); }
     } else {
       await sendToAI(null, true);
     }
