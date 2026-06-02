@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260602-1400-remove-debug-overlay-lightbox">
+<meta name="app-version" content="20260602-1430-perfil-lightbox-swiper-mode">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -7505,6 +7505,75 @@ footer {
   background: rgba(0,0,0,.55); color: #fff;
   padding: 4px 8px; border-radius: 6px;
   display: none;
+}
+/* Lightbox swiper mode — used by Perfil card taps when both vistas exist.
+   Two slides stacked horizontally in a wide track; transform: translateX
+   slides between them. Each slide gets the FULL viewport so the user sees
+   one photo at a time uncompromised by side-by-side alignment issues. */
+.lightbox-swiper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  touch-action: pan-y;     /* let vertical swipe still close-by-drag if we add it later */
+}
+.lightbox-swiper-track {
+  display: flex;
+  width: 200%;
+  height: 100%;
+  transform: translateX(0);
+  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+}
+.lightbox-swiper-slide {
+  position: relative;
+  width: 50%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+.lightbox-swiper-slide img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.lightbox-swiper-lbl {
+  position: absolute;
+  top:   calc(20px + env(safe-area-inset-top, 0px));
+  left:  20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; letter-spacing: .14em;
+  background: rgba(0,0,0,.6); color: #fff;
+  padding: 5px 11px;
+  border-radius: 6px;
+  z-index: 1;
+}
+.lightbox-swiper-dots {
+  position: absolute;
+  bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  z-index: 2;
+}
+.lightbox-swiper-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.32);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+.lightbox-swiper-dot.is-active {
+  background: #fff;
+  transform: scale(1.15);
 }
 @media (max-width: 640px) {
   .foto-gallery { grid-template-columns: repeat(2, 1fr); }
@@ -17271,15 +17340,17 @@ function closeEjercicioModal(event) {
 }
 
 function openLightbox(url) {
-  // Reset to single-photo mode (clear any prior diptych state from a
-  // previous open). The single-photo <img> is the lightbox's default.
+  // Reset to single-photo mode — clear any prior diptych OR swiper state
+  // from a previous open. The single-photo <img> is the lightbox default.
   const single = document.getElementById('lightbox-img');
   if (single) {
     single.src = url;
     single.style.display = '';
   }
   const dip = document.getElementById('lightbox-diptych');
-  if (dip) dip.style.display = 'none';
+  if (dip) dip.remove();
+  const sw = document.getElementById('lightbox-swiper');
+  if (sw) sw.remove();
   document.getElementById('foto-lightbox').classList.add('open');
 }
 
@@ -17294,6 +17365,9 @@ function openLightboxDiptych(url1, url2, label1, label2) {
   if (!url1 || !url2) return openLightbox(url1 || url2 || '');
   const single = document.getElementById('lightbox-img');
   if (single) { single.style.display = 'none'; single.src = ''; }
+  // Swiper mode is incompatible with diptych — tear it down if open.
+  const oldSw = document.getElementById('lightbox-swiper');
+  if (oldSw) oldSw.remove();
   const lightbox = document.getElementById('foto-lightbox');
   // ALWAYS recreate the diptych container. Previous version cached the DOM
   // via `if (!dip)` — if it was first created under an OLDER version of
@@ -17325,8 +17399,97 @@ function openLightboxDiptych(url1, url2, label1, label2) {
   lightbox.classList.add('open');
 }
 
+// Open the lightbox in SWIPER mode — one image fills the viewport, swipe
+// left/right to navigate. Used by Perfil's transformación cards when both
+// vistas exist for the same period: showing frente | espalda side-by-side
+// (diptych) was forcing the user to compare two photos taken from inherently
+// different distances (frente selfie vs espalda farther from mirror), and
+// the asymmetry was distracting. Sequential viewing removes that pressure
+// — each photo gets its own canvas, and the user toggles when they want.
+function openLightboxSwiper(url1, url2, label1, label2) {
+  if (!url1) return;
+  if (!url2) return openLightbox(url1);
+  const lightbox = document.getElementById('foto-lightbox');
+  // Tear down any other lightbox mode that may be left over
+  const single = document.getElementById('lightbox-img');
+  if (single) { single.style.display = 'none'; single.src = ''; }
+  const dip = document.getElementById('lightbox-diptych');
+  if (dip) dip.remove();
+  const oldSw = document.getElementById('lightbox-swiper');
+  if (oldSw) oldSw.remove();
+
+  const sw = document.createElement('div');
+  sw.id = 'lightbox-swiper';
+  sw.className = 'lightbox-swiper';
+  sw.innerHTML = `
+    <div class="lightbox-swiper-track">
+      <div class="lightbox-swiper-slide">
+        <img src="${url1}" alt="${label1 || ''}">
+        ${label1 ? `<span class="lightbox-swiper-lbl">${label1}</span>` : ''}
+      </div>
+      <div class="lightbox-swiper-slide">
+        <img src="${url2}" alt="${label2 || ''}">
+        ${label2 ? `<span class="lightbox-swiper-lbl">${label2}</span>` : ''}
+      </div>
+    </div>
+    <div class="lightbox-swiper-dots">
+      <span class="lightbox-swiper-dot is-active" data-idx="0" aria-label="${label1 || 'foto 1'}"></span>
+      <span class="lightbox-swiper-dot" data-idx="1" aria-label="${label2 || 'foto 2'}"></span>
+    </div>`;
+  lightbox.appendChild(sw);
+  lightbox.classList.add('open');
+
+  const track = sw.querySelector('.lightbox-swiper-track');
+  const dots  = sw.querySelectorAll('.lightbox-swiper-dot');
+  let currentIdx = 0;
+  const goTo = (idx) => {
+    currentIdx = Math.max(0, Math.min(1, idx));
+    track.style.transform = `translateX(-${currentIdx * 50}%)`;
+    dots.forEach((d, i) => d.classList.toggle('is-active', i === currentIdx));
+  };
+
+  // Touch swipe — left to advance to next, right to go back. The threshold
+  // is 15% of the viewport so a small accidental drag doesn't trigger a
+  // page change.
+  let startX = 0, dragOffset = 0, isDragging = false;
+  sw.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    startX = e.touches[0].clientX;
+    isDragging = true;
+    track.style.transition = 'none';
+  }, { passive: true });
+  sw.addEventListener('touchmove', (e) => {
+    if (!isDragging || e.touches.length !== 1) return;
+    dragOffset = e.touches[0].clientX - startX;
+    // Visual feedback during drag — 0.5x because the track is 200% wide,
+    // and translateX(-50%) corresponds to a full slide change.
+    const pct = (currentIdx * 50) - (dragOffset / window.innerWidth * 50);
+    track.style.transform = `translateX(-${pct}%)`;
+  }, { passive: true });
+  sw.addEventListener('touchend', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    track.style.transition = '';
+    const threshold = window.innerWidth * 0.15;
+    if (dragOffset < -threshold && currentIdx < 1)      goTo(currentIdx + 1);
+    else if (dragOffset > threshold && currentIdx > 0)  goTo(currentIdx - 1);
+    else                                                 goTo(currentIdx);
+    dragOffset = 0;
+  });
+
+  // Dots are also clickable (accessibility + non-touch input)
+  dots.forEach(d => d.addEventListener('click', (e) => {
+    e.stopPropagation();
+    goTo(parseInt(d.dataset.idx, 10));
+  }));
+}
+
 function closeLightbox() {
   document.getElementById('foto-lightbox').classList.remove('open');
+  // Tear down the swiper to release listeners and avoid stale state when the
+  // next openLightboxSwiper call recreates it.
+  const sw = document.getElementById('lightbox-swiper');
+  if (sw) sw.remove();
 }
 
 // Global Escape-key handler: close the lightbox if open. Standard keyboard UX —
@@ -19117,10 +19280,13 @@ function renderPerfilTransform(fotos, cierres) {
     const cls = isInicio ? 'is-inicio' : (isCurrent ? 'is-current' : '');
     const safeFrente  = (f.url_foto || '').replace(/'/g, "\\'");
     const safeEspalda = (f.url_foto_espalda || '').replace(/'/g, "\\'");
-    // Open lightbox in diptych mode when both vistas exist; single-photo
-    // otherwise. The lightbox renders side-by-side too.
+    // Open lightbox in SWIPER mode when both vistas exist — frente first,
+    // swipe right-to-left to reveal espalda. Each photo gets the full
+    // viewport so the user isn't distracted by the inherent asymmetry of
+    // a mirror selfie taken close (frente) vs from farther back (espalda).
+    // Falls back to single-photo mode when only one vista is available.
     const onClick = f.url_foto_espalda
-      ? `openLightboxDiptych('${safeFrente}','${safeEspalda}')`
+      ? `openLightboxSwiper('${safeFrente}','${safeEspalda}','FRENTE','ESPALDA')`
       : `openLightbox('${safeFrente}')`;
     const diptychHtml = f.url_foto_espalda
       ? `<div class="cai-perfil-diptych">
