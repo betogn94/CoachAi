@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>CoachAI Pro — Tu entrenador personal con IA</title>
 <!-- ===== PWA install (manifest + iOS A2HS support + theme color) ===== -->
 <link rel="manifest" href="/manifest.json">
@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260602-1625-off-timeout-1500ms">
+<meta name="app-version" content="20260602-1700-zoom-lock-global">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -1835,6 +1835,15 @@ body {
   font-family: 'DM Sans', sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
+  /* Prevent double-tap zoom on iOS Safari + Chrome mobile. Works in tandem
+     with the viewport meta tag (maximum-scale=1, user-scalable=no) and the
+     JS gesturestart listener at the end of <body>. Triple defense because
+     iOS occasionally honors only one of the three. */
+  touch-action: manipulation;
+  -ms-touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
 }
 
 /* BACKGROUND EFFECT */
@@ -10723,6 +10732,44 @@ body.theme-king .cai-home-semanas .semana-analisis hr {
 </script>
 </head>
 <body>
+
+<!-- ============================================================
+     ZOOM LOCK — runs IMMEDIATELY before any other script.
+     ============================================================
+     The viewport meta tag (maximum-scale=1, user-scalable=no) handles most
+     browsers, and CSS touch-action:manipulation on body handles the
+     double-tap. But iOS Safari historically ignores user-scalable=no for
+     accessibility reasons, so we also intercept the legacy gesture* events
+     (gesturestart / gesturechange / gestureend) and the modern multi-touch
+     wheel/touch sequences. preventDefault on gesturestart is the standard
+     iOS pattern. This runs before EVERY other listener because it's
+     inlined here at the top of <body> — no race with later registrations.
+     ============================================================ -->
+<script>
+  (function() {
+    var stop = function(e) { e.preventDefault(); };
+    // Legacy iOS pinch gestures
+    document.addEventListener('gesturestart',  stop, { passive: false });
+    document.addEventListener('gesturechange', stop, { passive: false });
+    document.addEventListener('gestureend',    stop, { passive: false });
+    // Multi-finger touch zoom on iOS 13+ — wheel doesn't fire but a 2-finger
+    // touchmove can still trigger zoom in some PWAs. Block it.
+    document.addEventListener('touchmove', function(e) {
+      if (e.touches && e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+    // Disable ctrl+wheel zoom on desktop browsers (so the same PWA accessed
+    // from a laptop also doesn't zoom). Trackpad pinch fires the same event.
+    document.addEventListener('wheel', function(e) {
+      if (e.ctrlKey) e.preventDefault();
+    }, { passive: false });
+    // Disable ctrl/cmd + plus/minus/0 keyboard zoom.
+    document.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
+        e.preventDefault();
+      }
+    });
+  })();
+</script>
 
 <!-- ============================================================
      SYNCHRONOUS pre-paint tenant resolution.

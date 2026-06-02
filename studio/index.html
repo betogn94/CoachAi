@@ -2,7 +2,7 @@
 <html lang="es" data-theme="dark">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
   <meta name="referrer" content="no-referrer">
   <!-- Stop iOS from auto-linkifying phone numbers / dates / addresses inside
@@ -1495,6 +1495,29 @@
   </style>
 </head>
 <body>
+
+  <!-- ZOOM LOCK — see PWA index.html for full rationale. Triple defense:
+       viewport meta + body touch-action + this JS for iOS pinch + desktop
+       ctrl+wheel/keyboard. -->
+  <script>
+    (function() {
+      var stop = function(e) { e.preventDefault(); };
+      document.addEventListener('gesturestart',  stop, { passive: false });
+      document.addEventListener('gesturechange', stop, { passive: false });
+      document.addEventListener('gestureend',    stop, { passive: false });
+      document.addEventListener('touchmove', function(e) {
+        if (e.touches && e.touches.length > 1) e.preventDefault();
+      }, { passive: false });
+      document.addEventListener('wheel', function(e) {
+        if (e.ctrlKey) e.preventDefault();
+      }, { passive: false });
+      document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
+          e.preventDefault();
+        }
+      });
+    })();
+  </script>
 
   <!-- Boot loader (shown until auth gate resolves) -->
   <div id="boot" class="boot">
