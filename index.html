@@ -19516,18 +19516,40 @@ function parseCardioRule(text) {
   }
   // 'post entreno' is the implicit default; we don't need to detect it.
 
-  // Notes: anything left after stripping duration/intensity/type stopwords
-  const STOPWORDS = /\b(de|del|el|la|los|las|todos|todas|d[ií]as?|post|entreno|entrenamiento|cada|por|x|semana|semanal|veces?|sesi[oó]n(?:es)?|lunes?|martes?|mi[eé]rcoles?|jueves?|viernes?|s[aá]bados?|domingos?|y|o|\/|off|libres?|descanso|sin|pesas)\b/gi;
+  // Notes: anything left after stripping duration/intensity/type stopwords.
+  // Prose-heavy cardio lines like
+  //   "20-25 min post entreno (caminata moderada o trote suave) los 3 días
+  //    de pesas. Sábado opcional 40 min caminata larga."
+  // used to leave garbage in the notes string ("20- caminata trote 3
+  // opcional caminata larga") that surfaced as the home card body and
+  // also blew out the card layout. We pre-clean BEFORE the stopword pass:
+  //   1) drop everything inside parentheses (alternative activities)
+  //   2) truncate at the first sentence boundary (period + space)
+  //   3) kill X-Y duration ranges that survive the single-duration regex
+  // Then we apply a defense-in-depth check at the bottom: if the result
+  // still contains digits, hyphens, or is unusually long, drop it. Better
+  // to show just "tipo · intensidad" than a mangled tail.
+  const STOPWORDS = /\b(de|del|el|la|los|las|todos|todas|d[ií]as?|post|entreno|entrenamiento|cada|por|x|semana|semanal|veces?|sesi[oó]n(?:es)?|lunes?|martes?|mi[eé]rcoles?|jueves?|viernes?|s[aá]bados?|domingos?|y|o|\/|off|libres?|descanso|sin|pesas|opcional)\b/gi;
   let notas = body
+    .replace(/\([^)]*\)/g, ' ')                                                                   // (alt options)
+    .replace(/\.\s.+$/, '')                                                                       // truncate at 1st sentence
+    .replace(/\b\d+\s*-\s*\d+/g, '')                                                              // X-Y ranges
     .replace(/\d+(?:[.,]\d+)?\s*(?:min(?:utos?)?|hs?|horas?|'|′)/gi, '')
     .replace(/\b(suave|liviana|moderad[ao]|intens[ao]|vigoros[ao]|fuerte|baj[ao]|alt[ao])\b/gi, '')
     .replace(STOPWORDS, '')
     .replace(/[\(\)\[\]]/g, '')
-    .replace(/[,.;:]/g, ' ')
+    .replace(/[,.;:\-]/g, ' ')                                                                    // include hyphen
     .replace(/\s+/g, ' ')
     .trim();
   // If only the type word remains in notes, drop it (already captured)
   if (tipo && notas && new RegExp(`^${tipo}$`, 'i').test(notas)) notas = '';
+  // Defense in depth: if notas still has digits OR is too long OR has too
+  // many words, drop it — better empty than garbage. "Post entreno" or a
+  // short clean qualifier is fine; "20- caminata trote 3 opcional caminata
+  // larga" is not.
+  if (notas && (/\d/.test(notas) || notas.length > 28 || notas.split(/\s+/).length > 4)) {
+    notas = null;
+  }
   // If empty or just punctuation
   if (!notas || notas.length < 3) notas = null;
 
