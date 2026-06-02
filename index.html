@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260602-1345-lightbox-diptych-object-fit-cover">
+<meta name="app-version" content="20260602-1400-remove-debug-overlay-lightbox">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -7505,28 +7505,6 @@ footer {
   background: rgba(0,0,0,.55); color: #fff;
   padding: 4px 8px; border-radius: 6px;
   display: none;
-}
-/* TEMPORARY debug overlay — surfaces diagnostic info inside the lightbox
-   so we can read it from a PWA without DevTools. Pin to bottom corner so
-   it doesn't cover the photos. Remove once the size-mismatch issue is
-   confirmed resolved in production. */
-.lightbox-diptych-debug {
-  position: fixed;
-  left: 8px;
-  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-  margin: 0;
-  padding: 8px 10px;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 10px;
-  line-height: 1.35;
-  color: #fff;
-  background: rgba(0,0,0,0.78);
-  border-radius: 8px;
-  max-width: calc(100vw - 16px);
-  white-space: pre-wrap;
-  word-break: break-all;
-  z-index: 9999;
-  pointer-events: none;
 }
 @media (max-width: 640px) {
   .foto-gallery { grid-template-columns: repeat(2, 1fr); }
@@ -17336,51 +17314,15 @@ function openLightboxDiptych(url1, url2, label1, label2) {
     <div class="lightbox-diptych-half">
       <img id="lightbox-diptych-espalda" alt="">
       <span id="lightbox-diptych-lbl-2" class="lightbox-diptych-lbl"></span>
-    </div>
-    <pre id="lightbox-diptych-debug" class="lightbox-diptych-debug"></pre>`;
+    </div>`;
   lightbox?.appendChild(dip);
-  const img1 = document.getElementById('lightbox-diptych-frente');
-  const img2 = document.getElementById('lightbox-diptych-espalda');
-  img1.src = url1;
-  img2.src = url2;
+  document.getElementById('lightbox-diptych-frente').src  = url1;
+  document.getElementById('lightbox-diptych-espalda').src = url2;
   const l1 = document.getElementById('lightbox-diptych-lbl-1');
   const l2 = document.getElementById('lightbox-diptych-lbl-2');
   if (l1) { l1.textContent = label1 || ''; l1.style.display = label1 ? '' : 'none'; }
   if (l2) { l2.textContent = label2 || ''; l2.style.display = label2 ? '' : 'none'; }
   lightbox.classList.add('open');
-
-  // ─── DEBUG OVERLAY ────────────────────────────────────────────────────
-  // Surfaces diagnostic info DIRECTLY in the lightbox so we can see what's
-  // happening without DevTools in a PWA. Remove when issue is resolved.
-  const dbg = document.getElementById('lightbox-diptych-debug');
-  const renderDebug = () => {
-    const halves = dip.querySelectorAll('.lightbox-diptych-half');
-    const v = document.querySelector('meta[name="app-version"]')?.content || '?';
-    const h1 = halves[0]?.getBoundingClientRect();
-    const h2 = halves[1]?.getBoundingClientRect();
-    const cs1 = halves[0] ? getComputedStyle(halves[0]) : null;
-    const cs2 = halves[1] ? getComputedStyle(halves[1]) : null;
-    const i1r = img1.getBoundingClientRect();
-    const i2r = img2.getBoundingClientRect();
-    const fmt = r => r ? `${Math.round(r.width)}×${Math.round(r.height)}` : 'n/a';
-    dbg.textContent =
-      `v: ${v}\n` +
-      `dip.class: ${dip.className}\n` +
-      `halves[0].class: ${halves[0]?.className}\n` +
-      `halves[0] rect: ${fmt(h1)}  flex=${cs1?.flex}  h=${cs1?.height}  maxW=${cs1?.maxWidth}\n` +
-      `halves[1] rect: ${fmt(h2)}  flex=${cs2?.flex}  h=${cs2?.height}  maxW=${cs2?.maxWidth}\n` +
-      `img1 rect: ${fmt(i1r)}  nat=${img1.naturalWidth}×${img1.naturalHeight}\n` +
-      `img2 rect: ${fmt(i2r)}  nat=${img2.naturalWidth}×${img2.naturalHeight}\n` +
-      `dip.parent: ${dip.parentElement?.id || dip.parentElement?.tagName}`;
-  };
-  // Render once on each img load (so natural dimensions are populated) and
-  // also after a microtask in case images were cached and onload skipped.
-  let pending = 2;
-  const onLoad = () => { if (--pending <= 0) renderDebug(); };
-  img1.onload = onLoad; img2.onload = onLoad;
-  // Fallback render — runs even if both images failed/cached without onload
-  setTimeout(renderDebug, 250);
-  requestAnimationFrame(renderDebug);
 }
 
 function closeLightbox() {
