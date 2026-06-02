@@ -17237,11 +17237,15 @@ function openLightbox(url) {
   document.getElementById('foto-lightbox').classList.add('open');
 }
 
-// Open the lightbox in diptych mode — frente | espalda side-by-side at full
-// viewport size. Used by Perfil's transformation cards when both vistas
-// exist; falls back to openLightbox if either URL is missing.
-function openLightboxDiptych(urlFrente, urlEspalda) {
-  if (!urlFrente || !urlEspalda) return openLightbox(urlFrente || urlEspalda || '');
+// Open the lightbox in diptych mode — TWO images side-by-side at full viewport
+// size. Original use case (Perfil cards): frente | espalda of the same period.
+// New use case (Home análisis transformación): inicio | sem X of the same
+// vista (frente OR espalda) so the user can actually compare progress.
+// `label1` and `label2` are optional badges rendered over each image
+// (top-left). Old callers that pass only 2 args get no labels, same UX as
+// before. Falls back to single-image lightbox if either URL is missing.
+function openLightboxDiptych(url1, url2, label1, label2) {
+  if (!url1 || !url2) return openLightbox(url1 || url2 || '');
   const single = document.getElementById('lightbox-img');
   if (single) { single.style.display = 'none'; single.src = ''; }
   let dip = document.getElementById('lightbox-diptych');
@@ -17252,12 +17256,24 @@ function openLightboxDiptych(urlFrente, urlEspalda) {
     dip.id = 'lightbox-diptych';
     dip.style.cssText = 'display:none; flex-direction:row; gap:6px; max-width:100%; max-height:90vh; align-items:center; justify-content:center;';
     dip.innerHTML = `
-      <img id="lightbox-diptych-frente"  alt="frente"  style="max-width:48vw; max-height:90vh; object-fit:contain; border-radius:8px;">
-      <img id="lightbox-diptych-espalda" alt="espalda" style="max-width:48vw; max-height:90vh; object-fit:contain; border-radius:8px;">`;
+      <div class="lightbox-diptych-half" style="position:relative; max-width:48vw; max-height:90vh;">
+        <img id="lightbox-diptych-frente" alt="" style="max-width:48vw; max-height:90vh; object-fit:contain; border-radius:8px; display:block;">
+        <span id="lightbox-diptych-lbl-1" style="display:none; position:absolute; top:10px; left:10px; font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.10em; background:rgba(0,0,0,.55); color:#fff; padding:4px 8px; border-radius:6px;"></span>
+      </div>
+      <div class="lightbox-diptych-half" style="position:relative; max-width:48vw; max-height:90vh;">
+        <img id="lightbox-diptych-espalda" alt="" style="max-width:48vw; max-height:90vh; object-fit:contain; border-radius:8px; display:block;">
+        <span id="lightbox-diptych-lbl-2" style="display:none; position:absolute; top:10px; left:10px; font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.10em; background:rgba(0,0,0,.55); color:#fff; padding:4px 8px; border-radius:6px;"></span>
+      </div>`;
     document.getElementById('foto-lightbox')?.appendChild(dip);
   }
-  document.getElementById('lightbox-diptych-frente').src  = urlFrente;
-  document.getElementById('lightbox-diptych-espalda').src = urlEspalda;
+  document.getElementById('lightbox-diptych-frente').src  = url1;
+  document.getElementById('lightbox-diptych-espalda').src = url2;
+  // Optional labels — hide if not provided so the existing Perfil call path
+  // (which only passes 2 args) renders the same as before.
+  const l1 = document.getElementById('lightbox-diptych-lbl-1');
+  const l2 = document.getElementById('lightbox-diptych-lbl-2');
+  if (l1) { l1.textContent = label1 || ''; l1.style.display = label1 ? '' : 'none'; }
+  if (l2) { l2.textContent = label2 || ''; l2.style.display = label2 ? '' : 'none'; }
   dip.style.display = 'flex';
   document.getElementById('foto-lightbox').classList.add('open');
 }
@@ -17500,6 +17516,17 @@ async function renderSemanas() {
       const showEspaldaRow = !!(baselineEspaldaUrl && semEspaldaUrl);
       const semLabel = `${isEs?'SEM':'W'} ${String(w).padStart(2,'0')}`;
       const esc = u => String(u || '').replace(/'/g, "\\'");
+      // Click-target wiring: tapping ANY half of a row opens the lightbox in
+      // PAIR mode — both photos of that vista (inicio | sem X) side-by-side
+      // at full screen, so the user actually appreciates the diff. Tapping
+      // a frente half pairs frente↔frente, tapping an espalda half pairs
+      // espalda↔espalda. Previously each half opened just its own photo,
+      // which forced the user to memorize one image and toggle back to
+      // compare against the other.
+      const frenteOnClick  = `openLightboxDiptych('${esc(baselineFrenteUrl)}','${esc(semFrenteUrl)}','INICIO','${semLabel}')`;
+      const espaldaOnClick = showEspaldaRow
+        ? `openLightboxDiptych('${esc(baselineEspaldaUrl)}','${esc(semEspaldaUrl)}','INICIO','${semLabel}')`
+        : '';
       bodyHtml += `
         <div class="semana-transformacion">
           <div class="semana-transf-header">
@@ -17511,22 +17538,24 @@ async function renderSemanas() {
           </div>
           <div class="semana-transf-stack">
             <div class="semana-transf-row">
-              <div class="semana-transf-half" onclick="openLightbox('${esc(baselineFrenteUrl)}')">
+              <div class="semana-transf-half" onclick="${frenteOnClick}">
                 <img src="${baselineFrenteUrl}" alt="${isEs?'Inicio frente':'Start front'}" loading="lazy">
                 <span class="semana-transf-lbl l">INICIO</span>
               </div>
-              <div class="semana-transf-half" onclick="openLightbox('${esc(semFrenteUrl)}')">
+              <div class="semana-transf-half" onclick="${frenteOnClick}">
                 <img src="${semFrenteUrl}" alt="${semLabel} ${isEs?'frente':'front'}" loading="lazy">
                 <span class="semana-transf-lbl r">${semLabel}</span>
               </div>
             </div>
             ${showEspaldaRow ? `
             <div class="semana-transf-row">
-              <div class="semana-transf-half" onclick="openLightbox('${esc(baselineEspaldaUrl)}')">
+              <div class="semana-transf-half" onclick="${espaldaOnClick}">
                 <img src="${baselineEspaldaUrl}" alt="${isEs?'Inicio espalda':'Start back'}" loading="lazy">
+                <span class="semana-transf-lbl l">INICIO</span>
               </div>
-              <div class="semana-transf-half" onclick="openLightbox('${esc(semEspaldaUrl)}')">
+              <div class="semana-transf-half" onclick="${espaldaOnClick}">
                 <img src="${semEspaldaUrl}" alt="${semLabel} ${isEs?'espalda':'back'}" loading="lazy">
+                <span class="semana-transf-lbl r">${semLabel}</span>
               </div>
             </div>` : ''}
           </div>
