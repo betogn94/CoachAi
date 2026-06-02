@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260602-1330-debug-overlay-lightbox-diptych">
+<meta name="app-version" content="20260602-1345-lightbox-diptych-object-fit-cover">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -7484,7 +7484,16 @@ footer {
 }
 .lightbox-diptych-half img {
   width: 100%; height: 100%;
-  object-fit: contain;
+  /* object-fit:cover (no contain) — los bounding boxes son idénticos pero
+     fotos de aspect-ratios distintos (900×1600 vs 1200×1600) renderizaban
+     visualmente distintas con contain: la más portrait llenaba el alto, la
+     más cuadrada dejaba letterbox arriba/abajo → percepción "tamaño
+     distinto". Con cover ambas llenan al 100% el mismo bounding box. El
+     trade-off es cropping en los costados (donde típicamente hay fondo
+     irrelevante — pared del baño, mesada, etc.); el torso queda centrado
+     por defecto y es lo que importa para comparar progreso. */
+  object-fit: cover;
+  object-position: center;
   border-radius: 8px;
   display: block;
 }
