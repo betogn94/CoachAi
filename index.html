@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260602-1230-fix-lightbox-diptych-equal-halves">
+<meta name="app-version" content="20260602-1305-lightbox-diptych-css-class-always-recreate">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -7459,6 +7459,43 @@ footer {
   font-size: 24px; width: 44px; height: 44px; border-radius: 50%;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
   z-index: 1;
+}
+/* Lightbox diptych — TWO equal-sized halves rendered side-by-side.
+   Moved out of inline styles in JS (Dec 2026) because if openLightboxDiptych
+   was first called under an older build, the dip element kept those old
+   inline styles forever in a long-running PWA session. CSS rules cascade
+   from the latest stylesheet, so the halves now resize correctly even if
+   stale JS held a reference to an old DOM. */
+.lightbox-diptych {
+  display: flex; flex-direction: row;
+  gap: 8px;
+  width: 100%; max-width: 100%; max-height: 90vh;
+  align-items: center; justify-content: center;
+  padding: 0 4px;
+  box-sizing: border-box;
+}
+.lightbox-diptych-half {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 85vh;
+  max-width: 48vw;
+  display: flex; align-items: center; justify-content: center;
+}
+.lightbox-diptych-half img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  display: block;
+}
+.lightbox-diptych-lbl {
+  position: absolute;
+  top: 10px; left: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: .10em;
+  background: rgba(0,0,0,.55); color: #fff;
+  padding: 4px 8px; border-radius: 6px;
+  display: none;
 }
 @media (max-width: 640px) {
   .foto-gallery { grid-template-columns: repeat(2, 1fr); }
@@ -17248,40 +17285,39 @@ function openLightboxDiptych(url1, url2, label1, label2) {
   if (!url1 || !url2) return openLightbox(url1 || url2 || '');
   const single = document.getElementById('lightbox-img');
   if (single) { single.style.display = 'none'; single.src = ''; }
-  let dip = document.getElementById('lightbox-diptych');
-  if (!dip) {
-    // Inject once on first call so we don't bloat the static HTML with a
-    // container that 90% of users never see.
-    dip = document.createElement('div');
-    dip.id = 'lightbox-diptych';
-    // Two equal-sized halves with flex:1 → identical bounding boxes regardless
-    // of each photo's aspect ratio. Image inside uses object-fit:contain so
-    // we never crop, just letterbox if needed. The previous version sized
-    // each half to its image's natural ratio (max-width/max-height only),
-    // which made INICIO render larger than SEM X when their aspect ratios
-    // differed — broke the visual comparison.
-    dip.style.cssText = 'display:none; flex-direction:row; gap:8px; width:100%; max-width:100%; max-height:90vh; align-items:center; justify-content:center; padding:0 4px;';
-    dip.innerHTML = `
-      <div class="lightbox-diptych-half" style="position:relative; flex:1 1 0; min-width:0; height:85vh; max-width:48vw;">
-        <img id="lightbox-diptych-frente" alt="" style="width:100%; height:100%; object-fit:contain; border-radius:8px; display:block;">
-        <span id="lightbox-diptych-lbl-1" style="display:none; position:absolute; top:10px; left:10px; font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.10em; background:rgba(0,0,0,.55); color:#fff; padding:4px 8px; border-radius:6px;"></span>
-      </div>
-      <div class="lightbox-diptych-half" style="position:relative; flex:1 1 0; min-width:0; height:85vh; max-width:48vw;">
-        <img id="lightbox-diptych-espalda" alt="" style="width:100%; height:100%; object-fit:contain; border-radius:8px; display:block;">
-        <span id="lightbox-diptych-lbl-2" style="display:none; position:absolute; top:10px; left:10px; font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.10em; background:rgba(0,0,0,.55); color:#fff; padding:4px 8px; border-radius:6px;"></span>
-      </div>`;
-    document.getElementById('foto-lightbox')?.appendChild(dip);
-  }
+  const lightbox = document.getElementById('foto-lightbox');
+  // ALWAYS recreate the diptych container. Previous version cached the DOM
+  // via `if (!dip)` — but if it was first created under an OLDER version
+  // of this function (stale JS / PWA cache scenario), it kept the OLD
+  // inline styles forever even after the function was patched. Wiping and
+  // rebuilding every open guarantees the latest layout applies. The layout
+  // also moved from inline styles to CSS classes (.lightbox-diptych /
+  // .lightbox-diptych-half / .lightbox-diptych-lbl) so future style tweaks
+  // touch the stylesheet and propagate without any DOM-cache concerns.
+  const old = document.getElementById('lightbox-diptych');
+  if (old) old.remove();
+  const dip = document.createElement('div');
+  dip.id = 'lightbox-diptych';
+  dip.className = 'lightbox-diptych';
+  dip.innerHTML = `
+    <div class="lightbox-diptych-half">
+      <img id="lightbox-diptych-frente" alt="">
+      <span id="lightbox-diptych-lbl-1" class="lightbox-diptych-lbl"></span>
+    </div>
+    <div class="lightbox-diptych-half">
+      <img id="lightbox-diptych-espalda" alt="">
+      <span id="lightbox-diptych-lbl-2" class="lightbox-diptych-lbl"></span>
+    </div>`;
+  lightbox?.appendChild(dip);
   document.getElementById('lightbox-diptych-frente').src  = url1;
   document.getElementById('lightbox-diptych-espalda').src = url2;
-  // Optional labels — hide if not provided so the existing Perfil call path
-  // (which only passes 2 args) renders the same as before.
+  // Optional labels — hide when caller didn't pass them so the existing
+  // Perfil call path (which only passes 2 args) renders the same as before.
   const l1 = document.getElementById('lightbox-diptych-lbl-1');
   const l2 = document.getElementById('lightbox-diptych-lbl-2');
   if (l1) { l1.textContent = label1 || ''; l1.style.display = label1 ? '' : 'none'; }
   if (l2) { l2.textContent = label2 || ''; l2.style.display = label2 ? '' : 'none'; }
-  dip.style.display = 'flex';
-  document.getElementById('foto-lightbox').classList.add('open');
+  lightbox.classList.add('open');
 }
 
 function closeLightbox() {
