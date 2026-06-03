@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260602-1700-zoom-lock-global">
+<meta name="app-version" content="20260603-0930-impersonate-mode-localhost">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -23489,8 +23489,125 @@ function applyWhiteLabelToLanding(wl) {
   }
 }
 
+// ============================================================
+// IMPERSONATE MODE — localhost-only "view as <user>"
+// ============================================================
+// Quick devops shortcut for validating that a migrated clienta sees the
+// correct Mi Alimentación / Mi Entreno / Perfil without having to log in
+// as her (impossible — that requires her magic link). Strictly gated by
+// hostname check: in PROD this code path is dead, since _isLocalhost()
+// only returns true for localhost / 127.0.0.1 / LAN IPs.
+//
+// Usage:
+//   http://localhost:PORT/?as=<usuarioUuid>
+//
+// The boot path is:
+//   1. Detect ?as=<uid> + localhost (else: bail, normal flow continues)
+//   2. Fetch that user's row from Supabase (just the data, no auth)
+//   3. Populate currentUser, mirror profile fields into the onboarding
+//      form (launchCoach reads f-nombre.value etc.), restore selections +
+//      selectedDias, apply tenant branding
+//   4. Hide landing, show the app shell, render an orange banner up top
+//      so you never lose track that you're in impersonate mode
+//   5. Call launchCoach() — loads chat history, planes_semanales,
+//      recentDiario; the home renders exactly as the user would see it
+//
+// SALIR button removes ?as from the URL and reloads back to landing.
+function _isLocalhost() {
+  const h = location.hostname;
+  return h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0'
+    || /^192\.168\./.test(h) || /^10\./.test(h);
+}
+function _getImpersonateUid() {
+  if (!_isLocalhost()) return null;
+  try { return new URLSearchParams(location.search).get('as') || null; }
+  catch { return null; }
+}
+function _renderImpersonateBanner(user) {
+  if (document.getElementById('impersonate-banner')) return;
+  const div = document.createElement('div');
+  div.id = 'impersonate-banner';
+  div.style.cssText = [
+    'position:fixed','top:0','left:0','right:0','z-index:99999',
+    'background:#ff9500','color:#0a0a0a',
+    'font-family:"JetBrains Mono",ui-monospace,monospace',
+    'font-size:11px','letter-spacing:.10em',
+    'padding:7px 14px',
+    'display:flex','align-items:center','justify-content:space-between','gap:10px',
+    'box-shadow:0 2px 10px rgba(0,0,0,0.3)','pointer-events:auto',
+  ].join(';');
+  const safeName = String(user.nombre || user.email || 'desconocido')
+    .toUpperCase().replace(/[<>]/g, '');
+  div.innerHTML =
+    '<span>🔍 VIENDO COMO <strong style="letter-spacing:.06em">' + safeName +
+    '</strong> · localhost-only</span>' +
+    '<button id="impersonate-exit" type="button" style="background:#0a0a0a;color:#fff;border:0;padding:5px 12px;border-radius:5px;cursor:pointer;font-family:inherit;font-size:10.5px;letter-spacing:.10em">SALIR</button>';
+  document.body.appendChild(div);
+  document.body.style.paddingTop = '32px';
+  document.getElementById('impersonate-exit').addEventListener('click', () => {
+    const url = new URL(location.href);
+    url.searchParams.delete('as');
+    location.href = url.toString();
+  });
+}
+async function _bootImpersonate() {
+  const uid = _getImpersonateUid();
+  if (!uid) return false;
+  if (!sbClient) initSupabase();
+  if (!sbClient) return false;
+  try {
+    const { data: user, error } = await sbClient
+      .from('usuarios').select('*').eq('id', uid).maybeSingle();
+    if (error || !user) {
+      console.warn('[impersonate] usuario no encontrado para uid:', uid, error);
+      return false;
+    }
+    currentUser = user;
+    // Mirror profile fields into the onboarding form. launchCoach() reads
+    // these via document.getElementById('f-nombre').value etc. — if they're
+    // blank the AI system prompt + IMC + chat profile bar all render empty.
+    const setIf = (id, val) => {
+      const el = document.getElementById(id);
+      if (el && val != null) el.value = val;
+    };
+    setIf('f-nombre',    user.nombre);
+    setIf('f-edad',      user.edad);
+    setIf('f-sexo',      user.sexo);
+    setIf('f-peso',      user.peso);
+    setIf('f-altura',    user.altura);
+    setIf('f-actividad', user.actividad);
+    if (user.objetivo) selections.objetivo = user.objetivo;
+    if (user.nivel)    selections.nivel    = user.nivel;
+    if (Array.isArray(user.dias_entreno)) selectedDias = user.dias_entreno.slice();
+    // Tenant branding (king theme etc.)
+    if (user.tenant_id) {
+      try {
+        const { data: tenant } = await sbClient
+          .from('tenants').select('*').eq('id', user.tenant_id).maybeSingle();
+        if (tenant) {
+          currentTenant = tenant;
+          if (typeof applyTenantBranding === 'function') applyTenantBranding(tenant);
+        }
+      } catch (e) { console.warn('[impersonate] tenant resolve falló:', e); }
+    }
+    // Show app shell — mirror what post-login does.
+    const landing = document.getElementById('landing-wrapper');
+    if (landing) landing.style.display = 'none';
+    const header = document.getElementById('main-header');
+    if (header) header.style.display = 'flex';
+    document.body.classList.add('app-active');
+    _renderImpersonateBanner(user);
+    // Full launch — loads plans, diario, chat history, renders home.
+    if (typeof launchCoach === 'function') await launchCoach();
+    return true;
+  } catch (e) {
+    console.error('[impersonate] boot falló:', e);
+    return false;
+  }
+}
+
 // Override the DOMContentLoaded to show landing first
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   // Disable browser scroll restoration so Hero always starts at top
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   // Apply white label on load
@@ -23506,6 +23623,13 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('welcome-back').style.display = 'none';
   // Init Supabase early so it's ready when user clicks Ingresar
   initSupabase();
+
+  // Impersonate check (localhost only). If ?as=<uid> is present in the URL
+  // and we're on a local host, skip the entire landing/login/onboarding
+  // flow and boot directly into the target user's home. PROD safe — the
+  // hostname check in _isLocalhost() short-circuits otherwise.
+  if (await _bootImpersonate()) return;
+
   // Pre-login tenant resolution — pulls the FULL branding_config from
   // Supabase (logo URLs, manifest, apple-touch-icon, shortName, exact
   // colors). The CRITICAL first-paint pieces (body.theme-king class +
