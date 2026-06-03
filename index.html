@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260603-0930-impersonate-mode-localhost">
+<meta name="app-version" content="20260603-1130-cap-founders-uncapped-per-tenant">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12621,34 +12621,50 @@ async function loginOrRegister(email, nombre) {
     currentUser = existing; return { isNew: false, user: existing };
   }
 
-  // Closed beta: a brand-new email must be on the invite allowlist. We also
-  // pull `tenant_slug` so the new usuarios row inherits the tenant the
-  // admin chose at invite time (whitelabel clients land on their own
-  // tenant from the very first session).
+  // Invite-allowlist gate (heredado de la fase beta, mantenido en GA): un
+  // email nuevo SOLO puede convertirse en usuario si su email está en
+  // beta_invitados. Pull tenant_slug también para que el insert herede el
+  // tenant correcto (un whitelabel client aterriza en su tenant desde el
+  // primer login).
   const { data: invite } = await sbClient
     .from('beta_invitados').select('email,tenant_slug').eq('email', email).maybeSingle();
   if (!invite) {
     return { notInvited: true };
   }
 
-  // Closed-beta capacity cap. Existing users already returned above, so this
-  // only gates the creation of NEW accounts.
-  const { count, error: cntErr } = await sbClient
-    .from('usuarios').select('id', { count: 'exact', head: true });
-  if (!cntErr && typeof count === 'number' && count >= BETA_MAX_USERS) {
-    return { betaFull: true };
-  }
-
-  // Resolve the invite's tenant_slug → tenants.id so the new user gets the
-  // right tenant. If the slug is missing or doesn't resolve we fall back to
-  // letting the DB default fire (the usuarios.tenant_id DEFAULT is wired to
-  // default_tenant_id() → coachai-default), so failure here is non-fatal.
+  // Resolve el invite.tenant_slug → tenants.id ANTES del cap check porque
+  // el cap ahora es por-tenant (no global). Si el slug es missing o no
+  // resuelve, dejamos que el DB default (default_tenant_id() → coachai-
+  // default) tome la rienda — failure acá es non-fatal.
   let inviteTenantId = null;
   if (invite.tenant_slug && invite.tenant_slug !== 'coachai-default') {
     const { data: tnt } = await sbClient
       .from('tenants').select('id').eq('slug', invite.tenant_slug).maybeSingle();
     if (tnt && tnt.id) inviteTenantId = tnt.id;
   }
+
+  // Capacity cap (cambió post-beta):
+  //   - Tenants FOUNDER (coachai-default + jesus): SIN TOPE. Son cuentas
+  //     que nosotros controlamos directamente. Cualquier cap acá sería un
+  //     auto-bloqueo innecesario.
+  //   - Tenants no-founder (futuros whitelabel coaches): cap POR TENANT
+  //     usando BETA_MAX_USERS, como protección anti-abuse hasta que onboardemos
+  //     ese tenant formalmente y le subamos el límite (o lo configuremos
+  //     por DB en el futuro). Originalmente el cap era GLOBAL — eso
+  //     significaba que jesus + default + cualquier whitelabel competían
+  //     por los mismos 20 slots, lo cual te bloqueaba a vos mismo al
+  //     onboardear un coach nuevo.
+  const FOUNDER_TENANT_SLUGS = new Set(['coachai-default', 'jesus']);
+  const isFounderTenant = invite.tenant_slug && FOUNDER_TENANT_SLUGS.has(invite.tenant_slug);
+  if (!isFounderTenant) {
+    let cntQuery = sbClient.from('usuarios').select('id', { count: 'exact', head: true });
+    if (inviteTenantId) cntQuery = cntQuery.eq('tenant_id', inviteTenantId);
+    const { count, error: cntErr } = await cntQuery;
+    if (!cntErr && typeof count === 'number' && count >= BETA_MAX_USERS) {
+      return { betaFull: true };
+    }
+  }
+
   const insertRow = { email, nombre };
   if (inviteTenantId) insertRow.tenant_id = inviteTenantId;
 
@@ -13741,9 +13757,14 @@ const LS_SESSION = 'coachai_session_v1';
     }
   } catch (e) { /* no-op */ }
 })();
-// Closed-beta capacity. New-account creation is blocked once this many
-// usuarios rows exist (existing users are unaffected). Bumped from 10 → 20
-// after the first wave filled and demand grew (~80 interested signups).
+// Cap de creación de nuevos usuarios POR TENANT (semántica nueva post-beta).
+// Aplicado SOLO a tenants no-founder — los founder (coachai-default + jesus)
+// están exentos en loginOrRegister(). Esto protege contra abuse en tenants
+// whitelabel hasta que los onboardeemos formalmente y configuremos su límite
+// real. Existing users nunca son gateados — solo aplica a brand-new emails.
+// Histórico: arrancó como cap GLOBAL durante closed beta (10 → 20 después de
+// la primera tanda). Ahora es por-tenant para no auto-bloquearnos al sumar
+// nuevos whitelabel coaches.
 const BETA_MAX_USERS = 20;
 
 function saveProfile() {
