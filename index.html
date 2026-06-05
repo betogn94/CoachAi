@@ -57,6 +57,27 @@
 }
 
 /* ============================================================
+   PASO 1 — Slide entre secciones (snappy / estilo iOS)
+   Cada wrapper de sección se anima al hacerse visible. El switch
+   de navegación pasa por hideAllSections() (display:none) + show*()
+   (display:block); cuando un elemento vuelve a display:block su
+   animación CSS se re-dispara sola → entrada snappy sin tocar el JS.
+   Usa la base --mo-dur/--mo-ease. El reset a11y de arriba lo
+   neutraliza con "reducir movimiento".
+   ============================================================ */
+@keyframes section-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+#home-wrapper,
+#chat-wrapper,
+#diario-wrapper,
+#mi-entreno-wrapper,
+#perfil-wrapper {
+  animation: section-in var(--mo-dur) var(--mo-ease);
+}
+
+/* ============================================================
    KING WHITELABEL OVERLAY (Jesús)
    Activated when applyTenantBranding sees branding_config.bodyClass
    = "theme-king". This block ONLY exists to re-skin CoachAI Pro
