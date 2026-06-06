@@ -95,21 +95,24 @@
    todos juntos. Entrada propia de Home (reemplaza al slide direccional para
    esta sección). NO se dispara al revelar Home por el swipe (se suprime). ---- */
 @keyframes home-card-in {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-/* fill-mode backwards: aplica el estado inicial (opacity:0) durante el delay
-   —para que cada bloque esté oculto hasta su turno— pero al terminar NO retiene
-   el transform (vuelve al estilo natural), así no pisa hovers/otros transforms. */
-#home-wrapper.home-cascade > * {
+/* CLAVE: animamos los ítems frosted DIRECTAMENTE (no sus contenedores). El
+   backdrop-filter (vidrio esmerilado del diseño moderno) se "aplana" si un
+   ANCESTRO recibe opacity/transform, pero NO si los recibe el propio elemento.
+   Así se preserva el diseño —incluido el Seguimiento/Cierre Semanal— y además
+   logramos un stagger card-por-card. El delay escalonado lo setea
+   playHomeCascade() por índice (inline). fill-mode backwards: oculta cada card
+   hasta su turno y al terminar vuelve al estilo natural (no pisa hovers). */
+#home-wrapper.home-cascade .cai-alim-header,
+#home-wrapper.home-cascade .cai-home-hero,
+#home-wrapper.home-cascade .cai-home-card {
   animation: home-card-in var(--mo-dur) var(--mo-ease) backwards;
 }
-#home-wrapper.home-cascade > *:nth-child(1) { animation-delay: 0ms;   }
-#home-wrapper.home-cascade > *:nth-child(2) { animation-delay: 70ms;  }
-#home-wrapper.home-cascade > *:nth-child(3) { animation-delay: 140ms; }
-#home-wrapper.home-cascade > *:nth-child(4) { animation-delay: 210ms; }
-#home-wrapper.home-cascade > *:nth-child(5) { animation-delay: 280ms; }
-#home-wrapper.home-cascade > *:nth-child(n+6) { animation-delay: 350ms; }
+/* Seguimiento/Cierre Semanal queda FUERA de la cascada a propósito: ni él ni
+   su contenedor se animan → su backdrop-filter nunca se toca → diseño moderno
+   intacto. Aparece junto con su fila, sin animación propia. */
 
 /* ---- Swipe-back del chat (drag en vivo izq→der → vuelve a Inicio) ----
    No se puede transformar un ancestro de .chat-input-row / .quick-btns:
@@ -18999,8 +19002,19 @@ function playHomeCascade(wrapper) {
   if (_suppressHomeCascade) return;
   const w = wrapper || document.getElementById('home-wrapper');
   if (!w) return;
+  const sel = '.cai-alim-header, .cai-home-hero, .cai-home-card';
+  const items = w.querySelectorAll(sel);
   w.classList.remove('home-cascade');
+  items.forEach(el => { el.style.animationDelay = ''; });
   void w.offsetWidth; // reflow → reinicia la animación aunque ya estuviera puesta
+  // Stagger card-por-card por índice, salteando ocultos (ej: la card de cardio
+  // del rotador está display:none) para que no dejen huecos en la secuencia.
+  let i = 0;
+  items.forEach(el => {
+    if (el.offsetParent === null) return; // oculto → no cuenta
+    el.style.animationDelay = (i * 80) + 'ms';
+    i++;
+  });
   w.classList.add('home-cascade');
 }
 
