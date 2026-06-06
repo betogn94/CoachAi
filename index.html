@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260606-1435-motion-swipe-cascade-qafix">
+<meta name="app-version" content="20260606-1519-card-cerrada-strip">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -18019,27 +18019,30 @@ async function renderSemanas() {
       </div>`;
 
     // ── COLLAPSED SUMMARY ─────────────────────────────────────────────
-    // En curso → strip of 7 day-bars (trained / rest / future / idle)
-    // Cerrada  → thumbnail of foto_url + stats inline
-    let collapsedHtml = '';
-    if (!cierre) {
-      const days = ['L','M','M','J','V','S','D'];
-      const dayState = [];
+    // Strip de 7 días (trained / rest / future / idle) — MISMO diseño para
+    // EN CURSO y CERRADA, así la card es visualmente consistente en todos sus
+    // estados. La foto de la semana cerrada se sigue viendo en la sección
+    // Transformación al expandir (antes la colapsada cerrada usaba un
+    // thumbnail + texto suelto que rompía la estética del resto de la card).
+    const _dayLabels = ['L','M','M','J','V','S','D'];
+    const _dayState = [];
+    {
       const now = new Date();
       for (let i = 0; i < 7; i++) {
         const d = new Date(range.start + 'T12:00:00'); d.setDate(d.getDate() + i);
-        if (d > now) { dayState.push('future'); continue; }
+        if (d > now) { _dayState.push('future'); continue; }
         const dStr = formatLocalDate(d);
         const log = stats.wLogs.find(l => l.fecha === dStr);
-        if (!log) { dayState.push('idle'); continue; }
-        dayState.push(log.entreno === true ? 'trained' : log.entreno === false ? 'rest' : 'idle');
+        if (!log) { _dayState.push('idle'); continue; }
+        _dayState.push(log.entreno === true ? 'trained' : log.entreno === false ? 'rest' : 'idle');
       }
-      collapsedHtml = `
+    }
+    const collapsedHtml = `
         <div class="semana-strip">
           <div class="semana-strip-days">
-            ${dayState.map((st,i) => `
+            ${_dayState.map((st,i) => `
               <div class="semana-strip-day ${st}">
-                <div class="d">${days[i]}</div>
+                <div class="d">${_dayLabels[i]}</div>
                 <div class="bar"></div>
               </div>`).join('')}
           </div>
@@ -18048,26 +18051,6 @@ async function renderSemanas() {
             <div class="label">${isEs?'ENTRENADOS':'TRAINED'}</div>
           </div>
         </div>`;
-    } else {
-      const photoBg = cierre.foto_url ? `style="background-image:url('${cierre.foto_url}')"` : '';
-      const photoEmpty = cierre.foto_url ? '' : 'empty';
-      const photoInner = cierre.foto_url ? '' : `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/>
-        </svg>`;
-      collapsedHtml = `
-        <div class="semana-thumb" onclick="toggleSemana(${w})">
-          <div class="semana-thumb-photo ${photoEmpty}" ${photoBg}>${photoInner}</div>
-          <div class="semana-thumb-info">
-            <div class="semana-thumb-stats">
-              <span>${stats.trained}/${trainedTarget} ${isEs?'ENT':'TRAIN'}</span>
-              ${stats.avgCal ? `<span>· ${(stats.avgCal/1000).toFixed(1)}K KCAL</span>` : ''}
-              ${stats.wLogs.length ? `<span>· ${stats.wLogs.length}/7 LOG</span>` : ''}
-            </div>
-          </div>
-        </div>`;
-    }
 
     // ── EXPANDED BODY ─────────────────────────────────────────────────
     let bodyHtml = '';
