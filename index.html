@@ -66,16 +66,28 @@
    body ya tiene overflow-x:hidden, así que el offset no genera scroll.
    El reset a11y de arriba lo neutraliza con "reducir movimiento".
    ============================================================ */
+/* Arranca en opacity:.6 (no 0) a propósito: si arranca invisible no se llega
+   a ver el desplazamiento lateral y solo se percibe un fade. Con .6 el
+   contenido se ve mientras viaja → se percibe el slide. */
 @keyframes sec-from-right {
-  from { opacity: 0; transform: translateX(48px); }
+  from { opacity: .6; transform: translateX(56px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 @keyframes sec-from-left {
-  from { opacity: 0; transform: translateX(-48px); }
+  from { opacity: .6; transform: translateX(-56px); }
   to   { opacity: 1; transform: translateX(0); }
+}
+/* Chat va con fade puro (sin transform): tiene .chat-input-row position:fixed
+   + alto de #chat-messages calculado por JS (adjustChatMessagesHeight). Un
+   transform en el wrapper rompe el footer fixed y descoloca esa medición
+   (= hueco blanco). La opacidad no crea containing-block, así que no rompe nada. */
+@keyframes sec-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 .sec-slide-right { animation: sec-from-right var(--mo-dur-slow) var(--mo-ease); }
 .sec-slide-left  { animation: sec-from-left  var(--mo-dur-slow) var(--mo-ease); }
+.sec-fade        { animation: sec-fade-in    var(--mo-dur)      var(--mo-ease); }
 
 /* ============================================================
    KING WHITELABEL OVERLAY (Jesús)
@@ -19374,9 +19386,14 @@ function setActiveNav(id) {
     _navCurrentIdx = _newIdx;
     const _wrap = document.getElementById(_NAV_WRAPPER[id]);
     if (_wrap && _dir !== 0) {
-      _wrap.classList.remove('sec-slide-left', 'sec-slide-right');
+      _wrap.classList.remove('sec-slide-left', 'sec-slide-right', 'sec-fade');
       void _wrap.offsetWidth; // reflow → reinicia la animación aunque ya estuviera puesta
-      _wrap.classList.add(_dir > 0 ? 'sec-slide-right' : 'sec-slide-left');
+      // Chat: fade puro (su footer fixed + alto JS se rompen con transform).
+      if (id === 'nav-coach') {
+        _wrap.classList.add('sec-fade');
+      } else {
+        _wrap.classList.add(_dir > 0 ? 'sec-slide-right' : 'sec-slide-left');
+      }
     }
   }
 
