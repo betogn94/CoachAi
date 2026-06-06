@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260606-1603-carrusel-secciones">
+<meta name="app-version" content="20260606-1617-carrusel-fix-footer-cascada">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -108,6 +108,10 @@
   overflow: hidden;
   z-index: 6;
   will-change: transform;
+  /* Fondo opaco del tema: al quedar fixed, las secciones salen del flujo y el
+     footer del body sube y se vería a través del wrapper transparente. Este bg
+     lo tapa. var(--bg) es theme-aware (KING lo sobrescribe a crema). */
+  background: var(--bg);
 }
 .sec-carousel.sec-carousel-anim { transition: transform var(--mo-dur) var(--mo-ease); }
 
@@ -19511,6 +19515,18 @@ function runSectionCarousel(oldEl, newEl, dir) {
   // Si había un carrusel en curso, finalizalo ya para no encimar estados.
   if (_carouselCleanupTimer) { clearTimeout(_carouselCleanupTimer); _carouselFinalize(oldEl, newEl); }
   _carouselInflight = true;
+
+  // Si Home participa, sacarle la cascada: al re-mostrarse (display:none→block)
+  // la animación de cascada se re-dispara y choca con el slide (doble movimiento
+  // visible en el header "Beto buenas tardes" arriba-izquierda). Solo afecta esta
+  // transición; en cold-load showHome la vuelve a poner.
+  [oldEl, newEl].forEach(el => {
+    if (el && el.id === 'home-wrapper') {
+      el.classList.remove('home-cascade');
+      el.querySelectorAll('.cai-alim-header, .cai-home-hero, .cai-home-card')
+        .forEach(it => { it.style.animationDelay = ''; });
+    }
+  });
 
   // Top del área de contenido = bajo el header (si está visible).
   const hdr = document.getElementById('main-header');
