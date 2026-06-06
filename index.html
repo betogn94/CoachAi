@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260606-1629-carrusel-fix-render-async">
+<meta name="app-version" content="20260606-1644-carrusel-reveal">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -19507,14 +19507,11 @@ const _SEC_WRAPPER_IDS = ['home-wrapper','diario-wrapper','mi-entreno-wrapper','
 let _carouselPrevWrapperId = null;
 let _carouselInflight = false;
 let _carouselCleanupTimer = null;
-// Cuando una sección renderiza async (Mi Entreno, Perfil), la llamada temprana
-// a setActiveNav (desde el onclick) NO debe disparar el carrusel todavía —
-// deslizaría la sección vacía/cargando. Con este flag, la temprana solo mueve
-// el indicador del nav; el carrusel lo dispara la sección al terminar de render.
-let _carouselDefer = false;
 
-// Desliza oldEl hacia un lado y newEl entra del otro. dir: +1 (adelante, entra
-// desde la derecha) | -1 (atrás, entra desde la izquierda). Chat NO usa esto.
+// Carrusel "reveal": la sección SALIENTE (oldEl, ya renderizada) se desliza por
+// encima —opaca— hacia un lado y revela la ENTRANTE (newEl) que queda quieta
+// debajo, renderizando normal. dir: +1 (adelante, sale a la izq) | -1 (atrás,
+// sale a la der). Chat NO usa esto. Robusto ante render async de la entrante.
 function runSectionCarousel(oldEl, newEl, dir) {
   if (!oldEl || !newEl || oldEl === newEl) return false;
   // Si había un carrusel en curso, finalizalo ya para no encimar estados.
@@ -19539,20 +19536,20 @@ function runSectionCarousel(oldEl, newEl, dir) {
     ? Math.max(0, Math.round(hdr.getBoundingClientRect().bottom)) : 0;
   document.documentElement.style.setProperty('--carousel-top', top + 'px');
 
-  // Ambas como overlay fixed; estado inicial sin transición.
-  oldEl.style.display = 'block';
+  // NEW: queda en FLUJO NORMAL (visible, renderizando) DEBAJO. NO se transforma,
+  // así su backdrop-filter no se rompe y su render async (Mi Entreno/Perfil) ocurre
+  // tranquilo mientras la saliente todavía la tapa.
   newEl.style.display = 'block';
-  oldEl.classList.add('sec-carousel');
-  newEl.classList.add('sec-carousel');
-  oldEl.style.transform = 'translateX(0)';
-  newEl.style.transform = 'translateX(' + (dir * 100) + '%)';
-  void newEl.offsetWidth; // reflow → fija el estado inicial antes de animar
 
-  // Animar a la vez.
+  // OLD: overlay fixed OPACO POR ENCIMA que se desliza hacia afuera y revela la
+  // nueva debajo. Como la tapa hasta irse, NO hay flash de "entra y despues anima"
+  // ni desliza la nueva vacia: solo se mueve la saliente (que ya esta renderizada).
+  oldEl.style.display = 'block';
+  oldEl.classList.add('sec-carousel');
+  oldEl.style.transform = 'translateX(0)';
+  void oldEl.offsetWidth; // reflow → fija el estado inicial antes de animar
   oldEl.classList.add('sec-carousel-anim');
-  newEl.classList.add('sec-carousel-anim');
   oldEl.style.transform = 'translateX(' + (-dir * 100) + '%)';
-  newEl.style.transform = 'translateX(0)';
 
   _carouselCleanupTimer = setTimeout(() => { _carouselFinalize(oldEl, newEl); }, 340);
   return true;
@@ -19579,10 +19576,7 @@ function setActiveNav(id) {
   // Slide direccional de la sección, matcheando la dirección del thumb del nav:
   // ir a un tab "más a la derecha" en _NAV_ORDER → entra desde la derecha, y al revés.
   const _newIdx = _NAV_ORDER.indexOf(id);
-  // _carouselDefer: la llamada temprana (onclick) de una sección async solo
-  // actualiza el indicador (más abajo); la transición se dispara cuando la
-  // sección terminó de renderizar y llama setActiveNav de nuevo con defer=false.
-  if (_newIdx !== -1 && !_carouselDefer) {
+  if (_newIdx !== -1) {
     const _dir = _newIdx === _navCurrentIdx ? 0 : (_newIdx > _navCurrentIdx ? 1 : -1);
     _navCurrentIdx = _newIdx;
     const newWrap = document.getElementById(_NAV_WRAPPER[id]);
@@ -19668,7 +19662,6 @@ function hideAllSections() {
 // PERFIL (premium identity hub)
 // ============================
 function showPerfil() {
-  _carouselDefer = true; // el carrusel espera al render (renderPerfil es async)
   trackEvent('section_view', { section: 'perfil' });
   hideAllSections();
   const wrapper = document.getElementById('perfil-wrapper');
@@ -19676,11 +19669,8 @@ function showPerfil() {
   // Reset viewport to top via the robust helper (smooth scrolls misbehave in
   // iOS PWA standalone; users land "half-scrolled" into the page otherwise).
   scrollToTop();
-  setActiveNav('nav-perfil'); // temprano: solo mueve el indicador (defer activo)
-  // Cuando perfil terminó de renderizar, recién ahí disparamos la transición.
-  renderPerfil()
-    .then(()  => { _carouselDefer = false; setActiveNav('nav-perfil'); })
-    .catch(e => { _carouselDefer = false; console.error(e); setActiveNav('nav-perfil'); });
+  renderPerfil().catch(console.error);
+  setActiveNav('nav-perfil');
 }
 
 function openEditProfileForm() {
@@ -21108,7 +21098,6 @@ function _buildCardioChipHtml(opts = {}) {
 }
 
 async function showMiEntreno() {
-  _carouselDefer = true; // el carrusel espera al render (abajo) — no al onclick
   trackEvent('section_view', { section: 'entreno' });
   hideAllSections();
   const w = document.getElementById('mi-entreno-wrapper');
@@ -21125,7 +21114,6 @@ async function showMiEntreno() {
   renderMiEntreno();                 // instant paint from localStorage cache
   await hydrateEntrenoFromSupabase(); // then refresh from durable source
   renderMiEntreno();
-  _carouselDefer = false;            // contenido listo → ahora sí, carrusel
   setActiveNav('nav-entreno');
 }
 
