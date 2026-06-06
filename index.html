@@ -21540,8 +21540,9 @@ function showChat() {
 // mensajes y la escritura en el textarea quedan intactos.
 // ============================================================
 (function setupChatSwipeBack() {
-  let x0 = 0, y0 = 0, dx = 0, t0 = 0, active = false, decided = false, tracking = false, wrap = null, backdrop = null;
+  let x0 = 0, y0 = 0, dx = 0, t0 = 0, active = false, decided = false, tracking = false, wrap = null, backdrop = null, homeEl = null;
   const W = () => window.innerWidth || document.documentElement.clientWidth;
+  const PARALLAX = 0.25; // Home se mueve a 1/4 de la velocidad del chat (profundidad)
 
   function chatVisible() {
     const w = document.getElementById('chat-wrapper');
@@ -21555,6 +21556,9 @@ function showChat() {
   function setDx(v) {
     if (wrap) wrap.style.setProperty('--swipe-dx', v + 'px');
     if (backdrop) backdrop.style.transform = 'translateX(' + v + 'px)';
+    // Parallax de Home: arranca corrida -PARALLAX*W (a la izquierda) y llega a 0
+    // justo cuando el chat termina de salir (v = W). Da sensación de profundidad.
+    if (homeEl) homeEl.style.transform = 'translateX(' + ((v - W()) * PARALLAX) + 'px)';
   }
   function reset() { x0 = y0 = dx = 0; active = false; decided = false; tracking = false; }
   function clearClasses(w) {
@@ -21572,6 +21576,11 @@ function showChat() {
       ? Math.max(0, Math.round(hdr.getBoundingClientRect().bottom)) : 0;
     home.style.setProperty('--peek-top', peekTop + 'px');
     home.classList.add('swipe-peek');
+    // Cacheamos Home y la posicionamos en su offset inicial de parallax (sin
+    // transición, para que siga al dedo 1:1). No tiene hijos fixed → transform OK.
+    homeEl = home;
+    home.style.transition = 'none';
+    home.style.transform = 'translateX(' + ((0 - W()) * PARALLAX) + 'px)';
     // Panel opaco de respaldo: cubre TODA la pantalla del chat y se desliza
     // junto con el contenido. Sin esto, Home se filtra por los huecos
     // transparentes del chat (gutters, footers) apenas se monta la capa.
@@ -21589,7 +21598,10 @@ function showChat() {
     if (home) {
       home.classList.remove('swipe-peek');
       home.style.removeProperty('--peek-top');
+      home.style.transform = '';
+      home.style.transition = '';
     }
+    homeEl = null;
     if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
   }
 
@@ -21625,6 +21637,7 @@ function showChat() {
     const w = wrap;
     w.classList.add('chat-swipe-anim'); // habilita la transición para el snap
     if (backdrop) backdrop.style.transition = 'transform var(--mo-dur) var(--mo-ease)';
+    if (homeEl) homeEl.style.transition = 'transform var(--mo-dur) var(--mo-ease)';
     if (commit) {
       setDx(W()); // termina de salir hacia la derecha…
       setTimeout(() => {
