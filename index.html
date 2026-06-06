@@ -21060,7 +21060,14 @@ function _entNormalizeDay(d) {
   const map = { lunes:'lunes', martes:'martes', 'miércoles':'miercoles', miercoles:'miercoles',
                 jueves:'jueves', viernes:'viernes', 'sábado':'sabado', sabado:'sabado', domingo:'domingo',
                 monday:'lunes', tuesday:'martes', wednesday:'miercoles', thursday:'jueves',
-                friday:'viernes', saturday:'sabado', sunday:'domingo' };
+                friday:'viernes', saturday:'sabado', sunday:'domingo',
+                // Abreviaturas: es como se guarda dias_entreno en `usuarios` (ej:
+                // ["lun","mie","vie"]). Sin estas, _entNormalizeDay devolvía '' →
+                // userDays quedaba vacío → buildTrainingDayMapping caía al fallback
+                // "días consecutivos desde el lunes", ignorando los días reales
+                // que eligió el usuario en rutinas con header genérico "Día N".
+                lun:'lunes', mar:'martes', mie:'miercoles', 'mié':'miercoles',
+                jue:'jueves', vie:'viernes', sab:'sabado', 'sáb':'sabado', dom:'domingo' };
   return map[String(d || '').toLowerCase().trim()] || '';
 }
 
