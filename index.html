@@ -90,6 +90,27 @@
 .sec-slide-left  { animation: sec-from-left  var(--mo-dur-slow) var(--mo-ease); }
 .sec-fade        { animation: sec-fade-in    var(--mo-dur)      var(--mo-ease); }
 
+/* ---- Cascada de Home: al entrar (showHome → navegación o apertura de la
+   app), los bloques aparecen uno tras otro de arriba hacia abajo, en vez de
+   todos juntos. Entrada propia de Home (reemplaza al slide direccional para
+   esta sección). NO se dispara al revelar Home por el swipe (se suprime). ---- */
+@keyframes home-card-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* fill-mode backwards: aplica el estado inicial (opacity:0) durante el delay
+   —para que cada bloque esté oculto hasta su turno— pero al terminar NO retiene
+   el transform (vuelve al estilo natural), así no pisa hovers/otros transforms. */
+#home-wrapper.home-cascade > * {
+  animation: home-card-in var(--mo-dur) var(--mo-ease) backwards;
+}
+#home-wrapper.home-cascade > *:nth-child(1) { animation-delay: 0ms;   }
+#home-wrapper.home-cascade > *:nth-child(2) { animation-delay: 70ms;  }
+#home-wrapper.home-cascade > *:nth-child(3) { animation-delay: 140ms; }
+#home-wrapper.home-cascade > *:nth-child(4) { animation-delay: 210ms; }
+#home-wrapper.home-cascade > *:nth-child(5) { animation-delay: 280ms; }
+#home-wrapper.home-cascade > *:nth-child(n+6) { animation-delay: 350ms; }
+
 /* ---- Swipe-back del chat (drag en vivo izq→der → vuelve a Inicio) ----
    No se puede transformar un ancestro de .chat-input-row / .quick-btns:
    son position:fixed y un transform en el wrapper las descolocaría. Movemos
@@ -18971,6 +18992,18 @@ Use real numbers, be specific.${photoInstructions}`;
 // ============================
 // HOME SCREEN
 // ============================
+// Cascada de entrada de Home. Se suprime cuando Home se revela vía el
+// swipe-back del chat (las cards ya están visibles → re-animarlas parpadearía).
+let _suppressHomeCascade = false;
+function playHomeCascade(wrapper) {
+  if (_suppressHomeCascade) return;
+  const w = wrapper || document.getElementById('home-wrapper');
+  if (!w) return;
+  w.classList.remove('home-cascade');
+  void w.offsetWidth; // reflow → reinicia la animación aunque ya estuviera puesta
+  w.classList.add('home-cascade');
+}
+
 function showHome() {
   // JS fallback for the CSS :has() guard at the top of the file. On Safari <15.4
   // and similar older browsers without :has(), the rule that disables the logo
@@ -18983,6 +19016,7 @@ function showHome() {
   hideAllSections();
   const wrapper = document.getElementById('home-wrapper');
   wrapper.style.display = 'block';
+  playHomeCascade(wrapper); // cards en cascada (salvo que venga del swipe)
   renderHome();
   updateCardSVGAspect();
   setActiveNav('nav-inicio');
@@ -19451,9 +19485,10 @@ function setActiveNav(id) {
       _wrap.classList.remove('sec-slide-left', 'sec-slide-right', 'sec-fade');
       void _wrap.offsetWidth; // reflow → reinicia la animación aunque ya estuviera puesta
       // Chat: fade puro (su footer fixed + alto JS se rompen con transform).
+      // Home (nav-inicio): sin slide → su entrada es la cascada de cards.
       if (id === 'nav-coach') {
         _wrap.classList.add('sec-fade');
-      } else {
+      } else if (id !== 'nav-inicio') {
         _wrap.classList.add(_dir > 0 ? 'sec-slide-right' : 'sec-slide-left');
       }
     }
@@ -21646,8 +21681,11 @@ function showChat() {
         // El swipe ya ejecutó la transición visual → evitamos que setActiveNav
         // re-anime Home con su slide direccional (quedaría un doble movimiento).
         if (typeof _navCurrentIdx !== 'undefined') _navCurrentIdx = 0;
+        // Home ya está visible por el reveal del swipe → sin cascada (parpadearía).
+        _suppressHomeCascade = true;
         showHome();
         setActiveNav('nav-inicio');
+        _suppressHomeCascade = false;
       }, 240);
     } else {
       setDx(0);   // …o vuelve a su lugar
