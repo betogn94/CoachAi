@@ -122,6 +122,18 @@
   -webkit-overflow-scrolling: touch;
   background: var(--bg);
 }
+/* Respaldo opaco que se desliza con el chat: tapa Home por completo al
+   inicio (z-index entre Home=5 y el contenido del chat=10) y la va revelando
+   solo por la izquierda a medida que se arrastra. El top se setea por JS
+   (= --peek-top) para arrancar justo debajo del header. */
+.chat-swipe-backdrop {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  top: 0;
+  z-index: 8;
+  background: var(--bg);
+  will-change: transform;
+}
 /* .chat-swipe-anim activa la transición para el snap-back / commit. Mientras
    se arrastra (.chat-swiping sin -anim) no hay transición → sigue al dedo 1:1. */
 #chat-wrapper.chat-swipe-anim #chat-messages,
@@ -21519,7 +21531,7 @@ function showChat() {
 // mensajes y la escritura en el textarea quedan intactos.
 // ============================================================
 (function setupChatSwipeBack() {
-  let x0 = 0, y0 = 0, dx = 0, t0 = 0, active = false, decided = false, tracking = false, wrap = null;
+  let x0 = 0, y0 = 0, dx = 0, t0 = 0, active = false, decided = false, tracking = false, wrap = null, backdrop = null;
   const W = () => window.innerWidth || document.documentElement.clientWidth;
 
   function chatVisible() {
@@ -21531,7 +21543,10 @@ function showChat() {
     if (!target || !target.closest) return true;
     return !target.closest('.chat-input-row, .chat-profile-bar, textarea, button, a, input, select');
   }
-  function setDx(v) { if (wrap) wrap.style.setProperty('--swipe-dx', v + 'px'); }
+  function setDx(v) {
+    if (wrap) wrap.style.setProperty('--swipe-dx', v + 'px');
+    if (backdrop) backdrop.style.transform = 'translateX(' + v + 'px)';
+  }
   function reset() { x0 = y0 = dx = 0; active = false; decided = false; tracking = false; }
   function clearClasses(w) {
     w.classList.remove('chat-swiping', 'chat-swipe-anim');
@@ -21548,12 +21563,25 @@ function showChat() {
       ? Math.max(0, Math.round(hdr.getBoundingClientRect().bottom)) : 0;
     home.style.setProperty('--peek-top', peekTop + 'px');
     home.classList.add('swipe-peek');
+    // Panel opaco de respaldo: cubre TODA la pantalla del chat y se desliza
+    // junto con el contenido. Sin esto, Home se filtra por los huecos
+    // transparentes del chat (gutters, footers) apenas se monta la capa.
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.className = 'chat-swipe-backdrop';
+    }
+    backdrop.style.top = peekTop + 'px';
+    backdrop.style.transition = 'none';
+    backdrop.style.transform = 'translateX(0px)';
+    document.body.appendChild(backdrop);
   }
   function endPeek() {
     const home = document.getElementById('home-wrapper');
-    if (!home) return;
-    home.classList.remove('swipe-peek');
-    home.style.removeProperty('--peek-top');
+    if (home) {
+      home.classList.remove('swipe-peek');
+      home.style.removeProperty('--peek-top');
+    }
+    if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
   }
 
   function onStart(e) {
@@ -21587,6 +21615,7 @@ function showChat() {
     const commit = dx > W() * 0.35 || (dx > 60 && vx > 0.4);
     const w = wrap;
     w.classList.add('chat-swipe-anim'); // habilita la transición para el snap
+    if (backdrop) backdrop.style.transition = 'transform var(--mo-dur) var(--mo-ease)';
     if (commit) {
       setDx(W()); // termina de salir hacia la derecha…
       setTimeout(() => {
