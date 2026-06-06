@@ -95,7 +95,7 @@
    todos juntos. Entrada propia de Home (reemplaza al slide direccional para
    esta sección). NO se dispara al revelar Home por el swipe (se suprime). ---- */
 @keyframes home-card-in {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 /* CLAVE: animamos los ítems frosted DIRECTAMENTE (no sus contenedores). El
@@ -108,7 +108,10 @@
 #home-wrapper.home-cascade .cai-alim-header,
 #home-wrapper.home-cascade .cai-home-hero,
 #home-wrapper.home-cascade .cai-home-card {
-  animation: home-card-in var(--mo-dur) var(--mo-ease) backwards;
+  /* 360ms + ease-out suave (en vez de la curva snappy) → cada card entra
+     fluida; el stagger amplio (120ms, lo setea playHomeCascade) hace que se
+     vean claramente una tras otra y no de golpe. */
+  animation: home-card-in 360ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 /* Seguimiento/Cierre Semanal queda FUERA de la cascada a propósito: ni él ni
    su contenedor se animan → su backdrop-filter nunca se toca → diseño moderno
@@ -19012,7 +19015,7 @@ function playHomeCascade(wrapper) {
   let i = 0;
   items.forEach(el => {
     if (el.offsetParent === null) return; // oculto → no cuenta
-    el.style.animationDelay = (i * 80) + 'ms';
+    el.style.animationDelay = (i * 120) + 'ms'; // stagger amplio → se ven una tras otra
     i++;
   });
   w.classList.add('home-cascade');
