@@ -66,16 +66,17 @@
    body ya tiene overflow-x:hidden, así que el offset no genera scroll.
    El reset a11y de arriba lo neutraliza con "reducir movimiento".
    ============================================================ */
-/* Arranca en opacity:.6 (no 0) a propósito: si arranca invisible no se llega
-   a ver el desplazamiento lateral y solo se percibe un fade. Con .6 el
-   contenido se ve mientras viaja → se percibe el slide. */
+/* Slide 100% opaco (sin fade), igual que el thumb del nav: un elemento
+   sólido que viaja de costado, visible todo el recorrido. El fade ensuciaba
+   la sensación de "viaje". body tiene overflow-x:hidden, así que el contenido
+   entra limpio desde fuera de pantalla sin generar scroll horizontal. */
 @keyframes sec-from-right {
-  from { opacity: .6; transform: translateX(56px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from { transform: translateX(64px); }
+  to   { transform: translateX(0); }
 }
 @keyframes sec-from-left {
-  from { opacity: .6; transform: translateX(-56px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from { transform: translateX(-64px); }
+  to   { transform: translateX(0); }
 }
 /* Chat va con fade puro (sin transform): tiene .chat-input-row position:fixed
    + alto de #chat-messages calculado por JS (adjustChatMessagesHeight). Un
