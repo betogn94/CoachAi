@@ -95,13 +95,21 @@
    son position:fixed y un transform en el wrapper las descolocaría. Movemos
    las 3 piezas visibles del chat a mano con --swipe-dx (sin transformar
    ningún ancestro), preservando el translateX(-50%) de los footers fixed. */
+/* Durante el swipe, todo el chat sube a un único stacking context (z-index 20)
+   por encima de la capa de Home (z-index 5). position:relative (no transform)
+   → NO crea containing-block para los footers fixed, así que no se rompen.
+   Dentro de este contexto el orden es inequívoco: backdrop(0) < mensajes(1)
+   < footers(49/50). */
+#chat-wrapper.chat-swiping {
+  position: relative;
+  z-index: 20;
+}
 #chat-wrapper.chat-swiping #chat-messages {
   transform: translateX(var(--swipe-dx, 0px));
-  /* Panel sólido y por encima de Home, para taparlo mientras se arrastra
-     (en estado normal el chat es transparente/integrado; esto solo aplica
-     durante el swipe). Así el chat se corre como una tarjeta y revela Home. */
+  /* Por encima del backdrop, opaco (en estado normal el chat es transparente;
+     esto solo aplica durante el swipe). Así se corre como tarjeta sólida. */
   position: relative;
-  z-index: 10;
+  z-index: 1;
   background: var(--bg);
 }
 #chat-wrapper.chat-swiping .quick-btns,
@@ -122,15 +130,16 @@
   -webkit-overflow-scrolling: touch;
   background: var(--bg);
 }
-/* Respaldo opaco que se desliza con el chat: tapa Home por completo al
-   inicio (z-index entre Home=5 y el contenido del chat=10) y la va revelando
-   solo por la izquierda a medida que se arrastra. El top se setea por JS
-   (= --peek-top) para arrancar justo debajo del header. */
+/* Respaldo opaco que se desliza con el chat: vive DENTRO de #chat-wrapper
+   (en su stacking context z-index 20) en la capa más baja (z-index 0), por
+   debajo de los mensajes(1) y footers(49/50) pero por encima de Home. Tapa
+   Home al inicio y la revela solo por la izquierda al arrastrar. El top se
+   setea por JS (= --peek-top) para arrancar justo debajo del header. */
 .chat-swipe-backdrop {
   position: fixed;
   left: 0; right: 0; bottom: 0;
   top: 0;
-  z-index: 8;
+  z-index: 0;
   background: var(--bg);
   will-change: transform;
 }
@@ -21573,7 +21582,7 @@ function showChat() {
     backdrop.style.top = peekTop + 'px';
     backdrop.style.transition = 'none';
     backdrop.style.transform = 'translateX(0px)';
-    document.body.appendChild(backdrop);
+    wrap.appendChild(backdrop); // dentro del chat → mismo stacking context, capa baja
   }
   function endPeek() {
     const home = document.getElementById('home-wrapper');
