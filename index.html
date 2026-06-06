@@ -90,6 +90,26 @@
 .sec-slide-left  { animation: sec-from-left  var(--mo-dur-slow) var(--mo-ease); }
 .sec-fade        { animation: sec-fade-in    var(--mo-dur)      var(--mo-ease); }
 
+/* ---- Swipe-back del chat (drag en vivo izq→der → vuelve a Inicio) ----
+   No se puede transformar un ancestro de .chat-input-row / .quick-btns:
+   son position:fixed y un transform en el wrapper las descolocaría. Movemos
+   las 3 piezas visibles del chat a mano con --swipe-dx (sin transformar
+   ningún ancestro), preservando el translateX(-50%) de los footers fixed. */
+#chat-wrapper.chat-swiping #chat-messages {
+  transform: translateX(var(--swipe-dx, 0px));
+}
+#chat-wrapper.chat-swiping .quick-btns,
+#chat-wrapper.chat-swiping .chat-input-row {
+  transform: translateX(calc(-50% + var(--swipe-dx, 0px)));
+}
+/* .chat-swipe-anim activa la transición para el snap-back / commit. Mientras
+   se arrastra (.chat-swiping sin -anim) no hay transición → sigue al dedo 1:1. */
+#chat-wrapper.chat-swipe-anim #chat-messages,
+#chat-wrapper.chat-swipe-anim .quick-btns,
+#chat-wrapper.chat-swipe-anim .chat-input-row {
+  transition: transform var(--mo-dur) var(--mo-ease);
+}
+
 /* ============================================================
    KING WHITELABEL OVERLAY (Jesús)
    Activated when applyTenantBranding sees branding_config.bodyClass
@@ -21469,6 +21489,81 @@ function showChat() {
   });
   setActiveNav('nav-coach');
 }
+
+// ============================================================
+// Swipe-back del chat: arrastrar de izquierda→derecha vuelve a Inicio.
+// Drag en vivo: el contenido del chat sigue el dedo. No transformamos
+// #chat-wrapper (rompería los footers position:fixed); movemos las 3
+// piezas visibles a mano con --swipe-dx (ver CSS .chat-swiping).
+// Solo gesto horizontal hacia la derecha; el scroll vertical de los
+// mensajes y la escritura en el textarea quedan intactos.
+// ============================================================
+(function setupChatSwipeBack() {
+  let x0 = 0, y0 = 0, dx = 0, t0 = 0, active = false, decided = false, tracking = false, wrap = null;
+  const W = () => window.innerWidth || document.documentElement.clientWidth;
+
+  function chatVisible() {
+    const w = document.getElementById('chat-wrapper');
+    return (w && w.style.display !== 'none') ? w : null;
+  }
+  // No arrancar el swipe sobre elementos interactivos o scrollers horizontales.
+  function startOk(target) {
+    if (!target || !target.closest) return true;
+    return !target.closest('.chat-input-row, .chat-profile-bar, textarea, button, a, input, select');
+  }
+  function setDx(v) { if (wrap) wrap.style.setProperty('--swipe-dx', v + 'px'); }
+  function reset() { x0 = y0 = dx = 0; active = false; decided = false; tracking = false; }
+  function clearClasses(w) {
+    w.classList.remove('chat-swiping', 'chat-swipe-anim');
+    w.style.removeProperty('--swipe-dx');
+  }
+
+  function onStart(e) {
+    const w = chatVisible();
+    if (!w) { wrap = null; return; }
+    const t = e.touches ? e.touches[0] : e;
+    if (!w.contains(e.target) || !startOk(e.target)) { reset(); wrap = null; return; }
+    wrap = w; x0 = t.clientX; y0 = t.clientY; t0 = Date.now(); dx = 0; active = false; decided = false; tracking = true;
+  }
+  function onMove(e) {
+    if (!wrap || !tracking) return;
+    const t = e.touches ? e.touches[0] : e;
+    const mx = t.clientX - x0, my = t.clientY - y0;
+    if (!decided) {
+      if (Math.abs(mx) < 8 && Math.abs(my) < 8) return; // esperar señal clara
+      decided = true;
+      // Solo horizontal y hacia la derecha activa el drag; si no, soltamos
+      // el control (deja pasar el scroll vertical / swipe izquierdo).
+      if (Math.abs(mx) > Math.abs(my) && mx > 0) { active = true; wrap.classList.add('chat-swiping'); }
+      else { reset(); wrap = null; return; }
+    }
+    if (!active) return;
+    e.preventDefault(); // frenar el scroll vertical mientras arrastramos
+    dx = Math.max(0, mx);
+    setDx(dx);
+  }
+  function onEnd() {
+    if (!wrap || !active) { reset(); wrap = null; return; }
+    const dt = Math.max(1, Date.now() - t0);
+    const vx = dx / dt; // px/ms
+    const commit = dx > W() * 0.35 || (dx > 60 && vx > 0.4);
+    const w = wrap;
+    w.classList.add('chat-swipe-anim'); // habilita la transición para el snap
+    if (commit) {
+      setDx(W()); // termina de salir hacia la derecha…
+      setTimeout(() => { clearClasses(w); showHome(); setActiveNav('nav-inicio'); }, 240);
+    } else {
+      setDx(0);   // …o vuelve a su lugar
+      setTimeout(() => clearClasses(w), 240);
+    }
+    reset(); wrap = null;
+  }
+
+  document.addEventListener('touchstart', onStart, { passive: true });
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('touchend', onEnd);
+  document.addEventListener('touchcancel', onEnd);
+})();
 
 async function renderDashboard() {
   // The Progreso section was eliminated and its widgets moved to Home + Perfil.
