@@ -97,10 +97,30 @@
    ningún ancestro), preservando el translateX(-50%) de los footers fixed. */
 #chat-wrapper.chat-swiping #chat-messages {
   transform: translateX(var(--swipe-dx, 0px));
+  /* Panel sólido y por encima de Home, para taparlo mientras se arrastra
+     (en estado normal el chat es transparente/integrado; esto solo aplica
+     durante el swipe). Así el chat se corre como una tarjeta y revela Home. */
+  position: relative;
+  z-index: 10;
+  background: var(--bg);
 }
 #chat-wrapper.chat-swiping .quick-btns,
 #chat-wrapper.chat-swiping .chat-input-row {
   transform: translateX(calc(-50% + var(--swipe-dx, 0px)));
+}
+/* Home asomando DETRÁS del chat durante el swipe-back (estilo WhatsApp).
+   Capa fija debajo del chat, a la altura del header (--peek-top) para que
+   coincida con su posición de flujo normal y no haya salto al soltar.
+   No la transformamos → no rompe eventuales hijos position:fixed de Home. */
+#home-wrapper.swipe-peek {
+  display: block !important;
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  top: var(--peek-top, 0px);
+  z-index: 5;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg);
 }
 /* .chat-swipe-anim activa la transición para el snap-back / commit. Mientras
    se arrastra (.chat-swiping sin -anim) no hay transición → sigue al dedo 1:1. */
@@ -21517,6 +21537,24 @@ function showChat() {
     w.classList.remove('chat-swiping', 'chat-swipe-anim');
     w.style.removeProperty('--swipe-dx');
   }
+  // Monta Home como capa fija detrás del chat para que se vea asomar durante
+  // el arrastre (en vez del fondo vacío). No re-renderiza: usa el DOM actual
+  // de Home (cero jank); al commitear, showHome() refresca los datos igual.
+  function startPeek() {
+    const home = document.getElementById('home-wrapper');
+    if (!home) return;
+    const hdr = document.getElementById('main-header');
+    const peekTop = (hdr && hdr.style.display !== 'none')
+      ? Math.max(0, Math.round(hdr.getBoundingClientRect().bottom)) : 0;
+    home.style.setProperty('--peek-top', peekTop + 'px');
+    home.classList.add('swipe-peek');
+  }
+  function endPeek() {
+    const home = document.getElementById('home-wrapper');
+    if (!home) return;
+    home.classList.remove('swipe-peek');
+    home.style.removeProperty('--peek-top');
+  }
 
   function onStart(e) {
     const w = chatVisible();
@@ -21534,7 +21572,7 @@ function showChat() {
       decided = true;
       // Solo horizontal y hacia la derecha activa el drag; si no, soltamos
       // el control (deja pasar el scroll vertical / swipe izquierdo).
-      if (Math.abs(mx) > Math.abs(my) && mx > 0) { active = true; wrap.classList.add('chat-swiping'); }
+      if (Math.abs(mx) > Math.abs(my) && mx > 0) { active = true; wrap.classList.add('chat-swiping'); startPeek(); }
       else { reset(); wrap = null; return; }
     }
     if (!active) return;
@@ -21551,10 +21589,18 @@ function showChat() {
     w.classList.add('chat-swipe-anim'); // habilita la transición para el snap
     if (commit) {
       setDx(W()); // termina de salir hacia la derecha…
-      setTimeout(() => { clearClasses(w); showHome(); setActiveNav('nav-inicio'); }, 240);
+      setTimeout(() => {
+        endPeek();
+        clearClasses(w);
+        // El swipe ya ejecutó la transición visual → evitamos que setActiveNav
+        // re-anime Home con su slide direccional (quedaría un doble movimiento).
+        if (typeof _navCurrentIdx !== 'undefined') _navCurrentIdx = 0;
+        showHome();
+        setActiveNav('nav-inicio');
+      }, 240);
     } else {
       setDx(0);   // …o vuelve a su lugar
-      setTimeout(() => clearClasses(w), 240);
+      setTimeout(() => { endPeek(); clearClasses(w); }, 240);
     }
     reset(); wrap = null;
   }
