@@ -57,25 +57,25 @@
 }
 
 /* ============================================================
-   PASO 1 — Slide entre secciones (snappy / estilo iOS)
-   Cada wrapper de sección se anima al hacerse visible. El switch
-   de navegación pasa por hideAllSections() (display:none) + show*()
-   (display:block); cuando un elemento vuelve a display:block su
-   animación CSS se re-dispara sola → entrada snappy sin tocar el JS.
-   Usa la base --mo-dur/--mo-ease. El reset a11y de arriba lo
-   neutraliza con "reducir movimiento".
+   PASO 1 — Slide direccional entre secciones (snappy / estilo iOS)
+   La sección entra deslizándose de costado, en la MISMA dirección
+   que el thumb del bottom-nav (que usa transform .42s cubic-bezier
+   (.32,.72,0,1) = --mo-dur-slow + --mo-ease). setActiveNav() detecta
+   la dirección según _NAV_ORDER y le pone .sec-slide-right/-left al
+   wrapper visible → da sensación de "lugares ordenados".
+   body ya tiene overflow-x:hidden, así que el offset no genera scroll.
+   El reset a11y de arriba lo neutraliza con "reducir movimiento".
    ============================================================ */
-@keyframes section-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes sec-from-right {
+  from { opacity: 0; transform: translateX(48px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
-#home-wrapper,
-#chat-wrapper,
-#diario-wrapper,
-#mi-entreno-wrapper,
-#perfil-wrapper {
-  animation: section-in var(--mo-dur) var(--mo-ease);
+@keyframes sec-from-left {
+  from { opacity: 0; transform: translateX(-48px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
+.sec-slide-right { animation: sec-from-right var(--mo-dur-slow) var(--mo-ease); }
+.sec-slide-left  { animation: sec-from-left  var(--mo-dur-slow) var(--mo-ease); }
 
 /* ============================================================
    KING WHITELABEL OVERLAY (Jesús)
@@ -19352,10 +19352,33 @@ const _NAV_LABELS = {
   'nav-entreno':  'MI ENTRENO',
   'nav-perfil':   'PERFIL',
 };
+// Mapa nav → wrapper de sección, para el slide direccional (Paso 1).
+const _NAV_WRAPPER = {
+  'nav-inicio':   'home-wrapper',
+  'nav-coach':    'chat-wrapper',
+  'nav-diario':   'diario-wrapper',
+  'nav-entreno':  'mi-entreno-wrapper',
+  'nav-perfil':   'perfil-wrapper',
+};
+let _navCurrentIdx = 0; // índice del tab actual (arranca en Inicio)
 function setActiveNav(id) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   const el = document.getElementById(id);
   if (el) el.classList.add('active');
+
+  // Slide direccional de la sección, matcheando la dirección del thumb del nav:
+  // ir a un tab "más a la derecha" en _NAV_ORDER → entra desde la derecha, y al revés.
+  const _newIdx = _NAV_ORDER.indexOf(id);
+  if (_newIdx !== -1) {
+    const _dir = _newIdx === _navCurrentIdx ? 0 : (_newIdx > _navCurrentIdx ? 1 : -1);
+    _navCurrentIdx = _newIdx;
+    const _wrap = document.getElementById(_NAV_WRAPPER[id]);
+    if (_wrap && _dir !== 0) {
+      _wrap.classList.remove('sec-slide-left', 'sec-slide-right');
+      void _wrap.offsetWidth; // reflow → reinicia la animación aunque ya estuviera puesta
+      _wrap.classList.add(_dir > 0 ? 'sec-slide-right' : 'sec-slide-left');
+    }
+  }
 
   // Slide the indicator to the active tab's real pixel position. Was using
   // `translateX(N * 100%)` (percentage of the thumb's own width) but iOS
