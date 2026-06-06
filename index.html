@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260606-1644-carrusel-reveal">
+<meta name="app-version" content="20260606-1649-revert-carrusel-wip">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -89,31 +89,6 @@
 .sec-slide-right { animation: sec-from-right var(--mo-dur) var(--mo-ease); }
 .sec-slide-left  { animation: sec-from-left  var(--mo-dur) var(--mo-ease); }
 .sec-fade        { animation: sec-fade-in    var(--mo-dur)      var(--mo-ease); }
-
-/* ---- Carrusel entre secciones (todas menos chat) ----
-   La sección saliente se desliza para un lado mientras la entrante entra del
-   otro (sensación de "paso de A a B", estilo iOS). Durante la transición AMBAS
-   quedan fixed cubriendo el área de contenido (debajo del header --carousel-top,
-   encima del bottom-nav que queda por z-index). Se limpia al terminar y la
-   entrante vuelve al flujo normal. El transform en el wrapper aplana el
-   backdrop-filter de las cards SOLO durante el deslizamiento (~280ms, se
-   re-frostea al asentar) — trade-off aceptable por el efecto de transición. */
-#home-wrapper.sec-carousel, #diario-wrapper.sec-carousel,
-#mi-entreno-wrapper.sec-carousel, #perfil-wrapper.sec-carousel {
-  position: fixed !important;
-  left: 0; right: 0;
-  top: var(--carousel-top, 0px);
-  bottom: 0;
-  margin: 0 auto;
-  overflow: hidden;
-  z-index: 6;
-  will-change: transform;
-  /* Fondo opaco del tema: al quedar fixed, las secciones salen del flujo y el
-     footer del body sube y se vería a través del wrapper transparente. Este bg
-     lo tapa. var(--bg) es theme-aware (KING lo sobrescribe a crema). */
-  background: var(--bg);
-}
-.sec-carousel.sec-carousel-anim { transition: transform var(--mo-dur) var(--mo-ease); }
 
 /* ---- Cascada de Home: al entrar (showHome → navegación o apertura de la
    app), los bloques aparecen uno tras otro de arriba hacia abajo, en vez de
@@ -19041,12 +19016,7 @@ function showHome() {
   hideAllSections();
   const wrapper = document.getElementById('home-wrapper');
   wrapper.style.display = 'block';
-  // Cascada de cards SOLO cuando Home no entra por carrusel: cold-load (sin
-  // sección previa) o viniendo del chat (que no carrusela). Al navegar desde
-  // otra sección real, Home entra con el carrusel y la cascada sería doble motion.
-  const _homeWillCarousel = _carouselPrevWrapperId
-    && _carouselPrevWrapperId !== 'chat-wrapper' && _carouselPrevWrapperId !== 'home-wrapper';
-  if (!_homeWillCarousel) playHomeCascade(wrapper); // (salvo que venga del swipe → flag interno)
+  playHomeCascade(wrapper); // cards en cascada (salvo que venga del swipe)
   renderHome();
   updateCardSVGAspect();
   setActiveNav('nav-inicio');
@@ -19499,75 +19469,6 @@ const _NAV_WRAPPER = {
   'nav-perfil':   'perfil-wrapper',
 };
 let _navCurrentIdx = 0; // índice del tab actual (arranca en Inicio)
-
-// ── Carrusel entre secciones ──────────────────────────────────────────────
-// hideAllSections() captura cuál sección estaba visible ANTES de ocultar, para
-// que setActiveNav pueda deslizar la saliente y la entrante a la vez.
-const _SEC_WRAPPER_IDS = ['home-wrapper','diario-wrapper','mi-entreno-wrapper','perfil-wrapper','chat-wrapper'];
-let _carouselPrevWrapperId = null;
-let _carouselInflight = false;
-let _carouselCleanupTimer = null;
-
-// Carrusel "reveal": la sección SALIENTE (oldEl, ya renderizada) se desliza por
-// encima —opaca— hacia un lado y revela la ENTRANTE (newEl) que queda quieta
-// debajo, renderizando normal. dir: +1 (adelante, sale a la izq) | -1 (atrás,
-// sale a la der). Chat NO usa esto. Robusto ante render async de la entrante.
-function runSectionCarousel(oldEl, newEl, dir) {
-  if (!oldEl || !newEl || oldEl === newEl) return false;
-  // Si había un carrusel en curso, finalizalo ya para no encimar estados.
-  if (_carouselCleanupTimer) { clearTimeout(_carouselCleanupTimer); _carouselFinalize(oldEl, newEl); }
-  _carouselInflight = true;
-
-  // Si Home participa, sacarle la cascada: al re-mostrarse (display:none→block)
-  // la animación de cascada se re-dispara y choca con el slide (doble movimiento
-  // visible en el header "Beto buenas tardes" arriba-izquierda). Solo afecta esta
-  // transición; en cold-load showHome la vuelve a poner.
-  [oldEl, newEl].forEach(el => {
-    if (el && el.id === 'home-wrapper') {
-      el.classList.remove('home-cascade');
-      el.querySelectorAll('.cai-alim-header, .cai-home-hero, .cai-home-card')
-        .forEach(it => { it.style.animationDelay = ''; });
-    }
-  });
-
-  // Top del área de contenido = bajo el header (si está visible).
-  const hdr = document.getElementById('main-header');
-  const top = (hdr && hdr.style.display !== 'none')
-    ? Math.max(0, Math.round(hdr.getBoundingClientRect().bottom)) : 0;
-  document.documentElement.style.setProperty('--carousel-top', top + 'px');
-
-  // NEW: queda en FLUJO NORMAL (visible, renderizando) DEBAJO. NO se transforma,
-  // así su backdrop-filter no se rompe y su render async (Mi Entreno/Perfil) ocurre
-  // tranquilo mientras la saliente todavía la tapa.
-  newEl.style.display = 'block';
-
-  // OLD: overlay fixed OPACO POR ENCIMA que se desliza hacia afuera y revela la
-  // nueva debajo. Como la tapa hasta irse, NO hay flash de "entra y despues anima"
-  // ni desliza la nueva vacia: solo se mueve la saliente (que ya esta renderizada).
-  oldEl.style.display = 'block';
-  oldEl.classList.add('sec-carousel');
-  oldEl.style.transform = 'translateX(0)';
-  void oldEl.offsetWidth; // reflow → fija el estado inicial antes de animar
-  oldEl.classList.add('sec-carousel-anim');
-  oldEl.style.transform = 'translateX(' + (-dir * 100) + '%)';
-
-  _carouselCleanupTimer = setTimeout(() => { _carouselFinalize(oldEl, newEl); }, 340);
-  return true;
-}
-
-function _carouselFinalize(oldEl, newEl) {
-  _carouselCleanupTimer = null;
-  [oldEl, newEl].forEach(el => {
-    if (!el) return;
-    el.classList.remove('sec-carousel', 'sec-carousel-anim');
-    el.style.transform = '';
-    el.style.transition = '';
-  });
-  if (oldEl) oldEl.style.display = 'none';   // saliente fuera
-  if (newEl) newEl.style.display = 'block';  // entrante en flujo normal
-  _carouselInflight = false;
-}
-
 function setActiveNav(id) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   const el = document.getElementById(id);
@@ -19579,24 +19480,16 @@ function setActiveNav(id) {
   if (_newIdx !== -1) {
     const _dir = _newIdx === _navCurrentIdx ? 0 : (_newIdx > _navCurrentIdx ? 1 : -1);
     _navCurrentIdx = _newIdx;
-    const newWrap = document.getElementById(_NAV_WRAPPER[id]);
-    const oldId = _carouselPrevWrapperId;
-    const oldWrap = (oldId && oldId !== _NAV_WRAPPER[id]) ? document.getElementById(oldId) : null;
-    if (newWrap && _dir !== 0) {
-      newWrap.classList.remove('sec-slide-left', 'sec-slide-right', 'sec-fade');
-      const goingToChat   = (id === 'nav-coach');
-      const comingFromChat = (oldId === 'chat-wrapper');
-      if (!goingToChat && !comingFromChat && oldWrap) {
-        // CARRUSEL A→B entre secciones reales (no chat). La saliente se va y la
-        // entrante entra del otro lado a la vez.
-        runSectionCarousel(oldWrap, newWrap, _dir);
-      } else if (goingToChat) {
-        // Chat: fade (su footer fixed no convive con transforms en ancestros).
-        void newWrap.offsetWidth; newWrap.classList.add('sec-fade');
+    const _wrap = document.getElementById(_NAV_WRAPPER[id]);
+    if (_wrap && _dir !== 0) {
+      _wrap.classList.remove('sec-slide-left', 'sec-slide-right', 'sec-fade');
+      void _wrap.offsetWidth; // reflow → reinicia la animación aunque ya estuviera puesta
+      // Chat: fade puro (su footer fixed + alto JS se rompen con transform).
+      // Home (nav-inicio): sin slide → su entrada es la cascada de cards.
+      if (id === 'nav-coach') {
+        _wrap.classList.add('sec-fade');
       } else if (id !== 'nav-inicio') {
-        // Sin sección previa (cold-load) o veníamos del chat → slide-in simple.
-        // Home en estos casos entra con su cascada (ver showHome), sin slide.
-        void newWrap.offsetWidth; newWrap.classList.add(_dir > 0 ? 'sec-slide-right' : 'sec-slide-left');
+        _wrap.classList.add(_dir > 0 ? 'sec-slide-right' : 'sec-slide-left');
       }
     }
   }
@@ -19631,14 +19524,6 @@ window.addEventListener('resize', () => {
 });
 
 function hideAllSections() {
-  // Capturar la sección visible ANTES de ocultar (para el carrusel de setActiveNav).
-  // Si hay un carrusel en curso, NO pisar el prev capturado.
-  if (!_carouselInflight) {
-    _carouselPrevWrapperId = _SEC_WRAPPER_IDS.find(wid => {
-      const el = document.getElementById(wid);
-      return el && el.style.display === 'block';
-    }) || null;
-  }
   document.getElementById('chat-wrapper').style.display = 'none';
   // dashboard-wrapper was removed in the Progreso-merge refactor — defensive
   // lookup so legacy paths don't break (some callers still call hideAllSections
