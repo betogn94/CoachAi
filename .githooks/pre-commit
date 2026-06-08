@@ -1,0 +1,34 @@
+#!/bin/sh
+# ============================================================================
+# AUTO-BUMP de la versión PWA (cache-busting) — refuerzo "caché automático".
+# ============================================================================
+# Problema que resuelve: si se despliega index.html SIN bumpear la versión, los
+# clientes siguen viendo la versión vieja cacheada ("se perdió el diseño / veo
+# la versión vieja"). Hasta ahora dependía de acordarse de correr bump-version.
+#
+# Este hook lo hace solo: si el commit incluye index.html (la shell de la PWA)
+# y NO bumpeaste la versión a mano, la bumpea y la suma al MISMO commit.
+#
+# Si ya corriste `node scripts/bump-version.mjs "label-descriptivo"` (entonces
+# version.json ya está staged), se respeta tu label y el hook no hace nada.
+#
+# Activación (una vez por máquina, ya queda en npm "prepare"):
+#   git config core.hooksPath .githooks
+# ============================================================================
+set -e
+staged=$(git diff --cached --name-only)
+
+# ¿Está index.html en el commit? Si no, no hay nada que bustear.
+printf '%s\n' "$staged" | grep -qx 'index.html' || exit 0
+
+# ¿Ya bumpeaste a mano? (version.json ya staged) → respetar tu label y salir.
+printf '%s\n' "$staged" | grep -qx 'version.json' && exit 0
+
+echo "[pre-commit] index.html cambió y no bumpeaste la versión → auto-bump…"
+if ! node scripts/bump-version.mjs; then
+  echo "[pre-commit] ✗ bump-version falló — aborto el commit para no desplegar una versión sin bump." >&2
+  exit 1
+fi
+git add version.json index.html
+echo "[pre-commit] ✓ versión bumpeada y agregada al commit."
+exit 0

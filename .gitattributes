@@ -1,0 +1,4 @@
+# Los git hooks son scripts sh: DEBEN quedar en LF o git-bash de Windows falla
+# con "bad interpreter: /bin/sh^M". eol=lf evita la conversión a CRLF.
+.githooks/** text eol=lf
+*.sh text eol=lf
