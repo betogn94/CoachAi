@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260608-1444-fallback-reformateo-rutina-dieta">
+<meta name="app-version" content="20260608-1520-visibilidad-fallas-plan">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15972,15 +15972,10 @@ async function sendToAI(userMessage, isFirst = false) {
     const isPlanDelivery = reply && reply.length > 400 && (pendingPlanDelivery || tipoFromReply);
     const _planTipoForDisplay = isPlanDelivery ? (pendingPlanDelivery || tipoFromReply) : null;
 
-    if (_planTipoForDisplay) {
-      // Swap the full plan dump for a short notification pointing to Mi
-      // Entreno / Mi Alimentación + Perfil. The full content still lives in
-      // conversationHistory and planes_semanales so the AI keeps context
-      // and the sections render correctly.
-      addMessage(buildPlanReadyNotification(_planTipoForDisplay), 'coach');
-    } else {
-      addMessage(formatResponse(reply), 'coach');
-    }
+    // Record the assistant turn BEFORE deciding what to render. The visible
+    // coach message (plan-listo notification vs raw reply) is decided AFTER the
+    // save attempt below, so we NEVER show a false "plan listo" when the save
+    // failed — the chat stays honest with what actually landed in the sections.
     conversationHistory.push({ role: 'assistant', content: reply });
     todayConversation.push({ role: 'assistant', content: reply });
     pushedUserTurn = false; // assistant turn balanced the user turn — alternation OK
@@ -16024,6 +16019,7 @@ async function sendToAI(userMessage, isFirst = false) {
       // common path. Never invents content (reformat-only prompt).
       if (!replyHasStructure) {
         console.info('[CoachAI] reply for', tipo, 'lacks structure — trying AI reformat fallback before giving up');
+        showTyping(); // el reformateo es un 2do llamado a la IA (segundos) — mantené el chat "pensando"
         try {
           const normalized = await aiNormalizePlan(tipo, reply);
           if (normalized && planReplyHasStructure(tipo, normalized)) {
@@ -16037,11 +16033,13 @@ async function sendToAI(userMessage, isFirst = false) {
         } catch (e) {
           console.error('[CoachAI] reformat fallback error:', e?.message || e);
         }
+        removeTyping();
       }
 
       if (tipo && replyHasStructure && (!weeklyPlans[tipo] || weeklyPlans[tipo].closed || tipoFromReply)) {
         pendingPlanDelivery = null;
         const saved = await saveWeeklyPlan(tipo, planTextToSave);
+        if (!saved && typeof trackEvent === 'function') trackEvent('plan_save_failed', { tipo, reason: 'db' });
         weeklyPlans[tipo] = saved || {
           tipo,
           contenido: planTextToSave,
@@ -16050,6 +16048,27 @@ async function sendToAI(userMessage, isFirst = false) {
         };
         refreshQuickButtons();
       }
+    }
+
+    // HONEST DISPLAY — decide the visible coach message AFTER the save attempt.
+    // Show the "plan listo" notification (que manda a Mi Entreno / Mi
+    // Alimentación) SOLO si un plan parseable realmente quedó en
+    // weeklyPlans[tipo] — guardado ahora, reformateado por el fallback, o un
+    // plan bueno pre-existente que preservamos. Si no, NO mentimos: registramos
+    // la falla (telemetría → beta_eventos) y mostramos el reply crudo, así el
+    // usuario al menos tiene el contenido en el chat en vez de un "andá a Mi
+    // Entreno" vacío.
+    const _planAvail = _planTipoForDisplay
+      && weeklyPlans[_planTipoForDisplay] && weeklyPlans[_planTipoForDisplay].contenido
+      && planReplyHasStructure(_planTipoForDisplay, weeklyPlans[_planTipoForDisplay].contenido);
+    if (_planAvail) {
+      addMessage(buildPlanReadyNotification(_planTipoForDisplay), 'coach');
+    } else {
+      if (isPlanDelivery) {
+        if (typeof trackEvent === 'function') trackEvent('plan_save_failed', { tipo: _planTipoForDisplay, reason: 'unparseable' });
+        console.error('[CoachAI] plan_save_failed (unparseable) —', _planTipoForDisplay, '— mostrando reply crudo al usuario');
+      }
+      addMessage(formatResponse(reply), 'coach');
     }
     // If the reply was short and pendingPlanDelivery was set, we DON'T touch
     // either pendingPlanDelivery or dismissedPlanButtons — the user is mid-
