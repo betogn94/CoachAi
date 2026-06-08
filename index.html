@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260608-1430-fix-guard-rutina-negrita">
+<meta name="app-version" content="20260608-1444-fallback-reformateo-rutina-dieta">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -16010,51 +16010,41 @@ async function sendToAI(userMessage, isFirst = false) {
       //              recognized meal prefix (Desayuno/Almuerzo/Cena/...).
       // Rutina needs: day header (Día N / LUNES/...) AND ≥1 exercise line
       //               matching "N×N" or "N series x N" reps notation.
-      const replyHasStructure = (() => {
-        if (!reply) return false;
-        if (tipo === 'dieta') {
-          const hasMarker = /Target\s*:\s*\d/i.test(reply)
-            || /^\**\s*(LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)\b/im.test(reply)
-            || /^(Desayuno|Almuerzo|Merienda|Cena|Colaci[oó]n|Snack|Pre[\s-]*entreno|Post[\s-]*entreno|Comida(?:\s+\d+)?)\s*:/im.test(reply);
-          if (!hasMarker) return false;
-          // Defensa extra (caso Vicky 2026-06-06): además de los marcadores, exigir
-          // que el reply REALMENTE parsee a comidas usables. Una respuesta de chat con
-          // formato inline/roto o una disculpa del AI con marcadores sueltos NO debe
-          // sobrescribir un plan bueno con algo imparseable.
-          try {
-            const p = parseDietaContenido(reply);
-            return !!(p && p.days && p.days.some(d => d.meals && d.meals.length > 0));
-          } catch (e) { return false; }
-        }
-        if (tipo === 'rutina') {
-          // ^\**\s* permite headers en negrita markdown ("**Día 1 · Lunes…**"),
-          // que es como el AI suele formatear los días. Sin esto, hasDay daba
-          // false y la rutina no se guardaba aunque el parser sí la entiende
-          // (caso Beto/Vicky en onboarding nativo). La dieta ya lo permitía.
-          const hasDay = /^\**\s*(D[ií]a\s*\d|LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)/im.test(reply);
-          const hasExercise = /\d+\s*(?:series?\s*)?[×x]\s*\d+/.test(reply);
-          if (!(hasDay && hasExercise)) return false;
-          // Defensa extra (caso Vicky): exigir ≥1 día con ≥1 ejercicio TRAS parsear.
-          // El formato inline "LUNES: ej1 | ej2 | ej3" tiene los marcadores pero
-          // parsea a días vacíos → no debe pisar el plan bueno con algo imparseable.
-          try {
-            const days = parseRutinaContenido(reply);
-            return days.some(d => !d.isRest && d.exercises && d.exercises.length > 0);
-          } catch (e) { return false; }
-        }
-        return false;
-      })();
+      // Shared gate (planReplyHasStructure) requires both the markers AND a
+      // real parse, so an inline/broken reply never clobbers a good plan.
+      let planTextToSave = reply;
+      let replyHasStructure = planReplyHasStructure(tipo, reply);
 
+      // AUTO-REFORMAT FALLBACK — the AI delivered something it calls a plan,
+      // but the parser can't read it (rare format drift the prompt didn't
+      // prevent). Instead of failing silently (chat says "listo" but Mi
+      // Entreno stays empty), run ONE reformat-only pass (same aiNormalizePlan
+      // used in Studio) and re-check. If it now parses, save the canonical
+      // version. Only fires when the original failed, so zero cost in the
+      // common path. Never invents content (reformat-only prompt).
       if (!replyHasStructure) {
-        console.info('[CoachAI] reply mentioned', tipo, 'but lacks structure — skipping plan save to preserve existing plan');
+        console.info('[CoachAI] reply for', tipo, 'lacks structure — trying AI reformat fallback before giving up');
+        try {
+          const normalized = await aiNormalizePlan(tipo, reply);
+          if (normalized && planReplyHasStructure(tipo, normalized)) {
+            planTextToSave = normalized;
+            replyHasStructure = true;
+            console.info('[CoachAI] reformat fallback succeeded — saving canonical version');
+          } else {
+            console.error('[CoachAI] reformat fallback FAILED — plan for', tipo,
+              'still unparseable, not saved. Reply preview:', String(reply).slice(0, 200));
+          }
+        } catch (e) {
+          console.error('[CoachAI] reformat fallback error:', e?.message || e);
+        }
       }
 
       if (tipo && replyHasStructure && (!weeklyPlans[tipo] || weeklyPlans[tipo].closed || tipoFromReply)) {
         pendingPlanDelivery = null;
-        const saved = await saveWeeklyPlan(tipo, reply);
+        const saved = await saveWeeklyPlan(tipo, planTextToSave);
         weeklyPlans[tipo] = saved || {
           tipo,
-          contenido: reply,
+          contenido: planTextToSave,
           fecha_entrega: getTodayKey(),
           semana_iso: getISOWeekKey()
         };
@@ -20127,6 +20117,36 @@ function showDashboard() {
 // Client can ONLY: mark a day complete + log exercise weights.
 // Structure (exercises/sets/reps/notes) is coach-defined and read-only.
 // ============================
+
+// STRUCTURE GATE (shared) — does this reply ACTUALLY contain a structured,
+// parseable plan, vs. a chat message that merely mentions one? Used in two
+// places: (1) the chat save flow, to avoid an unstructured reply clobbering a
+// good plan; (2) the auto-reformat fallback, to re-check the normalized text.
+// Both markers (cheap regex) AND a real parse (≥1 day/meal with content) must
+// pass. ^\**\s* tolerates markdown-bold headers ("**Día 1 · Lunes…**").
+function planReplyHasStructure(tipo, reply) {
+  if (!reply) return false;
+  if (tipo === 'dieta') {
+    const hasMarker = /Target\s*:\s*\d/i.test(reply)
+      || /^\**\s*(LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)\b/im.test(reply)
+      || /^(Desayuno|Almuerzo|Merienda|Cena|Colaci[oó]n|Snack|Pre[\s-]*entreno|Post[\s-]*entreno|Comida(?:\s+\d+)?)\s*:/im.test(reply);
+    if (!hasMarker) return false;
+    try {
+      const p = parseDietaContenido(reply);
+      return !!(p && p.days && p.days.some(d => d.meals && d.meals.length > 0));
+    } catch (e) { return false; }
+  }
+  if (tipo === 'rutina') {
+    const hasDay = /^\**\s*(D[ií]a\s*\d|LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)/im.test(reply);
+    const hasExercise = /\d+\s*(?:series?\s*)?[×x]\s*\d+/.test(reply);
+    if (!(hasDay && hasExercise)) return false;
+    try {
+      const days = parseRutinaContenido(reply);
+      return days.some(d => !d.isRest && d.exercises && d.exercises.length > 0);
+    } catch (e) { return false; }
+  }
+  return false;
+}
 
 // Parses the AI-generated routine text (weeklyPlans.rutina.contenido) into
 // structured days. Handles both the generic (men) and Babot (women) output
