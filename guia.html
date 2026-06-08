@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoachAI Pro · Guía de uso</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Bebas+Neue&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FDF7F8; --text:#1A1A26; --muted:#6B6B80; --muted2:#A9A9B8;
+    --accent:#FF4F7B; --accent2:#FF6B95; --accent3:#E03A6F; --accent-bright:#FF6B95;
+    --border:#FFE1E8; --surface:#FFFFFF; --surface2:#FFF0F4;
+    --shadow:0 10px 30px rgba(224,58,111,.10), 0 2px 8px rgba(224,58,111,.06);
+    --shadow-sm:0 4px 14px rgba(224,58,111,.08);
+    --sans:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+    --display:'Bebas Neue',var(--sans);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--sans); color:var(--text); line-height:1.6;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #FFE8EF 0%, transparent 60%),
+      var(--bg);
+    -webkit-font-smoothing:antialiased; padding-bottom:60px;
+  }
+  .wrap{max-width:760px; margin:0 auto; padding:0 20px}
+
+  /* ===== HERO ===== */
+  .hero{text-align:center; padding:64px 20px 40px}
+  .brand{display:inline-flex; align-items:center; gap:10px; margin-bottom:24px}
+  .brand-mark{
+    font-family:var(--sans); font-weight:700; font-size:26px; letter-spacing:-.5px;
+    color:var(--text);
+  }
+  .brand-mark b{color:var(--accent)}
+  .pro-badge{
+    font-family:var(--mono); font-size:10px; font-weight:500; letter-spacing:1.5px;
+    color:#fff; background:linear-gradient(135deg,var(--accent),var(--accent3));
+    padding:3px 8px; border-radius:7px; text-transform:uppercase;
+  }
+  .hero h1{
+    font-family:var(--display); font-size:clamp(42px,9vw,68px); line-height:.95;
+    letter-spacing:.5px; margin:8px 0 14px;
+    background:linear-gradient(135deg,var(--accent3),var(--accent));
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .hero .lead{font-size:17px; color:var(--muted); max-width:540px; margin:0 auto}
+  .hero .tagline{
+    font-family:var(--mono); font-size:11px; letter-spacing:2px; text-transform:uppercase;
+    color:var(--accent); margin-top:18px;
+  }
+
+  /* ===== INTRO CARD ===== */
+  .intro{
+    background:var(--surface); border:1px solid var(--border); border-radius:24px;
+    padding:30px 28px; box-shadow:var(--shadow); margin-top:8px;
+  }
+  .intro p{font-size:16.5px}
+  .intro p + p{margin-top:14px}
+  .intro b{color:var(--accent3)}
+
+  /* ===== CYCLE STRIP ===== */
+  .cycle{margin:34px 0 8px}
+  .cycle-title{
+    font-family:var(--mono); font-size:11px; letter-spacing:2px; text-transform:uppercase;
+    color:var(--muted); text-align:center; margin-bottom:18px;
+  }
+  .cycle-steps{
+    display:flex; flex-wrap:wrap; gap:10px; justify-content:center; align-items:stretch;
+  }
+  .cycle-pill{
+    display:flex; align-items:center; gap:8px;
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:10px 14px; font-weight:500; font-size:13.5px; box-shadow:var(--shadow-sm);
+  }
+  .cycle-pill .n{
+    width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
+    background:linear-gradient(135deg,var(--accent),var(--accent3)); color:#fff;
+    font-family:var(--mono); font-size:11px; flex-shrink:0;
+  }
+  .cycle-arrow{color:var(--accent2); align-self:center; font-size:18px}
+
+  /* ===== SECTION ===== */
+  section.step{margin-top:54px; scroll-margin-top:20px}
+  .step-head{display:flex; align-items:baseline; gap:14px; margin-bottom:6px}
+  .step-num{
+    font-family:var(--display); font-size:46px; line-height:.8; color:var(--accent);
+    opacity:.9; flex-shrink:0;
+  }
+  .step-eyebrow{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:1.8px; text-transform:uppercase;
+    color:var(--accent3); margin-bottom:2px;
+  }
+  .step-title{font-family:var(--display); font-size:30px; letter-spacing:.5px; line-height:1}
+  .step-body{font-size:16px; color:#3a3a4a; margin:12px 0 0}
+  .step-body b{color:var(--accent3)}
+  .step-grid{
+    display:grid; grid-template-columns:1fr 280px; gap:30px; align-items:start; margin-top:18px;
+  }
+  .step-grid.reverse{grid-template-columns:280px 1fr}
+  .step-grid.reverse .copy{order:2}
+  @media(max-width:680px){
+    .step-grid,.step-grid.reverse{grid-template-columns:1fr}
+    .step-grid.reverse .copy{order:0}
+    .phone-wrap{margin:0 auto}
+  }
+  ul.points{margin:14px 0 0; padding:0; list-style:none}
+  ul.points li{position:relative; padding-left:22px; margin-bottom:8px; font-size:15px; color:#3a3a4a}
+  ul.points li::before{content:''; position:absolute; left:0; top:9px; width:8px;height:8px;border-radius:50%;
+    background:linear-gradient(135deg,var(--accent),var(--accent3))}
+
+  /* ===== PHONE MOCKUP ===== */
+  .phone-wrap{display:flex; justify-content:center}
+  .phone{
+    width:280px; border-radius:34px; padding:12px; background:#fff;
+    border:1px solid var(--border);
+    box-shadow:0 24px 60px rgba(224,58,111,.18), inset 0 0 0 6px #fff, 0 0 0 1px var(--border);
+  }
+  .phone-screen{
+    background:linear-gradient(180deg,#FFF3F6, var(--bg)); border-radius:24px; overflow:hidden;
+    min-height:480px; position:relative;
+  }
+  .ph-notch{height:26px; display:flex; align-items:center; justify-content:center}
+  .ph-notch::after{content:''; width:90px; height:6px; border-radius:6px; background:#FFD9E2}
+  .ph-body{padding:14px}
+
+  /* App-faithful card primitives (KING) */
+  .app-eyebrow{font-family:var(--mono); font-size:8.5px; letter-spacing:1.4px; text-transform:uppercase; color:var(--accent3)}
+  .app-card{background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:13px; box-shadow:var(--shadow-sm); margin-bottom:10px}
+  .app-card-grad{font-family:var(--display); font-size:19px; letter-spacing:.4px;
+    background:linear-gradient(135deg,var(--accent3),var(--accent)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent}
+  .app-row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .pill{display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:9px; letter-spacing:.5px;
+    padding:4px 9px; border-radius:100px; border:1px solid var(--accent); color:var(--accent3); background:var(--surface2)}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+  .num-big{font-family:var(--display); font-size:30px; color:var(--accent); line-height:1}
+  .num-big .den{font-size:15px; color:var(--muted2)}
+  .label-xs{font-family:var(--mono); font-size:8px; letter-spacing:1px; color:var(--muted); text-transform:uppercase; margin-top:2px}
+  .strip{display:flex; gap:6px; margin:10px 0 4px}
+  .strip .d{flex:1; text-align:center}
+  .strip .d .ltr{font-family:var(--mono); font-size:8px; color:var(--muted2)}
+  .strip .d .bar{height:6px; border-radius:6px; background:#FFE1E8; margin-top:4px}
+  .strip .d.on .bar{background:linear-gradient(90deg,var(--accent),var(--accent3))}
+  .input-line{display:flex; align-items:center; gap:8px; margin:7px 0}
+  .input-box{flex:1; height:30px; border-radius:9px; border:1px solid var(--border); background:var(--surface2); display:flex; align-items:center; padding:0 10px; color:var(--muted2); font-size:12px}
+  .ico-circle{width:30px;height:30px;border-radius:50%; background:var(--surface2); border:1px solid var(--border); display:grid; place-items:center; color:var(--accent)}
+  .ico-circle svg{width:15px;height:15px}
+  .ph-nav{position:absolute; bottom:0; left:0; right:0; height:46px; background:#fff; border-top:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-around; padding:0 14px}
+  .ph-nav .nav-i{width:20px;height:20px;color:var(--muted2)}
+  .ph-nav .nav-i.act{color:var(--accent)}
+  .meal{display:flex; gap:9px; align-items:center; padding:8px 0; border-bottom:1px solid var(--border)}
+  .meal:last-child{border-bottom:none}
+  .meal .chk{width:18px;height:18px;border-radius:6px;border:1.5px solid var(--accent); flex-shrink:0; display:grid;place-items:center}
+  .meal .chk.done{background:var(--accent); border-color:var(--accent)}
+  .meal .chk.done::after{content:'✓'; color:#fff; font-size:11px; font-weight:700}
+  .meal .mt{font-weight:700; font-size:12px}
+  .meal .ms{font-size:10.5px; color:var(--muted)}
+  .photo-frame{aspect-ratio:4/5; border-radius:12px; background:var(--surface2); border:1.5px dashed var(--accent2); display:grid; place-items:center; color:var(--accent2)}
+  .photo-frame.filled{border-style:solid; background:linear-gradient(135deg,#FFD9E2,#FFE8EF)}
+  .cta-btn{background:linear-gradient(135deg,var(--accent),var(--accent3)); color:#fff; text-align:center;
+    font-weight:700; font-size:12px; padding:10px; border-radius:12px; letter-spacing:.3px}
+  .chat-bubble{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px; box-shadow:var(--shadow-sm)}
+  .analysis{background:linear-gradient(180deg,var(--surface2),#fff); border:1px solid var(--border); border-radius:14px; padding:13px}
+  .analysis p{font-size:11px; color:#3a3a4a; line-height:1.5}
+  .analysis h4{font-size:12px; color:var(--accent3); margin-bottom:5px; font-family:var(--mono); letter-spacing:.5px}
+
+  /* Coach panel mock */
+  .panel{background:#0F0F1A; border-radius:16px; padding:14px; color:#e8e8f2}
+  .panel .ph-eyebrow{font-family:var(--mono); font-size:8px; letter-spacing:1.5px; color:var(--accent2); text-transform:uppercase}
+  .panel .crow{display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid rgba(255,255,255,.08); font-size:11.5px}
+  .panel .crow:last-child{border-bottom:none}
+  .panel .tag{font-family:var(--mono); font-size:9px; padding:3px 7px; border-radius:6px; background:rgba(255,79,123,.16); color:var(--accent2)}
+
+  .callout{
+    background:linear-gradient(135deg,#fff, var(--surface2)); border:1px solid var(--border); border-left:4px solid var(--accent);
+    border-radius:14px; padding:16px 18px; margin-top:18px; font-size:15px;
+  }
+  .callout b{color:var(--accent3)}
+
+  /* ===== FOOTER ===== */
+  footer{text-align:center; margin-top:64px; padding-top:30px; border-top:1px solid var(--border); color:var(--muted)}
+  footer .fm{font-weight:700; color:var(--text); font-size:15px}
+  footer .fm b{color:var(--accent)}
+  footer .ft{font-size:13px; margin-top:6px}
+  footer .fp{font-family:var(--mono); font-size:10px; letter-spacing:1px; color:var(--muted2); margin-top:14px; text-transform:uppercase}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="brand">
+    <span class="brand-mark">Coach<b>AI</b></span>
+    <span class="pro-badge">Pro</span>
+  </div>
+  <h1>Cómo usar<br>tu app</h1>
+  <p class="lead">Una guía simple de principio a fin: desde que entrás por primera vez hasta tu cierre semanal con análisis. Todo lo que necesitás saber para sacarle el jugo.</p>
+  <div class="tagline">Tu entrenador personal con IA</div>
+</header>
+
+<div class="wrap">
+
+  <div class="intro">
+    <p><b>CoachAI Pro es la herramienta con la que trabajás directo con tu coach.</b> Él diseña tu dieta y tu rutina personalizadas, y vos las seguís acá día a día: entrenás, te alimentás y registrás todo en la app.</p>
+    <p>Al final de cada semana hacés tu <b>cierre semanal con análisis</b>, y arranca un ciclo nuevo. Mientras tanto, tu coach ve todo tu progreso desde su panel y ajusta lo que haga falta. <b>Tu coach siempre está pendiente de tu progreso.</b></p>
+  </div>
+
+  <!-- CYCLE -->
+  <div class="cycle">
+    <div class="cycle-title">El ciclo semanal, de un vistazo</div>
+    <div class="cycle-steps">
+      <div class="cycle-pill"><span class="n">1</span> Tu perfil</div>
+      <span class="cycle-arrow">→</span>
+      <div class="cycle-pill"><span class="n">2</span> Dieta + rutina</div>
+      <span class="cycle-arrow">→</span>
+      <div class="cycle-pill"><span class="n">3</span> Entrenás y registrás</div>
+      <span class="cycle-arrow">→</span>
+      <div class="cycle-pill"><span class="n">4</span> Cierre + análisis</div>
+      <span class="cycle-arrow">↺</span>
+      <div class="cycle-pill"><span class="n" style="background:linear-gradient(135deg,var(--accent3),#b02a55)">5</span> Se repite</div>
+    </div>
+  </div>
+
+  <!-- 1. ONBOARDING -->
+  <section class="step">
+    <div class="step-head">
+      <span class="step-num">01</span>
+      <div>
+        <div class="step-eyebrow">Empezás acá</div>
+        <h2 class="step-title">Tu perfil</h2>
+      </div>
+    </div>
+    <div class="step-grid">
+      <div class="copy">
+        <p class="step-body">La primera vez respondés unas preguntas rápidas. Con eso tu coach personaliza <b>todo</b> a tu medida.</p>
+        <ul class="points">
+          <li>Tu <b>objetivo</b> (bajar grasa, ganar músculo, recomposición…)</li>
+          <li>Cuántos <b>días entrenás</b> y dónde (gym o casa)</li>
+          <li>Tu <b>nivel</b>, lesiones, alergias y comidas por día</li>
+        </ul>
+        <p class="step-body">Lo completás una vez y listo. Después siempre podés editarlo desde tu Perfil.</p>
+      </div>
+      <div class="phone-wrap"><div class="phone"><div class="phone-screen"><div class="ph-notch"></div><div class="ph-body">
+        <div class="app-eyebrow" style="margin-bottom:10px">Paso 2 de 5 · Tu objetivo</div>
+        <div class="app-card" style="border-color:var(--accent); background:var(--surface2)">
+          <div style="font-weight:700;font-size:13px;color:var(--accent3)">💪 Ganar músculo</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px">Priorizar fuerza e hipertrofia</div>
+        </div>
+        <div class="app-card"><div style="font-weight:700;font-size:13px">🔥 Bajar grasa</div></div>
+        <div class="app-card"><div style="font-weight:700;font-size:13px">⚖️ Mantenimiento</div></div>
+        <div style="margin-top:6px" class="app-eyebrow">¿Qué días entrenás?</div>
+        <div class="strip" style="margin-top:8px">
+          <div class="d on"><div class="ltr">L</div><div class="bar"></div></div>
+          <div class="d"><div class="ltr">M</div><div class="bar"></div></div>
+          <div class="d on"><div class="ltr">M</div><div class="bar"></div></div>
+          <div class="d"><div class="ltr">J</div><div class="bar"></div></div>
+          <div class="d on"><div class="ltr">V</div><div class="bar"></div></div>
+          <div class="d"><div class="ltr">S</div><div class="bar"></div></div>
+          <div class="d"><div class="ltr">D</div><div class="bar"></div></div>
+        </div>
+        <div class="cta-btn" style="margin-top:14px">Continuar →</div>
+      </div></div></div></div>
+    </div>
+  </section>
+
+  <!-- 2. PLAN -->
+  <section class="step">
+    <div class="step-head">
+      <span class="step-num">02</span>
+      <div>
+        <div class="step-eyebrow">Tu coach te arma todo</div>
+        <h2 class="step-title">Tu dieta y tu rutina</h2>
+      </div>
+    </div>
+    <div class="step-grid reverse">
+      <div class="phone-wrap"><div class="phone"><div class="phone-screen"><div class="ph-notch"></div><div class="ph-body">
+        <div class="app-eyebrow" style="margin-bottom:10px">Coach AI · Chat</div>
+        <div class="chat-bubble" style="margin-bottom:10px">
+          <div style="font-weight:700;font-size:12.5px;margin-bottom:5px">💪 Tu rutina de la semana está lista</div>
+          <div style="font-size:11px;color:var(--muted)">La armé personalizada para vos. Pasala a revisar en <span style="color:var(--accent);font-weight:700;text-decoration:underline">Mi Entreno</span> — día por día, podés marcar tus entrenos y cargar tu peso.</div>
+        </div>
+        <div class="chat-bubble">
+          <div style="font-weight:700;font-size:12.5px;margin-bottom:5px">🥗 Tu dieta de la semana está lista</div>
+          <div style="font-size:11px;color:var(--muted)">La tenés en <span style="color:var(--accent);font-weight:700;text-decoration:underline">Mi Alimentación</span>, con tus comidas y macros.</div>
+        </div>
+        <div class="input-line" style="margin-top:14px">
+          <div class="input-box">Escribile a tu coach…</div>
+          <div class="ico-circle" style="background:var(--accent);color:#fff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12l20-8-8 20-3-9-9-3z"/></svg></div>
+        </div>
+      </div></div></div></div>
+      <div class="copy">
+        <p class="step-body">Desde el <b>chat con tu coach</b> recibís (o pedís) tu plan. En segundos lo tenés cargado y organizado en sus secciones.</p>
+        <ul class="points">
+          <li>La <b>rutina</b> aparece en <b>Mi Entreno</b></li>
+          <li>La <b>dieta</b> aparece en <b>Mi Alimentación</b></li>
+          <li>Todo personalizado según tu perfil y tu objetivo</li>
+        </ul>
+        <p class="step-body">El chat también es tu canal: dudas, cambios o lo que necesites, se lo escribís ahí.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. MI ENTRENO -->
+  <section class="step">
+    <div class="step-head">
+      <span class="step-num">03</span>
+      <div>
+        <div class="step-eyebrow">Tu entrenamiento</div>
+        <h2 class="step-title">Mi Entreno</h2>
+      </div>
+    </div>
+    <div class="step-grid">
+      <div class="copy">
+        <p class="step-body">Tu rutina organizada <b>día por día</b>. Cada ejercicio con sus series × reps, descanso y cómo hacerlo bien.</p>
+        <ul class="points">
+          <li>Tocás "<b>Cómo se hace</b>" y ves la ejecución de cada ejercicio</li>
+          <li>Registrás el <b>peso × reps de cada serie</b> — así ves tu progreso</li>
+          <li>Si toca <b>cardio</b> ese día, te aparece el recordatorio en Home</li>
+        </ul>
+      </div>
+      <div class="phone-wrap"><div class="phone"><div class="phone-screen"><div class="ph-notch"></div><div class="ph-body">
+        <div class="app-eyebrow" style="margin-bottom:8px">Mi Entreno · Lunes · hoy</div>
+        <div class="app-card">
+          <span class="pill"><span class="dot"></span>DÍA 1</span>
+          <div class="app-card-grad" style="margin:8px 0 2px">Pierna / Glúteo</div>
+          <div style="font-size:10px;color:var(--muted)">6 ejercicios</div>
+        </div>
+        <div class="app-card" style="background:var(--surface2)">
+          <div style="font-weight:700;font-size:13px">Hip thrust</div>
+          <div style="font-family:var(--mono);font-size:9.5px;color:var(--accent3);margin:3px 0 8px">3×15 · 40kg · desc 90s</div>
+          <div class="label-xs">Peso por serie (3)</div>
+          <div class="input-line"><span style="font-size:10px;color:var(--muted);width:42px">Serie 1</span><div class="input-box" style="height:26px">12 reps</div><span style="font-size:10px;color:var(--muted)">×</span><div class="input-box" style="height:26px">40 kg</div></div>
+          <div class="input-line"><span style="font-size:10px;color:var(--muted);width:42px">Serie 2</span><div class="input-box" style="height:26px">12 reps</div><span style="font-size:10px;color:var(--muted)">×</span><div class="input-box" style="height:26px">40 kg</div></div>
+        </div>
+        <div class="ph-nav"><span class="nav-i">🏠</span><span class="nav-i">💬</span><span class="nav-i">🍽️</span><span class="nav-i act">🏋️</span><span class="nav-i">👤</span></div>
+      </div></div></div></div>
+    </div>
+  </section>
+
+  <!-- 4. MI ALIMENTACION -->
+  <section class="step">
+    <div class="step-head">
+      <span class="step-num">04</span>
+      <div>
+        <div class="step-eyebrow">Tu nutrición</div>
+        <h2 class="step-title">Mi Alimentación</h2>
+      </div>
+    </div>
+    <div class="step-grid reverse">
+      <div class="phone-wrap"><div class="phone"><div class="phone-screen"><div class="ph-notch"></div><div class="ph-body">
+        <div class="app-eyebrow" style="margin-bottom:8px">Mi Alimentación · Domingo</div>
+        <div class="app-card">
+          <div class="label-xs">Tus objetivos diarios</div>
+          <div style="display:flex;gap:12px;margin-top:6px;flex-wrap:wrap">
+            <div><span class="num-big" style="font-size:22px">1650</span><div class="label-xs">kcal</div></div>
+            <div><span style="font-family:var(--display);font-size:22px;color:var(--text)">132</span><span style="font-size:11px;color:var(--muted)">g</span><div class="label-xs">prote</div></div>
+            <div><span style="font-family:var(--display);font-size:22px;color:var(--text)">165</span><span style="font-size:11px;color:var(--muted)">g</span><div class="label-xs">carbos</div></div>
+          </div>
+        </div>
+        <div class="app-card">
+          <div class="meal"><div class="chk done"></div><div><div class="mt">🌅 Desayuno</div><div class="ms">Avena + leche + banana · 380 kcal</div></div></div>
+          <div class="meal"><div class="chk done"></div><div><div class="mt">☀️ Almuerzo</div><div class="ms">Pollo 180g + arroz · 480 kcal</div></div></div>
+          <div class="meal"><div class="chk"></div><div><div class="mt">🕐 Merienda</div><div class="ms">Yogur + granola · 310 kcal</div></div></div>
+          <div class="meal"><div class="chk"></div><div><div class="mt">🌙 Cena</div><div class="ms">Merluza + papa · 480 kcal</div></div></div>
+        </div>
+        <div class="ph-nav"><span class="nav-i">🏠</span><span class="nav-i">💬</span><span class="nav-i act">🍽️</span><span class="nav-i">🏋️</span><span class="nav-i">👤</span></div>
+      </div></div></div></div>
+      <div class="copy">
+        <p class="step-body">Tu dieta de la semana, <b>día por día</b>, con cada comida y sus macros.</p>
+        <ul class="points">
+          <li>Marcás cada comida que <b>cumpliste</b> (✓)</li>
+          <li>Seguís tus <b>calorías y macros</b> del día en tiempo real</li>
+          <li>Todo suma a tu seguimiento semanal automáticamente</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. HOME -->
+  <section class="step">
+    <div class="step-head">
+      <span class="step-num">05</span>
+      <div>
+        <div class="step-eyebrow">Tu centro</div>
+        <h2 class="step-title">Inicio</h2>
+      </div>
+    </div>
+    <div class="step-grid">
+      <div class="copy">
+        <p class="step-body">De un vistazo, todo lo importante de tu semana y tu día.</p>
+        <ul class="points">
+          <li>Tu <b>progreso de la semana</b> (entrenos, calorías)</li>
+          <li><b>Próxima comida</b> y qué <b>entreno toca hoy</b></li>
+          <li><b>Recordatorios</b> que rotan: tu cardio los días que toca, y tu <b>cierre semanal</b> cuando se acerca el fin de semana</li>
+        </ul>
+      </div>
+      <div class="phone-wrap"><div class="phone"><div class="phone-screen"><div class="ph-notch"></div><div class="ph-body">
+        <div class="app-row" style="margin-bottom:10px">
+          <div class="app-card"><div class="app-eyebrow">Próxima comida</div><div style="font-weight:700;font-size:13px;margin-top:4px">Desayuno</div></div>
+          <div class="app-card"><div class="app-eyebrow">Hoy toca</div><div class="app-card-grad" style="font-size:15px;margin-top:4px">Pierna</div></div>
+        </div>
+        <div class="app-row">
+          <div class="app-card"><div class="app-eyebrow" style="color:var(--accent3)">Recordatorio</div><div style="font-weight:700;font-size:12px;margin-top:3px">Cierre semanal</div><div class="app-card-grad" style="font-size:15px">Es hoy</div></div>
+          <div class="app-card"><div class="app-eyebrow">Coach AI</div><div style="font-weight:700;font-size:12px;margin-top:3px">Consulta</div><div class="app-card-grad" style="font-size:14px">lo que necesites</div></div>
+        </div>
+        <div class="app-card" style="margin-top:4px">
+          <div class="app-eyebrow">Seguimiento semanal</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
+            <span class="app-card-grad" style="font-size:18px">SEM 02</span>
+            <span class="pill"><span class="dot"></span>En curso</span>
+          </div>
+          <div class="strip">
+            <div class="d on"><div class="ltr">L</div><div class="bar"></div></div>
+            <div class="d"><div class="ltr">M</div><div class="bar"></div></div>
+            <div class="d on"><div class="ltr">M</div><div class="bar"></div></div>
+            <div class="d"><div class="ltr">J</div><div class="bar"></div></div>
+            <div class="d on"><div class="ltr">V</div><div class="bar"></div></div>
+            <div class="d"><div class="ltr">S</div><div class="bar"></div></div>
+            <div class="d"><div class="ltr">D</div><div class="bar"></div></div>
+          </div>
+        </div>
+        <div class="ph-nav"><span class="nav-i act">🏠</span><span class="nav-i">💬</span><span class="nav-i">🍽️</span><span class="nav-i">🏋️</span><span class="nav-i">👤</span></div>
+      </div></div></div></div>
+    </div>
+  </section>
+
+  <!-- 6. CIERRE -->
+  <section class="step">
+    <div class="step-head">
+      <span class="step-num">06</span>
+      <div>
+        <div class="step-eyebrow">Fin de semana</div>
+        <h2 class="step-title">Tu cierre semanal</h2>
+      </div>
+    </div>
+    <div class="step-grid reverse">
+      <div class="phone-wrap"><div class="phone"><div class="phone-screen"><div class="ph-notch"></div><div class="ph-body">
+        <div class="app-eyebrow" style="margin-bottom:8px;text-align:center;color:var(--accent3)">Cierre de semana · SEM 02</div>
+        <div class="app-row" style="margin-bottom:8px">
+          <div class="app-card" style="padding:10px"><div class="num-big" style="font-size:22px">2<span class="den">/3</span></div><div class="label-xs">días entrenados</div></div>
+          <div class="app-card" style="padding:10px"><div style="font-family:var(--display);font-size:22px">1817</div><div class="label-xs">kcal / día</div></div>
+        </div>
+        <div class="app-row" style="margin-bottom:8px">
+          <div class="app-card" style="padding:10px"><div style="font-family:var(--display);font-size:22px">144<span style="font-size:12px;color:var(--muted2)">g</span></div><div class="label-xs">proteína prom</div></div>
+          <div class="app-card" style="padding:10px"><div class="num-big" style="font-size:22px">5<span class="den">/7</span></div><div class="label-xs">días registrados</div></div>
+        </div>
+        <div class="app-eyebrow" style="margin:8px 0 6px">📸 Compará tu evolución</div>
+        <div class="app-row">
+          <div class="photo-frame filled" style="aspect-ratio:3/4"></div>
+          <div class="photo-frame" style="aspect-ratio:3/4">📷<br><span style="font-size:8px">subí tu foto</span></div>
+        </div>
+        <div class="cta-btn" style="margin-top:10px">＋ Generar análisis de mi semana</div>
+      </div></div></div></div>
+      <div class="copy">
+        <p class="step-body">Cuando termina la semana, hacés tu <b>cierre</b>. Es el momento clave del ciclo.</p>
+        <ul class="points">
+          <li>Ves tu <b>resumen</b>: entrenos, calorías, proteína y días registrados</li>
+          <li>Subís tus <b>fotos</b> (frente y espalda) para comparar tu evolución</li>
+          <li>Generás el <b>análisis</b> de tu semana con un toque</li>
+        </ul>
+        <p class="step-body">El recordatorio te avisa en Home los últimos días, así no te lo olvidás.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. ANALISIS -->
+  <section class="step">
+    <div class="step-head">
+      <span class="step-num">07</span>
+      <div>
+        <div class="step-eyebrow">Tu devolución</div>
+        <h2 class="step-title">El análisis de tu semana</h2>
+      </div>
+    </div>
+    <div class="step-grid">
+      <div class="copy">
+        <p class="step-body">El coach IA te devuelve un análisis personalizado de cómo te fue, y queda guardado en tu seguimiento.</p>
+        <ul class="points">
+          <li>Tu <b>adherencia</b> real (entrenos y dieta cumplidos)</li>
+          <li>Lectura de tus <b>calorías, macros y progreso</b></li>
+          <li><b>Qué ajustar</b> para la semana que viene</li>
+        </ul>
+        <p class="step-body">Y lo más importante: tu coach lo ve también, y afina tu plan en base a eso.</p>
+      </div>
+      <div class="phone-wrap"><div class="phone"><div class="phone-screen"><div class="ph-notch"></div><div class="ph-body">
+        <div class="app-eyebrow" style="margin-bottom:8px">SEM 02 · Cerrada ✓</div>
+        <div class="analysis">
+          <h4>Tu semana</h4>
+          <p>Muy buena adherencia al entrenamiento (2 de 3 sesiones) y dieta sólida con un promedio de 1817 kcal, alineado a tu objetivo. La proteína se mantuvo alta — clave para no perder músculo.</p>
+          <h4 style="margin-top:10px">Para la próxima</h4>
+          <p>Sumá la sesión que faltó y mantené la constancia en los registros. Vas en el camino correcto, seguimos. 💪</p>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+            <span style="font-family:var(--mono);font-size:8.5px;color:var(--muted2)">CoachAI · 31 may</span>
+          </div>
+        </div>
+      </div></div></div></div>
+    </div>
+  </section>
+
+  <!-- 8. CICLO -->
+  <section class="step">
+    <div class="step-head">
+      <span class="step-num">08</span>
+      <div>
+        <div class="step-eyebrow">Y vuelta a empezar</div>
+        <h2 class="step-title">El ciclo se repite</h2>
+      </div>
+    </div>
+    <p class="step-body" style="max-width:600px">Cerraste tu semana → arranca una nueva. Pedís tu plan actualizado, entrenás, te alimentás, registrás todo, y al final volvés a cerrar con tu análisis. <b>Semana a semana, así es como progresás de verdad</b> — con constancia y con tu coach guiándote en cada vuelta.</p>
+    <div class="cycle" style="margin-top:22px">
+      <div class="cycle-steps">
+        <div class="cycle-pill"><span class="n">①</span> Nueva semana</div>
+        <span class="cycle-arrow">→</span>
+        <div class="cycle-pill"><span class="n">②</span> Plan actualizado</div>
+        <span class="cycle-arrow">→</span>
+        <div class="cycle-pill"><span class="n">③</span> Entrenás + registrás</div>
+        <span class="cycle-arrow">→</span>
+        <div class="cycle-pill"><span class="n">④</span> Cierre + análisis</div>
+        <span class="cycle-arrow">↺</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. COACH -->
+  <section class="step">
+    <div class="step-head">
+      <span class="step-num">09</span>
+      <div>
+        <div class="step-eyebrow">No estás solo</div>
+        <h2 class="step-title">Tu coach te sigue</h2>
+      </div>
+    </div>
+    <div class="step-grid reverse">
+      <div class="phone-wrap"><div class="phone"><div class="phone-screen"><div class="ph-notch"></div><div class="ph-body">
+        <div class="panel">
+          <div class="ph-eyebrow">Panel del coach · Mis clientes</div>
+          <div style="margin-top:8px">
+            <div class="crow"><span>Vicky</span><span class="tag">80% adherencia</span></div>
+            <div class="crow"><span>Carina</span><span class="tag">cerró semana</span></div>
+            <div class="crow"><span>Ariana</span><span class="tag">en curso</span></div>
+            <div class="crow"><span>Virginia</span><span class="tag">100% adherencia</span></div>
+          </div>
+          <div style="margin-top:12px;font-size:10px;color:#9a9ab8">Ve planes · adherencia · análisis · fotos — y ajusta tu dieta/rutina.</div>
+        </div>
+      </div></div></div></div>
+      <div class="copy">
+        <p class="step-body">Todo lo que registrás en la app, <b>tu coach lo ve</b> desde su panel de control.</p>
+        <ul class="points">
+          <li>Controla tu <b>adherencia</b> a la dieta y la rutina</li>
+          <li>Revisa tus <b>planes, análisis y fotos</b> de progreso</li>
+          <li>Y <b>ajusta tu dieta y tu rutina</b> cuando hace falta</li>
+        </ul>
+        <p class="step-body">Por eso cada cosa que registrás suma: <b>es lo que le permite a tu coach acompañarte de verdad.</b></p>
+      </div>
+    </div>
+  </section>
+
+  <div class="callout">
+    💡 <b>En resumen:</b> entrá, completá tu perfil, recibí tu dieta y rutina, seguilas y registrá tu semana, y cerrá con tu análisis. Repetí el ciclo cada semana — tu coach está del otro lado, mirando y ajustando. <b>Esa constancia es la que trae los resultados.</b>
+  </div>
+
+  <footer>
+    <div class="fm">Coach<b>AI</b> Pro</div>
+    <div class="ft">Tu entrenador personal con IA</div>
+    <div class="fp">Powered by Anthropic Claude</div>
+  </footer>
+
+</div>
+</body>
+</html>

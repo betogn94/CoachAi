@@ -21,6 +21,10 @@
   ],
   "rewrites": [
     {
+      "source": "/guia",
+      "destination": "/guia.html"
+    },
+    {
       "source": "/jesus",
       "destination": "/index.html"
     },
