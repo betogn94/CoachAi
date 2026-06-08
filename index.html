@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260607-1723-fix-plan-overwrite-guard">
+<meta name="app-version" content="20260608-0155-card-recordatorio-cierre">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -3914,7 +3914,9 @@ button.cai-home-card:hover { border-color: rgba(124,106,255,0.20); }
   min-height: 100%;
 }
 .cai-home-card-slot.is-rotating .cai-home-card-chat,
-.cai-home-card-slot.is-rotating .cai-home-card-cardio {
+.cai-home-card-slot.is-rotating .cai-home-card-cardio,
+.cai-home-card-slot.is-rotating .cai-home-card-kcal,
+.cai-home-card-slot.is-rotating .cai-home-card-cierre {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -3928,7 +3930,8 @@ button.cai-home-card:hover { border-color: rgba(124,106,255,0.20); }
   visibility: visible;
   position: relative; /* the visible one defines the slot's height */
 }
-.cai-home-card-slot.is-rotating .cai-home-card-cardio.is-active {
+.cai-home-card-slot.is-rotating .cai-home-card-cardio.is-active,
+.cai-home-card-slot.is-rotating .cai-home-card-cierre.is-active {
   position: absolute;
   inset: 0;
 }
@@ -11392,7 +11395,8 @@ body.theme-king .cai-home-semanas .semana-analisis hr {
 
   <!-- Row 2: kcal chart (informational) + coach chat shortcut -->
   <div class="cai-home-grid">
-    <div class="cai-home-card cai-home-card-kcal" id="home-kcal-card">
+    <div class="cai-home-card-slot" id="home-kcal-rotator">
+    <div class="cai-home-card cai-home-card-kcal is-active" data-rot-slide="kcal" id="home-kcal-card">
       <div class="cai-home-card-top">
         <div class="cai-home-card-eyebrow" data-es="CALORÍAS HOY" data-en="CALORIES TODAY">CALORÍAS HOY</div>
         <div class="cai-home-card-ico ico-kcal">
@@ -11421,6 +11425,29 @@ body.theme-king .cai-home-semanas .semana-analisis hr {
       </div>
       <div class="cai-home-kcal-num"><strong id="home-kcal-done">0</strong><span id="home-kcal-target"></span></div>
       <div class="cai-home-kcal-chart" id="home-kcal-bars"></div>
+    </div>
+
+      <!-- Recordatorio de cierre semanal — rota con la card de Calorías cuando
+           el cierre está próximo (últimos 2 días + día del cierre, si no cerró).
+           Lo puebla/activa renderHomeCierreCard(). -->
+      <button class="cai-home-card cai-home-card-cierre" data-rot-slide="cierre" id="home-card-cierre" type="button" style="display:none;">
+        <div class="cai-home-card-top">
+          <div class="cai-home-card-eyebrow" data-es="RECORDATORIO" data-en="REMINDER">RECORDATORIO</div>
+          <div class="cai-home-card-ico ico-cierre">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18"/><path d="M8 2.5v4"/><path d="M16 2.5v4"/><path d="m8.5 14.5 2.1 2.1 4.4-4.6"/>
+            </svg>
+          </div>
+        </div>
+        <div class="cai-home-card-title" data-es="CIERRE SEMANAL" data-en="WEEKLY CHECK-IN">CIERRE SEMANAL</div>
+        <div class="cai-home-card-title cai-home-card-title-grad" id="cierre-card-msg">—</div>
+        <div class="cai-home-card-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+      </button>
+
+      <div class="cai-home-card-dots" id="home-kcal-dots" style="display:none;">
+        <button class="rot-dot is-active" data-rot-target="kcal" aria-label="Calorías"></button>
+        <button class="rot-dot" data-rot-target="cierre" aria-label="Cierre semanal"></button>
+      </div>
     </div>
 
     <!-- Rotator slot: by default shows the Coach AI card. When parseCardioRule
@@ -17980,6 +18007,10 @@ async function renderSemanas() {
     loadFotosProgreso()
   ]);
   cierresSemanales = cierres;
+  // Con los cierres ya cargados, re-evaluamos el recordatorio de cierre de Home
+  // (dato autoritativo del closed-state, por si la primera llamada en renderHome
+  // corrió antes de tener los cierres).
+  try { renderHomeCierreCard(); } catch (e) {}
 
   // Compute baseline vistas explicitly so the home transformación grid can
   // pair frente-vs-frente and espalda-vs-espalda. pickBaselinePhoto alone
@@ -19143,6 +19174,7 @@ function renderHome() {
   try { renderHomeHoyToca(); }        catch (e) { console.warn('[home] hoy toca:', e); }
   try { renderHomeKcalChart(); }      catch (e) { console.warn('[home] kcal:', e); }
   try { renderHomeCardioCard(p); }    catch (e) { console.warn('[home] cardio card:', e); }
+  try { renderHomeCierreCard(); }     catch (e) { console.warn('[home] cierre card:', e); }
   // Network-dependent widgets
   renderHomeRing().catch(e => console.warn('[home] ring:', e));
   // Alimentación caches lazy-load on first visit to Mi Alimentación; for the
@@ -19370,6 +19402,91 @@ function _cardioRotTick() {
   const current = slot.querySelector('[data-rot-slide].is-active');
   const next = current?.dataset.rotSlide === 'chat' ? 'cardio' : 'chat';
   _cardioRotShow(next);
+}
+
+// ============================
+// HOME: WEEKLY CHECK-IN REMINDER CARD (rotator) — rota con la card de Calorías
+// ============================
+// Muestra el recordatorio de cierre cuando la semana vigente está por terminar
+// (últimos 2 días + el día del cierre) y todavía NO se cerró. Tap → modal de
+// cierre de esa semana. Mismo patrón de rotación que la card de cardio.
+let _kcalRotInterval = null;
+function renderHomeCierreCard() {
+  const isEs = lang === 'es';
+  const slot  = document.getElementById('home-kcal-rotator');
+  const card  = document.getElementById('home-card-cierre');
+  const dots  = document.getElementById('home-kcal-dots');
+  const msgEl = document.getElementById('cierre-card-msg');
+  if (!slot || !card) return;
+
+  // Teardown previo (re-renders no deben apilar intervals).
+  if (_kcalRotInterval) { clearInterval(_kcalRotInterval); _kcalRotInterval = null; }
+  slot.classList.remove('is-rotating');
+  card.style.display = 'none';
+  if (dots) dots.style.display = 'none';
+  _kcalRotShow('kcal'); // sin rotar → solo calorías
+
+  if (!currentUser || !currentUser.created_at) return;
+  if (typeof getWeekNum !== 'function' || typeof getWeekRange !== 'function') return;
+  const week  = getWeekNum(currentUser.created_at);
+  const range = getWeekRange(currentUser.created_at, week);
+
+  // ¿ya cerró la semana vigente?
+  const cierres = (typeof cierresSemanales !== 'undefined' && Array.isArray(cierresSemanales)) ? cierresSemanales : [];
+  if (cierres.some(c => c.semana_num === week)) return;
+
+  // Días hasta el fin de la semana vigente
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const end = new Date(range.end + 'T00:00:00');
+  const daysLeft = Math.round((end - today) / 86400000);
+  if (daysLeft < 0 || daysLeft > 2) return; // solo últimos 2 días + el día del cierre
+
+  // Mensaje de timing
+  let msg;
+  if (daysLeft === 0)      msg = isEs ? 'Es hoy'     : "It's today";
+  else if (daysLeft === 1) msg = isEs ? 'Es mañana'  : "It's tomorrow";
+  else {
+    const dn = end.toLocaleDateString(isEs ? 'es-AR' : 'en-US', { weekday: 'long' });
+    msg = (isEs ? 'Este ' : 'This ') + dn.charAt(0).toUpperCase() + dn.slice(1);
+  }
+  if (msgEl) msgEl.textContent = msg;
+  card.onclick = () => { try { openCierreSemana(week); } catch (e) { console.warn('[home] cierre tap:', e); } };
+
+  // Activar rotador kcal ↔ cierre
+  card.style.display = '';
+  if (dots) dots.style.display = 'flex';
+  slot.classList.add('is-rotating');
+
+  if (dots) {
+    dots.querySelectorAll('.rot-dot').forEach(d => { const c = d.cloneNode(true); d.parentNode.replaceChild(c, d); });
+    dots.querySelectorAll('.rot-dot').forEach(d => {
+      d.addEventListener('click', (e) => {
+        e.stopPropagation();
+        _kcalRotShow(d.dataset.rotTarget);
+        if (_kcalRotInterval) clearInterval(_kcalRotInterval);
+        _kcalRotInterval = setInterval(_kcalRotTick, 8000);
+      });
+    });
+  }
+  _kcalRotInterval = setInterval(_kcalRotTick, 8000);
+}
+function _kcalRotShow(target) {
+  const slot = document.getElementById('home-kcal-rotator');
+  if (!slot) return;
+  slot.querySelectorAll('[data-rot-slide]').forEach(el => {
+    el.classList.toggle('is-active', el.dataset.rotSlide === target);
+  });
+  const dots = document.getElementById('home-kcal-dots');
+  if (dots) dots.querySelectorAll('.rot-dot').forEach(d => {
+    d.classList.toggle('is-active', d.dataset.rotTarget === target);
+  });
+}
+function _kcalRotTick() {
+  const slot = document.getElementById('home-kcal-rotator');
+  if (!slot) return;
+  const current = slot.querySelector('[data-rot-slide].is-active');
+  const next = current?.dataset.rotSlide === 'kcal' ? 'cierre' : 'kcal';
+  _kcalRotShow(next);
 }
 
 // Kcal hoy — bars by meal type (Desayuno · Almuerzo · Merienda · Cena, etc.).
