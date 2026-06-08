@@ -16,3 +16,6 @@ Thumbs.db
 .env.local
 .vercel
 node_modules
+
+# Corpus real de planes para test:parsers (datos de usuarios — no commitear)
+scripts/plan-corpus.local.json

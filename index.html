@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260608-1520-visibilidad-fallas-plan">
+<meta name="app-version" content="20260608-1532-red-regresion-parsers">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -20146,9 +20146,12 @@ function showDashboard() {
 function planReplyHasStructure(tipo, reply) {
   if (!reply) return false;
   if (tipo === 'dieta') {
+    // ^[*_#\t ]* tolera prefijos markdown (**, __, ##) y sangría antes del
+    // header, igual que el clean() del parser. Sin esto, "**LUNES**"/"## LUNES"
+    // pasaban por el parser pero el gate los rechazaba (inconsistencia).
     const hasMarker = /Target\s*:\s*\d/i.test(reply)
-      || /^\**\s*(LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)\b/im.test(reply)
-      || /^(Desayuno|Almuerzo|Merienda|Cena|Colaci[oó]n|Snack|Pre[\s-]*entreno|Post[\s-]*entreno|Comida(?:\s+\d+)?)\s*:/im.test(reply);
+      || /^[*_#\t ]*(LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)\b/im.test(reply)
+      || /^[*_#\t ]*(Desayuno|Almuerzo|Merienda|Cena|Colaci[oó]n|Snack|Pre[\s-]*entreno|Post[\s-]*entreno|Comida(?:\s+\d+)?)\s*:/im.test(reply);
     if (!hasMarker) return false;
     try {
       const p = parseDietaContenido(reply);
@@ -20156,7 +20159,7 @@ function planReplyHasStructure(tipo, reply) {
     } catch (e) { return false; }
   }
   if (tipo === 'rutina') {
-    const hasDay = /^\**\s*(D[ií]a\s*\d|LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)/im.test(reply);
+    const hasDay = /^[*_#\t ]*(D[ií]a\s*\d|LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)/im.test(reply);
     const hasExercise = /\d+\s*(?:series?\s*)?[×x]\s*\d+/.test(reply);
     if (!(hasDay && hasExercise)) return false;
     try {

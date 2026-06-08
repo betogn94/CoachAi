@@ -4,7 +4,8 @@
   "scripts": {
     "qa": "node qa/run.js",
     "qa:local": "node qa/run.js --base http://localhost:3030 --personas testb --verbose",
-    "qa:prod": "node qa/run.js --base https://coach-ai-pearl.vercel.app --personas testb --verbose"
+    "qa:prod": "node qa/run.js --base https://coach-ai-pearl.vercel.app --personas testb --verbose",
+    "test:parsers": "node scripts/test-parsers.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
