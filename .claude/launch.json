@@ -3,9 +3,9 @@
   "configurations": [
     {
       "name": "coachai",
-      "runtimeExecutable": "vercel",
-      "runtimeArgs": ["dev", "--listen", "3030"],
-      "port": 3030
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "http-server", "-p", "5500", "-c-1", "."],
+      "port": 5500
     }
   ]
 }
