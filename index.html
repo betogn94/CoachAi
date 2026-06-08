@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260608-1600-deploy">
+<meta name="app-version" content="20260608-2333-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -13110,14 +13110,112 @@ async function saveProfileToSupabase(data) {
   await sbClient.from('usuarios').update(data).eq('id', currentUser.id);
 }
 
+// ============================================================
+// SYNC OUTBOX — sincronización offline-first del loop diario.
+// Cada acción diaria (peso corporal, comidas, entrenos, diario) guarda local/
+// optimista al instante y sincroniza a Supabase vía syncPush(). Si la sync falla
+// (red caída / Supabase lento), el cambio se ENCOLA en localStorage y se reintenta
+// solo: al volver la conexión (evento 'online'), al abrir la app, y cada 60s.
+// Dedup por `key`: para estados completos (semana de entreno/alim, o un día) solo
+// importa la última versión. Así ningún dato del usuario se queda sin llegar a la
+// nube en silencio (antes era best-effort con console.warn y ✓ falso).
+// ============================================================
+const _SYNC_OUTBOX_KEY = 'cai_sync_outbox_v1';
+function _syncReadOutbox() {
+  try { return JSON.parse(localStorage.getItem(_SYNC_OUTBOX_KEY) || '[]'); }
+  catch (e) { return []; }
+}
+function _syncWriteOutbox(arr) {
+  try { localStorage.setItem(_SYNC_OUTBOX_KEY, JSON.stringify(arr || [])); } catch (e) {}
+  try { _updateSyncIndicator(); } catch (e) {}
+}
+function _syncEnqueue(op) {
+  const box = _syncReadOutbox();
+  // dedup: si trae key, la nueva versión pisa cualquier pendiente con la misma key
+  const filtered = op.key ? box.filter(b => b.key !== op.key) : box;
+  filtered.push(op);
+  _syncWriteOutbox(filtered.slice(-200)); // cap defensivo
+}
+// Ejecuta una operación contra Supabase. true = ok, false = falló.
+async function _syncExec(op) {
+  if (!sbClient) return false;
+  try {
+    if (op.op === 'upsert') {
+      const { error } = await sbClient.from(op.table).upsert(op.row, op.onConflict ? { onConflict: op.onConflict } : undefined);
+      if (error) throw error;
+    } else if (op.op === 'insert') {
+      const { error } = await sbClient.from(op.table).insert(op.row);
+      if (error) throw error;
+    } else if (op.op === 'delete') {
+      let q = sbClient.from(op.table).delete();
+      for (const k in (op.match || {})) q = q.eq(k, op.match[k]);
+      const { error } = await q;
+      if (error) throw error;
+    }
+    return true;
+  } catch (e) {
+    console.warn('[sync] op falló:', op.table, op.op, e?.message || e);
+    return false;
+  }
+}
+// API principal: intenta sincronizar; si falla, encola para reintento automático.
+async function syncPush(op) {
+  if (!sbClient || !currentUser) return { ok: false, queued: false };
+  const ok = await _syncExec(op);
+  if (!ok) { _syncEnqueue(op); return { ok: false, queued: true }; }
+  return { ok: true, queued: false };
+}
+// Reintenta todo lo pendiente (al reconectar / al cargar / cada 60s).
+let _syncFlushing = false;
+async function flushSyncOutbox() {
+  if (_syncFlushing || !sbClient || !currentUser) return;
+  const box = _syncReadOutbox();
+  if (!box.length) return;
+  _syncFlushing = true;
+  const remaining = [];
+  for (const op of box) { if (!(await _syncExec(op))) remaining.push(op); }
+  _syncWriteOutbox(remaining);
+  _syncFlushing = false;
+}
+// Indicador discreto + tappable (reintento manual) cuando hay pendientes.
+function _updateSyncIndicator() {
+  try {
+    const n = _syncReadOutbox().length;
+    let el = document.getElementById('cai-sync-indicator');
+    if (!n) { if (el) el.style.display = 'none'; return; }
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'cai-sync-indicator';
+      el.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:86px;z-index:9000;background:#fff4e0;color:#8a5a00;border:1px solid #f0d28a;border-radius:999px;padding:7px 14px;font-size:12px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,0.12);cursor:pointer;max-width:92vw;text-align:center';
+      el.title = 'Tocar para reintentar ahora';
+      el.onclick = () => flushSyncOutbox();
+      document.body.appendChild(el);
+    }
+    const isEs = (typeof lang === 'undefined' || lang === 'es');
+    el.textContent = isEs
+      ? `⚠ ${n} ${n === 1 ? 'cambio' : 'cambios'} sin sincronizar — se ${n === 1 ? 'guardará' : 'guardarán'} al reconectar`
+      : `⚠ ${n} unsynced ${n === 1 ? 'change' : 'changes'} — will sync when back online`;
+    el.style.display = 'block';
+  } catch (e) {}
+}
+if (typeof window !== 'undefined' && !window._syncWired) {
+  window._syncWired = true;
+  window.addEventListener('online', () => { flushSyncOutbox(); });
+  setInterval(() => { try { if (navigator.onLine !== false) flushSyncOutbox(); } catch (e) {} }, 60000);
+}
+
 async function saveWeightToSupabase(peso) {
   if (!sbClient || !currentUser) return;
-  await sbClient.from('progreso_peso').upsert({ usuario_id: currentUser.id, fecha: getTodayKey(), peso }, { onConflict: 'usuario_id,fecha' });
+  await syncPush({ op: 'upsert', table: 'progreso_peso',
+    row: { usuario_id: currentUser.id, fecha: getTodayKey(), peso },
+    onConflict: 'usuario_id,fecha', key: 'peso_' + getTodayKey() });
 }
 
 async function saveTrainedDayToSupabase() {
   if (!sbClient || !currentUser) return;
-  await sbClient.from('dias_entrenados').upsert({ usuario_id: currentUser.id, fecha: getTodayKey() }, { onConflict: 'usuario_id,fecha' });
+  await syncPush({ op: 'upsert', table: 'dias_entrenados',
+    row: { usuario_id: currentUser.id, fecha: getTodayKey() },
+    onConflict: 'usuario_id,fecha', key: 'dia_' + getTodayKey() });
 }
 
 async function saveChatToSupabase(messages, convHistory) {
@@ -13347,10 +13445,9 @@ function detectPlanInReply(reply) {
 
 async function saveDiarioToSupabase(data, fecha = getTodayKey()) {
   if (!sbClient || !currentUser) return;
-  await sbClient.from('progreso_diario').upsert(
-    { usuario_id: currentUser.id, fecha, ...data },
-    { onConflict: 'usuario_id,fecha' }
-  );
+  await syncPush({ op: 'upsert', table: 'progreso_diario',
+    row: { usuario_id: currentUser.id, fecha, ...data },
+    onConflict: 'usuario_id,fecha', key: 'diario_' + fecha });
 }
 
 async function loadTodayDiario(fecha = getTodayKey()) {
@@ -15749,6 +15846,11 @@ async function launchCoach() {
   _selfHealAttempted = { rutina: false, dieta: false };
   selfHealPlans().catch(e => console.warn('[CoachAI] selfHealPlans:', e));
 
+  // SYNC OUTBOX (refuerzo loop diario) — al abrir, reintentar lo que haya quedado
+  // sin sincronizar de una sesión offline anterior + reflejar el indicador.
+  try { _updateSyncIndicator(); } catch (e) {}
+  flushSyncOutbox().catch(e => console.warn('[CoachAI] flushSyncOutbox:', e));
+
   // Build the recent (last 7 days) summary slice used by buildHistorySummary().
   recentChatHistory = allChatHistory.slice(-7).slice().reverse();
 
@@ -16304,14 +16406,9 @@ function _alimSaveDebounced() {
   _alimSaveTimer = setTimeout(async () => {
     if (!sbClient || !currentUser) return;
     const wk = alimWeekKey();
-    try {
-      await sbClient.from('alimentacion_semanal').upsert({
-        usuario_id: currentUser.id,
-        semana_iso: wk,
-        estado: _alimEstado || {},
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'usuario_id,semana_iso' });
-    } catch (e) { console.error('[CoachAI] alim save:', e); }
+    await syncPush({ op: 'upsert', table: 'alimentacion_semanal',
+      row: { usuario_id: currentUser.id, semana_iso: wk, estado: _alimEstado || {}, updated_at: new Date().toISOString() },
+      onConflict: 'usuario_id,semana_iso', key: 'alim_' + wk });
     // Flush dirty-day syncs in sequence so the LAST write of each day reflects
     // the final state. Run distinct days in parallel (they target different rows).
     const days = [..._alimDirtyDays];
@@ -21044,11 +21141,9 @@ function saveEntrenoWeekState(state) {
   clearTimeout(_entrenoSyncTimer);
   _entrenoSyncTimer = setTimeout(() => {
     if (!sbClient || !currentUser || currentUser.id !== uid) return;
-    sbClient.from('entreno_semanal').upsert([{
-      usuario_id: uid, semana_iso: wk, estado: state, updated_at: new Date().toISOString()
-    }], { onConflict: 'usuario_id,semana_iso' }).then(({ error }) => {
-      if (error) console.warn('Entreno Supabase sync failed (kept in localStorage):', error);
-    });
+    syncPush({ op: 'upsert', table: 'entreno_semanal',
+      row: { usuario_id: uid, semana_iso: wk, estado: state, updated_at: new Date().toISOString() },
+      onConflict: 'usuario_id,semana_iso', key: 'entreno_' + wk });
   }, 800);
 }
 
@@ -21080,22 +21175,17 @@ async function hydrateEntrenoFromSupabase() {
 async function mirrorTrainedDay(dateStr, add, stateAfter) {
   if (!sbClient || !currentUser || !dateStr) return;
   const uid = currentUser.id;
-  try {
-    if (add) {
-      const { data: existing } = await sbClient.from('dias_entrenados')
-        .select('id').eq('usuario_id', uid).eq('fecha', dateStr).limit(1);
-      if (!existing || !existing.length) {
-        await sbClient.from('dias_entrenados').insert([{ usuario_id: uid, fecha: dateStr }]);
-      }
-    } else {
-      const stillUsed = Object.values((stateAfter && stateAfter.completed) || {}).includes(dateStr);
-      if (!stillUsed) {
-        await sbClient.from('dias_entrenados').delete()
-          .eq('usuario_id', uid).eq('fecha', dateStr);
-      }
+  // Vía syncPush → si falla la red, se encola y reintenta solo (offline-first).
+  if (add) {
+    // upsert idempotente (reemplaza el select-then-insert; onConflict evita duplicar)
+    await syncPush({ op: 'upsert', table: 'dias_entrenados',
+      row: { usuario_id: uid, fecha: dateStr }, onConflict: 'usuario_id,fecha', key: 'diaent_' + dateStr });
+  } else {
+    const stillUsed = Object.values((stateAfter && stateAfter.completed) || {}).includes(dateStr);
+    if (!stillUsed) {
+      await syncPush({ op: 'delete', table: 'dias_entrenados',
+        match: { usuario_id: uid, fecha: dateStr }, key: 'diaent_' + dateStr });
     }
-  } catch (e) {
-    console.warn('dias_entrenados mirror failed:', e);
   }
 
   // ALSO mirror to progreso_diario.entreno so the weekly cierre (which reads
@@ -21104,16 +21194,13 @@ async function mirrorTrainedDay(dateStr, add, stateAfter) {
   // writes to dias_entrenados — the legacy progreso_diario.entreno column
   // never gets touched. Symptom: cierre semanal shows "0 días entrenados"
   // even if the user marked every workout done.
-  try {
+  {
     const stillUsedForDate = !add
       ? Object.values((stateAfter && stateAfter.completed) || {}).includes(dateStr)
       : true;
-    await sbClient.from('progreso_diario').upsert(
-      { usuario_id: uid, fecha: dateStr, entreno: add || stillUsedForDate },
-      { onConflict: 'usuario_id,fecha' }
-    );
-  } catch (e) {
-    console.warn('progreso_diario.entreno mirror failed:', e);
+    await syncPush({ op: 'upsert', table: 'progreso_diario',
+      row: { usuario_id: uid, fecha: dateStr, entreno: add || stillUsedForDate },
+      onConflict: 'usuario_id,fecha', key: 'diarioent_' + dateStr });
   }
 
   // Refresh in-memory recentDiario + re-render Seguimiento Semanal in Home.
