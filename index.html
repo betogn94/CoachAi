@@ -22,7 +22,7 @@
 <!-- App version: must match /version.json. The PWA update-check fetches that
      file with cache:'no-store' and compares it to this meta tag; if they
      differ, a "nueva versión disponible" banner appears. Bump on every deploy. -->
-<meta name="app-version" content="20260608-1532-red-regresion-parsers">
+<meta name="app-version" content="20260608-1539-self-heal-planes-al-cargar">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -13183,6 +13183,56 @@ async function loadCurrentWeekPlans() {
   return result;
 }
 
+// SELF-HEAL al cargar — refuerzo #2. Si el plan ACTIVO guardado en la base no
+// parsea (quedó roto de antes de los fixes, o un drift de formato viejo), en vez
+// de dejar al usuario con Mi Entreno / Mi Alimentación vacíos, intenta UN pase de
+// reformateo (aiNormalizePlan) en background y, si ahora parsea, lo re-guarda EN
+// SU LUGAR (preservando semana_iso/fecha_entrega) y re-renderiza. No bloquea la
+// carga (fire-and-forget). Cero costo en el caso común (plan ya parsea → no hace
+// nada, no llama a la IA). Solo toca el plan activo (no toca cierres viejos).
+let _selfHealAttempted = { rutina: false, dieta: false };
+async function selfHealPlans() {
+  if (!sbClient || !currentUser) return;
+  for (const tipo of ['rutina', 'dieta']) {
+    const plan = weeklyPlans[tipo];
+    if (!plan || !plan.contenido || plan.closed) continue;       // nada que sanar / plan cerrado
+    if (_selfHealAttempted[tipo]) continue;                      // a lo sumo 1 intento por sesión
+    if (planReplyHasStructure(tipo, plan.contenido)) continue;   // ya parsea → caso común, no-op
+    _selfHealAttempted[tipo] = true;
+    console.warn('[CoachAI] self-heal: el', tipo, 'guardado no parsea — intentando reformateo en background');
+    let healed = null;
+    try {
+      const normalized = await aiNormalizePlan(tipo, plan.contenido);
+      if (normalized && planReplyHasStructure(tipo, normalized)) healed = normalized;
+    } catch (e) { console.error('[CoachAI] self-heal error:', e?.message || e); }
+    if (!healed) {
+      // No se pudo reparar automáticamente → telemetría para que sea visible.
+      if (typeof trackEvent === 'function') trackEvent('plan_unparseable_on_load', { tipo });
+      console.error('[CoachAI] self-heal FALLÓ — el', tipo, 'guardado sigue sin parsear');
+      continue;
+    }
+    // Re-guardar EN SU LUGAR — preservar el slot original (semana/fecha), NO
+    // crear uno nuevo de la semana actual (saveWeeklyPlan haría eso).
+    try {
+      const { error } = await sbClient.from('planes_semanales')
+        .update({ contenido: healed, updated_at: new Date().toISOString() })
+        .eq('usuario_id', currentUser.id)
+        .eq('tipo', tipo)
+        .eq('semana_iso', plan.semana_iso);
+      if (error) { console.error('[CoachAI] self-heal save error', error); continue; }
+    } catch (e) { console.error('[CoachAI] self-heal save threw', e); continue; }
+    weeklyPlans[tipo].contenido = healed;
+    if (typeof trackEvent === 'function') trackEvent('plan_self_healed', { tipo });
+    console.info('[CoachAI] self-heal OK —', tipo, 'reparado y re-guardado en su lugar');
+    // Re-render lo que esté visible (mismo patrón que el post-load de launchCoach).
+    try { refreshQuickButtons(); } catch (e) {}
+    try {
+      const homeVisible = document.getElementById('home-wrapper')?.style.display === 'block';
+      if (homeVisible && typeof renderHome === 'function') renderHome();
+    } catch (e) {}
+  }
+}
+
 async function saveWeeklyPlan(tipo, contenido) {
   if (!sbClient || !currentUser) return null;
   const semana = getISOWeekKey();
@@ -15690,6 +15740,12 @@ async function launchCoach() {
       try { renderHome(); } catch (e) { console.warn('[home] post-load re-render:', e); }
     }
   }
+
+  // SELF-HEAL (refuerzo #2) — en background, sin bloquear la carga: si un plan
+  // activo guardado quedó roto (no parsea), lo repara con un reformateo y lo
+  // re-guarda en su lugar. No-op si todo parsea (caso común). Ver selfHealPlans.
+  _selfHealAttempted = { rutina: false, dieta: false };
+  selfHealPlans().catch(e => console.warn('[CoachAI] selfHealPlans:', e));
 
   // Build the recent (last 7 days) summary slice used by buildHistorySummary().
   recentChatHistory = allChatHistory.slice(-7).slice().reverse();
