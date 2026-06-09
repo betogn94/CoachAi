@@ -1303,7 +1303,7 @@
       dashboard:    { label: 'Dashboard',     render: renderDashboard },
       tenants:      { label: 'Tenants',       render: renderTenantsList },
       users:        { label: 'Usuarios',      render: () => placeholder('Usuarios', 'Vista global de todos los usuarios (across tenants). Llega luego — entrá por Tenants → click un tenant para ver sus usuarios.') },
-      financiero:   { label: 'Financiero',    render: () => placeholder('Financiero', 'Suscripciones, pagos, vencimientos. Stripe + Mercado Pago + transferencia manual. Fase 4–6.') },
+      financiero:   { label: 'Financiero',    render: renderFinanciero },
       costos:       { label: 'API / Costos',  render: renderCostos },
       dieta_alerts: { label: 'Alertas dietas', render: renderDietaAlerts },
       logs:         { label: 'Logs',          render: () => placeholder('Logs', 'Eventos del sistema, errores, bug reports de usuarios. Próxima iteración.') },
@@ -2032,6 +2032,256 @@
         toast('Costo agregado', 'success');
         close();
         loadCostsTable();
+      });
+    }
+
+    // ---------- Views: FINANCIERO (Ingresos) ----------
+    function fmtMoney(n, cur) {
+      const c = cur || 'ARS';
+      try {
+        return new Intl.NumberFormat('es-AR', { style: 'currency', currency: c, maximumFractionDigits: c === 'ARS' ? 0 : 2 }).format(Number(n) || 0);
+      } catch (e) { return (c === 'USD' ? 'US$' : '$') + (Number(n) || 0).toLocaleString('es-AR'); }
+    }
+    const _REV_METHOD_LABEL  = { transferencia: 'Transferencia', efectivo: 'Efectivo', mercadopago: 'Mercado Pago', tarjeta: 'Tarjeta', stripe: 'Stripe', otro: 'Otro' };
+    const _REV_CONCEPT_LABEL = { suscripcion: 'Suscripción', paquete: 'Paquete', whitelabel: 'Whitelabel', otro: 'Otro' };
+    const _REV_PERIOD_LABEL  = { mensual: 'Mensual', anual: 'Anual', unico: 'Único' };
+
+    async function renderFinanciero(el) {
+      el.innerHTML = `
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Financiero</h1>
+            <p class="page-sub">Ingresos cargados a mano: suscripciones de clientas, paquetes de coaches/gyms y whitelabel. Stripe se suma acá cuando esté.</p>
+          </div>
+          <button class="btn btn-primary-sm" id="addRevBtn">+ Nuevo ingreso</button>
+        </div>
+        <div id="revTotals" class="cards-grid"></div>
+        <div id="revTable" class="table-wrap" style="margin-top:8px;"><div class="placeholder"><span class="spinner"></span> &nbsp; Cargando…</div></div>
+      `;
+      document.getElementById('addRevBtn').addEventListener('click', openAddRevenueModal);
+      await loadRevenueTable();
+    }
+
+    function renderRevenueRow(r) {
+      const t = r.tenants, u = r.usuarios;
+      const who = (u && u.nombre) || r.cliente_nombre || (r.payer_type === 'tenant' ? (t ? t.name : 'Coach/Gym') : '—');
+      const sub = (u && u.email)
+        ? `<div class="cell-mono cell-dim" style="font-size:11px;">${escapeHtml(u.email)}</div>`
+        : (r.payer_type === 'tenant' ? `<div class="cell-dim" style="font-size:11px;">Coach/Gym (B2B)</div>` : '');
+      const tenantCell = t ? `<span class="badge badge-accent">${escapeHtml(t.slug)}</span>` : '<span class="cell-dim">—</span>';
+      let conceptTxt = _REV_CONCEPT_LABEL[r.concept] || r.concept;
+      if (r.concept === 'paquete' && r.paquete_usuarios) conceptTxt += ` · ${r.paquete_usuarios} usuarios`;
+      const recurBadge = r.recurring ? '' : '<div class="cell-dim" style="font-size:11px;">no recurrente</div>';
+      const srcBadge = r.source === 'stripe' ? '<span class="badge badge-accent">Stripe</span>' : '<span class="badge">Manual</span>';
+      const notes = r.notes ? `<div class="cell-dim" style="font-size:11px;">${escapeHtml(r.notes)}</div>` : '';
+      return `
+        <tr data-id="${escapeHtml(r.id)}">
+          <td class="cell-mono">${fmtDate(r.period_start)}</td>
+          <td><div style="font-weight:500;">${escapeHtml(who)}</div>${sub}${notes}</td>
+          <td>${tenantCell}</td>
+          <td>${escapeHtml(conceptTxt)}</td>
+          <td class="cell-dim">${escapeHtml(_REV_METHOD_LABEL[r.payment_method] || r.payment_method)}</td>
+          <td class="cell-dim">${escapeHtml(_REV_PERIOD_LABEL[r.billing_period] || r.billing_period)}${recurBadge}</td>
+          <td class="cell-right cell-mono">${fmtMoney(r.amount, r.currency)}</td>
+          <td>${srcBadge}</td>
+          <td class="cell-right"><button class="btn btn-danger-ghost" data-delete="${escapeHtml(r.id)}" title="Eliminar">×</button></td>
+        </tr>
+      `;
+    }
+
+    async function loadRevenueTable() {
+      const wrap = document.getElementById('revTable');
+      const totalsEl = document.getElementById('revTotals');
+      const { ok, data } = await api('/api/tower/revenue');
+      if (!ok || !data?.ok) {
+        wrap.innerHTML = `<div class="placeholder"><strong>Error</strong>${escapeHtml(data?.detail || data?.error || 'No se pudo cargar')}</div>`;
+        return;
+      }
+      const rows = data.revenue;
+      const byCur = data.totals.by_currency || {};
+      const curs = Object.keys(byCur);
+      let cards = '';
+      if (!curs.length) {
+        cards = statCard('Ingresos del mes', '$0', 'Sin ingresos cargados');
+      } else {
+        for (const cur of curs) {
+          cards += statCard(`Este mes (${cur})`, fmtMoney(byCur[cur].month, cur), 'Ingresos del mes actual');
+          cards += statCard(`MRR (${cur})`, fmtMoney(byCur[cur].mrr, cur), 'Recurrente mensual estimado');
+        }
+      }
+      cards += statCard('Registros', fmtInt(data.totals.count), 'Ingresos totales cargados');
+      totalsEl.innerHTML = cards;
+
+      if (!rows.length) {
+        wrap.innerHTML = `<div class="placeholder"><strong>Sin ingresos cargados</strong>Cargá el primero con el botón "+ Nuevo ingreso".</div>`;
+        return;
+      }
+      wrap.innerHTML = `
+        <table class="data-table">
+          <thead><tr>
+            <th>Fecha</th><th>Cliente</th><th>Coach</th><th>Concepto</th>
+            <th>Medio</th><th>Frecuencia</th><th class="cell-right">Monto</th><th>Origen</th><th></th>
+          </tr></thead>
+          <tbody>${rows.map(r => renderRevenueRow(r)).join('')}</tbody>
+        </table>
+      `;
+      wrap.querySelectorAll('[data-delete]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('¿Eliminar este ingreso?')) return;
+          const { ok } = await api(`/api/tower/revenue?id=${encodeURIComponent(btn.dataset.delete)}`, { method: 'DELETE' });
+          if (ok) { toast('Ingreso eliminado', 'success'); loadRevenueTable(); }
+          else { toast('No se pudo eliminar', 'error'); }
+        });
+      });
+    }
+
+    async function openAddRevenueModal() {
+      const tenants = await loadTenantsForSelect();
+      const today = todayIso();
+      const html = `
+        <h2>Nuevo ingreso</h2>
+        <div class="form-grid-2">
+          <div class="field">
+            <label>Pagador</label>
+            <select id="rv_payer">
+              <option value="usuario">Cliente final (clienta)</option>
+              <option value="tenant">Coach / Gym (B2B)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Coach / Tenant</label>
+            <select id="rv_tenant">
+              <option value="">— Sin asignar</option>
+              ${tenants.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Nombre del cliente</label>
+          <input id="rv_nombre" type="text" placeholder="Ej: Milagros Alonso (o el nombre del coach/gym)" autocomplete="off">
+        </div>
+        <div class="form-grid-2">
+          <div class="field">
+            <label>Concepto</label>
+            <select id="rv_concept">
+              <option value="suscripcion">Suscripción</option>
+              <option value="paquete">Paquete de usuarios</option>
+              <option value="whitelabel">Whitelabel</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div class="field" id="rv_paquete_field" style="display:none;">
+            <label>Cant. usuarios (paquete)</label>
+            <input id="rv_paquete" type="number" min="1" step="1" placeholder="Ej: 50">
+          </div>
+        </div>
+        <div class="form-grid-2">
+          <div class="field">
+            <label>Monto</label>
+            <input id="rv_amount" type="number" step="0.01" min="0" placeholder="0.00" required>
+          </div>
+          <div class="field">
+            <label>Moneda</label>
+            <select id="rv_currency">
+              <option value="ARS">ARS (pesos)</option>
+              <option value="USD">USD (dólares)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid-2">
+          <div class="field">
+            <label>Medio de pago</label>
+            <select id="rv_method">
+              <option value="transferencia">Transferencia</option>
+              <option value="efectivo">Efectivo</option>
+              <option value="mercadopago">Mercado Pago</option>
+              <option value="tarjeta">Tarjeta</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Frecuencia</label>
+            <select id="rv_period">
+              <option value="mensual">Mensual</option>
+              <option value="anual">Anual (÷12 para MRR)</option>
+              <option value="unico">Único</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid-2">
+          <div class="field">
+            <label>Fecha del cobro</label>
+            <input id="rv_start" type="date" value="${today}" required>
+          </div>
+          <div class="field" style="display:flex;align-items:flex-end;gap:8px;padding-bottom:8px;">
+            <input id="rv_recurring" type="checkbox" checked style="width:auto;">
+            <label for="rv_recurring" style="margin:0;cursor:pointer;">Recurrente (MRR)</label>
+          </div>
+        </div>
+        <div class="field">
+          <label>Notas (opcional)</label>
+          <textarea id="rv_notes" placeholder="Detalle, comprobante, etc."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn" data-modal-action="cancel">Cancelar</button>
+          <button class="btn btn-primary-sm" id="rv_save">Guardar</button>
+        </div>
+      `;
+      const back = document.createElement('div');
+      back.className = 'modal-backdrop';
+      back.innerHTML = `<div class="modal">${html}</div>`;
+      document.body.appendChild(back);
+      lockBodyScroll();
+      const close = () => { back.remove(); unlockBodyScroll(); };
+      back.addEventListener('click', (e) => {
+        if (e.target === back) close();
+        if (e.target.matches('[data-modal-action="cancel"]')) close();
+      });
+      setTimeout(() => back.querySelector('#rv_amount')?.focus(), 50);
+
+      const conceptEl = back.querySelector('#rv_concept');
+      const paqueteField = back.querySelector('#rv_paquete_field');
+      const payerEl = back.querySelector('#rv_payer');
+      const periodEl = back.querySelector('#rv_period');
+      const recurringEl = back.querySelector('#rv_recurring');
+      function syncFields() {
+        paqueteField.style.display = (conceptEl.value === 'paquete') ? '' : 'none';
+        recurringEl.checked = (periodEl.value !== 'unico');
+      }
+      conceptEl.addEventListener('change', syncFields);
+      periodEl.addEventListener('change', syncFields);
+      payerEl.addEventListener('change', () => {
+        // Un coach/gym normalmente paga por paquete, no por suscripción individual
+        if (payerEl.value === 'tenant' && conceptEl.value === 'suscripcion') { conceptEl.value = 'paquete'; }
+        syncFields();
+      });
+      syncFields();
+
+      back.querySelector('#rv_save').addEventListener('click', async () => {
+        const payload = {
+          payer_type: payerEl.value,
+          tenant_id: back.querySelector('#rv_tenant').value || null,
+          cliente_nombre: back.querySelector('#rv_nombre').value.trim() || null,
+          concept: conceptEl.value,
+          paquete_usuarios: conceptEl.value === 'paquete' ? (parseInt(back.querySelector('#rv_paquete').value, 10) || null) : null,
+          amount: parseFloat(back.querySelector('#rv_amount').value),
+          currency: back.querySelector('#rv_currency').value,
+          payment_method: back.querySelector('#rv_method').value,
+          billing_period: periodEl.value,
+          recurring: recurringEl.checked,
+          period_start: back.querySelector('#rv_start').value,
+          notes: back.querySelector('#rv_notes').value.trim() || null,
+        };
+        if (!(payload.amount >= 0)) return toast('Monto inválido', 'error');
+        if (!payload.period_start) return toast('Falta la fecha del cobro', 'error');
+        const btn = back.querySelector('#rv_save');
+        btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+        const { ok, data } = await api('/api/tower/revenue', { method: 'POST', body: JSON.stringify(payload) });
+        btn.disabled = false; btn.textContent = 'Guardar';
+        if (!ok || !data?.ok) { toast(data?.error || 'No se pudo guardar', 'error'); return; }
+        toast('Ingreso agregado', 'success');
+        close();
+        loadRevenueTable();
       });
     }
 
