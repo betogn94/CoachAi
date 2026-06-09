@@ -1,11 +1,17 @@
 // POST /api/tower/login  { username, password }
 // On success, sets HttpOnly session cookie and returns { ok:true, user }.
 
-import { checkCredentials, signSession, setSessionCookie, SESSION_TTL_MS } from './_auth.js';
+import { checkCredentials, signSession, setSessionCookie, clearSessionCookie, SESSION_TTL_MS } from './_auth.js';
 
 export default async function handler(req, res) {
+  // DELETE = logout. Consolidado en este endpoint (antes /api/tower/logout) para
+  // no superar el límite de 12 Serverless Functions del plan Hobby de Vercel.
+  if (req.method === 'DELETE') {
+    clearSessionCookie(res);
+    return res.status(200).json({ ok: true });
+  }
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
+    res.setHeader('Allow', 'POST, DELETE');
     return res.status(405).json({ ok: false, error: 'method_not_allowed' });
   }
 

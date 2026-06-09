@@ -1172,7 +1172,7 @@
     });
 
     logoutBtn.addEventListener('click', async () => {
-      await api('/api/tower/logout', { method: 'POST' });
+      await api('/api/tower/login', { method: 'DELETE' });
       session = null;
       showLogin();
     });
