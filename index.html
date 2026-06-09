@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260609-1238-deploy">
+<meta name="app-version" content="20260609-1245-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -19683,16 +19683,20 @@ function renderHomeKcalChart() {
   const dayIdx = _alimDays.indexOf(day);
   const estado = _alimEstado || {};
 
-  let doneKcal = 0, totalKcal = 0;
+  let doneKcal = 0, totalKcal = 0, plannedDayKcal = 0;
   const bars = day.meals.map((m, j) => {
     const st = estado[`d${dayIdx}m${j}`] || {};
     const k = st.customText ? (st.customKcal || 0) : (m.kcal || 0);
     totalKcal += k;
+    plannedDayKcal += (m.kcal || 0); // plan puro del día (sin ediciones), igual que Mi Alimentación
     if (st.cumplido) doneKcal += k;
     return { name: m.name, kcal: k, done: !!st.cumplido };
   });
-  // Use plan target if present, else fall back to sum of planned meals
-  const target = (_alimHeader?.targetKcal) || totalKcal || 0;
+  // Target = lo que el coach planificó para HOY (suma del plan del día), idéntico al
+  // contador de Mi Alimentación (plannedDayKcal). Así al cumplir las comidas done =
+  // target exacto y ambas pantallas muestran el mismo número. El header derivado
+  // queda de fallback para dietas sin kcal por comida.
+  const target = plannedDayKcal || (_alimHeader?.targetKcal) || 0;
   if (doneEl) doneEl.textContent = doneKcal.toLocaleString(isEs ? 'es-AR' : 'en-US');
   if (targetEl) targetEl.textContent = target ? `/ ${target.toLocaleString(isEs?'es-AR':'en-US')} ${isEs?'KCAL':'KCAL'}` : '';
 
