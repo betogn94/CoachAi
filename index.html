@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260608-2333-deploy">
+<meta name="app-version" content="20260609-1238-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -20796,6 +20796,33 @@ function parseDietaContenido(text) {
     }
   }
 
+  // COHERENCIA OBJETIVO ↔ DIETA: el "objetivo diario" (header) debe reflejar lo
+  // que realmente suma la dieta. Si las comidas traen kcal/macros, derivamos el
+  // header del PROMEDIO de los días (la fuente de verdad de lo que el usuario come
+  // si cumple el plan). La línea "Target:" del texto queda solo como fallback para
+  // dietas sin kcal por comida. Sin esto CoachAI se contradecía: el card decía
+  // p.ej. 2320 kcal pero la dieta sumaba 1820, el "cumplí mi dieta" no daba
+  // sensación de logro, y el análisis del cierre reportaba un "déficit" FALSO de
+  // ~500 kcal/día contra un objetivo que la propia app jamás iba a alcanzar con
+  // ese plan. Ahora cumplir la dieta = cumplir el objetivo, en card + gráfico +
+  // análisis (todos leen este header).
+  const _deriveHeader = (hdr, dayList) => {
+    const withK = (dayList || []).filter(d => d.meals && d.meals.some(m => m.kcal != null));
+    if (!withK.length) return hdr;
+    const sumDay = (d, fn) => d.meals.reduce((s, m) => s + (fn(m) || 0), 0);
+    const avg = (fn) => Math.round(withK.reduce((s, d) => s + sumDay(d, fn), 0) / withK.length);
+    const dk = avg(m => m.kcal);
+    if (dk <= 0) return hdr;
+    const out = { ...(hdr || {}) };
+    out.targetKcal = dk;
+    if (withK.some(d => d.meals.some(m => m.prot != null))) {
+      out.targetProt  = avg(m => m.prot);
+      out.targetCarbs = avg(m => m.carbs);
+      out.targetFat   = avg(m => m.fat);
+    }
+    return out;
+  };
+
   // Template mode: a single day with meals is a common style for trainers
   // who give "the same dieta every day" (Jesús writes Virginia like this).
   // Replicate the day to all 7 so the user can navigate Lun→Dom and see the
@@ -20814,10 +20841,10 @@ function parseDietaContenido(text) {
       meals: template.meals.map(m => ({ ...m })),
       totalKcal: template.totalKcal,
     }));
-    return { header, days: expanded };
+    return { header: _deriveHeader(header, expanded), days: expanded };
   }
 
-  return { header, days };
+  return { header: _deriveHeader(header, days), days };
 }
 
 // ============================
