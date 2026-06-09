@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
-    "resend": "^4.0.0"
+    "resend": "^4.0.0",
+    "stripe": "^17.7.0"
   },
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",

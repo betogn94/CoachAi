@@ -337,7 +337,11 @@ export default async function handler(req, res) {
   // abused as a free email-sender. Proper admin auth comes in F1.
   const origin = req.headers.origin || req.headers.referer || '';
   const isAllowed = ALLOWED_ORIGINS.some(o => origin.startsWith(o));
-  if (!isAllowed) {
+  // Llamada server-to-server (ej: el webhook de Stripe) con llave interna —
+  // no tiene Origin header, así que se autentica con x-internal-key.
+  const isInternal = !!process.env.INTERNAL_API_KEY
+    && req.headers['x-internal-key'] === process.env.INTERNAL_API_KEY;
+  if (!isAllowed && !isInternal) {
     return res.status(403).json({ error: 'forbidden_origin' });
   }
 
