@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260610-2333-deploy">
+<meta name="app-version" content="20260610-2354-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -18947,6 +18947,23 @@ async function ejecutarCierreSemana() {
     try {
       await sbClient.from('cierres_semanales').upsert([lastCierrePending], { onConflict: 'usuario_id,semana_num' });
       lastCierrePending = null; // success — clear cache
+      // Reabrir el ciclo EN CALIENTE. El cierre que acabamos de guardar hace que
+      // los planes entregados antes del fin de esta semana pasen a closed=true.
+      // Sin esto, en la MISMA sesión: (a) los quick-buttons "Dieta/Rutina de la
+      // semana" seguían ocultos (refreshQuickButtons lee weeklyPlans[t].closed,
+      // que solo se calcula en loadCurrentWeekPlans al iniciar la app), y (b) el
+      // system prompt seguía marcando el plan como ACTIVO con la regla "no
+      // regeneres" → el cliente quedaba trabado hasta recargar la app.
+      // Recargamos weeklyPlans (recalcula closed), limpiamos los botones
+      // descartados esta sesión y refrescamos la fila para que pueda pedir su
+      // plan de la semana nueva sin recargar.
+      try {
+        weeklyPlans = await loadCurrentWeekPlans();
+        dismissedPlanButtons.clear();
+        if (typeof refreshQuickButtons === 'function') refreshQuickButtons();
+      } catch (e2) {
+        console.warn('[cierre] no se pudo refrescar weeklyPlans post-cierre:', e2?.message || e2);
+      }
       await renderSemanas();
     } catch(e) {
       console.error('Post-analysis save/refresh failed (analysis still shown):', e);
