@@ -82,7 +82,24 @@ async function tenantIdBySlug(slug) {
 // Cada cobro mensual (incluido el primero) → 1 ingreso en tower_revenue.
 async function handleInvoicePaid(invoice) {
   const stripeId = invoice.id; // único por factura
-  // Idempotencia: si ya registramos esta factura, salir.
+  const email = invoice.customer_email || null;
+
+  // Fin del período que ESTE pago cubre. Vive en la línea de la suscripción
+  // (lines.data[].period.end), NO en invoice.period_end: ese último es el
+  // período YA facturado (pasado) y, usado acá, bloquearía al cliente apenas
+  // paga. Confirmado en la doc de Stripe. Si no hay línea (caso patológico),
+  // NO extendemos: es más seguro dejar el acceso intacto que setear una fecha
+  // incorrecta (fail-open).
+  const periodEnd = invoice.lines?.data?.[0]?.period?.end || null;
+  if (!periodEnd) {
+    console.warn('[stripe] invoice sin lines[].period.end; no se extiende acceso:', stripeId);
+  }
+  // Extender acceso ANTES del dedup del ingreso: si Stripe reintenta el webhook
+  // tras un fallo parcial (p. ej. murió entre el insert y esta línea), el
+  // reintento igual garantiza el acceso. Es idempotente (setea la misma fecha).
+  await extendAccess(email, periodEnd);
+
+  // Idempotencia del ingreso: si ya registramos esta factura, no duplicar.
   const existing = await sb(`/tower_revenue?stripe_payment_id=eq.${encodeURIComponent(stripeId)}&select=id&limit=1`);
   if (existing && existing.length) return;
 
@@ -94,7 +111,6 @@ async function handleInvoicePaid(invoice) {
 
   const amount = (invoice.amount_paid || 0) / 100;
   const currency = normalizeCurrency(invoice.currency);
-  const email = invoice.customer_email || null;
   const name  = invoice.customer_name || email || 'Cliente Stripe';
   const periodStart = invoice.period_start
     ? new Date(invoice.period_start * 1000).toISOString().slice(0, 10)
@@ -120,12 +136,6 @@ async function handleInvoicePaid(invoice) {
     },
     prefer: 'return=minimal',
   });
-
-  // Extender el acceso a la app hasta el fin del período pagado (control de
-  // acceso por suscripción). Se aplica en usuarios (si ya onboardeó) Y en
-  // beta_invitados (para que el usuario lo herede al onboardear).
-  const periodEnd = invoice.lines?.data?.[0]?.period?.end || invoice.period_end || null;
-  await extendAccess(email, periodEnd);
 }
 
 // Extiende acceso_hasta del cliente (por email) hasta el fin del período pagado.
