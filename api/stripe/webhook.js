@@ -120,6 +120,25 @@ async function handleInvoicePaid(invoice) {
     },
     prefer: 'return=minimal',
   });
+
+  // Extender el acceso a la app hasta el fin del período pagado (control de
+  // acceso por suscripción). Se aplica en usuarios (si ya onboardeó) Y en
+  // beta_invitados (para que el usuario lo herede al onboardear).
+  const periodEnd = invoice.lines?.data?.[0]?.period?.end || invoice.period_end || null;
+  await extendAccess(email, periodEnd);
+}
+
+// Extiende acceso_hasta del cliente (por email) hasta el fin del período pagado.
+async function extendAccess(email, periodEndUnix) {
+  if (!email || !periodEndUnix) return;
+  const e = String(email).toLowerCase();
+  const hasta = new Date(periodEndUnix * 1000).toISOString();
+  try {
+    await sb(`/usuarios?email=eq.${encodeURIComponent(e)}`, { method: 'PATCH', body: { acceso_hasta: hasta }, prefer: 'return=minimal' });
+  } catch (err) { console.warn('[stripe] extendAccess usuarios:', err?.message); }
+  try {
+    await sb(`/beta_invitados?email=eq.${encodeURIComponent(e)}`, { method: 'PATCH', body: { acceso_hasta: hasta }, prefer: 'return=minimal' });
+  } catch (err) { console.warn('[stripe] extendAccess invitados:', err?.message); }
 }
 
 // Primera compra → alta del cliente (beta_invitados) + email de invitación.

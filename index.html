@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260609-1245-deploy">
+<meta name="app-version" content="20260610-2204-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12792,7 +12792,7 @@ async function loginOrRegister(email, nombre) {
   // tenant correcto (un whitelabel client aterriza en su tenant desde el
   // primer login).
   const { data: invite } = await sbClient
-    .from('beta_invitados').select('email,tenant_slug').eq('email', email).maybeSingle();
+    .from('beta_invitados').select('email,tenant_slug,acceso_hasta').eq('email', email).maybeSingle();
   if (!invite) {
     return { notInvited: true };
   }
@@ -12832,6 +12832,9 @@ async function loginOrRegister(email, nombre) {
 
   const insertRow = { email, nombre };
   if (inviteTenantId) insertRow.tenant_id = inviteTenantId;
+  // Hereda el vencimiento de acceso desde la invitación (control de suscripción).
+  // Si la invitación no tiene fecha (amigos/parientes en default), queda NULL = permanente.
+  if (invite.acceso_hasta) insertRow.acceso_hasta = invite.acceso_hasta;
 
   const { data: newUser, error } = await sbClient.from('usuarios').insert([insertRow]).select().single();
   if (error) throw error;
@@ -15723,7 +15726,60 @@ async function migrateClientPreloadedPlans() {
   }
 }
 
+// ── Gate de suscripción ──────────────────────────────────────────────────
+// Un cliente cuyo acceso venció (acceso_hasta en el pasado) no entra a la app:
+// ve la pantalla de renovación. Reglas:
+//   - Coaches/admins/owners NUNCA se bloquean (no son clientes que pagan).
+//   - Sin fecha (acceso_hasta NULL) = acceso permanente: amigos/parientes en el
+//     tenant default, o cuentas sin gate de suscripción.
+//   - Fecha inválida → fail-open (no bloquear), nunca dejar a alguien afuera por
+//     un dato corrupto.
+// Link de pago para renovar (Stripe Payment Link). Vacío hasta que Jesús cree el
+// precio bonificado; mientras tanto la pantalla muestra "contactá a tu coach".
+const RENEW_URL = '';
+function isAccessBlocked(user) {
+  if (!user) return false;
+  const role = String(user.role || '').toLowerCase();
+  if (role === 'admin' || role === 'coach' || role === 'owner') return false;
+  if (!user.acceso_hasta) return false;
+  const t = new Date(user.acceso_hasta).getTime();
+  if (!isFinite(t)) return false;
+  return t < Date.now();
+}
+
+function showRenewScreen(user) {
+  // Overlay full-screen que tapa la app. Idempotente.
+  if (document.getElementById('renew-overlay')) return;
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent-bright').trim() || '#7c5cff';
+  const ov = document.createElement('div');
+  ov.id = 'renew-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0a0a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;font-family:inherit;gap:18px';
+  const cta = RENEW_URL
+    ? `<a href="${RENEW_URL}" style="display:inline-block;background:${accent};color:#fff;text-decoration:none;font-weight:700;padding:14px 26px;border-radius:12px;font-size:15px;letter-spacing:.02em">Renovar ahora →</a>`
+    : `<div style="opacity:.8;font-size:14px;line-height:1.6;max-width:340px">Comunicate con tu coach para reactivar tu acceso. Apenas renueves tu suscripción, volvés a entrar automáticamente.</div>`;
+  ov.innerHTML =
+    `<div style="font-size:46px">🔒</div>` +
+    `<div style="font-size:22px;font-weight:800;letter-spacing:.01em">Tu acceso expiró</div>` +
+    `<div style="opacity:.75;font-size:14.5px;line-height:1.6;max-width:360px">Tu suscripción a CoachAI venció. Renovala para seguir con tu plan, tu chat y tu progreso intactos.</div>` +
+    cta +
+    `<button id="renew-logout" type="button" style="background:transparent;color:#888;border:0;margin-top:8px;cursor:pointer;font-family:inherit;font-size:13px;text-decoration:underline">Cerrar sesión</button>`;
+  document.body.appendChild(ov);
+  const lo = document.getElementById('renew-logout');
+  if (lo) lo.addEventListener('click', () => {
+    clearSession();
+    try { localStorage.removeItem(LS_SESSION); } catch (e) {}
+    window.location.reload();
+  });
+}
+
 async function launchCoach() {
+  // Gate de suscripción: si el acceso del cliente venció, mostramos la pantalla
+  // de renovación en vez de la app. Excluye el preview ?as= del coach (impersonate)
+  // y, vía isAccessBlocked(), a coaches/admins. Ver showRenewScreen().
+  if (!_getImpersonateUid() && isAccessBlocked(currentUser)) {
+    showRenewScreen(currentUser);
+    return;
+  }
   // Upload initial photo if selected
   uploadFotoInicial().catch(console.error);
 
