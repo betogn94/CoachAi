@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260611-0215-deploy">
+<meta name="app-version" content="20260611-1823-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15768,9 +15768,11 @@ async function migrateClientPreloadedPlans() {
 //     tenant default, o cuentas sin gate de suscripción.
 //   - Fecha inválida → fail-open (no bloquear), nunca dejar a alguien afuera por
 //     un dato corrupto.
-// Link de pago para renovar (Stripe Payment Link). Vacío hasta que Jesús cree el
-// precio bonificado; mientras tanto la pantalla muestra "contactá a tu coach".
-const RENEW_URL = '';
+// Link de pago para renovar (Stripe Payment Link de la suscripción $19.99/mes).
+// En showRenewScreen se le agrega ?prefilled_email con el email del cliente para
+// que el pago se asocie a SU cuenta: el webhook lo reconoce por email y le
+// extiende acceso_hasta. Si pagara con otro email, no se le renovaría el acceso.
+const RENEW_URL = 'https://buy.stripe.com/dRm7sDar54mDguZ0aW8g01s';
 function isAccessBlocked(user) {
   if (!user) return false;
   const role = String(user.role || '').toLowerCase();
@@ -15788,8 +15790,11 @@ function showRenewScreen(user) {
   const ov = document.createElement('div');
   ov.id = 'renew-overlay';
   ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0a0a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;font-family:inherit;gap:18px';
-  const cta = RENEW_URL
-    ? `<a href="${RENEW_URL}" style="display:inline-block;background:${accent};color:#fff;text-decoration:none;font-weight:700;padding:14px 26px;border-radius:12px;font-size:15px;letter-spacing:.02em">Renovar ahora →</a>`
+  const renewUrl = (RENEW_URL && user?.email)
+    ? `${RENEW_URL}?prefilled_email=${encodeURIComponent(user.email)}`
+    : RENEW_URL;
+  const cta = renewUrl
+    ? `<a href="${renewUrl}" style="display:inline-block;background:${accent};color:#fff;text-decoration:none;font-weight:700;padding:14px 26px;border-radius:12px;font-size:15px;letter-spacing:.02em">Renovar ahora →</a>`
     : `<div style="opacity:.8;font-size:14px;line-height:1.6;max-width:340px">Comunicate con tu coach para reactivar tu acceso. Apenas renueves tu suscripción, volvés a entrar automáticamente.</div>`;
   ov.innerHTML =
     `<div style="font-size:46px">🔒</div>` +
