@@ -966,6 +966,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>
         Dashboard
       </div>
+      <div class="nav-item" data-route="metricas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+        Métricas
+      </div>
       <div class="nav-item" data-route="tenants">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V8l9-5 9 5v13"></path><path d="M9 21v-6h6v6"></path></svg>
         Tenants
@@ -1301,6 +1305,7 @@
 
     const ROUTES = {
       dashboard:    { label: 'Dashboard',     render: renderDashboard },
+      metricas:     { label: 'Métricas',      render: renderMetricas },
       tenants:      { label: 'Tenants',       render: renderTenantsList },
       users:        { label: 'Usuarios',      render: () => placeholder('Usuarios', 'Vista global de todos los usuarios (across tenants). Llega luego — entrá por Tenants → click un tenant para ver sus usuarios.') },
       financiero:   { label: 'Financiero',    render: renderFinanciero },
@@ -1473,6 +1478,140 @@
         <div class="stat-value"><span class="spinner"></span></div>
         <div class="stat-sub">cargando…</div>
       </div>`;
+    }
+
+    // ---------- Views: MÉTRICAS ----------
+    const CHART_COLOR = '#7c5cff';
+    function fmtMoney(n) {
+      const v = Math.round((Number(n) || 0) * 100) / 100;
+      return v.toLocaleString('es-AR', { maximumFractionDigits: 2 });
+    }
+    function emptyChart(msg) {
+      return `<div class="stat-sub" style="padding:18px 4px; opacity:.65;">${escapeHtml(msg)}</div>`;
+    }
+    // Gráfico de barras simple en SVG. items: [{label, value}]
+    function barChart(items) {
+      if (!items || !items.length) return emptyChart('Sin datos');
+      const max = Math.max(1, ...items.map(i => Number(i.value) || 0));
+      const n = items.length;
+      const W = Math.max(n * 42, 220), H = 130, pad = 16;
+      const slot = (W - pad * 2) / n;
+      const bw = Math.max(8, slot - 8);
+      let svg = '';
+      items.forEach((it, idx) => {
+        const v = Number(it.value) || 0;
+        const x = pad + idx * slot + (slot - bw) / 2;
+        const h = (v / max) * (H - 40);
+        const y = H - 22 - h;
+        svg += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0, h).toFixed(1)}" rx="3" fill="${CHART_COLOR}"></rect>`;
+        svg += `<text x="${(x + bw / 2).toFixed(1)}" y="${(y - 4).toFixed(1)}" font-size="9" text-anchor="middle" fill="currentColor" opacity="0.85">${escapeHtml(String(v))}</text>`;
+        svg += `<text x="${(x + bw / 2).toFixed(1)}" y="${H - 6}" font-size="8" text-anchor="middle" fill="currentColor" opacity="0.55">${escapeHtml(String(it.label))}</text>`;
+      });
+      return `<svg viewBox="0 0 ${W} ${H}" style="width:100%; height:auto; margin-top:10px;">${svg}</svg>`;
+    }
+    // Gráfico de línea simple en SVG. items: [{label, value}]
+    function lineChart(items) {
+      if (!items || !items.length) return emptyChart('Sin datos');
+      const max = Math.max(1, ...items.map(i => Number(i.value) || 0));
+      const n = items.length;
+      const W = 640, H = 140, pad = 24;
+      const xstep = (W - pad * 2) / Math.max(1, n - 1);
+      const pts = items.map((it, i) => [pad + i * xstep, H - 24 - ((Number(it.value) || 0) / max) * (H - 44)]);
+      const path = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+      const area = `M${pts[0][0].toFixed(1)},${(H - 24).toFixed(1)} ` + pts.map(p => `L${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ') + ` L${pts[n - 1][0].toFixed(1)},${(H - 24).toFixed(1)} Z`;
+      const lbl = (i) => items[i] ? `<text x="${pts[i][0].toFixed(1)}" y="${H - 6}" font-size="8" text-anchor="middle" fill="currentColor" opacity="0.55">${escapeHtml(String(items[i].label))}</text>` : '';
+      const peak = Math.max(...items.map(i => Number(i.value) || 0));
+      return `<svg viewBox="0 0 ${W} ${H}" style="width:100%; height:auto; margin-top:10px;">
+        <path d="${area}" fill="${CHART_COLOR}" opacity="0.12"></path>
+        <path d="${path}" fill="none" stroke="${CHART_COLOR}" stroke-width="2" stroke-linejoin="round"></path>
+        <text x="${pad}" y="12" font-size="9" fill="currentColor" opacity="0.6">pico: ${peak}</text>
+        ${lbl(0)}${lbl(Math.floor(n / 2))}${lbl(n - 1)}
+      </svg>`;
+    }
+    function inactiveTable(users) {
+      if (!users || !users.length) {
+        return `<div class="stat-sub" style="padding:14px 4px; opacity:.75;">Ningún usuario inactivo — todos entraron en la última semana.</div>`;
+      }
+      const rows = users.slice(0, 50).map(u => {
+        const la = u.last_active ? new Date(u.last_active).toLocaleDateString('es-AR') : 'nunca';
+        return `<tr>
+          <td style="padding:6px 10px;">${escapeHtml(u.nombre)}</td>
+          <td style="padding:6px 10px; opacity:.7;">${escapeHtml(u.email)}</td>
+          <td style="padding:6px 10px;">${escapeHtml(u.tenant)}</td>
+          <td style="padding:6px 10px; opacity:.7;">${escapeHtml(u.role)}</td>
+          <td style="padding:6px 10px;">${escapeHtml(la)}</td>
+        </tr>`;
+      }).join('');
+      return `<div style="overflow-x:auto; margin-top:10px;">
+        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+          <thead><tr style="text-align:left; opacity:.6; border-bottom:1px solid rgba(255,255,255,.1);">
+            <th style="padding:6px 10px;">Nombre</th><th style="padding:6px 10px;">Email</th><th style="padding:6px 10px;">Tenant</th><th style="padding:6px 10px;">Rol</th><th style="padding:6px 10px;">Última vez</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+    }
+
+    async function renderMetricas() {
+      contentEl.innerHTML = `
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Métricas</h1>
+            <p class="page-sub">Salud del negocio en tiempo real.</p>
+          </div>
+        </div>
+        <div id="mGrid" class="cards-grid"></div>
+        <div id="mCharts"></div>
+      `;
+      const grid = document.getElementById('mGrid');
+      grid.innerHTML = `
+        ${statCardSkeleton('Usuarios activos')}
+        ${statCardSkeleton('Suscripciones activas')}
+        ${statCardSkeleton('MRR')}
+        ${statCardSkeleton('Cierres completados')}
+      `;
+
+      const { ok, data } = await api('/api/tower/dashboard?view=metrics');
+      if (!ok || !data?.ok) {
+        grid.innerHTML = `<div class="stat-card"><div class="stat-label">Error</div><div class="stat-sub">${escapeHtml(data?.detail || data?.error || 'No se pudo cargar')}</div></div>`;
+        return;
+      }
+      const m = data.metrics, c = data.charts;
+      const mrrStr = (m.mrr && Object.keys(m.mrr).length)
+        ? Object.entries(m.mrr).map(([cur, v]) => `${cur} ${fmtMoney(v)}`).join(' · ')
+        : '—';
+
+      grid.innerHTML = `
+        ${statCard('Usuarios activos', fmtInt(m.active.last_7d), `${fmtInt(m.active.today)} hoy · ${fmtInt(m.active.last_30d)} en 30d`)}
+        ${statCard('Suscripciones activas', fmtInt(m.subscriptions_active), 'Pagos Stripe vigentes')}
+        ${statCard('MRR', mrrStr, 'Ingreso recurrente mensual')}
+        ${statCard('Cierres completados', fmtInt(m.cierres.total), `${fmtInt(m.cierres.this_month)} este mes`)}
+      `;
+
+      document.getElementById('mCharts').innerHTML = `
+        <div class="stat-card" style="margin-top:16px;">
+          <div class="stat-label">Usuarios activos por día — últimos 30</div>
+          ${lineChart((c.active_over_time || []).map(d => ({ label: d.date.slice(5), value: d.count })))}
+        </div>
+        <div class="cards-grid" style="margin-top:14px;">
+          <div class="stat-card">
+            <div class="stat-label">Usuarios por tenant</div>
+            ${barChart((c.users_by_tenant || []).map(t => ({ label: t.tenant, value: t.total })))}
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Cierres por semana</div>
+            ${(c.cierres_by_week && c.cierres_by_week.length) ? barChart(c.cierres_by_week.map(w => ({ label: w.week.replace(/^\d+-/, ''), value: w.count }))) : emptyChart('Sin cierres todavía')}
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">MRR por mes</div>
+            ${(c.mrr_by_month && c.mrr_by_month.length) ? barChart(c.mrr_by_month.map(mm => ({ label: mm.month.slice(2), value: (mm.USD || 0) + (mm.ARS || 0) }))) : emptyChart('Sin ingresos recurrentes todavía')}
+          </div>
+        </div>
+        <div class="stat-card" style="margin-top:14px;">
+          <div class="stat-label">Usuarios inactivos (7+ días sin entrar) — ${fmtInt(m.inactive_count)}</div>
+          ${inactiveTable(m.inactive_users)}
+        </div>
+      `;
     }
 
     // ---------- Views: TENANTS ----------
