@@ -1,9 +1,10 @@
-// Send a beta invitation email via Resend.
+// Send the welcome email via Resend (post-compra Stripe o alta desde Studio).
 //
-// Triggered by the admin panel after a successful INSERT into beta_invitados.
-// The DB row is the source of truth — the email is the courtesy notification.
-// If this fails, the invitation still works on the DB side (the invitee can
-// still register), so we surface a soft error in the UI instead of blocking.
+// Triggered by the Stripe webhook (checkout.session.completed) or the admin
+// panel, after a row lands in beta_invitados. The DB row is the source of
+// truth — the email is the courtesy notification. If this fails, access still
+// works on the DB side (the client can still register), so we surface a soft
+// error instead of blocking.
 
 import { Resend } from 'resend';
 
@@ -141,8 +142,8 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
     .trim();
 
   const subject = safeNombre
-    ? `${safeNombre}, tu lugar en la beta de CoachAI 💪`
-    : 'Tu lugar en la beta cerrada de CoachAI 💪';
+    ? `${safeNombre}, ¡bienvenido/a a CoachAI! Tu acceso ya está activo 💪`
+    : '¡Bienvenido/a a CoachAI! Tu acceso ya está activo 💪';
 
   const greetHtml = safeNombre ? `Hola <strong style="color:${theme.accent};">${safeNombre}</strong>,` : 'Hola,';
   const greetTxt  = safeNombre ? `Hola ${safeNombre},` : 'Hola,';
@@ -155,7 +156,7 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <meta name="supported-color-schemes" content="light dark">
-  <title>CoachAI — invitación</title>
+  <title>CoachAI — bienvenida</title>
   <!--[if mso]>
   <style type="text/css">
     body, table, td, p, a { font-family: Arial, Helvetica, sans-serif !important; }
@@ -165,7 +166,7 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
 <body style="margin:0;padding:0;background:${theme.bodyBg};font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#1c1c2e;">
   <!-- Pre-header (only shows in inbox preview) -->
   <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;color:${theme.bodyBg};font-size:1px;line-height:1px;">
-    Tu coach personal con IA — rutina, dieta y seguimiento adaptados a vos. Beta exclusiva.
+    Tu coach personal con IA — rutina, dieta y seguimiento adaptados a vos. Tu acceso ya está activo.
   </div>
 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${theme.bodyBg}" style="background:${theme.bodyBg};padding:28px 12px;">
@@ -192,7 +193,7 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
                 Imaginate tener un <strong style="color:#1c1c2e;">coach experto en entrenamiento y nutrición</strong> disponible <strong style="color:#1c1c2e;">24/7 en el celular</strong>, que arma tu plan exacto y te acompaña semana a semana.
               </div>
               <div style="font-size:15px;color:#3d3d52;line-height:1.7;margin-bottom:22px;">
-                Eso es <strong style="color:${theme.accent};">CoachAI</strong>. Y te queremos como uno de los primeros en probarla.
+                Eso es <strong style="color:${theme.accent};">CoachAI</strong>, y desde hoy es tuyo: <strong style="color:#1c1c2e;">tu acceso ya está activo</strong>. 🎉
               </div>
             </td>
           </tr>
@@ -283,7 +284,7 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
                 ¿Dudas? <strong style="color:#1c1c2e;">Respondé este mail</strong> y te contestamos personalmente.
               </div>
               <div style="font-size:13.5px;color:#5a5a70;line-height:1.65;">
-                Te esperamos.<br>
+                ¡A entrenar! 💪<br>
                 <strong style="color:${theme.accent};">— Equipo CoachAI</strong>
               </div>
             </td>
@@ -293,7 +294,7 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
           <tr>
             <td bgcolor="#ffffff" style="background:#ffffff;padding:18px 32px 22px;border-top:1px solid ${theme.footerBorder};">
               <div style="font-size:11px;color:#9494a8;line-height:1.55;text-align:center;">
-                Recibiste este mail porque te invitamos a la beta cerrada de CoachAI.<br>
+                Recibiste este mail porque activaste tu suscripción a CoachAI.<br>
                 <a href="${appUrl}" style="color:${theme.footerLink};text-decoration:none;">coachaipro.ai</a>
               </div>
             </td>
@@ -312,7 +313,7 @@ ${greetTxt}
 
 Imaginate tener un coach experto en entrenamiento y nutrición disponible 24/7 en el celular, que arma tu plan exacto y te acompaña semana a semana.
 
-Eso es CoachAI. Y te queremos como uno de los primeros en probarla.
+Eso es CoachAI, y desde hoy es tuyo: tu acceso ya está activo.
 
 💪 Rutina semanal armada a tu medida
 🥗 Plan nutricional con tus gustos y restricciones
@@ -325,7 +326,7 @@ Cómo entrar: ingresá a coachaipro.ai con este mismo email. Sin clave, sin form
 
 ¿Dudas? Respondé este mail y te contestamos personalmente.
 
-Te esperamos.
+¡A entrenar!
 — Equipo CoachAI
 ${appUrl}`;
 
