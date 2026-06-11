@@ -58,6 +58,8 @@ export default async function handler(req, res) {
       await handleInvoicePaid(event.data.object, stripe);
     } else if (event.type === 'checkout.session.completed') {
       await handleCheckoutCompleted(event.data.object, stripe);
+    } else if (event.type === 'customer.subscription.deleted') {
+      await handleSubscriptionDeleted(event.data.object, stripe);
     }
     // Cualquier otro evento: 200 OK para que Stripe no reintente.
     return res.status(200).json({ received: true });
@@ -199,15 +201,17 @@ async function handleCheckoutCompleted(session, stripe) {
       prefer: 'return=minimal',
     });
   } else if (accesoHasta) {
+    // Re-suscripción: refresca el acceso y LIMPIA una marca de cancelación previa
+    // (si volvió, ya no está cancelado).
     await sb(
       `/beta_invitados?email=eq.${encodeURIComponent(email)}&tenant_slug=eq.${encodeURIComponent(slug)}`,
-      { method: 'PATCH', body: { acceso_hasta: accesoHasta }, prefer: 'return=minimal' }
+      { method: 'PATCH', body: { acceso_hasta: accesoHasta, suscripcion_cancelada_at: null }, prefer: 'return=minimal' }
     );
   }
   // Si el cliente ya onboardeó (existe en usuarios), también lo actualizamos.
   if (accesoHasta) {
     try {
-      await sb(`/usuarios?email=eq.${encodeURIComponent(email)}`, { method: 'PATCH', body: { acceso_hasta: accesoHasta }, prefer: 'return=minimal' });
+      await sb(`/usuarios?email=eq.${encodeURIComponent(email)}`, { method: 'PATCH', body: { acceso_hasta: accesoHasta, suscripcion_cancelada_at: null }, prefer: 'return=minimal' });
     } catch (e) { console.warn('[stripe] acceso_hasta usuarios:', e?.message); }
   }
 
@@ -226,4 +230,29 @@ async function handleCheckoutCompleted(session, stripe) {
   } catch (e) {
     console.error('[stripe] no se pudo disparar el email de invitación:', e?.message);
   }
+}
+
+// Cancelación de suscripción → registramos la fecha SOLO para visibilidad (churn).
+// NO tocamos acceso_hasta: el cliente mantiene acceso hasta el fin del período
+// que ya pagó y se bloquea solo al vencer (modelo "hasta fin del período pagado").
+// Si más adelante se re-suscribe, handleCheckoutCompleted limpia esta marca.
+async function handleSubscriptionDeleted(subscription, stripe) {
+  let email = null;
+  try {
+    const custId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id;
+    if (custId) {
+      const cust = await stripe.customers.retrieve(custId);
+      email = (cust?.email || '').toLowerCase() || null;
+    }
+  } catch (e) { console.warn('[stripe] no se pudo recuperar el customer en cancelación:', e?.message); }
+  if (!email) { console.warn('[stripe] cancelación sin email resoluble:', subscription?.id); return; }
+
+  const enc = encodeURIComponent(email);
+  const canceladaAt = new Date().toISOString();
+  try {
+    await sb(`/usuarios?email=eq.${enc}`, { method: 'PATCH', body: { suscripcion_cancelada_at: canceladaAt }, prefer: 'return=minimal' });
+  } catch (err) { console.warn('[stripe] cancel usuarios:', err?.message); }
+  try {
+    await sb(`/beta_invitados?email=eq.${enc}`, { method: 'PATCH', body: { suscripcion_cancelada_at: canceladaAt }, prefer: 'return=minimal' });
+  } catch (err) { console.warn('[stripe] cancel invitados:', err?.message); }
 }

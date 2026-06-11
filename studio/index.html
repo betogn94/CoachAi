@@ -2513,7 +2513,12 @@
       ? c.dias_entreno.map(d => DIA_LABEL[d] || d).join(', ')
       : null;
     const dimOrVal = (label, v) => `<dt>${label}</dt>` + (v ? `<dd>${esc(v)}</dd>` : `<dd class="dim">—</dd>`);
-    return `<dl class="kv-grid">
+    // Aviso de cancelación de suscripción (visibilidad de churn). El cliente
+    // mantiene acceso hasta acceso_hasta aunque haya cancelado.
+    const cancelBadge = c.suscripcion_cancelada_at
+      ? `<div style="margin-bottom:12px;padding:10px 14px;background:rgba(255,90,90,.10);border:1px solid rgba(255,90,90,.35);border-radius:8px;font-size:12.5px;color:#ff8a8a;line-height:1.5;">⚠️ <strong>Canceló su suscripción</strong> el ${esc(new Date(c.suscripcion_cancelada_at).toLocaleDateString('es-AR'))}.${c.acceso_hasta ? ` Mantiene acceso hasta el ${esc(new Date(c.acceso_hasta).toLocaleDateString('es-AR'))}.` : ''}</div>`
+      : '';
+    return cancelBadge + `<dl class="kv-grid">
       ${dimOrVal('Sexo',       SEXO_LABEL[c.sexo] || c.sexo)}
       ${dimOrVal('Edad',       c.edad ? c.edad + ' años' : null)}
       ${dimOrVal('Objetivo',   OBJETIVO_LABEL[c.objetivo] || c.objetivo)}
