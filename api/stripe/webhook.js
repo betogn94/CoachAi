@@ -2,12 +2,12 @@
 // Recibe eventos de la cuenta Stripe del coach (Jesús/KING). Flujo automático
 // para suscripción mensual:
 //   - invoice.paid                → registra el ingreso del mes en tower_revenue
-//   - checkout.session.completed  → da de alta al cliente (beta_invitados) y le
-//                                   envía la invitación a la PWA (1 sola vez)
+//   - checkout.session.completed  → da de alta al cliente (beta_invitados),
+//                                   le setea el acceso y le envía la invitación
 //
 // Seguridad: verifica la firma de Stripe (STRIPE_WEBHOOK_SECRET) sobre el cuerpo
-// CRUDO. Idempotente: dedup por el id de Stripe (un reintento de Stripe no
-// duplica ingresos) y por email+tenant (no re-invita).
+// CRUDO. Idempotente: dedup por el id de Stripe (un reintento no duplica
+// ingresos) y por email+tenant (no re-invita).
 
 import Stripe from 'stripe';
 import { sb } from '../tower/_db.js';
@@ -55,9 +55,9 @@ export default async function handler(req, res) {
 
   try {
     if (event.type === 'invoice.paid') {
-      await handleInvoicePaid(event.data.object);
+      await handleInvoicePaid(event.data.object, stripe);
     } else if (event.type === 'checkout.session.completed') {
-      await handleCheckoutCompleted(event.data.object);
+      await handleCheckoutCompleted(event.data.object, stripe);
     }
     // Cualquier otro evento: 200 OK para que Stripe no reintente.
     return res.status(200).json({ received: true });
@@ -79,24 +79,38 @@ async function tenantIdBySlug(slug) {
   return id;
 }
 
+// Fin del período cubierto (UNIX seconds) leído de la SUBSCRIPTION — la fuente
+// más confiable. En la API nueva de Stripe el período vive en
+// items.data[0].current_period_end (ya no en el top-level de la subscription).
+async function subPeriodEnd(stripe, subRef) {
+  const subId = typeof subRef === 'string' ? subRef : subRef?.id;
+  if (!subId) return null;
+  try {
+    const sub = await stripe.subscriptions.retrieve(subId);
+    return sub?.items?.data?.[0]?.current_period_end || null;
+  } catch (e) {
+    console.warn('[stripe] no se pudo recuperar subscription', subId, ':', e?.message);
+    return null;
+  }
+}
+
 // Cada cobro mensual (incluido el primero) → 1 ingreso en tower_revenue.
-async function handleInvoicePaid(invoice) {
+async function handleInvoicePaid(invoice, stripe) {
   const stripeId = invoice.id; // único por factura
   const email = invoice.customer_email || null;
 
-  // Fin del período que ESTE pago cubre. Vive en la línea de la suscripción
-  // (lines.data[].period.end), NO en invoice.period_end: ese último es el
-  // período YA facturado (pasado) y, usado acá, bloquearía al cliente apenas
-  // paga. Confirmado en la doc de Stripe. Si no hay línea (caso patológico),
-  // NO extendemos: es más seguro dejar el acceso intacto que setear una fecha
-  // incorrecta (fail-open).
-  const periodEnd = invoice.lines?.data?.[0]?.period?.end || null;
+  // Fin del período que ESTE pago cubre. Preferimos lines[].period.end del
+  // payload; si no viene expandido en el evento, lo recuperamos de la
+  // subscription. NUNCA usamos invoice.period_end (es el período YA facturado,
+  // pasado, y bloquearía al cliente apenas paga).
+  let periodEnd = invoice.lines?.data?.[0]?.period?.end || null;
   if (!periodEnd) {
-    console.warn('[stripe] invoice sin lines[].period.end; no se extiende acceso:', stripeId);
+    const subRef = invoice.subscription || invoice.parent?.subscription_details?.subscription || null;
+    periodEnd = await subPeriodEnd(stripe, subRef);
+    if (!periodEnd) console.warn('[stripe] invoice sin período resoluble; no se extiende acceso:', stripeId);
   }
-  // Extender acceso ANTES del dedup del ingreso: si Stripe reintenta el webhook
-  // tras un fallo parcial (p. ej. murió entre el insert y esta línea), el
-  // reintento igual garantiza el acceso. Es idempotente (setea la misma fecha).
+  // Extender acceso ANTES del dedup del ingreso (idempotente). Refresca el
+  // acceso en cada cobro recurrente (mes 2+), cuando la fila ya existe.
   await extendAccess(email, periodEnd);
 
   // Idempotencia del ingreso: si ya registramos esta factura, no duplicar.
@@ -138,7 +152,7 @@ async function handleInvoicePaid(invoice) {
   });
 }
 
-// Extiende acceso_hasta del cliente (por email) hasta el fin del período pagado.
+// Setea acceso_hasta del cliente (por email) en usuarios Y beta_invitados.
 async function extendAccess(email, periodEndUnix) {
   if (!email || !periodEndUnix) return;
   const e = String(email).toLowerCase();
@@ -151,14 +165,23 @@ async function extendAccess(email, periodEndUnix) {
   } catch (err) { console.warn('[stripe] extendAccess invitados:', err?.message); }
 }
 
-// Primera compra → alta del cliente (beta_invitados) + email de invitación.
-async function handleCheckoutCompleted(session) {
+// Primera compra → alta del cliente (beta_invitados) + acceso + email de invitación.
+async function handleCheckoutCompleted(session, stripe) {
   const email = (session.customer_details?.email || session.customer_email || '').toLowerCase();
   const name  = session.customer_details?.name || null;
   if (!email) return;
   const slug = session.metadata?.tenant_slug || 'jesus';
 
-  // Idempotencia: no re-invitar si ya está en beta_invitados (mismo email+tenant).
+  // Acceso seteado ACÁ, en el alta. CLAVE: checkout.session.completed e
+  // invoice.paid llegan casi simultáneos y SIN orden garantizado; si invoice.paid
+  // llega primero, su extendAccess no encuentra la fila (todavía no existe) y el
+  // acceso queda sin fecha (= permanente, un cliente que paga 1 vez no debería
+  // tener acceso eterno). Resolviendo el período acá nos independizamos del orden.
+  const end = await subPeriodEnd(stripe, session.subscription);
+  const accesoHasta = end ? new Date(end * 1000).toISOString() : null;
+
+  // Idempotencia: si ya está en beta_invitados (mismo email+tenant), solo
+  // refrescamos acceso_hasta; si no, lo creamos ya con acceso_hasta.
   const existing = await sb(
     `/beta_invitados?email=eq.${encodeURIComponent(email)}&tenant_slug=eq.${encodeURIComponent(slug)}&select=email&limit=1`
   );
@@ -171,9 +194,21 @@ async function handleCheckoutCompleted(session) {
         tenant_slug: slug,
         invitado_por: 'stripe',
         notas: 'Alta automática vía pago Stripe',
+        ...(accesoHasta ? { acceso_hasta: accesoHasta } : {}),
       },
       prefer: 'return=minimal',
     });
+  } else if (accesoHasta) {
+    await sb(
+      `/beta_invitados?email=eq.${encodeURIComponent(email)}&tenant_slug=eq.${encodeURIComponent(slug)}`,
+      { method: 'PATCH', body: { acceso_hasta: accesoHasta }, prefer: 'return=minimal' }
+    );
+  }
+  // Si el cliente ya onboardeó (existe en usuarios), también lo actualizamos.
+  if (accesoHasta) {
+    try {
+      await sb(`/usuarios?email=eq.${encodeURIComponent(email)}`, { method: 'PATCH', body: { acceso_hasta: accesoHasta }, prefer: 'return=minimal' });
+    } catch (e) { console.warn('[stripe] acceso_hasta usuarios:', e?.message); }
   }
 
   // Disparar el email de invitación reutilizando /api/send-invite (llave interna
