@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260610-2354-deploy">
+<meta name="app-version" content="20260611-0024-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -16152,7 +16152,11 @@ async function sendToAI(userMessage, isFirst = false) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         system: buildSystemPrompt(),
-        messages: conversationHistory
+        messages: conversationHistory,
+        // Híbrido: Sonnet cuando el cliente pidió un plan (calidad), Haiku para
+        // el chat casual (barato). pendingPlanDelivery está seteado por el botón
+        // "Dieta/Rutina de la semana".
+        model: pendingPlanDelivery ? 'sonnet' : 'haiku'
       })
     });
 
@@ -19248,7 +19252,10 @@ Use real numbers, be specific.${photoInstructions}`;
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       system: systemPrompt,
-      messages: [{ role: 'user', content: messageContent }]
+      messages: [{ role: 'user', content: messageContent }],
+      // Análisis de cierre semanal → Sonnet (calidad: lee fotos, compara semanas,
+      // infiere progreso físico). Es 1 vez por semana, así que el costo es chico.
+      model: 'sonnet'
     })
   });
   if (!response.ok) {
