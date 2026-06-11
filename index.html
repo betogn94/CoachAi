@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260611-0121-deploy">
+<meta name="app-version" content="20260611-0215-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12161,11 +12161,15 @@ body.theme-king .cai-home-semanas .semana-analisis hr {
     </div>
   </div>
 
-  <!-- Tutorial replay -->
-  <div class="cai-perfil-tutorial">
-    <button class="cai-perfil-tutorial-btn" onclick="startTour(true)" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
-      <span data-es="Ver tutorial otra vez" data-en="See tutorial again">Ver tutorial otra vez</span>
+  <!-- Mensaje al coach + Soporte -->
+  <div class="cai-perfil-tutorial" style="display:flex;flex-direction:column;gap:10px;">
+    <button class="cai-perfil-tutorial-btn" onclick="openCoachNote()" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span data-es="Mensaje para tu coach" data-en="Message your coach">Mensaje para tu coach</span>
+    </button>
+    <button class="cai-perfil-tutorial-btn" onclick="openSupport()" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      <span data-es="Soporte — reportar un problema" data-en="Support — report a problem">Soporte — reportar un problema</span>
     </button>
   </div>
 
@@ -12254,16 +12258,12 @@ body.theme-king .cai-home-semanas .semana-analisis hr {
   <div id="entreno-empty" style="display:none"></div>
 </div>
 
-<!-- BETA FEEDBACK — floating button + modal -->
-<button id="feedback-fab" onclick="openFeedback()" aria-label="Enviar feedback" style="display:none">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 0 1-.9-3.8A8.38 8.38 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5z"></path></svg>
-  <span>Feedback</span>
-</button>
+<!-- SOPORTE / MENSAJE AL COACH — modal reusado, se abre desde Perfil (sin FAB flotante) -->
 <div class="feedback-overlay" id="feedback-overlay" onclick="if(event.target===this)closeFeedback()">
   <div class="feedback-card coach-card">
-    <div class="feedback-title">💬 Tu feedback</div>
-    <div class="feedback-sub">Estamos en beta. Contanos qué te gustó, qué te trabó o qué le falta — nos sirve muchísimo.</div>
-    <textarea id="feedback-text" class="feedback-textarea" placeholder="Escribí lo que quieras… bugs, ideas, lo que sea." maxlength="2000"></textarea>
+    <div class="feedback-title" id="feedback-title">💬 Mensaje</div>
+    <div class="feedback-sub" id="feedback-sub">—</div>
+    <textarea id="feedback-text" class="feedback-textarea" placeholder="Escribí tu mensaje…" maxlength="2000"></textarea>
     <div class="feedback-actions">
       <button class="feedback-cancel" onclick="closeFeedback()">Cancelar</button>
       <button class="feedback-send" id="feedback-send-btn" onclick="submitFeedback()">Enviar</button>
@@ -13061,14 +13061,43 @@ async function trackBetaActivity(isNewSession) {
 }
 
 // ---- In-app feedback ----
-function openFeedback() {
-  document.getElementById('feedback-text').value = '';
+// El modal de feedback se reusa para DOS canales, elegidos desde Perfil:
+//   - 'support' → tabla feedback   (lo que el coach ve como bugs en Studio)
+//   - 'coach'   → tabla notas_coach (mensajes/bitácora del cliente para su coach)
+// Antes había un solo botón flotante que mezclaba ambas cosas: una clienta lo
+// usó de bitácora ("hoy no entreno por una molestia") y le cayó a Jesús como
+// un bug. Por eso separamos los canales.
+let _feedbackMode = 'support';
+function _openFeedbackModal(mode, title, sub, placeholder) {
+  _feedbackMode = mode;
+  document.getElementById('feedback-title').textContent = title;
+  document.getElementById('feedback-sub').textContent = sub;
+  const ta = document.getElementById('feedback-text');
+  ta.value = ''; ta.placeholder = placeholder;
   document.getElementById('feedback-done').style.display = 'none';
   const btn = document.getElementById('feedback-send-btn');
-  btn.disabled = false; btn.textContent = 'Enviar';
+  btn.disabled = false; btn.textContent = lang === 'es' ? 'Enviar' : 'Send';
   document.getElementById('feedback-overlay').classList.add('open');
-  setTimeout(() => document.getElementById('feedback-text').focus(), 80);
+  setTimeout(() => ta.focus(), 80);
 }
+function openSupport() {
+  const es = lang === 'es';
+  _openFeedbackModal('support',
+    es ? '🛠️ Soporte' : '🛠️ Support',
+    es ? 'Reportanos un problema técnico o algo que no funciona. Lo revisamos nosotros.'
+       : 'Report a technical problem or something not working. We look into it.',
+    es ? 'Describí el problema: qué hacías, qué pasó…' : 'Describe the problem: what you were doing, what happened…');
+}
+function openCoachNote() {
+  const es = lang === 'es';
+  _openFeedbackModal('coach',
+    es ? '💬 Mensaje para tu coach' : '💬 Message your coach',
+    es ? 'Dejale una nota a tu coach: una molestia, un aviso, cómo venís. La ve en tu seguimiento.'
+       : 'Leave your coach a note: a niggle, a heads-up, how you are doing.',
+    es ? 'Escribí tu mensaje para el coach…' : 'Write your message for the coach…');
+}
+// Compat: cualquier código viejo que llame openFeedback() abre Soporte.
+function openFeedback() { openSupport(); }
 function closeFeedback() {
   document.getElementById('feedback-overlay').classList.remove('open');
 }
@@ -13077,22 +13106,27 @@ async function submitFeedback() {
   const msg = ta.value.trim();
   if (!msg) { ta.focus(); return; }
   const btn = document.getElementById('feedback-send-btn');
-  btn.disabled = true; btn.textContent = 'Enviando…';
+  btn.disabled = true; btn.textContent = lang === 'es' ? 'Enviando…' : 'Sending…';
   try {
     if (!sbClient) initSupabase();
-    const { error } = await sbClient.from('feedback').insert([{
+    const table = _feedbackMode === 'coach' ? 'notas_coach' : 'feedback';
+    const { error } = await sbClient.from(table).insert([{
       usuario_id: currentUser ? currentUser.id : null,
       nombre: currentUser ? (currentUser.nombre || null) : null,
       mensaje: msg
     }]);
     if (error) throw error;
-    trackEvent('feedback_sent', null);
-    document.getElementById('feedback-done').style.display = 'block';
+    trackEvent(_feedbackMode === 'coach' ? 'coach_note_sent' : 'support_sent', null);
+    const done = document.getElementById('feedback-done');
+    done.textContent = _feedbackMode === 'coach'
+      ? (lang === 'es' ? '¡Listo! 🙌 Tu coach va a ver tu mensaje.' : 'Done! Your coach will see it.')
+      : (lang === 'es' ? '¡Gracias! 🙌 Recibimos tu reporte.' : 'Thanks! We got your report.');
+    done.style.display = 'block';
     ta.value = '';
     setTimeout(closeFeedback, 1400);
   } catch (e) {
-    console.error('Feedback send failed:', e);
-    btn.disabled = false; btn.textContent = 'Reintentar';
+    console.error('Feedback/coach-note send failed:', e);
+    btn.disabled = false; btn.textContent = lang === 'es' ? 'Reintentar' : 'Retry';
   }
 }
 

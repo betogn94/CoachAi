@@ -2355,6 +2355,10 @@
           <div class="detail-section-title">Transformación visual <span class="meta">cargando…</span></div>
           <div class="empty-row"><span class="spinner"></span> &nbsp; Cargando…</div>
         </section>
+        <section class="detail-section" id="cli-notas">
+          <div class="detail-section-title">Mensajes del cliente <span class="meta">cargando…</span></div>
+          <div class="empty-row"><span class="spinner"></span> &nbsp; Cargando…</div>
+        </section>
         <section class="detail-section" id="cli-bugs">
           <div class="detail-section-title">Bugs reportados <span class="meta">cargando…</span></div>
           <div class="empty-row"><span class="spinner"></span> &nbsp; Cargando…</div>
@@ -2397,7 +2401,7 @@
     // only selects a few columns to keep the table fast — for the drill-down
     // we need the rest (sexo/edad/objetivo/nivel/dias/etc) so we re-fetch.
     const uid = clienta.id;
-    const [fullUserRes, planes, cierres, allCierres, fotos, bugs] = await Promise.all([
+    const [fullUserRes, planes, cierres, allCierres, fotos, bugs, notasCoach] = await Promise.all([
       sb.from('usuarios').select('*').eq('id', uid).maybeSingle(),
       sb.from('planes_semanales').select('tipo,fecha_entrega,semana_iso,contenido,updated_at').eq('usuario_id', uid).order('fecha_entrega', { ascending: false }).limit(10),
       sb.from('cierres_semanales').select('*').eq('usuario_id', uid).order('semana_num', { ascending: false }).limit(1),
@@ -2410,6 +2414,7 @@
       // progreso photo; just the immutable 'inicio' row(s).
       sb.from('fotos_progreso').select('vista,url_foto,fecha,tipo').eq('usuario_id', uid).eq('tipo', 'inicio'),
       sb.from('feedback').select('id,mensaje,created_at,resolved_at,resolved_by,resolution_note').eq('usuario_id', uid).order('created_at', { ascending: false }).limit(20),
+      sb.from('notas_coach').select('id,mensaje,created_at,leido').eq('usuario_id', uid).order('created_at', { ascending: false }).limit(30),
     ]);
 
     // Re-render datos personales with the full row (the initial paint used
@@ -2443,6 +2448,7 @@
     paintAnalisis((cierres.data || [])[0] || null);
     paintTransformacion(fotos.data || [], allCierres.data || []);
     paintBugs(bugs.data || []);
+    paintNotas(notasCoach.data || []);
 
     // Wire up the collapsible toggles for dieta + rutina (the buttons are
     // rendered by paintDieta/paintRutina above).
@@ -2947,6 +2953,60 @@
     document.addEventListener('keydown', onKey);
     // Click on the dim backdrop (outside any slide) closes too.
     lb.addEventListener('click', (e) => { if (e.target === lb) teardown(); });
+  }
+
+  // Mensajes que el cliente le deja a su coach (tabla notas_coach). Separados
+  // de los bugs a propósito: son bitácora/avisos ("hoy no entreno por una
+  // molestia"), NO problemas técnicos. No-leídos arriba, leídos en un acordeón.
+  function paintNotas(notas) {
+    const sec = document.getElementById('cli-notas');
+    if (!sec) return;
+    const nuevas = notas.filter(n => !n.leido);
+    const leidas = notas.filter(n =>  n.leido);
+    const metaTxt = notas.length === 0
+      ? '0 mensajes'
+      : `${nuevas.length} nuevo${nuevas.length === 1 ? '' : 's'}` +
+        (leidas.length ? ` · ${leidas.length} leído${leidas.length === 1 ? '' : 's'}` : '');
+    sec.innerHTML = `
+      <div class="detail-section-title">Mensajes del cliente <span class="meta">${esc(metaTxt)}</span></div>
+      ${notas.length === 0
+        ? '<div class="empty-row">Sin mensajes todavía.</div>'
+        : `<div class="timeline">
+            ${nuevas.map(n => `
+              <div class="timeline-item" data-nota-id="${esc(n.id)}">
+                <span class="when">${esc(fmtRelative(n.created_at))}</span>
+                <span class="what">${esc(n.mensaje || '')}</span>
+                <button type="button" class="bug-resolve" data-nota-leida="${esc(n.id)}" title="Marcar como leído">✓ Leído</button>
+              </div>
+            `).join('')}
+            ${leidas.length ? `
+              <details class="bug-resolved-group" ${nuevas.length === 0 ? 'open' : ''}>
+                <summary>Leídos · ${leidas.length}</summary>
+                ${leidas.map(n => `
+                  <div class="timeline-item" data-nota-id="${esc(n.id)}">
+                    <span class="when">${esc(fmtRelative(n.created_at))}</span>
+                    <span class="what">${esc(n.mensaje || '')}</span>
+                  </div>
+                `).join('')}
+              </details>
+            ` : ''}
+          </div>`
+      }
+    `;
+    sec.querySelectorAll('[data-nota-leida]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.notaLeida;
+        btn.disabled = true; btn.textContent = '⏳…';
+        try {
+          const { error } = await sb.from('notas_coach').update({ leido: true, leido_at: new Date().toISOString() }).eq('id', id);
+          if (error) throw error;
+          btn.closest('.timeline-item')?.remove();
+        } catch (e) {
+          console.error('marcar leído falló:', e);
+          btn.disabled = false; btn.textContent = '✓ Leído';
+        }
+      });
+    });
   }
 
   function paintBugs(bugs) {
