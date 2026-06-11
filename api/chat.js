@@ -2,6 +2,10 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
+  // El SDK reintenta solo (con backoff exponencial) los errores transitorios:
+  // 429 (rate limit), 529 (overloaded) y 5xx. Subimos a 4 para aguantar picos
+  // cuando hay muchos clientes usando la IA a la vez (escala a ~70 usuarios).
+  maxRetries: 4,
 });
 
 // Modo híbrido: Sonnet para lo que requiere calidad (generar planes, análisis
@@ -53,6 +57,14 @@ export default async function handler(req, res) {
     res.status(200).json(response);
   } catch (error) {
     console.error('API Error:', error);
-    res.status(500).json({ error: error.message });
+    // 429 (rate limit) y 529 (overloaded) son transitorios: tras agotar los
+    // reintentos del SDK, le avisamos al cliente que puede reintentar (retryable),
+    // así muestra "mucha demanda, probá de nuevo" en vez de un error crudo.
+    const status = Number(error?.status) || 0;
+    const overloaded = status === 429 || status === 529;
+    res.status(overloaded ? 503 : 500).json({
+      error: error.message,
+      retryable: overloaded,
+    });
   }
 }

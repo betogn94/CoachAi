@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260611-0033-deploy">
+<meta name="app-version" content="20260611-0121-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -16112,6 +16112,37 @@ function formatResponse(text) {
     .replace(/(<\/h[12]>|<\/ul>)(<br>\s*)+/g, '$1');
 }
 
+// Llamada a /api/chat con reintento ante sobrecarga. El backend marca
+// retryable=true en 429 (rate limit) / 529 (overloaded) de Anthropic. Sumado a
+// los reintentos del SDK en el servidor, esto evita que un pico de uso (muchos
+// clientes a la vez) le tire un error al usuario: reintenta con backoff y, si
+// igual falla, propaga err.retryable para mostrar un mensaje amable.
+function _chatBackoff(attempt) {
+  return new Promise(r => setTimeout(r, 700 * (attempt + 1)));
+}
+async function callChatAPI(payload, retries = 2) {
+  for (let attempt = 0; ; attempt++) {
+    let res;
+    try {
+      res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } catch (netErr) {
+      // Falla de red (sin respuesta). Reintentar si quedan intentos.
+      if (attempt < retries) { await _chatBackoff(attempt); continue; }
+      const e = new Error('network'); e.retryable = true; throw e;
+    }
+    if (res.ok) return res;
+    const errData = await res.json().catch(() => ({}));
+    if (errData.retryable && attempt < retries) { await _chatBackoff(attempt); continue; }
+    const e = new Error(errData.error || `HTTP ${res.status}`);
+    e.retryable = !!errData.retryable;
+    throw e;
+  }
+}
+
 async function sendToAI(userMessage, isFirst = false) {
   const sendBtn = document.getElementById('send-btn');
   sendBtn.disabled = true;
@@ -16147,25 +16178,17 @@ async function sendToAI(userMessage, isFirst = false) {
   }
 
   try {
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system: buildSystemPrompt(),
-        messages: conversationHistory,
-        // Haiku para generar planes Y chat. Probamos Sonnet pero, en tareas de
-        // formato estricto (la dieta/rutina), "razona de más": muestra cálculos,
-        // se auto-corrige y DUPLICA el plan en la misma respuesta → rompe el
-        // parser. Haiku va directo y limpio. Para usar Sonnet acá habría que
-        // re-calibrar el prompt (reglas anti-divague) y re-testear. Default Haiku.
-        model: 'haiku'
-      })
+    // Reintenta solo ante sobrecarga (429/529) — ver callChatAPI.
+    const response = await callChatAPI({
+      system: buildSystemPrompt(),
+      messages: conversationHistory,
+      // Haiku para generar planes Y chat. Probamos Sonnet pero, en tareas de
+      // formato estricto (la dieta/rutina), "razona de más": muestra cálculos,
+      // se auto-corrige y DUPLICA el plan en la misma respuesta → rompe el
+      // parser. Haiku va directo y limpio. Para usar Sonnet acá habría que
+      // re-calibrar el prompt (reglas anti-divague) y re-testear. Default Haiku.
+      model: 'haiku'
     });
-
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.error || `HTTP ${response.status}`);
-    }
 
     const data = await response.json();
     const reply = data.content?.[0]?.text;
@@ -16301,7 +16324,10 @@ async function sendToAI(userMessage, isFirst = false) {
   } catch (err) {
     console.error('[CoachAI] sendToAI error:', err?.message || err);
     removeTyping();
-    addMessage(lang === 'es' ? '❌ Error de conexión. Intentá de nuevo.' : '❌ Connection error. Please try again.', 'coach');
+    const errMsg = err?.retryable
+      ? (lang === 'es' ? '⏳ Estamos con mucha demanda en este momento. Probá de nuevo en unos segundos.' : '⏳ High demand right now — please try again in a few seconds.')
+      : (lang === 'es' ? '❌ Error de conexión. Intentá de nuevo.' : '❌ Connection error. Please try again.');
+    addMessage(errMsg, 'coach');
     // CRITICAL: pop the unanswered user turn so conversationHistory doesn't
     // end with role:user. Two consecutive user turns violate Anthropic's
     // alternation requirement and every subsequent message returns 400.
