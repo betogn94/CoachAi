@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260611-1823-deploy">
+<meta name="app-version" content="20260611-1844-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -20946,6 +20946,23 @@ function parseDietaContenido(text) {
         meal.content = meal.content ? `${meal.content} · ${joined}` : joined;
       }
       delete meal._items;
+    }
+  }
+
+  // TOTAL DIARIO COHERENTE: cuando las comidas del día traen kcal, el "Total"
+  // del día = la SUMA real de sus comidas, NO el número que escribió la IA
+  // (Haiku a veces anuncia un total que no cuadra con sus comidas: suman 2000
+  // pero escribe "Total: 2400"). Es determinístico → el total mostrado SIEMPRE
+  // cuadra con las comidas. Las dietas SIN kcal por comida (texto plano de
+  // coach) conservan su total tal cual (el loop las saltea).
+  for (const day of days) {
+    const withK = day.meals.filter(m => m.kcal != null);
+    if (!withK.length) continue;
+    day.totalKcal = withK.reduce((s, m) => s + (m.kcal || 0), 0);
+    if (withK.some(m => m.prot != null)) {
+      day.totalProt  = withK.reduce((s, m) => s + (m.prot  || 0), 0);
+      day.totalCarbs = withK.reduce((s, m) => s + (m.carbs || 0), 0);
+      day.totalFat   = withK.reduce((s, m) => s + (m.fat   || 0), 0);
     }
   }
 
