@@ -117,6 +117,30 @@ async function subPeriodEnd(stripe, subRef) {
   }
 }
 
+// Comisión real de Stripe del cobro, en unidades mayores (ej: 1.15 = US$1,15).
+// Vive en el balance_transaction del charge; en la API nueva se llega vía
+// subscription → latest_invoice → payment_intent → latest_charge →
+// balance_transaction (confirmado en la doc de Stripe). Best-effort: devuelve
+// null si no se puede resolver o si el fee aún es 0 (cuentas con "standalone
+// fees" lo calculan ~36h después → se queda pendiente, no guardamos un 0 falso).
+async function subStripeFee(stripe, subRef) {
+  const subId = typeof subRef === 'string' ? subRef : subRef?.id;
+  if (!subId) return null;
+  try {
+    const sub = await stripe.subscriptions.retrieve(subId, {
+      expand: ['latest_invoice.payment_intent.latest_charge.balance_transaction'],
+    });
+    const bt = sub?.latest_invoice?.payment_intent?.latest_charge?.balance_transaction;
+    if (bt && typeof bt === 'object' && typeof bt.fee === 'number' && bt.fee > 0) {
+      return bt.fee / 100;
+    }
+    return null;
+  } catch (e) {
+    console.warn('[stripe] no se pudo obtener el fee:', e?.message);
+    return null;
+  }
+}
+
 // Cada cobro mensual (incluido el primero) → 1 ingreso en tower_revenue.
 async function handleInvoicePaid(invoice, stripe) {
   const stripeId = invoice.id; // único por factura
@@ -152,6 +176,9 @@ async function handleInvoicePaid(invoice, stripe) {
   const periodStart = invoice.period_start
     ? new Date(invoice.period_start * 1000).toISOString().slice(0, 10)
     : new Date().toISOString().slice(0, 10);
+  // Comisión real de Stripe (best-effort; null si aún no está disponible).
+  const subRefFee = invoice.parent?.subscription_details?.subscription || invoice.subscription || null;
+  const stripeFee = await subStripeFee(stripe, subRefFee);
 
   await sb('/tower_revenue', {
     method: 'POST',
@@ -168,6 +195,7 @@ async function handleInvoicePaid(invoice, stripe) {
       period_start: periodStart,
       source: 'stripe',
       stripe_payment_id: stripeId,
+      stripe_fee: stripeFee,
       created_by: 'stripe-webhook',
       notes: email ? `Stripe · ${email}` : 'Stripe',
     },
