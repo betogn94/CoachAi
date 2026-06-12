@@ -81,15 +81,36 @@ async function tenantIdBySlug(slug) {
   return id;
 }
 
-// Fin del período cubierto (UNIX seconds) leído de la SUBSCRIPTION — la fuente
-// más confiable. En la API nueva de Stripe el período vive en
-// items.data[0].current_period_end (ya no en el top-level de la subscription).
+// Suma N meses (default 1) a un timestamp UNIX y devuelve UNIX.
+function addMonthsUnix(unixStart, count) {
+  const d = new Date(unixStart * 1000);
+  d.setUTCMonth(d.getUTCMonth() + (count || 1));
+  return Math.floor(d.getTime() / 1000);
+}
+
+// Fin del período cubierto (UNIX seconds) de una subscription. La fuente directa
+// es items.data[0].current_period_end; PERO ese campo a veces NO está poblado en
+// el instante en que llega el webhook (race del lado de Stripe — nos pasó con 2
+// de las 3 primeras ventas: el ingreso entró pero acceso_hasta quedó null). En
+// ese caso caemos a current_period_start + el intervalo del plan, que SÍ está
+// disponible. Devuelve null solo si no hay ni una fecha de inicio (el caller
+// aplica su propio fallback final).
 async function subPeriodEnd(stripe, subRef) {
   const subId = typeof subRef === 'string' ? subRef : subRef?.id;
   if (!subId) return null;
   try {
     const sub = await stripe.subscriptions.retrieve(subId);
-    return sub?.items?.data?.[0]?.current_period_end || null;
+    const item = sub?.items?.data?.[0];
+    if (!item) return null;
+    if (item.current_period_end) return item.current_period_end;
+    const start = item.current_period_start || sub.created;
+    if (!start) return null;
+    const interval = item.plan?.interval || item.price?.recurring?.interval || 'month';
+    if (interval === 'year') {
+      const d = new Date(start * 1000); d.setUTCFullYear(d.getUTCFullYear() + 1);
+      return Math.floor(d.getTime() / 1000);
+    }
+    return addMonthsUnix(start, 1);
   } catch (e) {
     console.warn('[stripe] no se pudo recuperar subscription', subId, ':', e?.message);
     return null;
@@ -179,8 +200,13 @@ async function handleCheckoutCompleted(session, stripe) {
   // llega primero, su extendAccess no encuentra la fila (todavía no existe) y el
   // acceso queda sin fecha (= permanente, un cliente que paga 1 vez no debería
   // tener acceso eterno). Resolviendo el período acá nos independizamos del orden.
-  const end = await subPeriodEnd(stripe, session.subscription);
-  const accesoHasta = end ? new Date(end * 1000).toISOString() : null;
+  let end = await subPeriodEnd(stripe, session.subscription);
+  // Último recurso: si NO se pudo resolver el período (race extrema o falta la
+  // subscription en el evento), damos ~1 mes desde ahora. JAMÁS dejamos al
+  // cliente sin fecha (null = acceso eterno: alguien que paga 1 vez tendría
+  // acceso para siempre). El próximo cobro (invoice.paid) ajusta al período real.
+  if (!end) end = addMonthsUnix(Math.floor(Date.now() / 1000), 1);
+  const accesoHasta = new Date(end * 1000).toISOString();
 
   // Idempotencia: si ya está en beta_invitados (mismo email+tenant), solo
   // refrescamos acceso_hasta; si no, lo creamos ya con acceso_hasta.
