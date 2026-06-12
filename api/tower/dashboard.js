@@ -35,8 +35,8 @@ export default withAuth(async (req, res) => {
   ] = await Promise.all([
     count('tenants'),
     count('tenants', 'status=eq.active'),
-    count('usuarios'),
-    count('usuarios', `last_active=gte.${sevenDaysAgoIso}`),
+    count('usuarios', 'es_interno=is.false'),
+    count('usuarios', `last_active=gte.${sevenDaysAgoIso}&es_interno=is.false`),
     count('feedback', 'resolved_at=is.null'),
     count('feedback', `resolved_at=is.null&created_at=gte.${thirtyDaysAgoIso}`),
     computeMonthlyProjected(),
@@ -59,8 +59,8 @@ export default withAuth(async (req, res) => {
     await Promise.all(tenantIds.map(async (tid) => {
       const enc = encodeURIComponent(tid);
       const [tot, act] = await Promise.all([
-        count('usuarios', `tenant_id=eq.${enc}`),
-        count('usuarios', `tenant_id=eq.${enc}&last_active=gte.${sevenDaysAgoIso}`),
+        count('usuarios', `tenant_id=eq.${enc}&es_interno=is.false`),
+        count('usuarios', `tenant_id=eq.${enc}&last_active=gte.${sevenDaysAgoIso}&es_interno=is.false`),
       ]);
       usersPerTenant[tid] = tot;
       activePerTenant[tid] = act;
@@ -149,15 +149,15 @@ async function handleMetrics(req, res) {
     cierresAll,
     revenueAll,
   ] = await Promise.all([
-    count('usuarios', `last_active=gte.${todayIso}`),
-    count('usuarios', `last_active=gte.${d7}`),
-    count('usuarios', `last_active=gte.${d30}`),
+    count('usuarios', `last_active=gte.${todayIso}&es_interno=is.false`),
+    count('usuarios', `last_active=gte.${d7}&es_interno=is.false`),
+    count('usuarios', `last_active=gte.${d30}&es_interno=is.false`),
     count('cierres_semanales'),
     count('cierres_semanales', `created_at=gte.${monthStart}T00:00:00Z`),
     sb('/tenants?select=id,slug,name'),
     sb('/tower_revenue?select=usuario_id,period_end&source=eq.stripe&recurring=eq.true'),
     sb('/tower_revenue?select=amount,currency,recurring,billing_period&recurring=eq.true'),
-    sb(`/usuarios?select=nombre,email,role,last_active,tenants(slug,name)&or=(last_active.lt.${d7},last_active.is.null)&order=last_active.asc.nullsfirst&limit=200`),
+    sb(`/usuarios?select=nombre,email,role,last_active,tenants(slug,name)&es_interno=is.false&or=(last_active.lt.${d7},last_active.is.null)&order=last_active.asc.nullsfirst&limit=200`),
     sb(`/beta_eventos?select=usuario_id,created_at&evento=eq.session_start&created_at=gte.${d30}&limit=10000`),
     sb('/cierres_semanales?select=fecha_fin,created_at&limit=2000'),
     sb('/tower_revenue?select=amount,currency,recurring,billing_period,period_start,created_at&recurring=eq.true&limit=2000'),
@@ -183,8 +183,8 @@ async function handleMetrics(req, res) {
   await Promise.all(tenants.map(async (t) => {
     const enc = encodeURIComponent(t.id);
     const [tot, act] = await Promise.all([
-      count('usuarios', `tenant_id=eq.${enc}`),
-      count('usuarios', `tenant_id=eq.${enc}&last_active=gte.${d7}`),
+      count('usuarios', `tenant_id=eq.${enc}&es_interno=is.false`),
+      count('usuarios', `tenant_id=eq.${enc}&last_active=gte.${d7}&es_interno=is.false`),
     ]);
     usersByTenant.push({ tenant: t.name || t.slug, total: tot, active_7d: act });
   }));
