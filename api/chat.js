@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { isAllowedOrigin } from './_origin.js';
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -22,6 +23,14 @@ const MODELS = {
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Origin allowlist — el endpoint de IA es público y caro; bloqueamos llamadas
+  // cross-site / scripts ingenuos para proteger el saldo de Anthropic. Las
+  // llamadas legítimas de la app (fetch POST same-origin) siempre mandan Origin.
+  // No es retryable: un 403 corta, no reintenta.
+  if (!isAllowedOrigin(req)) {
+    return res.status(403).json({ error: 'forbidden_origin' });
   }
 
   try {

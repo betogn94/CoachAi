@@ -7,19 +7,9 @@
 // error instead of blocking.
 
 import { Resend } from 'resend';
+import { isAllowedOrigin } from './_origin.js';
 
 const APP_URL  = 'https://coachaipro.ai';
-const ALLOWED_ORIGINS = [
-  'https://coachaipro.ai',
-  'https://www.coachaipro.ai',
-  'https://coachaipro.com',
-  'https://www.coachaipro.com',
-  // Per-tenant subdomains — Studio invites originate from these. Add a new
-  // entry here every time a tenant gets its own subdomain (king.* was the
-  // first; future ones will follow the same pattern).
-  'https://king.coachaipro.ai',
-  'https://coach-ai-pearl.vercel.app',
-];
 
 // Whitelist of tenant slugs we accept in the body. We DON'T blindly stuff
 // arbitrary input into the URL — that would let a malformed admin payload
@@ -336,13 +326,11 @@ ${appUrl}`;
 export default async function handler(req, res) {
   // Lightweight origin check — raises the bar so the endpoint isn't trivially
   // abused as a free email-sender. Proper admin auth comes in F1.
-  const origin = req.headers.origin || req.headers.referer || '';
-  const isAllowed = ALLOWED_ORIGINS.some(o => origin.startsWith(o));
   // Llamada server-to-server (ej: el webhook de Stripe) con llave interna —
   // no tiene Origin header, así que se autentica con x-internal-key.
   const isInternal = !!process.env.INTERNAL_API_KEY
     && req.headers['x-internal-key'] === process.env.INTERNAL_API_KEY;
-  if (!isAllowed && !isInternal) {
+  if (!isAllowedOrigin(req) && !isInternal) {
     return res.status(403).json({ error: 'forbidden_origin' });
   }
 
