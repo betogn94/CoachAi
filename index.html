@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260612-1915-intensificadores-estilo-jesus-en-prompt-de-rutinas">
+<meta name="app-version" content="20260614-1842-boton-atras-android-navega-secciones-y-cierra-modales">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -19923,6 +19923,7 @@ const _NAV_WRAPPER = {
 };
 let _navCurrentIdx = 0; // índice del tab actual (arranca en Inicio)
 function setActiveNav(id) {
+  _syncNavHistory(id);  // mantiene el botón "atrás" de Android/iOS en sincronía
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   const el = document.getElementById(id);
   if (el) el.classList.add('active');
@@ -19974,6 +19975,82 @@ function setActiveNav(id) {
 window.addEventListener('resize', () => {
   const active = document.querySelector('.cai-bottom-nav .nav-item.active');
   if (active) setActiveNav(active.id);
+});
+
+// ============================================================
+// BOTÓN "ATRÁS" DE ANDROID / SWIPE-BACK — navegación por historial
+// ============================================================
+// Problema (reportado por Vicky, Android): la barra nativa de Android no
+// desaparece, y su botón "atrás" —al no haber historial interno, somos una SPA—
+// SACABA al usuario de la app en vez de retroceder de sección. Fix: cada cambio
+// de sección apila una entrada de historial, y abajo interceptamos el "atrás"
+// para (1) cerrar un modal abierto si lo hay, o (2) volver a la sección previa.
+// Desde Inicio (la raíz) el "atrás" sale de la app (comportamiento esperado).
+// iOS usa el mismo popstate en su gesto de volver.
+function _syncNavHistory(id) {
+  // Solo dentro de la app logueada; en landing/login/onboarding back es normal.
+  if (!document.body.classList.contains('app-active')) return;
+  try {
+    const st = history.state;
+    if (!st || !st.caiSection) {
+      // Primera sección con la app activa = raíz: replaceState (no push) para que
+      // "atrás" desde Inicio salga de la app y no quede una entrada fantasma.
+      history.replaceState({ caiSection: id }, '');
+    } else if (st.caiSection !== id) {
+      history.pushState({ caiSection: id }, '');
+    }
+    // Re-seleccionar la misma sección → no apila (evita duplicados). Tras un
+    // popstate, history.state ya ES la sección destino, así que este guard
+    // también evita re-apilar cuando la navegación la dispara el botón atrás.
+  } catch (_) { /* History API no disponible → degradar sin romper */ }
+}
+
+// Overlays que el botón atrás cierra ANTES de cambiar de sección. Las close fns,
+// llamadas sin argumento, cierran limpio (su guard de backdrop se saltea sin event).
+const _BACK_OVERLAYS = [
+  { id: 'alim-edit-modal',  close: () => closeAlimEdit() },
+  { id: 'ej-modal',         close: () => closeEjercicioModal() },
+  { id: 'pwa-modal',        close: () => closePwaModal() },
+  { id: 'feedback-overlay', close: () => closeFeedback() },
+  { id: 'cierre-overlay',   close: () => closeCierrePanel() },
+  { id: 'nav-overlay',      close: () => closeNav() },
+];
+function _overlayVisible(el) {
+  if (!el) return false;
+  const s = getComputedStyle(el);
+  if (s.display === 'none' || s.visibility === 'hidden' || parseFloat(s.opacity) < 0.05) return false;
+  const r = el.getBoundingClientRect();
+  return r.width > 1 && r.height > 1;
+}
+function _currentNavId() {
+  const active = document.querySelector('.cai-bottom-nav .nav-item.active');
+  return (active && active.id) || _NAV_ORDER[_navCurrentIdx] || 'nav-inicio';
+}
+function _showSectionById(id) {
+  switch (id) {
+    case 'nav-coach':   showChat(); break;
+    case 'nav-diario':  showDiario(); break;
+    case 'nav-entreno': showMiEntreno(); break;
+    case 'nav-perfil':  showPerfil(); break;
+    default:            showHome(); break;
+  }
+}
+window.addEventListener('popstate', (e) => {
+  // Fuera de la app (landing/login/onboarding) → comportamiento normal del navegador.
+  if (!document.body.classList.contains('app-active')) return;
+  // 1) Si hay un modal/overlay abierto, "atrás" lo cierra (no cambia de sección)
+  //    y restaura la posición de historial para que el próximo "atrás" navegue.
+  for (const ov of _BACK_OVERLAYS) {
+    if (_overlayVisible(document.getElementById(ov.id))) {
+      try { ov.close(); } catch (_) {}
+      try { history.pushState({ caiSection: _currentNavId() }, ''); } catch (_) {}
+      return;
+    }
+  }
+  // 2) Navegar a la sección de la entrada apilada. Sin caiSection = raíz → dejar salir.
+  const target = e.state && e.state.caiSection;
+  if (!target) return;
+  _showSectionById(target);
 });
 
 function hideAllSections() {
