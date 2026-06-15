@@ -1,6 +1,7 @@
 // GET    /api/tower/revenue              — list revenue entries + totals (por moneda, MRR, por medio de pago)
 // POST   /api/tower/revenue              — create a manual revenue entry
-// DELETE /api/tower/revenue?id=<uuid>    — remove an entry
+// DELETE /api/tower/revenue              — DESHABILITADO (403). Los ingresos solo
+//                                          se borran manualmente en la base, bajo orden.
 //
 // Espeja costs.js. Ingresos cargados a mano desde Tower. Stripe-ready: source y
 // stripe_payment_id existen para que un webhook futuro inserte en la misma tabla.
@@ -17,8 +18,13 @@ const VALID_CURRENCY = new Set(['ARS', 'USD']);
 export default withAuth(async (req, res, session) => {
   if (req.method === 'GET')    return list(req, res);
   if (req.method === 'POST')   return create(req, res, session);
-  if (req.method === 'DELETE') return remove(req, res);
-  res.setHeader('Allow', 'GET, POST, DELETE');
+  // Borrado de ingresos DESHABILITADO desde Tower (decisión de negocio): un pago
+  // solo se elimina manualmente en la base, bajo orden explícita. Evita borrar
+  // un ingreso real por accidente desde el panel.
+  if (req.method === 'DELETE') {
+    return res.status(403).json({ ok: false, error: 'delete_disabled', detail: 'El borrado de ingresos está deshabilitado. Se elimina solo manualmente en la base.' });
+  }
+  res.setHeader('Allow', 'GET, POST');
   return res.status(405).json({ ok: false, error: 'method_not_allowed' });
 });
 
@@ -126,13 +132,6 @@ async function create(req, res, session) {
   });
 
   return res.status(200).json({ ok: true, revenue: Array.isArray(row) ? row[0] : row });
-}
-
-async function remove(req, res) {
-  const id = String(req.query.id || '').trim();
-  if (!id) return res.status(400).json({ ok: false, error: 'id_required' });
-  await sb(`/tower_revenue?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
-  return res.status(200).json({ ok: true });
 }
 
 function round2(n) { return Math.round(n * 100) / 100; }

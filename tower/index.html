@@ -982,7 +982,7 @@
       <div class="nav-section">Negocio</div>
       <div class="nav-item" data-route="financiero">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-        Financiero
+        Facturación
       </div>
       <div class="nav-item" data-route="costos">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
@@ -1308,7 +1308,7 @@
       metricas:     { label: 'Métricas',      render: renderMetricas },
       tenants:      { label: 'Tenants',       render: renderTenantsList },
       users:        { label: 'Usuarios',      render: () => placeholder('Usuarios', 'Vista global de todos los usuarios (across tenants). Llega luego — entrá por Tenants → click un tenant para ver sus usuarios.') },
-      financiero:   { label: 'Financiero',    render: renderFinanciero },
+      financiero:   { label: 'Facturación',   render: renderFinanciero },
       costos:       { label: 'API / Costos',  render: renderCostos },
       dieta_alerts: { label: 'Alertas', render: renderAlertas },
       logs:         { label: 'Logs',          render: () => placeholder('Logs', 'Eventos del sistema, errores, bug reports de usuarios. Próxima iteración.') },
@@ -2194,8 +2194,8 @@
       el.innerHTML = `
         <div class="page-header">
           <div>
-            <h1 class="page-title">Financiero</h1>
-            <p class="page-sub">Ingresos cargados a mano: suscripciones de clientas, paquetes de coaches/gyms y whitelabel. Stripe se suma acá cuando esté.</p>
+            <h1 class="page-title">Facturación</h1>
+            <p class="page-sub">Ingresos: suscripciones de clientas, paquetes de coaches/gyms y whitelabel. Los pagos no se borran desde acá (solo manualmente en la base, bajo orden).</p>
           </div>
           <button class="btn btn-primary-sm" id="addRevBtn">+ Nuevo ingreso</button>
         </div>
@@ -2228,7 +2228,6 @@
           <td class="cell-dim">${escapeHtml(_REV_PERIOD_LABEL[r.billing_period] || r.billing_period)}${recurBadge}</td>
           <td class="cell-right cell-mono">${fmtMoney(r.amount, r.currency)}</td>
           <td>${srcBadge}</td>
-          <td class="cell-right"><button class="btn btn-danger-ghost" data-delete="${escapeHtml(r.id)}" title="Eliminar">×</button></td>
         </tr>
       `;
     }
@@ -2264,19 +2263,13 @@
         <table class="data-table">
           <thead><tr>
             <th>Fecha</th><th>Cliente</th><th>Coach</th><th>Concepto</th>
-            <th>Medio</th><th>Frecuencia</th><th class="cell-right">Monto</th><th>Origen</th><th></th>
+            <th>Medio</th><th>Frecuencia</th><th class="cell-right">Monto</th><th>Origen</th>
           </tr></thead>
           <tbody>${rows.map(r => renderRevenueRow(r)).join('')}</tbody>
         </table>
       `;
-      wrap.querySelectorAll('[data-delete]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          if (!confirm('¿Eliminar este ingreso?')) return;
-          const { ok } = await api(`/api/tower/revenue?id=${encodeURIComponent(btn.dataset.delete)}`, { method: 'DELETE' });
-          if (ok) { toast('Ingreso eliminado', 'success'); loadRevenueTable(); }
-          else { toast('No se pudo eliminar', 'error'); }
-        });
-      });
+      // Borrado de ingresos deshabilitado a propósito: un pago solo se elimina
+      // manualmente en la base, bajo orden explícita (evita borrados accidentales).
     }
 
     async function openAddRevenueModal() {
