@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260615-1911-dieta-ajustada-por-ia-segun-analisis-king">
+<meta name="app-version" content="20260615-2005-cierre-apunta-a-semana-vivida-catchup-no-vacia">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -18748,8 +18748,10 @@ async function renderSemanas() {
       bodyHtml += `<div style="padding:16px 0;font-size:12px;color:var(--muted)">${isEs?'Sin registros diarios esta semana.':'No daily logs this week.'}</div>`;
     }
 
-    // CTA Cerrar semana — only current open week
-    if (isCurrent && !cierre) {
+    // CTA Cerrar semana — semana en curso (últimos días) o una semana pasada que
+    // quedó SIN cerrar (catch-up). Ver isWeekCierreEligible: evita ofrecer el cierre
+    // de una semana nueva vacía, pero deja recuperar la semana vivida sin cerrar.
+    if (isWeekCierreEligible(w, !!cierre)) {
       bodyHtml += `
         <button class="btn-cerrar-semana" onclick="openCierreSemana(${w})">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -19936,6 +19938,38 @@ function _cardioRotTick() {
 // (últimos 2 días + el día del cierre) y todavía NO se cerró. Tap → modal de
 // cierre de esa semana. Mismo patrón de rotación que la card de cardio.
 let _kcalRotInterval = null;
+// ¿La semana `weekNum` es elegible para cierre? Sin cierre + (ya terminó) o (en
+// curso, en sus últimos 2 días). Una semana que YA terminó y quedó sin cerrar es
+// "catch-up": se puede cerrar aunque el cliente ya esté en una semana posterior.
+// Esto arregla el bug de ofrecer cerrar la semana nueva (vacía) cuando el cliente
+// cierra tarde (el lunes o después) en vez de la semana que realmente vivió.
+function isWeekCierreEligible(weekNum, hasCierre) {
+  if (hasCierre) return false;
+  if (!currentUser || !currentUser.created_at || typeof getWeekRange !== 'function') return false;
+  const range = getWeekRange(currentUser.created_at, weekNum);
+  const today = getTodayKey();
+  if (range.start > today) return false;            // semana futura → no
+  if (range.end < today) return true;               // semana pasada sin cerrar → catch-up
+  // semana en curso → solo en los últimos 2 días (incluye hoy)
+  const end = new Date(range.end + 'T00:00:00');
+  const t = new Date(today + 'T00:00:00');
+  const daysLeft = Math.round((end - t) / 86400000);
+  return daysLeft >= 0 && daysLeft <= 2;
+}
+
+// Semana pendiente de cerrar: la MÁS VIEJA elegible (prioriza el catch-up de una
+// semana ya terminada). Devuelve su número, o null si no hay ninguna pendiente.
+function pendingCierreWeek() {
+  if (!currentUser || !currentUser.created_at || typeof getWeekNum !== 'function') return null;
+  const cur = getWeekNum(currentUser.created_at);
+  const cierres = (typeof cierresSemanales !== 'undefined' && Array.isArray(cierresSemanales)) ? cierresSemanales : [];
+  const closed = new Set(cierres.map(c => c.semana_num));
+  for (let w = 1; w <= cur; w++) {
+    if (isWeekCierreEligible(w, closed.has(w))) return w;
+  }
+  return null;
+}
+
 function renderHomeCierreCard() {
   const isEs = lang === 'es';
   const slot  = document.getElementById('home-kcal-rotator');
@@ -19953,22 +19987,20 @@ function renderHomeCierreCard() {
 
   if (!currentUser || !currentUser.created_at) return;
   if (typeof getWeekNum !== 'function' || typeof getWeekRange !== 'function') return;
-  const week  = getWeekNum(currentUser.created_at);
+  // Semana PENDIENTE de cerrar: la más vieja sin cerrar que YA terminó (catch-up),
+  // o la actual en sus últimos 2 días. Reemplaza el viejo "solo la semana vigente",
+  // que ofrecía cerrar la semana nueva vacía cuando el cliente cerraba tarde.
+  const week = pendingCierreWeek();
+  if (week == null) return;
   const range = getWeekRange(currentUser.created_at, week);
 
-  // ¿ya cerró la semana vigente?
-  const cierres = (typeof cierresSemanales !== 'undefined' && Array.isArray(cierresSemanales)) ? cierresSemanales : [];
-  if (cierres.some(c => c.semana_num === week)) return;
-
-  // Días hasta el fin de la semana vigente
+  // Mensaje de timing (incluye "Pendiente" para una semana que ya terminó)
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const end = new Date(range.end + 'T00:00:00');
   const daysLeft = Math.round((end - today) / 86400000);
-  if (daysLeft < 0 || daysLeft > 2) return; // solo últimos 2 días + el día del cierre
-
-  // Mensaje de timing
   let msg;
-  if (daysLeft === 0)      msg = isEs ? 'Es hoy'     : "It's today";
+  if (daysLeft < 0)        msg = isEs ? 'Pendiente'  : 'Pending';
+  else if (daysLeft === 0) msg = isEs ? 'Es hoy'     : "It's today";
   else if (daysLeft === 1) msg = isEs ? 'Es mañana'  : "It's tomorrow";
   else {
     const dn = end.toLocaleDateString(isEs ? 'es-AR' : 'en-US', { weekday: 'long' });
