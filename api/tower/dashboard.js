@@ -155,7 +155,7 @@ async function handleMetrics(req, res) {
     count('cierres_semanales'),
     count('cierres_semanales', `created_at=gte.${monthStart}T00:00:00Z`),
     sb('/tenants?select=id,slug,name'),
-    sb('/tower_revenue?select=usuario_id,period_end&source=eq.stripe&recurring=eq.true'),
+    sb('/tower_revenue?select=usuario_id,cliente_nombre,period_end&source=eq.stripe&recurring=eq.true'),
     sb('/tower_revenue?select=amount,currency,recurring,billing_period&recurring=eq.true'),
     sb(`/usuarios?select=nombre,email,role,last_active,tenants(slug,name)&es_interno=is.false&or=(last_active.lt.${d7},last_active.is.null)&order=last_active.asc.nullsfirst&limit=200`),
     sb(`/beta_eventos?select=usuario_id,created_at&evento=eq.session_start&created_at=gte.${d30}&limit=10000`),
@@ -163,11 +163,19 @@ async function handleMetrics(req, res) {
     sb('/tower_revenue?select=amount,currency,recurring,billing_period,period_start,created_at&recurring=eq.true&limit=2000'),
   ]);
 
-  // Suscripciones Stripe activas: usuarios distintos con cobertura vigente
+  // Suscripciones Stripe activas: suscriptores distintos con cobertura vigente
   // (sin period_end = lo tomamos como vigente; con fecha = debe ser >= hoy).
+  // OJO: las filas de ingreso casi siempre tienen usuario_id NULL (la clienta
+  // vive en beta_invitados, no vinculada a `usuarios`). Antes esto dejaba el
+  // contador en 0. Deduplicamos por usuario_id si existe; si no, por el nombre
+  // del cliente normalizado.
   const activeSubs = new Set();
   for (const r of stripeRows) {
-    if (r.usuario_id && (!r.period_end || r.period_end >= todayDate)) activeSubs.add(r.usuario_id);
+    const vigente = (!r.period_end || r.period_end >= todayDate);
+    if (!vigente) continue;
+    const key = r.usuario_id
+      || (r.cliente_nombre ? 'n:' + String(r.cliente_nombre).trim().toLowerCase() : null);
+    if (key) activeSubs.add(key);
   }
 
   // MRR total por moneda
