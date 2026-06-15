@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260614-1842-boton-atras-android-navega-secciones-y-cierra-modales">
+<meta name="app-version" content="20260615-0035-analisis-del-cierre-con-markdown-formateado--sin---ni---">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -8386,8 +8386,22 @@ body.theme-king .alim-edit-tip {
   background: var(--surface2); border-radius: 12px;
   padding: 16px; margin-top: 16px;
   font-size: 13px; line-height: 1.65;
-  color: var(--text); white-space: pre-wrap; display: none;
+  color: var(--text); white-space: normal; display: none;
 }
+/* Markdown formateado (formatResponse): títulos, negrita, listas. Sin esto se
+   verían los caracteres # y ** crudos. Espeja el estilo de .semana-analisis. */
+.cierre-analisis-result h1, .cierre-analisis-result h2 {
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700;
+  color: var(--accent3, #2ecfb5); margin: 12px 0 4px;
+}
+.cierre-analisis-result h1:first-child, .cierre-analisis-result h2:first-child { margin-top: 0; }
+.cierre-analisis-result strong { color: var(--text); font-weight: 700; }
+.cierre-analisis-result em { color: var(--muted); font-style: italic; }
+.cierre-analisis-result ul { padding-left: 18px; margin: 4px 0 8px; }
+.cierre-analisis-result li { margin: 0 0 4px; }
+body.theme-king .cierre-analisis-result h1,
+body.theme-king .cierre-analisis-result h2,
+body.theme-king .cierre-analisis-result strong { color: var(--accent) !important; }
 /* Side-by-side compare in cierre modal */
 .cierre-foto-compare {
   display: grid;
@@ -18996,8 +19010,10 @@ async function ejecutarCierreSemana() {
       return;
     }
 
-    // SUCCESS — show analysis. Subsequent persistence/refresh failures must not flip UI to error.
-    result.textContent = analisis;
+    // SUCCESS — show analysis. formatResponse interpreta el Markdown (## → título,
+    // ** → negrita) y escapa el HTML primero (seguro). Antes era textContent crudo,
+    // que mostraba los # y ** como caracteres feos. Mismo formateo que las cards.
+    result.innerHTML = formatResponse(analisis);
     result.style.display = 'block';
     _setBtnTxt(lang === 'es' ? '✓ Análisis guardado' : '✓ Analysis saved');
 
@@ -20284,8 +20300,14 @@ function renderPerfilAnalisis(cierres) {
     return;
   }
 
-  // Plain-text preview (strip HTML if any)
-  const plain = String(last.analisis).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  // Plain-text preview: saca HTML y también los marcadores Markdown (#, **, -)
+  // para que el snippet no muestre caracteres crudos.
+  const plain = String(last.analisis)
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/^#{1,6}\s*/gm, '')
+    .replace(/^[-]\s+/gm, '')
+    .replace(/\*+/g, '')
+    .replace(/\s+/g, ' ').trim();
   const labelSemana = `${isEs?'SEMANA':'WEEK'} ${last.semana_num}`;
   container.innerHTML = `
     <div class="cai-perfil-analisis-week">${labelSemana}</div>
