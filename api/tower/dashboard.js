@@ -271,8 +271,10 @@ async function handleMetrics(req, res) {
   // margen refleja "cuánto rinde un cliente que paga" (las gratis son inversión).
   const activeServed = active30d || 0;
   const payingUsers  = activeSubs.size;
+  const grossMrrUsd  = (mrr && mrr.USD) || 0;
   const aiCostPerUser = activeServed ? round2(aiCostMonthly / activeServed) : null;
   const netRevPerUser = payingUsers ? round2(netMrrUsd / payingUsers) : null;
+  const grossRevPerUser = payingUsers ? round2(grossMrrUsd / payingUsers) : null;
 
   return res.status(200).json({
     ok: true,
@@ -287,6 +289,9 @@ async function handleMetrics(req, res) {
         paying_users: payingUsers,
         ai_cost_monthly: aiCostMonthly,
         ai_cost_per_user: aiCostPerUser,
+        gross_mrr: grossMrrUsd,
+        net_mrr: netMrrUsd,
+        gross_revenue_per_user: grossRevPerUser,
         net_revenue_per_user: netRevPerUser,
         margin_per_user: (netRevPerUser != null && aiCostPerUser != null) ? round2(netRevPerUser - aiCostPerUser) : null,
         // Margen % por cliente que paga = (ingreso neto − costo IA) / ingreso neto.

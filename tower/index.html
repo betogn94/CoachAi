@@ -293,6 +293,14 @@
       color: var(--text-dim);
       padding: 14px 10px 6px;
     }
+    .metrics-subhead {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      margin: 22px 2px 10px;
+    }
     .nav-item {
       display: flex;
       align-items: center;
@@ -1560,22 +1568,25 @@
             <p class="page-sub">Salud del negocio en tiempo real.</p>
           </div>
         </div>
-        <div id="mGrid" class="cards-grid"></div>
+        <div class="metrics-subhead">Actividad</div>
+        <div id="mGridAct" class="cards-grid"></div>
+        <div class="metrics-subhead">Facturación — bruto vs neto</div>
+        <div id="mGridFact" class="cards-grid"></div>
+        <div class="metrics-subhead">Unit economics (por cliente)</div>
+        <div id="mGridEco" class="cards-grid"></div>
         <div id="mCharts"></div>
       `;
-      const grid = document.getElementById('mGrid');
-      grid.innerHTML = `
-        ${statCardSkeleton('Usuarios activos')}
-        ${statCardSkeleton('Suscripciones activas')}
-        ${statCardSkeleton('MRR')}
-        ${statCardSkeleton('Costo IA por usuario')}
-        ${statCardSkeleton('Margen por usuario')}
-        ${statCardSkeleton('Cierres completados')}
-      `;
+      const gAct  = document.getElementById('mGridAct');
+      const gFact = document.getElementById('mGridFact');
+      const gEco  = document.getElementById('mGridEco');
+      gAct.innerHTML  = `${statCardSkeleton('Usuarios activos')}${statCardSkeleton('Suscripciones activas')}${statCardSkeleton('Cierres')}`;
+      gFact.innerHTML = `${statCardSkeleton('MRR bruto')}${statCardSkeleton('MRR neto')}`;
+      gEco.innerHTML  = `${statCardSkeleton('Costo IA / usuario')}${statCardSkeleton('Margen / cliente')}`;
 
       const { ok, data } = await api('/api/tower/dashboard?view=metrics');
       if (!ok || !data?.ok) {
-        grid.innerHTML = `<div class="stat-card"><div class="stat-label">Error</div><div class="stat-sub">${escapeHtml(data?.detail || data?.error || 'No se pudo cargar')}</div></div>`;
+        gAct.innerHTML = `<div class="stat-card"><div class="stat-label">Error</div><div class="stat-sub">${escapeHtml(data?.detail || data?.error || 'No se pudo cargar')}</div></div>`;
+        gFact.innerHTML = ''; gEco.innerHTML = '';
         return;
       }
       const m = data.metrics, c = data.charts;
@@ -1584,13 +1595,20 @@
         ? Object.entries(m.mrr).map(([cur, v]) => `${cur} ${fmtMoney(v)}`).join(' · ')
         : '—';
 
-      grid.innerHTML = `
+      gAct.innerHTML = `
         ${statCard('Usuarios activos', fmtInt(m.active.last_7d), `${fmtInt(m.active.today)} hoy · ${fmtInt(m.active.last_30d)} en 30d`)}
-        ${statCard('Suscripciones activas', fmtInt(m.subscriptions_active), 'Pagos Stripe vigentes')}
-        ${statCard('MRR', mrrStr, 'Ingreso recurrente mensual')}
-        ${statCard('Costo IA por usuario', ue.ai_cost_per_user != null ? fmtMoney(ue.ai_cost_per_user) : '—', `Anthropic API ÷ ${fmtInt(ue.active_users || 0)} activos`)}
-        ${statCard('Margen por usuario', ue.margin_pct != null ? `${ue.margin_pct}%` : '—', ue.margin_per_user != null ? `${fmtMoney(ue.margin_per_user)}/cliente · neto de Stripe e IA` : 'neto de Stripe e IA')}
+        ${statCard('Suscripciones activas', fmtInt(m.subscriptions_active), 'Clientes que pagan, vigentes')}
         ${statCard('Cierres completados', fmtInt(m.cierres.total), `${fmtInt(m.cierres.this_month)} este mes`)}
+      `;
+      gFact.innerHTML = `
+        ${statCard('MRR bruto', mrrStr, 'Recurrente mensual (antes de comisión)')}
+        ${statCard('MRR neto', ue.net_mrr != null ? fmtMoney(ue.net_mrr) : '—', 'Lo que entra después de Stripe (~6%)')}
+        ${statCard('Ingreso bruto / cliente', ue.gross_revenue_per_user != null ? fmtMoney(ue.gross_revenue_per_user) : '—', 'Precio promedio por venta')}
+        ${statCard('Ingreso neto / cliente', ue.net_revenue_per_user != null ? fmtMoney(ue.net_revenue_per_user) : '—', 'Promedio real después de Stripe')}
+      `;
+      gEco.innerHTML = `
+        ${statCard('Costo IA por usuario', ue.ai_cost_per_user != null ? fmtMoney(ue.ai_cost_per_user) : '—', `Anthropic API ÷ ${fmtInt(ue.active_users || 0)} activos`)}
+        ${statCard('Margen por cliente', ue.margin_pct != null ? `${ue.margin_pct}%` : '—', ue.margin_per_user != null ? `${fmtMoney(ue.margin_per_user)}/cliente · neto de Stripe e IA` : 'neto de Stripe e IA')}
       `;
 
       document.getElementById('mCharts').innerHTML = `
