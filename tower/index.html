@@ -1589,7 +1589,7 @@
         ${statCard('Suscripciones activas', fmtInt(m.subscriptions_active), 'Pagos Stripe vigentes')}
         ${statCard('MRR', mrrStr, 'Ingreso recurrente mensual')}
         ${statCard('Costo IA por usuario', ue.ai_cost_per_user != null ? fmtMoney(ue.ai_cost_per_user) : '—', `Anthropic API ÷ ${fmtInt(ue.active_users || 0)} activos`)}
-        ${statCard('Margen por usuario', ue.margin_pct != null ? `${ue.margin_pct}%` : '—', ue.margin_per_user != null ? `${fmtMoney(ue.margin_per_user)}/usuario · ingreso − costo IA` : 'ingreso − costo IA')}
+        ${statCard('Margen por usuario', ue.margin_pct != null ? `${ue.margin_pct}%` : '—', ue.margin_per_user != null ? `${fmtMoney(ue.margin_per_user)}/cliente · neto de Stripe e IA` : 'neto de Stripe e IA')}
         ${statCard('Cierres completados', fmtInt(m.cierres.total), `${fmtInt(m.cierres.this_month)} este mes`)}
       `;
 

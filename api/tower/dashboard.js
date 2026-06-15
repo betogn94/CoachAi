@@ -156,7 +156,7 @@ async function handleMetrics(req, res) {
     count('cierres_semanales', `created_at=gte.${monthStart}T00:00:00Z`),
     sb('/tenants?select=id,slug,name'),
     sb('/tower_revenue?select=usuario_id,cliente_nombre,period_end&source=eq.stripe&recurring=eq.true'),
-    sb('/tower_revenue?select=amount,currency,recurring,billing_period&recurring=eq.true'),
+    sb('/tower_revenue?select=amount,currency,recurring,billing_period,stripe_fee&recurring=eq.true'),
     sb(`/usuarios?select=nombre,email,role,last_active,tenants(slug,name)&es_interno=is.false&or=(last_active.lt.${d7},last_active.is.null)&order=last_active.asc.nullsfirst&limit=200`),
     sb(`/beta_eventos?select=usuario_id,created_at&evento=eq.session_start&created_at=gte.${d30}&limit=10000`),
     sb('/cierres_semanales?select=fecha_fin,created_at&limit=2000'),
@@ -256,8 +256,23 @@ async function handleMetrics(req, res) {
     const aiCosts = await sb('/tower_costs?select=amount_usd,billing_period,installments,period_start,period_end,label&provider=eq.anthropic');
     aiCostMonthly = sumMonthly((aiCosts || []).filter(c => /api/i.test(c.label || '')), ecoY, ecoM);
   } catch (_) { /* sin costos cargados → 0 */ }
-  const ecoDenom = active30d || 0;
-  const mrrUsd = (mrr && mrr.USD) || 0;
+  // Ingreso NETO mensual (USD): lo que realmente entra después de la comisión de
+  // Stripe (~6%). Usamos amount − stripe_fee, NO el bruto $19.99.
+  let netMrrUsd = 0;
+  for (const r of revenueRecurring) {
+    if ((r.currency || 'ARS') !== 'USD' || !r.recurring) continue;
+    const net = Number(r.amount || 0) - Number(r.stripe_fee || 0);
+    if (r.billing_period === 'mensual')   netMrrUsd += net;
+    else if (r.billing_period === 'anual') netMrrUsd += net / 12;
+  }
+  netMrrUsd = round2(netMrrUsd);
+  // Denominadores distintos a propósito: el costo de IA se reparte entre TODOS los
+  // que servimos (activos, paguen o no); el ingreso es de los que PAGAN. Así el
+  // margen refleja "cuánto rinde un cliente que paga" (las gratis son inversión).
+  const activeServed = active30d || 0;
+  const payingUsers  = activeSubs.size;
+  const aiCostPerUser = activeServed ? round2(aiCostMonthly / activeServed) : null;
+  const netRevPerUser = payingUsers ? round2(netMrrUsd / payingUsers) : null;
 
   return res.status(200).json({
     ok: true,
@@ -268,14 +283,14 @@ async function handleMetrics(req, res) {
       mrr,
       unit_economics: {
         currency: 'USD',
-        active_users: ecoDenom,
+        active_users: activeServed,
+        paying_users: payingUsers,
         ai_cost_monthly: aiCostMonthly,
-        ai_cost_per_user: ecoDenom ? round2(aiCostMonthly / ecoDenom) : null,
-        revenue_per_user: ecoDenom ? round2(mrrUsd / ecoDenom) : null,
-        margin_per_user: ecoDenom ? round2((mrrUsd - aiCostMonthly) / ecoDenom) : null,
-        // Margen % = (ingreso − costo IA) / ingreso. No depende de la cantidad de
-        // usuarios (el denominador se cancela), así que es más estable que el $.
-        margin_pct: mrrUsd > 0 ? Math.round((mrrUsd - aiCostMonthly) / mrrUsd * 100) : null,
+        ai_cost_per_user: aiCostPerUser,
+        net_revenue_per_user: netRevPerUser,
+        margin_per_user: (netRevPerUser != null && aiCostPerUser != null) ? round2(netRevPerUser - aiCostPerUser) : null,
+        // Margen % por cliente que paga = (ingreso neto − costo IA) / ingreso neto.
+        margin_pct: (netRevPerUser && aiCostPerUser != null) ? Math.round((netRevPerUser - aiCostPerUser) / netRevPerUser * 100) : null,
       },
       cierres: { total: cierresTotal, this_month: cierresMonth },
       inactive_count: inactive.length,
