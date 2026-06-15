@@ -57,25 +57,28 @@ async function list(req, res) {
   // Totales separados POR MONEDA (no se mezclan ARS y USD).
   const byCurrency = {}; // { ARS: {lifetime, month, mrr}, USD: {...} }
   const byMethod = {};   // { transferencia: {ARS:x, USD:y}, ... }  — ingreso del mes por medio de pago
-  const ensure = (cur) => (byCurrency[cur] = byCurrency[cur] || { lifetime: 0, month: 0, mrr: 0 });
+  // net_* = lo que realmente entra después de la comisión de Stripe (amount − stripe_fee).
+  const ensure = (cur) => (byCurrency[cur] = byCurrency[cur] || { lifetime: 0, month: 0, mrr: 0, net_lifetime: 0, net_month: 0, net_mrr: 0 });
 
   for (const r of rows) {
     const cur = (r.currency || 'ARS');
     const a = Number(r.amount || 0);
+    const net = a - Number(r.stripe_fee || 0);
+    const netMrr = r.recurring ? (r.billing_period === 'mensual' ? net : r.billing_period === 'anual' ? net / 12 : 0) : 0;
     const c = ensure(cur);
-    c.lifetime += a;
-    c.mrr += monthlyMRR(r);
+    c.lifetime += a;        c.net_lifetime += net;
+    c.mrr += monthlyMRR(r); c.net_mrr += netMrr;
     if ((r.period_start || '') >= monthStart) {
-      c.month += a;
+      c.month += a;         c.net_month += net;
       const pm = r.payment_method || 'otro';
       byMethod[pm] = byMethod[pm] || {};
       byMethod[pm][cur] = (byMethod[pm][cur] || 0) + a;
     }
   }
   for (const cur in byCurrency) {
-    byCurrency[cur].lifetime = round2(byCurrency[cur].lifetime);
-    byCurrency[cur].month    = round2(byCurrency[cur].month);
-    byCurrency[cur].mrr      = round2(byCurrency[cur].mrr);
+    const x = byCurrency[cur];
+    x.lifetime = round2(x.lifetime); x.month = round2(x.month); x.mrr = round2(x.mrr);
+    x.net_lifetime = round2(x.net_lifetime); x.net_month = round2(x.net_month); x.net_mrr = round2(x.net_mrr);
   }
 
   return res.status(200).json({

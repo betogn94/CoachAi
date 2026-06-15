@@ -2250,6 +2250,7 @@
           <td class="cell-dim">${escapeHtml(_REV_METHOD_LABEL[r.payment_method] || r.payment_method)}</td>
           <td class="cell-dim">${escapeHtml(_REV_PERIOD_LABEL[r.billing_period] || r.billing_period)}${recurBadge}</td>
           <td class="cell-right cell-mono">${fmtMoney(r.amount, r.currency)}</td>
+          <td class="cell-right cell-mono">${fmtMoney(Number(r.amount || 0) - Number(r.stripe_fee || 0), r.currency)}</td>
           <td>${srcBadge}</td>
         </tr>
       `;
@@ -2271,8 +2272,8 @@
         cards = statCard('Ingresos del mes', '$0', 'Sin ingresos cargados');
       } else {
         for (const cur of curs) {
-          cards += statCard(`Este mes (${cur})`, fmtMoney(byCur[cur].month, cur), 'Ingresos del mes actual');
-          cards += statCard(`MRR (${cur})`, fmtMoney(byCur[cur].mrr, cur), 'Recurrente mensual estimado');
+          cards += statCard(`Este mes (${cur})`, fmtMoney(byCur[cur].month, cur), `Neto ${fmtMoney(byCur[cur].net_month || 0, cur)} · después de Stripe`);
+          cards += statCard(`MRR (${cur})`, fmtMoney(byCur[cur].mrr, cur), `Neto ${fmtMoney(byCur[cur].net_mrr || 0, cur)} · recurrente`);
         }
       }
       cards += statCard('Registros', fmtInt(data.totals.count), 'Ingresos totales cargados');
@@ -2286,7 +2287,7 @@
         <table class="data-table">
           <thead><tr>
             <th>Fecha</th><th>Cliente</th><th>Coach</th><th>Concepto</th>
-            <th>Medio</th><th>Frecuencia</th><th class="cell-right">Monto</th><th>Origen</th>
+            <th>Medio</th><th>Frecuencia</th><th class="cell-right">Monto</th><th class="cell-right">Neto</th><th>Origen</th>
           </tr></thead>
           <tbody>${rows.map(r => renderRevenueRow(r)).join('')}</tbody>
         </table>
