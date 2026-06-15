@@ -273,6 +273,9 @@ async function handleMetrics(req, res) {
         ai_cost_per_user: ecoDenom ? round2(aiCostMonthly / ecoDenom) : null,
         revenue_per_user: ecoDenom ? round2(mrrUsd / ecoDenom) : null,
         margin_per_user: ecoDenom ? round2((mrrUsd - aiCostMonthly) / ecoDenom) : null,
+        // Margen % = (ingreso − costo IA) / ingreso. No depende de la cantidad de
+        // usuarios (el denominador se cancela), así que es más estable que el $.
+        margin_pct: mrrUsd > 0 ? Math.round((mrrUsd - aiCostMonthly) / mrrUsd * 100) : null,
       },
       cierres: { total: cierresTotal, this_month: cierresMonth },
       inactive_count: inactive.length,
