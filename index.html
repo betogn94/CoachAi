@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260615-0050-tono-del-analisis-del-cierre-mas-calido-y-motivador">
+<meta name="app-version" content="20260615-1852-repetir-plan-post-cierre-king-precarga-automatica">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -13421,6 +13421,93 @@ async function saveWeeklyPlan(tipo, contenido) {
   return data;
 }
 
+// ============================================================
+// FLUJO JESÚS/KING — repetir plan post-cierre (precarga automática)
+// ============================================================
+// Tenant de Jesús/King. Es la ÚNICA tenant con este flujo: cuando una clienta
+// cierra su semana y arranca una semana ISO nueva, le clonamos sola su rutina +
+// dieta de la semana cerrada hacia la nueva (rutina limpia, dieta igual) y la
+// dejamos ACTIVA. Decisión de producto (2026-06-15, con Beto): alcance solo King;
+// entrega automática (sin botones); la rutina se repite hasta que Jesús cargue
+// una nueva desde Studio; la dieta se copia igual. Los nativos (tenant default)
+// siguen con plan nuevo por IA — no los toca.
+const KING_TENANT_ID = 'dedb8949-5f35-4274-bada-9a03c392fd5e';
+
+// Quita un bloque de dieta pegado al INICIO de una rutina (artefacto de algunas
+// migraciones: la fila rutina arrancaba con la dieta + "---" + la rutina, lo que
+// hace que el parser lea los días de la dieta como días de entreno vacíos). Solo
+// recorta si el contenido CLARAMENTE empieza con dieta — si la rutina ya está
+// limpia, la devuelve intacta (no daña el caso común). Defensivo para futuras
+// rutinas que Jesús pudiera subir con la dieta pegada.
+function stripLeadingDietFromRutina(contenido) {
+  if (!contenido || typeof contenido !== 'string') return contenido;
+  const t = contenido.replace(/^﻿/, '');
+  if (!/^\s*(🥗\s*)?Plan\s+(nutricional|de\s+alimentaci)/i.test(t)) return contenido;
+  // Cortar al inicio de la rutina: preferí un header "RUTINA", si no el primer "Día N".
+  const mRut = t.match(/(?:^|\n)\s*(?:💪\s*)?RUTINA\b/i);
+  const mDia = t.match(/(?:^|\n)\s*\**\s*D[ií]a\s*\d+/);
+  let cut = -1;
+  if (mRut) cut = t.indexOf('RUTINA', mRut.index);
+  else if (mDia) cut = t.indexOf(mDia[0].replace(/^\n/, ''), mDia.index);
+  if (cut > 0) return t.slice(cut).trim();
+  return contenido; // no pude ubicar la rutina con seguridad → no toco nada
+}
+
+// Si la clienta es de Jesús, cerró su semana y hoy estamos en una semana ISO
+// posterior sin plan para esta semana, clona el plan cerrado a la semana actual.
+// Lazy on-load (corre al abrir la app, sin cron). Idempotente: una vez clonado,
+// el plan de la semana actual queda ACTIVO y la condición deja de cumplirse.
+// Devuelve true si clonó algo (el caller recarga weeklyPlans).
+async function autoRepeatPlansForKing() {
+  try {
+    if (!sbClient || !currentUser) return false;
+    if (currentUser.tenant_id !== KING_TENANT_ID) return false;          // solo King
+    if (currentUser.role && currentUser.role !== 'user') return false;   // no coaches/admins
+    const wkNow = getISOWeekKey();
+    // Candidatos: plan cerrado, con contenido, de una semana ISO ANTERIOR a la actual.
+    // (Si hubiera un plan de la semana actual sería el último y estaría activo, no
+    // cerrado → no entra. Eso ya descarta el re-clonado.)
+    const tipos = ['rutina', 'dieta'].filter(t => {
+      const p = weeklyPlans[t];
+      return p && p.closed && p.contenido && p.semana_iso && p.semana_iso < wkNow;
+    });
+    if (!tipos.length) return false;
+    // Guard anti-loop: clonamos solo si HOY es posterior al último cierre, así el
+    // plan nuevo (fecha_entrega = hoy) queda ACTIVO y no se re-cierra/re-clona.
+    // Espeja la regla de loadCurrentWeekPlans (closed iff maxCierreEnd >= fecha).
+    // Cubre el borde "cierre a mitad de semana": ahí hoy <= cierre_end → no clona.
+    const { data: cierres } = await sbClient.from('cierres_semanales')
+      .select('fecha_fin').eq('usuario_id', currentUser.id);
+    const ends = (cierres || []).map(c => (c.fecha_fin || '').slice(0, 10)).filter(Boolean).sort();
+    const maxCierreEnd = ends.length ? ends[ends.length - 1] : null;
+    const hoy = getTodayKey();
+    if (maxCierreEnd && !(hoy > maxCierreEnd)) return false;
+    let copied = false;
+    for (const tipo of tipos) {
+      let contenido = weeklyPlans[tipo].contenido;
+      if (tipo === 'rutina') contenido = stripLeadingDietFromRutina(contenido);
+      const { error } = await sbClient.from('planes_semanales').upsert({
+        usuario_id: currentUser.id,
+        tipo,
+        semana_iso: wkNow,
+        fecha_entrega: hoy,
+        contenido,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'usuario_id,tipo,semana_iso' });
+      if (error) { console.error('[CoachAI] auto-repeat upsert error', tipo, error); continue; }
+      copied = true;
+      if (typeof trackEvent === 'function') {
+        trackEvent('plan_auto_repeated', { tipo, from: weeklyPlans[tipo].semana_iso, to: wkNow });
+      }
+    }
+    if (copied) console.info('[CoachAI] auto-repeat: plan(es) clonado(s) a', wkNow, tipos.join(','));
+    return copied;
+  } catch (e) {
+    console.error('[CoachAI] autoRepeatPlansForKing:', e);
+    return false;
+  }
+}
+
 // Detects whether a user message is asking for the weekly diet or routine.
 // Returns 'dieta' | 'rutina' | null based on user intent.
 // Used to mark the next AI reply as a plan delivery hint.
@@ -15921,6 +16008,20 @@ async function launchCoach() {
   allChatHistory = history;
   recentDiario = recentDiarioData;
   weeklyPlans = plans;
+
+  // FLUJO JESÚS/KING — precarga automática del plan post-cierre. Si la clienta es
+  // de Jesús, cerró su semana y arrancó una semana ISO nueva sin plan, clona su
+  // rutina + dieta de la semana anterior a esta semana (rutina limpia, dieta igual)
+  // y la deja activa. No-op instantáneo para no-King. Si clonó, recargamos
+  // weeklyPlans para que el render de Home/secciones y refreshQuickButtons vean el
+  // plan activo nuevo (los botones quedan ocultos, que es lo esperado).
+  try {
+    const didAutoRepeat = await autoRepeatPlansForKing();
+    if (didAutoRepeat) {
+      weeklyPlans = await loadCurrentWeekPlans();
+      if (typeof refreshQuickButtons === 'function') refreshQuickButtons();
+    }
+  } catch (e) { console.warn('[CoachAI] auto-repeat:', e); }
 
   // Resolve the user's tenant and apply its branding. For coachai-default
   // the branding_config values are identical to the hardcoded fallbacks
