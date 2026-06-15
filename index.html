@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260615-1852-repetir-plan-post-cierre-king-precarga-automatica">
+<meta name="app-version" content="20260615-1911-dieta-ajustada-por-ia-segun-analisis-king">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -13501,10 +13501,101 @@ async function autoRepeatPlansForKing() {
       }
     }
     if (copied) console.info('[CoachAI] auto-repeat: plan(es) clonado(s) a', wkNow, tipos.join(','));
+    // Dieta: ajuste fino por IA según objetivo + análisis de la semana (en
+    // background, no bloquea la carga). La rutina queda IDÉNTICA (progresión).
+    // Si la IA falla o rompe el formato, la dieta ya copiada (igual) queda como
+    // fallback — cero regresión. Solo si recién copiamos la dieta.
+    if (copied && tipos.includes('dieta')) {
+      autoAdjustDietForKing(wkNow).catch(e => console.warn('[CoachAI] auto-adjust diet:', e));
+    }
     return copied;
   } catch (e) {
     console.error('[CoachAI] autoRepeatPlansForKing:', e);
     return false;
+  }
+}
+
+// Ajuste fino de la dieta por IA (flujo King). Respeta la ESTRUCTURA de la dieta
+// del coach (mismos días/comidas/alimentos) y solo calibra cantidades/macros/kcal
+// si el análisis de la semana lo justifica para el objetivo del cliente. Devuelve
+// el texto ajustado (validado: parsea como dieta y no quedó truncado) o null si la
+// IA falló / rompió el formato → el caller mantiene la dieta copiada igual.
+async function adjustDietViaAI(diet, analisis, objetivo) {
+  const system = `Sos un nutricionista que AJUSTA una dieta semanal existente para la semana siguiente, según el progreso del cliente.
+
+REGLA DE ORO: por DEFAULT devolvés la dieta IGUAL. Solo la ajustás si el análisis de la semana lo justifica claramente para el objetivo (ej: proteína por debajo del target → subir proteína; definición estancada → bajar un poco las calorías; pérdida de músculo o sin energía → subir calorías o proteína).
+
+PODÉS tocar: cantidades (gramos/ml) y, en consecuencia, las kcal y macros (por comida, el Total del día y el Target del header).
+NO PODÉS tocar la ESTRUCTURA: mismos días, mismas comidas, mismos alimentos. NO agregues ni quites comidas ni días. NO inventes alimentos. Respetás la dieta del coach — solo calibrás cantidades.
+
+Si ajustás, mantené la COHERENCIA: el Total de cada día = suma de sus comidas; el Target del header acorde al promedio de los días.
+
+FORMATO idéntico al de entrada: header "Plan ... | Target: X kcal/día | P:..g C:..g G:..g", días en MAYÚSCULA, comidas "Tipo: alimentos — Xkcal · P:..g C:..g G:..g", "Total: ..." por día.
+
+Respondé SOLO con el texto de la dieta (ajustada o igual). Sin introducción, sin explicaciones, sin comentarios.`;
+  const user = `OBJETIVO DEL CLIENTE: ${objetivo || 'no especificado'}
+
+ANÁLISIS DE LA SEMANA QUE CERRÓ:
+"""
+${analisis}
+"""
+
+DIETA ACTUAL (mantener o ajustar):
+"""
+${diet}
+"""`;
+  try {
+    const resp = await fetch('/api/chat', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ system, messages: [{ role: 'user', content: user }], model: 'haiku' }),
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    let txt = (data.content && data.content[0] && data.content[0].text) || '';
+    txt = txt.replace(/^```[a-zA-Z]*\s*\n?/, '').replace(/\n?```\s*$/, '').trim();
+    if (!txt) return null;
+    if (!planReplyHasStructure('dieta', txt)) return null;             // debe parsear como dieta
+    if (txt.length < Math.floor((diet || '').length * 0.5)) return null; // anti-truncado
+    return txt;
+  } catch (e) {
+    console.warn('adjustDietViaAI failed:', e);
+    return null;
+  }
+}
+
+// Orquesta el ajuste de dieta en background (clientas de King). Toma el último
+// análisis de cierre + el objetivo, pide el ajuste a la IA, valida y —si quedó
+// bien y cambió algo— actualiza la dieta de la semana actual en base + memoria +
+// re-render. Fire-and-forget; si algo falla, la dieta copiada igual queda intacta.
+async function autoAdjustDietForKing(semanaIso) {
+  try {
+    if (!sbClient || !currentUser) return;
+    const plan = weeklyPlans.dieta;
+    if (!plan || !plan.contenido || plan.semana_iso !== semanaIso) return;
+    // Último análisis de cierre (el de la semana que recién cerró).
+    const { data: cierres } = await sbClient.from('cierres_semanales')
+      .select('analisis, fecha_fin').eq('usuario_id', currentUser.id)
+      .order('fecha_fin', { ascending: false }).limit(1);
+    const analisis = cierres && cierres[0] && cierres[0].analisis;
+    if (!analisis) return;  // sin análisis no hay base para ajustar → queda la copia
+    const adjusted = await adjustDietViaAI(plan.contenido, analisis, currentUser.objetivo);
+    if (!adjusted || adjusted.trim() === plan.contenido.trim()) return; // sin cambios
+    const { error } = await sbClient.from('planes_semanales')
+      .update({ contenido: adjusted, updated_at: new Date().toISOString() })
+      .eq('usuario_id', currentUser.id).eq('tipo', 'dieta').eq('semana_iso', semanaIso);
+    if (error) { console.error('[CoachAI] auto-adjust diet save error', error); return; }
+    weeklyPlans.dieta.contenido = adjusted;
+    if (typeof trackEvent === 'function') trackEvent('diet_auto_adjusted', { semana: semanaIso });
+    console.info('[CoachAI] dieta ajustada por IA para', semanaIso);
+    // Re-render lo visible (mismo patrón que selfHealPlans).
+    try {
+      const diario = document.getElementById('diario-wrapper');
+      if (diario && diario.offsetParent !== null && typeof renderMiAlimentacion === 'function') renderMiAlimentacion();
+      const homeVisible = document.getElementById('home-wrapper')?.style.display === 'block';
+      if (homeVisible && typeof renderHome === 'function') renderHome();
+    } catch (e) {}
+  } catch (e) {
+    console.error('[CoachAI] autoAdjustDietForKing:', e);
   }
 }
 
