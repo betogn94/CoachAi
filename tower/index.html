@@ -1568,6 +1568,8 @@
         ${statCardSkeleton('Usuarios activos')}
         ${statCardSkeleton('Suscripciones activas')}
         ${statCardSkeleton('MRR')}
+        ${statCardSkeleton('Costo IA por usuario')}
+        ${statCardSkeleton('Margen por usuario')}
         ${statCardSkeleton('Cierres completados')}
       `;
 
@@ -1577,6 +1579,7 @@
         return;
       }
       const m = data.metrics, c = data.charts;
+      const ue = m.unit_economics || {};
       const mrrStr = (m.mrr && Object.keys(m.mrr).length)
         ? Object.entries(m.mrr).map(([cur, v]) => `${cur} ${fmtMoney(v)}`).join(' · ')
         : '—';
@@ -1585,6 +1588,8 @@
         ${statCard('Usuarios activos', fmtInt(m.active.last_7d), `${fmtInt(m.active.today)} hoy · ${fmtInt(m.active.last_30d)} en 30d`)}
         ${statCard('Suscripciones activas', fmtInt(m.subscriptions_active), 'Pagos Stripe vigentes')}
         ${statCard('MRR', mrrStr, 'Ingreso recurrente mensual')}
+        ${statCard('Costo IA por usuario', ue.ai_cost_per_user != null ? fmtMoney(ue.ai_cost_per_user) : '—', `Anthropic API ÷ ${fmtInt(ue.active_users || 0)} activos`)}
+        ${statCard('Margen por usuario', ue.margin_per_user != null ? fmtMoney(ue.margin_per_user) : '—', 'Ingreso − costo IA, por usuario')}
         ${statCard('Cierres completados', fmtInt(m.cierres.total), `${fmtInt(m.cierres.this_month)} este mes`)}
       `;
 

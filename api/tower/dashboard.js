@@ -243,6 +243,22 @@ async function handleMetrics(req, res) {
     tenant: u.tenants ? (u.tenants.name || u.tenants.slug) : '—',
   }));
 
+  // ── Unit economics: costo IA por usuario + margen por usuario ─────────────
+  // Costo IA = costo mensual del Anthropic API (el MOTOR de la app). Filtramos
+  // por label que contenga "api" para EXCLUIR "Claude Pro" (herramienta de
+  // desarrollo / overhead, no el costo de servir a las clientas). Denominador =
+  // usuarios activos 30d (los que generan ese costo variable). Margen por
+  // usuario = (MRR USD − costo IA) ÷ usuarios activos. Es un promedio/estimación
+  // (no medimos tokens por clienta), pero direccionalmente útil para el margen.
+  const { year: ecoY, month: ecoM } = currentMonthUtc();
+  let aiCostMonthly = 0;
+  try {
+    const aiCosts = await sb('/tower_costs?select=amount_usd,billing_period,installments,period_start,period_end,label&provider=eq.anthropic');
+    aiCostMonthly = sumMonthly((aiCosts || []).filter(c => /api/i.test(c.label || '')), ecoY, ecoM);
+  } catch (_) { /* sin costos cargados → 0 */ }
+  const ecoDenom = active30d || 0;
+  const mrrUsd = (mrr && mrr.USD) || 0;
+
   return res.status(200).json({
     ok: true,
     generated_at: new Date().toISOString(),
@@ -250,6 +266,14 @@ async function handleMetrics(req, res) {
       active: { today: activeToday, last_7d: active7d, last_30d: active30d },
       subscriptions_active: activeSubs.size,
       mrr,
+      unit_economics: {
+        currency: 'USD',
+        active_users: ecoDenom,
+        ai_cost_monthly: aiCostMonthly,
+        ai_cost_per_user: ecoDenom ? round2(aiCostMonthly / ecoDenom) : null,
+        revenue_per_user: ecoDenom ? round2(mrrUsd / ecoDenom) : null,
+        margin_per_user: ecoDenom ? round2((mrrUsd - aiCostMonthly) / ecoDenom) : null,
+      },
       cierres: { total: cierresTotal, this_month: cierresMonth },
       inactive_count: inactive.length,
       inactive_users: inactive,
