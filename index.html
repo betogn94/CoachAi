@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260616-1430-auto-entrega-planes-onboarding-nativas-ia-y-autorepeat-todos-tenants">
+<meta name="app-version" content="20260616-1500-prompt-dieta-target-caloricco-deterministico-mifflin-mas-piso">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15504,6 +15504,31 @@ function buildSystemPrompt() {
   const alturaNum = parseFloat(altura);
   const imc = (pesoNum > 0 && alturaNum > 0) ? (pesoNum / ((alturaNum / 100) ** 2)).toFixed(1) : 'N/A';
 
+  // Target calórico DETERMINÍSTICO (Mifflin-St Jeor + factor de actividad + ajuste
+  // por objetivo). Lo calculamos acá en vez de pedirle a la IA que lo haga: Haiku
+  // tiende a SUB-PORCIONAR las dietas (calcula un TDEE razonable pero después llena
+  // las comidas por debajo). Le pasamos el número exacto + le exigimos que cada día
+  // SUME a ese target. Floor de seguridad para no caer en niveles peligrosos.
+  let _dietTarget = null;
+  {
+    const _edadN = parseInt(edad, 10);
+    if (pesoNum > 0 && alturaNum > 0 && _edadN > 0) {
+      const _bmr = 10 * pesoNum + 6.25 * alturaNum - 5 * _edadN + (sexo === 'masculino' ? 5 : -161);
+      const _af = ({ leve: 1.375, moderado: 1.55, activo: 1.725 })[actividad] || 1.55;
+      let _kcal = _bmr * _af;
+      const _obj = selections.objetivo || '';
+      if (_obj === 'definir') _kcal -= 400;
+      else if (_obj === 'volumen') _kcal += 250;
+      _kcal = Math.round(_kcal / 10) * 10;
+      const _floor = sexo === 'masculino' ? 1500 : 1200;
+      if (_kcal < _floor) _kcal = _floor;
+      const _prot = Math.round((_obj === 'definir' ? 2.0 : 1.8) * pesoNum);
+      const _fat = Math.round((_kcal * 0.25) / 9);
+      const _carbs = Math.max(0, Math.round((_kcal - _prot * 4 - _fat * 9) / 4));
+      _dietTarget = { kcal: _kcal, prot: _prot, carbs: _carbs, fat: _fat, floor: _floor };
+    }
+  }
+
   // Body fat % - US Navy formula
   const cuello = parseFloat(document.getElementById('f-cuello')?.value || 0);
   const cinturaForm = parseFloat(document.getElementById('f-cintura-form')?.value || 0);
@@ -15706,7 +15731,7 @@ REGLAS CRÍTICAS:
 - NUNCA uses tablas (|pipes|). NUNCA uses "...similar para el resto". Los 7 días son OBLIGATORIOS.
 - Una línea por comida. Sin asteriscos, sin guiones decorativos, sin líneas en blanco dentro de cada día.
 - Si una descripción de comida es larga, acortála — no eliminés días.
-- Calculá TDEE internamente (Mifflin-St Jeor): déficit 400kcal para definir / superávit 250kcal para volumen.
+${_dietTarget ? `- TARGET (ya calculado para este cliente — NO recalcules el TDEE): ${_dietTarget.kcal} kcal/día, proteína ~${_dietTarget.prot}g. Cada día tiene que sumar CERCA de ${_dietTarget.kcal} kcal (rango ${_dietTarget.kcal - 100} a ${_dietTarget.kcal + 100}). PISO INNEGOCIABLE: NINGÚN día por debajo de ${Math.max(_dietTarget.kcal - 150, _dietTarget.floor)} kcal — si tu plan suma menos, SUBÍ las porciones (más arroz/avena/papa/fruta/aceite) hasta llegar al target; un déficit excesivo hace perder músculo. El header "Target" debe ser el PROMEDIO REAL de los Totales de los 7 días (coherente con las comidas).` : '- Calculá TDEE internamente (Mifflin-St Jeor): déficit 400kcal para definir / superávit 250kcal para volumen.'}
 - Cantidades en gramos/ml. Solo alimentos de supermercado latinoamericano.
 - Respetá restricciones, alergias y lo que no le gusta al 100%.
 - Total del día dentro de ±80kcal del target. Variá menús entre días.
