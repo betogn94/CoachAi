@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260616-1348-fix-registro-comidas-entreno-no-persiste-keyear-por-semana-calendario">
+<meta name="app-version" content="20260616-1430-auto-entrega-planes-onboarding-nativas-ia-y-autorepeat-todos-tenants">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -13422,16 +13422,15 @@ async function saveWeeklyPlan(tipo, contenido) {
 }
 
 // ============================================================
-// FLUJO JESÚS/KING — repetir plan post-cierre (precarga automática)
+// REPETIR PLAN POST-CIERRE (precarga automática) — TODOS los tenants
 // ============================================================
-// Tenant de Jesús/King. Es la ÚNICA tenant con este flujo: cuando una clienta
-// cierra su semana y arranca una semana ISO nueva, le clonamos sola su rutina +
-// dieta de la semana cerrada hacia la nueva (rutina limpia, dieta igual) y la
-// dejamos ACTIVA. Decisión de producto (2026-06-15, con Beto): alcance solo King;
-// entrega automática (sin botones); la rutina se repite hasta que Jesús cargue
-// una nueva desde Studio; la dieta se copia igual. Los nativos (tenant default)
-// siguen con plan nuevo por IA — no los toca.
-const KING_TENANT_ID = 'dedb8949-5f35-4274-bada-9a03c392fd5e';
+// Cuando un cliente cierra su semana y arranca una semana ISO nueva, le clonamos
+// sola su rutina + dieta de la semana cerrada hacia la nueva (rutina idéntica para
+// progresión, dieta ajustada por IA según el análisis) y la dejamos ACTIVA, sin que
+// toque ningún botón. Decisión de producto (2026-06-16, con Beto): aplica a TODA la
+// app, todos los tenants (migradas y nativas por igual). El PRIMER plan (onboarding)
+// lo entrega autoGenerateFirstPlans (nativas, IA) o migrateClientPreloadedPlans
+// (migradas, copia); de ahí en adelante este flujo lo mantiene semana a semana.
 
 // Quita un bloque de dieta pegado al INICIO de una rutina (artefacto de algunas
 // migraciones: la fila rutina arrancaba con la dieta + "---" + la rutina, lo que
@@ -13458,11 +13457,10 @@ function stripLeadingDietFromRutina(contenido) {
 // Lazy on-load (corre al abrir la app, sin cron). Idempotente: una vez clonado,
 // el plan de la semana actual queda ACTIVO y la condición deja de cumplirse.
 // Devuelve true si clonó algo (el caller recarga weeklyPlans).
-async function autoRepeatPlansForKing() {
+async function autoRepeatPlans() {
   try {
     if (!sbClient || !currentUser) return false;
-    if (currentUser.tenant_id !== KING_TENANT_ID) return false;          // solo King
-    if (currentUser.role && currentUser.role !== 'user') return false;   // no coaches/admins
+    if (currentUser.role && currentUser.role !== 'user') return false;   // no coaches/admins (todos los tenants)
     const wkNow = getISOWeekKey();
     // Candidatos: plan cerrado, con contenido, de una semana ISO ANTERIOR a la actual.
     // (Si hubiera un plan de la semana actual sería el último y estaría activo, no
@@ -13506,17 +13504,18 @@ async function autoRepeatPlansForKing() {
     // Si la IA falla o rompe el formato, la dieta ya copiada (igual) queda como
     // fallback — cero regresión. Solo si recién copiamos la dieta.
     if (copied && tipos.includes('dieta')) {
-      autoAdjustDietForKing(wkNow).catch(e => console.warn('[CoachAI] auto-adjust diet:', e));
+      autoAdjustDiet(wkNow).catch(e => console.warn('[CoachAI] auto-adjust diet:', e));
     }
     return copied;
   } catch (e) {
-    console.error('[CoachAI] autoRepeatPlansForKing:', e);
+    console.error('[CoachAI] autoRepeatPlans:', e);
     return false;
   }
 }
 
-// Ajuste fino de la dieta por IA (flujo King). Respeta la ESTRUCTURA de la dieta
-// del coach (mismos días/comidas/alimentos) y solo calibra cantidades/macros/kcal
+// Ajuste fino de la dieta por IA (post-cierre, todos los tenants). Respeta la
+// ESTRUCTURA de la dieta existente (mismos días/comidas/alimentos) y solo calibra
+// cantidades/macros/kcal
 // si el análisis de la semana lo justifica para el objetivo del cliente. Devuelve
 // el texto ajustado (validado: parsea como dieta y no quedó truncado) o null si la
 // IA falló / rompió el formato → el caller mantiene la dieta copiada igual.
@@ -13563,11 +13562,11 @@ ${diet}
   }
 }
 
-// Orquesta el ajuste de dieta en background (clientas de King). Toma el último
+// Orquesta el ajuste de dieta en background (post-cierre). Toma el último
 // análisis de cierre + el objetivo, pide el ajuste a la IA, valida y —si quedó
 // bien y cambió algo— actualiza la dieta de la semana actual en base + memoria +
 // re-render. Fire-and-forget; si algo falla, la dieta copiada igual queda intacta.
-async function autoAdjustDietForKing(semanaIso) {
+async function autoAdjustDiet(semanaIso) {
   try {
     if (!sbClient || !currentUser) return;
     const plan = weeklyPlans.dieta;
@@ -13595,7 +13594,58 @@ async function autoAdjustDietForKing(semanaIso) {
       if (homeVisible && typeof renderHome === 'function') renderHome();
     } catch (e) {}
   } catch (e) {
-    console.error('[CoachAI] autoAdjustDietForKing:', e);
+    console.error('[CoachAI] autoAdjustDiet:', e);
+  }
+}
+
+// PRIMER PLAN de nativas (sin plan precargado): genera y entrega rutina + dieta
+// automáticamente al terminar el onboarding, sin que la clienta toque ningún botón.
+// Reusa EXACTAMENTE el camino del botón (sendToAI con el mismo pedido) → mismo
+// prompt, mismo guard de formato y mismo guardado, así la entrega es IDÉNTICA a
+// pedirlo a mano. Corre en background; mientras genera oculta el botón, y si una
+// generación falla, el catch de sendToAI lo reaparece como fallback → nunca queda
+// peor que el manual. Idempotente: solo genera los tipos que faltan. Las migradas
+// NO entran (su plan ya lo entregó migrateClientPreloadedPlans).
+let _autoGenInFlight = false;
+async function autoGenerateFirstPlans() {
+  if (_autoGenInFlight) return;
+  if (!sbClient || !currentUser) return;
+  if (currentUser.role && currentUser.role !== 'user') return;   // no coaches/admins
+  const isEs = (lang === 'es');
+  const pedidos = [
+    ['rutina', isEs ? '💪 Rutina de la semana' : '💪 Weekly Routine'],
+    ['dieta',  isEs ? '🥗 Dieta de la semana'  : '🥗 Weekly Diet'],
+  ].filter(([t]) => !(weeklyPlans[t] && !weeklyPlans[t].closed)); // solo los que faltan
+  if (!pedidos.length) return;
+  _autoGenInFlight = true;
+  try {
+    for (const [tipo, msg] of pedidos) {
+      // Ocultar el botón mientras genera. Si la generación falla, el catch de
+      // sendToAI borra el tipo de dismissedPlanButtons y lo reaparece (fallback).
+      dismissedPlanButtons.add(tipo);
+      try { if (typeof refreshQuickButtons === 'function') refreshQuickButtons(); } catch (e) {}
+      try {
+        await sendToAI(msg);   // MISMO camino que el botón: genera + valida + guarda
+      } catch (e) {
+        console.warn('[CoachAI] auto-gen primer plan', tipo, '— falló:', e?.message || e);
+      }
+      // FALLBACK robusto: si tras generar NO quedó un plan válido y activo (error,
+      // formato roto, respuesta que no era un plan), reaparecemos el botón para que
+      // la clienta lo pida a mano. sendToAI solo restaura el botón ante un ERROR
+      // duro; este chequeo cubre además el caso "respondió pero no era un plan".
+      const ok = weeklyPlans[tipo] && !weeklyPlans[tipo].closed && weeklyPlans[tipo].contenido
+        && (typeof planReplyHasStructure === 'function')
+        && planReplyHasStructure(tipo, weeklyPlans[tipo].contenido);
+      if (!ok) {
+        dismissedPlanButtons.delete(tipo);
+        try { if (typeof refreshQuickButtons === 'function') refreshQuickButtons(); } catch (e) {}
+      }
+    }
+    if (typeof trackEvent === 'function') {
+      trackEvent('first_plans_autogen', { tipos: pedidos.map(p => p[0]).join(',') });
+    }
+  } finally {
+    _autoGenInFlight = false;
   }
 }
 
@@ -16107,7 +16157,7 @@ async function launchCoach() {
   // weeklyPlans para que el render de Home/secciones y refreshQuickButtons vean el
   // plan activo nuevo (los botones quedan ocultos, que es lo esperado).
   try {
-    const didAutoRepeat = await autoRepeatPlansForKing();
+    const didAutoRepeat = await autoRepeatPlans();
     if (didAutoRepeat) {
       weeklyPlans = await loadCurrentWeekPlans();
       if (typeof refreshQuickButtons === 'function') refreshQuickButtons();
@@ -16230,6 +16280,12 @@ async function launchCoach() {
       } catch (e) { console.warn('[migration-welcome] persist threw:', e); }
     } else {
       await sendToAI(null, true);
+      // Nativa, primer ingreso: generamos y entregamos el primer plan (rutina +
+      // dieta) sola, sin que toque botones. Background (no bloquea el resto del
+      // launch). Si una generación falla, sendToAI reaparece el botón (fallback).
+      // Solo corre en el primer launch (este bloque es !renderedAny); de ahí en
+      // adelante el plan ya existe y el auto-repeat lo mantiene semana a semana.
+      autoGenerateFirstPlans().catch(e => console.warn('[CoachAI] auto-gen primer plan:', e));
     }
   } else {
     // Scroll to bottom so user lands at the most recent message.
@@ -16558,7 +16614,12 @@ async function sendToAI(userMessage, isFirst = false) {
         if (typeof trackEvent === 'function') trackEvent('plan_save_failed', { tipo: _planTipoForDisplay, reason: 'unparseable' });
         console.error('[CoachAI] plan_save_failed (unparseable) —', _planTipoForDisplay, '— mostrando reply crudo al usuario');
       }
-      addMessage(formatResponse(reply), 'coach');
+      // En la AUTOGENERACIÓN del primer plan (la clienta no pidió nada), si la
+      // entrega falló NO ensuciamos el chat con la respuesta cruda — el fallback al
+      // botón ya la cubre. En el flujo manual sí se muestra (ella lo pidió).
+      if (!(_autoGenInFlight && isPlanDelivery)) {
+        addMessage(formatResponse(reply), 'coach');
+      }
     }
     // If the reply was short and pendingPlanDelivery was set, we DON'T touch
     // either pendingPlanDelivery or dismissedPlanButtons — the user is mid-
@@ -16596,6 +16657,10 @@ async function sendMessage() {
   const input = document.getElementById('chat-input');
   const text = input.value.trim();
   if (!text) return;
+  // No mandar mientras se autogenera el primer plan (rutina+dieta): evita dos
+  // sendToAI concurrentes que corromperían la alternancia de conversationHistory.
+  // El texto queda en el input para que pueda reenviarlo al toque.
+  if (_autoGenInFlight) return;
   addMessage(text, 'user');
   input.value = '';
   input.style.height = 'auto';
