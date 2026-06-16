@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260616-2004-completar-dia-faltante-pre-cierre">
+<meta name="app-version" content="20260616-2023-aviso-dias-sin-completar-pre-cierre">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -8318,6 +8318,22 @@ body.theme-king .alim-edit-tip {
 .semana-completar-btn:hover { background: rgba(255,170,80,0.10); border-color: rgba(255,170,80,0.55); }
 .semana-completar-btn .scd-day { font-size: 13.5px; font-weight: 600; color: var(--text); }
 .semana-completar-btn .scd-cta { font-size: 12.5px; font-weight: 700; color: #ffae50; white-space: nowrap; }
+/* Flash al volver desde el aviso de cierre (resalta la sección un instante) */
+@keyframes semanaCompletarFlash {
+  0%,100% { box-shadow: 0 0 0 0 rgba(255,170,80,0); }
+  30%     { box-shadow: 0 0 0 3px rgba(255,170,80,0.55); }
+}
+.semana-completar-flash { border-radius: 12px; animation: semanaCompletarFlash 1.5s ease; }
+
+/* Aviso "te faltan días por registrar" antes del cierre (reusa .alim-edit-*) */
+.cierre-warn-card { max-width: 420px; }
+.cierre-warn-sub { font-size: 13px; color: var(--muted); margin: 4px 0 13px; line-height: 1.45; }
+.cierre-warn-days { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 2px; }
+.cwd-chip {
+  font-size: 12.5px; font-weight: 600; color: #ffae50;
+  background: rgba(255,170,80,0.10); border: 1px solid rgba(255,170,80,0.35);
+  border-radius: 8px; padding: 5px 10px;
+}
 
 /* Panel Completar día — checklist de comidas + toggle entreno (reusa .alim-edit-*) */
 .completar-card { max-width: 460px; }
@@ -12754,6 +12770,18 @@ body.theme-king .cai-home-semanas .semana-analisis hr {
       <button class="alim-edit-save" id="completar-save-btn" onclick="saveCompletarDia()" type="button">Guardar día</button>
     </div>
     <div class="alim-edit-status" id="completar-status"></div>
+  </div>
+</div>
+
+<div class="alim-edit-overlay" id="cierre-warn-overlay" onclick="closeCierreWarn()" role="dialog" aria-modal="true" aria-label="Días sin completar">
+  <div class="alim-edit-card cierre-warn-card" onclick="event.stopPropagation()">
+    <div class="alim-edit-title" id="cierre-warn-title">—</div>
+    <div class="cierre-warn-sub" id="cierre-warn-sub"></div>
+    <div class="cierre-warn-days" id="cierre-warn-days"></div>
+    <div class="alim-edit-actions">
+      <button class="alim-edit-cancel" id="cierre-warn-proceed" onclick="proceedCierreSemana()" type="button">Cerrar igual</button>
+      <button class="alim-edit-save" id="cierre-warn-complete" onclick="completarDesdeAviso()" type="button">Completar ahora</button>
+    </div>
   </div>
 </div>
 
@@ -18984,9 +19012,11 @@ async function renderSemanas() {
     // Días sin completar — días pasados (anteriores a hoy) sin registro, que la app
     // normal (Mi Alim / Mi Entreno, solo editan hoy) no deja completar. Solo en
     // semanas SIN cerrar (previo al cierre). Cada uno abre el panel "Completar día".
+    // Días faltantes de esta semana → también alimentan el aviso pre-cierre.
+    _weekCompletable[w] = (!cierre) ? _completable : [];
     if (!cierre && _completable.length) {
       bodyHtml += `
-        <div class="semana-completar">
+        <div class="semana-completar" id="semana-completar-${w}">
           <div class="semana-completar-title">${isEs?'Completá los días que te faltaron':'Complete your missed days'}</div>
           ${_completable.map(c => `
             <button class="semana-completar-btn" type="button" onclick="openCompletarDia('${c.dateStr}')">
@@ -19001,7 +19031,7 @@ async function renderSemanas() {
     // de una semana nueva vacía, pero deja recuperar la semana vivida sin cerrar.
     if (isWeekCierreEligible(w, !!cierre)) {
       bodyHtml += `
-        <button class="btn-cerrar-semana" onclick="openCierreSemana(${w})">
+        <button class="btn-cerrar-semana" onclick="attemptCierreSemana(${w})">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 4v17"/><path d="M5 5h11l-2 3.5L16 12H5"/>
@@ -19031,6 +19061,8 @@ function toggleSemana(weekNum) {
 // Alim / Mi Entreno solo editan el día de hoy). Guarda el RESUMEN del día en
 // progreso_diario (kcal/macros de lo tildado + entrenó sí/no) → el cierre lo toma.
 let _completarCtx = null; // { dateStr, meals:[...], checked:Set, entreno:null|true|false }
+let _weekCompletable = {}; // weekNum → [{dateStr,label}] días faltantes (alimenta el aviso pre-cierre)
+let _cierreWarnWeek = null; // semana cuyo aviso de cierre está abierto
 
 // Fecha (YYYY-MM-DD) → índice del día del plan de dieta (0=LUNES..6=DOMINGO).
 function _dietDayIdxForDate(dateStr) {
@@ -19116,6 +19148,50 @@ function closeCompletarDia() {
   const overlay = document.getElementById('completar-overlay');
   if (overlay) overlay.classList.remove('open');
   _completarCtx = null;
+}
+
+// ============================
+// AVISO PRE-CIERRE — días sin completar
+// ============================
+// Portero del botón "Cerrar semana": si quedaron días pasados sin registrar
+// (los mismos que muestran botón "Completar"), avisa antes de abrir el cierre.
+// Suave: la clienta puede "Cerrar igual" (sigue el flujo de hoy) o "Completar ahora".
+function attemptCierreSemana(w) {
+  const pend = _weekCompletable[w] || [];
+  const ov = document.getElementById('cierre-warn-overlay');
+  if (!pend.length || !ov) { openCierreSemana(w); return; } // nada faltante → cierre directo
+  const isEs = lang === 'es';
+  const n = pend.length;
+  _cierreWarnWeek = w;
+  document.getElementById('cierre-warn-title').textContent = isEs
+    ? `Te ${n === 1 ? 'falta' : 'faltan'} ${n} ${n === 1 ? 'día' : 'días'} por registrar`
+    : `You have ${n} unlogged ${n === 1 ? 'day' : 'days'}`;
+  document.getElementById('cierre-warn-sub').textContent = isEs
+    ? 'Podés completarlos antes de cerrar la semana, o cerrarla igual.'
+    : 'You can complete them before closing the week, or close it anyway.';
+  document.getElementById('cierre-warn-days').innerHTML = pend
+    .map(c => `<span class="cwd-chip">${_esc(c.label)} · ${_esc(formatDateShort(c.dateStr))}</span>`).join('');
+  ov.classList.add('open');
+}
+function closeCierreWarn() {
+  const ov = document.getElementById('cierre-warn-overlay');
+  if (ov) ov.classList.remove('open');
+  _cierreWarnWeek = null;
+}
+function proceedCierreSemana() { // "Cerrar igual" → cierre normal
+  const w = _cierreWarnWeek;
+  closeCierreWarn();
+  if (w != null) openCierreSemana(w);
+}
+function completarDesdeAviso() { // "Completar ahora" → lleva a la sección de la semana
+  const w = _cierreWarnWeek;
+  closeCierreWarn();
+  const sec = document.getElementById('semana-completar-' + w);
+  if (sec) {
+    sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    sec.classList.add('semana-completar-flash');
+    setTimeout(() => sec.classList.remove('semana-completar-flash'), 1600);
+  }
 }
 
 async function saveCompletarDia() {
@@ -20636,6 +20712,7 @@ function _syncNavHistory(id) {
 // llamadas sin argumento, cierran limpio (su guard de backdrop se saltea sin event).
 const _BACK_OVERLAYS = [
   { id: 'completar-overlay', close: () => closeCompletarDia() },
+  { id: 'cierre-warn-overlay', close: () => closeCierreWarn() },
   { id: 'alim-edit-modal',  close: () => closeAlimEdit() },
   { id: 'ej-modal',         close: () => closeEjercicioModal() },
   { id: 'pwa-modal',        close: () => closePwaModal() },
