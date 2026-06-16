@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260616-1519-mensaje-unico-unificado-al-entregar-rutina-y-dieta">
+<meta name="app-version" content="20260616-2004-completar-dia-faltante-pre-cierre">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -8302,6 +8302,56 @@ body.theme-king .alim-edit-tip {
 }
 .btn-cerrar-semana:hover { opacity: 0.88; }
 
+/* ===== Días sin completar (sección en la card de Seguimiento) ===== */
+.semana-completar { margin: 4px 18px 14px; }
+.semana-completar-title {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 8px;
+}
+.semana-completar-btn {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; padding: 11px 14px; margin-bottom: 7px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,170,80,0.30);
+  border-radius: 10px; cursor: pointer; transition: background 0.15s, border-color 0.15s;
+  font-family: 'DM Sans', sans-serif; text-align: left;
+}
+.semana-completar-btn:hover { background: rgba(255,170,80,0.10); border-color: rgba(255,170,80,0.55); }
+.semana-completar-btn .scd-day { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.semana-completar-btn .scd-cta { font-size: 12.5px; font-weight: 700; color: #ffae50; white-space: nowrap; }
+
+/* Panel Completar día — checklist de comidas + toggle entreno (reusa .alim-edit-*) */
+.completar-card { max-width: 460px; }
+.completar-section-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--muted); margin: 14px 0 8px;
+}
+.completar-meal {
+  display: flex; align-items: flex-start; gap: 10px; padding: 9px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer;
+}
+.completar-meal:last-child { border-bottom: none; }
+.completar-meal-check {
+  flex: 0 0 22px; width: 22px; height: 22px; margin-top: 1px; border-radius: 6px;
+  border: 2px solid var(--muted2); display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+.completar-meal.on .completar-meal-check { background: var(--accent3); border-color: var(--accent3); }
+.completar-meal-check svg { width: 13px; height: 13px; stroke: #fff; opacity: 0; }
+.completar-meal.on .completar-meal-check svg { opacity: 1; }
+.completar-meal-body { flex: 1; min-width: 0; }
+.completar-meal-name { font-size: 12px; font-weight: 700; color: var(--text); text-transform: capitalize; }
+.completar-meal-txt { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.completar-meal-kcal { font-size: 11px; color: var(--accent3); font-weight: 700; margin-top: 2px; }
+.completar-no-dieta { font-size: 13px; color: var(--muted); padding: 10px 0; }
+.completar-entreno-toggle { display: flex; gap: 10px; margin-top: 6px; }
+.completar-ent-btn {
+  flex: 1; padding: 11px; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 14px;
+  background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.12); color: var(--text);
+  font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+}
+.completar-ent-btn.sel-si { background: rgba(46,207,181,0.16); border-color: var(--accent3); color: var(--accent3); }
+.completar-ent-btn.sel-no { background: rgba(255,255,255,0.10); border-color: var(--muted2); }
+
 /* Cierre overlay */
 /* ===== BETA FEEDBACK ===== */
 #feedback-fab {
@@ -12690,6 +12740,20 @@ body.theme-king .cai-home-semanas .semana-analisis hr {
     </div>
     <div class="alim-edit-status" id="alim-edit-status"></div>
     <div class="alim-edit-hint">Si modificás el texto la IA calcula los kcal + macros nuevos (tarda unos segundos). Si lo dejás igual, se cuenta como cumplido con los valores del plan.</div>
+  </div>
+</div>
+
+<!-- Completar día (desde Seguimiento Semanal — días pasados que la app normal no deja editar) -->
+<div class="alim-edit-overlay" id="completar-overlay" onclick="closeCompletarDia(event)" role="dialog" aria-modal="true" aria-label="Completar día">
+  <div class="alim-edit-card completar-card" onclick="event.stopPropagation()">
+    <button class="alim-edit-close" onclick="closeCompletarDia()" aria-label="Cerrar">×</button>
+    <div class="alim-edit-title" id="completar-title">—</div>
+    <div id="completar-body"></div>
+    <div class="alim-edit-actions">
+      <button class="alim-edit-cancel" onclick="closeCompletarDia()" type="button">Cancelar</button>
+      <button class="alim-edit-save" id="completar-save-btn" onclick="saveCompletarDia()" type="button">Guardar día</button>
+    </div>
+    <div class="alim-edit-status" id="completar-status"></div>
   </div>
 </div>
 
@@ -18729,15 +18793,27 @@ async function renderSemanas() {
     // Transformación al expandir (antes la colapsada cerrada usaba un
     // thumbnail + texto suelto que rompía la estética del resto de la card).
     const _dayLabels = ['L','M','M','J','V','S','D'];
+    const _dayFullLabels = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
     const _dayState = [];
+    const _completable = []; // días ANTERIORES a hoy sin registro → se pueden "Completar"
     {
       const now = new Date();
+      const _todayStr = (typeof getTodayKey === 'function') ? getTodayKey() : formatLocalDate(now);
       for (let i = 0; i < 7; i++) {
         const d = new Date(range.start + 'T12:00:00'); d.setDate(d.getDate() + i);
-        if (d > now) { _dayState.push('future'); continue; }
         const dStr = formatLocalDate(d);
+        if (d > now) { _dayState.push('future'); continue; }
         const log = stats.wLogs.find(l => l.fecha === dStr);
-        if (!log) { _dayState.push('idle'); continue; }
+        if (!log) {
+          _dayState.push('idle');
+          // Completable: día estrictamente ANTERIOR a hoy + sin registro. Hoy NO
+          // (se carga normal en Mi Alim/Mi Entreno); futuro NO (no pasó todavía).
+          if (dStr < _todayStr) {
+          const _wd = d.toLocaleDateString(isEs ? 'es-AR' : 'en-US', { weekday: 'long' });
+          _completable.push({ dateStr: dStr, label: _wd.charAt(0).toUpperCase() + _wd.slice(1) });
+        }
+          continue;
+        }
         _dayState.push(log.entreno === true ? 'trained' : log.entreno === false ? 'rest' : 'idle');
       }
     }
@@ -18905,6 +18981,21 @@ async function renderSemanas() {
       bodyHtml += `<div style="padding:16px 0;font-size:12px;color:var(--muted)">${isEs?'Sin registros diarios esta semana.':'No daily logs this week.'}</div>`;
     }
 
+    // Días sin completar — días pasados (anteriores a hoy) sin registro, que la app
+    // normal (Mi Alim / Mi Entreno, solo editan hoy) no deja completar. Solo en
+    // semanas SIN cerrar (previo al cierre). Cada uno abre el panel "Completar día".
+    if (!cierre && _completable.length) {
+      bodyHtml += `
+        <div class="semana-completar">
+          <div class="semana-completar-title">${isEs?'Completá los días que te faltaron':'Complete your missed days'}</div>
+          ${_completable.map(c => `
+            <button class="semana-completar-btn" type="button" onclick="openCompletarDia('${c.dateStr}')">
+              <span class="scd-day">${c.label} · ${formatDateShort(c.dateStr)}</span>
+              <span class="scd-cta">${isEs?'Completar':'Complete'} →</span>
+            </button>`).join('')}
+        </div>`;
+    }
+
     // CTA Cerrar semana — semana en curso (últimos días) o una semana pasada que
     // quedó SIN cerrar (catch-up). Ver isWeekCierreEligible: evita ofrecer el cierre
     // de una semana nueva vacía, pero deja recuperar la semana vivida sin cerrar.
@@ -18931,6 +19022,145 @@ async function renderSemanas() {
 function toggleSemana(weekNum) {
   const card = document.getElementById(`semana-card-${weekNum}`);
   card.classList.toggle('open');
+}
+
+// ============================
+// COMPLETAR DÍA — días pasados sin registro (desde Seguimiento Semanal)
+// ============================
+// Permite cargar retroactivamente un día que la app normal no deja editar (Mi
+// Alim / Mi Entreno solo editan el día de hoy). Guarda el RESUMEN del día en
+// progreso_diario (kcal/macros de lo tildado + entrenó sí/no) → el cierre lo toma.
+let _completarCtx = null; // { dateStr, meals:[...], checked:Set, entreno:null|true|false }
+
+// Fecha (YYYY-MM-DD) → índice del día del plan de dieta (0=LUNES..6=DOMINGO).
+function _dietDayIdxForDate(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return (d.getDay() + 6) % 7; // getDay: 0=Dom..6=Sáb → 0=Lun..6=Dom
+}
+function _completarMealName(m, j) {
+  const map = { desayuno:'Desayuno', almuerzo:'Almuerzo', merienda:'Merienda', cena:'Cena',
+    'pre-entreno':'Pre-entreno', 'post-entreno':'Post-entreno', colacion:'Colación', snack:'Snack' };
+  return map[m && m.key] || `${lang==='es'?'Comida':'Meal'} ${j + 1}`;
+}
+
+function openCompletarDia(dateStr) {
+  const body = document.getElementById('completar-body');
+  const titleEl = document.getElementById('completar-title');
+  const overlay = document.getElementById('completar-overlay');
+  if (!body || !overlay) return;
+  const isEs = lang === 'es';
+  const dObj = new Date(dateStr + 'T12:00:00');
+  const dayName = dObj.toLocaleDateString(isEs ? 'es-AR' : 'en-US', { weekday: 'long' });
+  titleEl.textContent = `${isEs ? 'Completar' : 'Complete'} ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} · ${formatDateShort(dateStr)}`;
+
+  // Comidas del plan para ese día de la semana (mapeo weekday → día del plan).
+  let meals = [];
+  const dietaPlan = weeklyPlans && weeklyPlans.dieta;
+  if (dietaPlan && dietaPlan.contenido && typeof parseDietaContenido === 'function') {
+    try {
+      let parsed = parseDietaContenido(dietaPlan.contenido);
+      let days = parsed.days || [];
+      if ((!days || !days.length) && typeof synthesizePlainTextDieta === 'function') {
+        days = (synthesizePlainTextDieta(dietaPlan.contenido).days) || [];
+      }
+      const di = _dietDayIdxForDate(dateStr);
+      meals = (days[di] && days[di].meals) || [];
+    } catch (e) { console.warn('[completar] parse dieta:', e); }
+  }
+  _completarCtx = { dateStr, meals, checked: new Set(), entreno: null };
+
+  const mealsHtml = meals.length
+    ? meals.map((m, j) => `
+        <div class="completar-meal" id="cmd-meal-${j}" onclick="toggleCompletarMeal(${j})">
+          <div class="completar-meal-check">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="completar-meal-body">
+            <div class="completar-meal-name">${_esc(_completarMealName(m, j))}</div>
+            <div class="completar-meal-txt">${_esc(m.content || '')}</div>
+            ${m.kcal ? `<div class="completar-meal-kcal">${m.kcal} kcal</div>` : ''}
+          </div>
+        </div>`).join('')
+    : `<div class="completar-no-dieta">${isEs ? 'No hay dieta cargada para mapear las comidas de ese día — igual podés marcar si entrenaste.' : 'No diet to map the meals for that day — you can still mark if you trained.'}</div>`;
+
+  body.innerHTML = `
+    <div class="completar-section-label">${isEs ? '🥗 ¿Qué comiste ese día? (tildá lo que cumpliste)' : '🥗 What did you eat? (check what you had)'}</div>
+    ${mealsHtml}
+    <div class="completar-section-label">${isEs ? '💪 ¿Entrenaste ese día?' : '💪 Did you train that day?'}</div>
+    <div class="completar-entreno-toggle">
+      <button class="completar-ent-btn" id="cmd-ent-si" type="button" onclick="setCompletarEntreno(true)">${isEs ? 'Sí' : 'Yes'}</button>
+      <button class="completar-ent-btn" id="cmd-ent-no" type="button" onclick="setCompletarEntreno(false)">No</button>
+    </div>`;
+
+  const st = document.getElementById('completar-status'); if (st) st.textContent = '';
+  const btn = document.getElementById('completar-save-btn');
+  if (btn) { btn.disabled = false; btn.textContent = isEs ? 'Guardar día' : 'Save day'; }
+  overlay.classList.add('open');
+}
+
+function toggleCompletarMeal(j) {
+  if (!_completarCtx) return;
+  const el = document.getElementById('cmd-meal-' + j);
+  if (_completarCtx.checked.has(j)) { _completarCtx.checked.delete(j); el && el.classList.remove('on'); }
+  else { _completarCtx.checked.add(j); el && el.classList.add('on'); }
+}
+
+function setCompletarEntreno(v) {
+  if (!_completarCtx) return;
+  _completarCtx.entreno = v;
+  document.getElementById('cmd-ent-si')?.classList.toggle('sel-si', v === true);
+  document.getElementById('cmd-ent-no')?.classList.toggle('sel-no', v === false);
+}
+
+function closeCompletarDia() {
+  const overlay = document.getElementById('completar-overlay');
+  if (overlay) overlay.classList.remove('open');
+  _completarCtx = null;
+}
+
+async function saveCompletarDia() {
+  if (!_completarCtx || !currentUser || !sbClient) { closeCompletarDia(); return; }
+  const isEs = lang === 'es';
+  const status = document.getElementById('completar-status');
+  const btn = document.getElementById('completar-save-btn');
+  const { dateStr, meals, checked, entreno } = _completarCtx;
+  // Sumar kcal + macros de las comidas tildadas + texto por slot fijo.
+  let kcal = 0, prot = 0, carbs = 0, fat = 0, anyMeal = false, anyMacro = false;
+  const cols = { desayuno: null, almuerzo: null, merienda: null, cena: null };
+  for (let j = 0; j < meals.length; j++) {
+    if (!checked.has(j)) continue;
+    const m = meals[j];
+    anyMeal = true;
+    kcal += (m.kcal || 0);
+    if (m.prot != null || m.carbs != null || m.fat != null) { anyMacro = true; prot += m.prot || 0; carbs += m.carbs || 0; fat += m.fat || 0; }
+    if (Object.prototype.hasOwnProperty.call(cols, m.key)) cols[m.key] = m.content || null;
+  }
+  if (!anyMeal && entreno === null) {
+    if (status) status.textContent = isEs ? 'Marcá al menos una comida o si entrenaste.' : 'Mark at least a meal or whether you trained.';
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = isEs ? 'Guardando…' : 'Saving…'; }
+  const data = {
+    desayuno: cols.desayuno, almuerzo: cols.almuerzo, merienda: cols.merienda, cena: cols.cena,
+    calorias_consumidas: anyMeal ? kcal : null,
+    proteinas_g: anyMacro ? prot : null, carbos_g: anyMacro ? carbs : null, grasas_g: anyMacro ? fat : null,
+    entreno: entreno,
+  };
+  try {
+    await saveDiarioToSupabase(data, dateStr);                       // progreso_diario por FECHA
+    if (entreno === true && typeof mirrorTrainedDay === 'function') {
+      await mirrorTrainedDay(dateStr, true);                          // dias_entrenados + refresh recentDiario + re-render
+    } else {
+      recentDiario = await loadRecentDiario();                        // refrescar la cache que lee el cierre
+      if (typeof renderSemanas === 'function') await renderSemanas();
+    }
+  } catch (e) {
+    console.error('[completar] save:', e);
+    if (btn) { btn.disabled = false; btn.textContent = isEs ? 'Guardar día' : 'Save day'; }
+    if (status) status.textContent = isEs ? 'No se pudo guardar. Probá de nuevo.' : 'Could not save. Try again.';
+    return;
+  }
+  closeCompletarDia();
 }
 
 async function loadFotosProgreso() {
@@ -20405,6 +20635,7 @@ function _syncNavHistory(id) {
 // Overlays que el botón atrás cierra ANTES de cambiar de sección. Las close fns,
 // llamadas sin argumento, cierran limpio (su guard de backdrop se saltea sin event).
 const _BACK_OVERLAYS = [
+  { id: 'completar-overlay', close: () => closeCompletarDia() },
   { id: 'alim-edit-modal',  close: () => closeAlimEdit() },
   { id: 'ej-modal',         close: () => closeEjercicioModal() },
   { id: 'pwa-modal',        close: () => closePwaModal() },
