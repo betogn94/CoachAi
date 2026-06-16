@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260615-2005-cierre-apunta-a-semana-vivida-catchup-no-vacia">
+<meta name="app-version" content="20260616-1348-fix-registro-comidas-entreno-no-persiste-keyear-por-semana-calendario">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -16714,8 +16714,17 @@ let _alimSaveTimer = null;
 const ALIM_SAVE_DEBOUNCE = 500;
 
 function alimWeekKey() {
-  return (weeklyPlans.dieta && weeklyPlans.dieta.semana_iso) ||
-         (typeof getISOWeekKey === 'function' ? getISOWeekKey() : 'wk');
+  // Anclar el estado de comidas a la semana ISO del CALENDARIO, NO a la semana
+  // del plan de dieta (dieta.semana_iso). El plan puede ATRASARSE respecto al
+  // calendario (dieta etiquetada W24 cuando hoy ya es W25) o CAMBIAR de semana
+  // bajo el usuario (cierre + auto-repeat clona la dieta a la semana nueva).
+  // Si keyeamos por la semana del plan, los tildes se guardan bajo esa semana y,
+  // cuando el plan cambia de semana, la vista (que ahora lee la semana nueva) los
+  // muestra vacíos → "desaparece lo que cargué". Anclar al calendario (igual que
+  // alimDateForDayIdx, que ya usa el lunes de la semana actual) mantiene el estado
+  // estable y consistente con las fechas que se sincronizan a progreso_diario.
+  return (typeof getISOWeekKey === 'function' ? getISOWeekKey() : null) ||
+         (weeklyPlans.dieta && weeklyPlans.dieta.semana_iso) || 'wk';
 }
 
 async function loadAlimentacionEstado() {
@@ -21624,8 +21633,14 @@ function renderPlainTextDieta(text) {
 // mirrored into `dias_entrenados` so the Progreso training ring reflects it.
 const LS_ENTRENO = 'coachai_entreno_v1';
 function entrenoWeekKey() {
-  return (weeklyPlans.rutina && weeklyPlans.rutina.semana_iso) ||
-         (typeof getISOWeekKey === 'function' ? getISOWeekKey() : 'wk');
+  // Anclar al CALENDARIO (igual que alimWeekKey), NO a rutina.semana_iso: el plan
+  // de rutina puede atrasarse o cambiar de semana (cierre + auto-repeat clona la
+  // rutina a la semana nueva). Si keyeamos por la semana del plan, los pesos y
+  // tildes del entreno se guardan bajo esa semana y, al cambiar el plan de semana,
+  // la vista (que lee la semana nueva) los muestra vacíos → "desaparece". El
+  // calendario mantiene el estado del entreno estable semana a semana.
+  return (typeof getISOWeekKey === 'function' ? getISOWeekKey() : null) ||
+         (weeklyPlans.rutina && weeklyPlans.rutina.semana_iso) || 'wk';
 }
 function loadEntrenoAll() {
   try { return JSON.parse(localStorage.getItem(LS_ENTRENO) || '{}'); } catch (e) { return {}; }
