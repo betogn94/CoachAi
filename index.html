@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260616-1500-prompt-dieta-target-caloricco-deterministico-mifflin-mas-piso">
+<meta name="app-version" content="20260616-1519-mensaje-unico-unificado-al-entregar-rutina-y-dieta">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -13498,7 +13498,13 @@ async function autoRepeatPlans() {
         trackEvent('plan_auto_repeated', { tipo, from: weeklyPlans[tipo].semana_iso, to: wkNow });
       }
     }
-    if (copied) console.info('[CoachAI] auto-repeat: plan(es) clonado(s) a', wkNow, tipos.join(','));
+    if (copied) {
+      console.info('[CoachAI] auto-repeat: plan(es) clonado(s) a', wkNow, tipos.join(','));
+      // Avisar en el chat (UN mensaje) que llegó el plan nuevo post-cierre. Se
+      // emite después del render del historial (ver launchCoach) para que quede
+      // último y se persista. Antes este flujo era mudo.
+      _pendingPlanesEntregados = tipos.slice();
+    }
     // Dieta: ajuste fino por IA según objetivo + análisis de la semana (en
     // background, no bloquea la carga). La rutina queda IDÉNTICA (progresión).
     // Si la IA falla o rompe el formato, la dieta ya copiada (igual) queda como
@@ -13618,6 +13624,7 @@ async function autoGenerateFirstPlans() {
   ].filter(([t]) => !(weeklyPlans[t] && !weeklyPlans[t].closed)); // solo los que faltan
   if (!pedidos.length) return;
   _autoGenInFlight = true;
+  const entregados = [];
   try {
     for (const [tipo, msg] of pedidos) {
       // Ocultar el botón mientras genera. Si la generación falla, el catch de
@@ -13636,7 +13643,9 @@ async function autoGenerateFirstPlans() {
       const ok = weeklyPlans[tipo] && !weeklyPlans[tipo].closed && weeklyPlans[tipo].contenido
         && (typeof planReplyHasStructure === 'function')
         && planReplyHasStructure(tipo, weeklyPlans[tipo].contenido);
-      if (!ok) {
+      if (ok) {
+        entregados.push(tipo);
+      } else {
         dismissedPlanButtons.delete(tipo);
         try { if (typeof refreshQuickButtons === 'function') refreshQuickButtons(); } catch (e) {}
       }
@@ -13644,6 +13653,8 @@ async function autoGenerateFirstPlans() {
     if (typeof trackEvent === 'function') {
       trackEvent('first_plans_autogen', { tipos: pedidos.map(p => p[0]).join(',') });
     }
+    // UN solo mensaje al chat: unificado si entregamos los dos, individual si uno.
+    notifyPlanesEntregados(entregados);
   } finally {
     _autoGenInFlight = false;
   }
@@ -13708,6 +13719,43 @@ function buildPlanReadyNotification(tipo) {
     <div style="font-size:12.5px;color:var(--muted);margin-top:6px">${note}</div>
   </div>`;
 }
+
+// Notificación UNIFICADA cuando se entregan rutina + dieta JUNTAS (auto: onboarding
+// o post-cierre). Si solo se entregó una (caso raro que evitamos), cae al mensaje
+// individual de buildPlanReadyNotification. Mismo estilo, con la nota de Perfil.
+function buildPlanesReadyNotification(tipos) {
+  const t = (Array.isArray(tipos) ? tipos : []).filter(x => x === 'rutina' || x === 'dieta');
+  if (!t.length) return '';
+  if (t.length === 1) return buildPlanReadyNotification(t[0]);
+  const isEs = lang === 'es';
+  const A = (fn, txt, accent) => `<a onclick="${fn};return false" style="cursor:pointer;color:var(--${accent || 'accent-bright'});text-decoration:underline;font-weight:700">${txt}</a>`;
+  const title = isEs ? '💪🥗 ¡Tu rutina y dieta de la semana ya están listas!' : '💪🥗 Your weekly routine and meal plan are ready!';
+  const body = isEs
+    ? `Las armé personalizadas para vos. Tu rutina del día está en ${A('showMiEntreno()', 'Mi Entreno')} (marcá tus entrenos cumplidos y cargá tus pesos) y tus comidas de <strong>hoy</strong> en ${A('showDiario()', 'Mi Alimentación')} (tildá las cumplidas o editalas).`
+    : `I built them custom for you. Your day's routine is in ${A('showMiEntreno()', 'My Training')} (track workouts and weights) and <strong>today's</strong> meals are in ${A('showDiario()', 'My Nutrition')} (tick off or edit).`;
+  const note = isEs
+    ? `📍 La rutina y la dieta <strong>completas</strong> de la semana las tenés en tu ${A('showPerfil()', 'Perfil', 'accent2')}.`
+    : `📍 Your full week's routine and diet are in your ${A('showPerfil()', 'Profile', 'accent2')}.`;
+  return `<div style="font-size:14.5px;line-height:1.65">
+    <div style="font-size:15.5px;font-weight:700;color:var(--text);margin-bottom:8px">${title}</div>
+    <div style="margin-bottom:8px">${body}</div>
+    <div style="font-size:12.5px;color:var(--muted);margin-top:6px">${note}</div>
+  </div>`;
+}
+
+// Emite (y persiste) UN mensaje de "plan(es) listo(s)" en el chat. Unificado si se
+// entregaron los dos, individual si fue uno. Usado por la autogen del onboarding y
+// por el auto-repeat post-cierre (en este caso vía _pendingPlanesEntregados).
+function notifyPlanesEntregados(tipos) {
+  const t = (Array.isArray(tipos) ? tipos : []).filter(x => x === 'rutina' || x === 'dieta');
+  if (!t.length) return;
+  try { addMessage(buildPlanesReadyNotification(t), 'coach'); } catch (e) { return; }
+  try { saveChatToSupabase(chatMessages, todayConversation).catch(() => {}); } catch (e) {}
+}
+// Post-cierre: el auto-repeat corre temprano en launchCoach (antes de renderizar el
+// historial). Dejamos acá los tipos clonados y emitimos el mensaje DESPUÉS del
+// render del historial, para que aparezca al final (último) y se persista bien.
+let _pendingPlanesEntregados = null;
 
 function detectPlanInReply(reply) {
   if (!reply || typeof reply !== 'string') return null;
@@ -16318,6 +16366,14 @@ async function launchCoach() {
     if (container) container.scrollTop = container.scrollHeight;
   }
 
+  // Post-cierre: si el auto-repeat clonó el plan de la semana nueva, avisamos en el
+  // chat con UN mensaje (unificado). Se emite ACÁ, después de renderizar el
+  // historial, para que quede como último mensaje y se persista bien.
+  if (_pendingPlanesEntregados && _pendingPlanesEntregados.length) {
+    try { notifyPlanesEntregados(_pendingPlanesEntregados); } catch (e) { console.warn('[CoachAI] notif post-cierre:', e); }
+    _pendingPlanesEntregados = null;
+  }
+
   // First-time welcome tour: fires as soon as the home backdrop has
   // painted — feels like a welcome, not an interruption. The previous
   // setTimeout of 1200ms was long enough for users to start tapping
@@ -16633,7 +16689,9 @@ async function sendToAI(userMessage, isFirst = false) {
       && weeklyPlans[_planTipoForDisplay] && weeklyPlans[_planTipoForDisplay].contenido
       && planReplyHasStructure(_planTipoForDisplay, weeklyPlans[_planTipoForDisplay].contenido);
     if (_planAvail) {
-      addMessage(buildPlanReadyNotification(_planTipoForDisplay), 'coach');
+      // Durante la autogeneración del onboarding NO mostramos la notificación por
+      // plan: autoGenerateFirstPlans emite UN solo mensaje (unificado) al final.
+      if (!_autoGenInFlight) addMessage(buildPlanReadyNotification(_planTipoForDisplay), 'coach');
     } else {
       if (isPlanDelivery) {
         if (typeof trackEvent === 'function') trackEvent('plan_save_failed', { tipo: _planTipoForDisplay, reason: 'unparseable' });
