@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260616-2023-aviso-dias-sin-completar-pre-cierre">
+<meta name="app-version" content="20260617-2030-fix-input-peso-reps-teclado-android--samsung-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -22636,16 +22636,18 @@ function renderMiEntreno() {
             <span class="cai-ent-serie-label">${lang === 'es' ? 'Serie' : 'Set'} ${s}</span>
             <span class="cai-ent-serie-field">
               <input class="cai-ent-serie-input" type="text" inputmode="numeric"
-                     value="${esc(sr)}" placeholder="0" maxlength="3"
+                     value="${esc(sr)}" placeholder="0"
                      oninput="onEntrenoReps(${displayIdx},${j},${s},this)"
+                     onblur="cleanEntrenoFieldOnBlur(this,'reps')"
                      aria-label="${lang === 'es' ? 'Repeticiones serie' : 'Set reps'} ${s} — ${esc(ex.name)}">
               <span class="cai-ent-serie-unit">${lang === 'es' ? 'reps' : 'reps'}</span>
             </span>
             <span class="cai-ent-serie-times">×</span>
             <span class="cai-ent-serie-field">
               <input class="cai-ent-serie-input" type="text" inputmode="decimal"
-                     value="${esc(sv)}" placeholder="0" maxlength="6"
+                     value="${esc(sv)}" placeholder="0"
                      oninput="onEntrenoWeight(${displayIdx},${j},${s},this)"
+                     onblur="cleanEntrenoFieldOnBlur(this,'weight')"
                      aria-label="${lang === 'es' ? 'Peso serie' : 'Set weight'} ${s} — ${esc(ex.name)}">
               <span class="cai-ent-serie-unit">kg</span>
             </span>
@@ -22816,14 +22818,13 @@ function toggleEntrenoDone(i) {
 let _entrenoWeightTimers = {};
 function onEntrenoWeight(dayIdx, exIdx, serie, inputEl) {
   const k = serieKey(dayIdx, exIdx, serie);
-  // Sanitize in place so only numeric characters ever stay in the field
-  // (strips letters/signs/units the user might type, keeps one decimal).
+  // IME-SAFE: NO reescribir inputEl.value / cursor mientras tipea. En algunos
+  // teclados de Android (Samsung) mutar el campo durante la composición se come
+  // las teclas siguientes — el peso quedaba en 1 dígito y las reps no entraban.
+  // Sanitizamos solo para el ESTADO (abajo); el campo visible se limpia en blur
+  // (cleanEntrenoFieldOnBlur), donde ya no hay composición activa. iOS/Gboard
+  // no se ven afectados (a ellos un valor numérico válido nunca se reescribía).
   const clean = sanitizeWeight(inputEl && inputEl.value != null ? inputEl.value : '');
-  if (inputEl && inputEl.value !== clean) {
-    const pos = clean.length;
-    inputEl.value = clean;
-    try { inputEl.setSelectionRange(pos, pos); } catch (e) {}
-  }
   // Debounce the persistence so we don't thrash on every keystroke
   clearTimeout(_entrenoWeightTimers[k]);
   _entrenoWeightTimers[k] = setTimeout(() => {
@@ -22845,12 +22846,9 @@ function onEntrenoWeight(dayIdx, exIdx, serie, inputEl) {
 let _entrenoRepsTimers = {};
 function onEntrenoReps(dayIdx, exIdx, serie, inputEl) {
   const k = serieKey(dayIdx, exIdx, serie);
+  // IME-SAFE (ver onEntrenoWeight): no reescribir el campo mientras tipea, para
+  // no romper teclados de Android que componen (Samsung). Se limpia en blur.
   const clean = sanitizeReps(inputEl && inputEl.value != null ? inputEl.value : '');
-  if (inputEl && inputEl.value !== clean) {
-    const pos = clean.length;
-    inputEl.value = clean;
-    try { inputEl.setSelectionRange(pos, pos); } catch (e) {}
-  }
   clearTimeout(_entrenoRepsTimers[k]);
   _entrenoRepsTimers[k] = setTimeout(() => {
     const state = getEntrenoWeekState();
@@ -22862,6 +22860,17 @@ function onEntrenoReps(dayIdx, exIdx, serie, inputEl) {
       setTimeout(() => saved.classList.remove('show'), 1200);
     }
   }, 500);
+}
+
+// Limpia el valor visible del campo de peso/reps al SALIR (blur). Seguro acá
+// porque ya no hay composición de teclado activa (a diferencia de oninput, donde
+// reescribir el campo rompe teclados de Android como el de Samsung). El estado
+// ya guardó el valor sanitizado; esto solo prolija lo que se ve. Los topes
+// (6 chars peso · 3 reps) los aplica la propia sanitización.
+function cleanEntrenoFieldOnBlur(inputEl, kind) {
+  if (!inputEl) return;
+  const clean = kind === 'reps' ? sanitizeReps(inputEl.value) : sanitizeWeight(inputEl.value);
+  if (inputEl.value !== clean) inputEl.value = clean;
 }
 
 function showChat() {
