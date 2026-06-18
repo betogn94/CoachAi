@@ -90,6 +90,16 @@ function buildBuenDia(nombre, isTrainingDay, dayOfMonth) {
   return { title, body, url: '/', tag: 'buen-dia' };
 }
 
+// ¿Hoy entrena? Compara el día de la semana contra dias_entreno. Robusto a los
+// dos formatos: abreviaturas de 3 letras ('lun','mar','jue'...) Y nombres
+// completos ('lunes','jueves'...) — reduce ambos a las primeras 3 letras sin
+// acentos. (Bug 2026-06-18: el onboarding guarda abreviaturas, no nombres.)
+function isTrainingDay(dias, weekday) {
+  if (!Array.isArray(dias)) return false;
+  const w3 = stripAccents(weekday).slice(0, 3);
+  return dias.map(d => stripAccents(d).slice(0, 3)).includes(w3);
+}
+
 export default async function handler(req, res) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return res.status(500).json({ error: 'cron_secret_not_configured' });
@@ -109,7 +119,7 @@ export default async function handler(req, res) {
       const u = (await sbGet(`usuarios?id=eq.${testUid}&select=id,nombre,dias_entreno,timezone`))[0];
       if (!u) return res.status(404).json({ error: 'user_not_found' });
       const lp = localParts(u.timezone || 'America/Argentina/Buenos_Aires');
-      const training = Array.isArray(u.dias_entreno) && u.dias_entreno.map(stripAccents).includes(lp.weekday);
+      const training = isTrainingDay(u.dias_entreno, lp.weekday);
       let payload;
       if (testTipo === 'buen_dia') payload = buildBuenDia(u.nombre, training, new Date().getDate());
       else return res.status(400).json({ error: 'unknown_test_tipo' });
@@ -134,9 +144,9 @@ export default async function handler(req, res) {
       if (quiet) continue;
 
       // #1 BUEN DÍA — ~9am local, SIEMPRE (distingue entreno/descanso)
-      if (lp.hour === 9) {
+      if (true) { // TEMP TEST 2026-06-18 — revertir a: lp.hour === 9
         if (await claimLog(u.id, 'buen_dia', lp.fecha)) {
-          const training = Array.isArray(u.dias_entreno) && u.dias_entreno.map(stripAccents).includes(lp.weekday);
+          const training = isTrainingDay(u.dias_entreno, lp.weekday);
           const n = await pushToUser(u.id, buildBuenDia(u.nombre, training, new Date(lp.fecha + 'T12:00:00').getDate()));
           sentLog.push({ uid: u.id.slice(0, 8), tipo: 'buen_dia', sent: n });
         }
