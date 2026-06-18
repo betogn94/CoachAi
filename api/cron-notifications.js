@@ -41,7 +41,8 @@ async function claimLog(usuario_id, tipo, fecha) {
   return r.status === 201;
 }
 
-const stripAccents = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const _accentRe = new RegExp('[\\u0300-\\u036f]', 'g');
+const stripAccents = (s) => String(s || '').normalize('NFD').replace(_accentRe, '').toLowerCase();
 
 // Hora/fecha/día local de una clienta según su timezone IANA.
 function localParts(tz) {
