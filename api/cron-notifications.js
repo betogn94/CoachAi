@@ -144,7 +144,7 @@ export default async function handler(req, res) {
       if (quiet) continue;
 
       // #1 BUEN DÍA — ~9am local, SIEMPRE (distingue entreno/descanso)
-      if (true) { // TEMP TEST 2026-06-18 — revertir a: lp.hour === 9
+      if (lp.hour === 9) {
         if (await claimLog(u.id, 'buen_dia', lp.fecha)) {
           const training = isTrainingDay(u.dias_entreno, lp.weekday);
           const n = await pushToUser(u.id, buildBuenDia(u.nombre, training, new Date(lp.fecha + 'T12:00:00').getDate()));
