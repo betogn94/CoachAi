@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260618-0112-nota-desplegable-como-leer-tu-plan-en-mi-alimentacion--king-">
+<meta name="app-version" content="20260618-1337-fase-0-notificaciones-push--vapid---sw-handler---suscripcion---enviador-prueba-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -4136,6 +4136,24 @@ button.cai-home-card:hover { border-color: rgba(124,106,255,0.20); }
   padding: 0 4px;
   margin-bottom: 10px;
 }
+
+/* NOTIFICACIONES — card de activar push */
+.cai-notif-card {
+  background: var(--surface, rgba(255,255,255,0.04));
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 14px;
+  padding: 16px;
+}
+.cai-notif-desc { font-size: 13.5px; line-height: 1.5; color: var(--muted); margin-bottom: 13px; }
+.cai-notif-btn {
+  width: 100%; padding: 12px; border: none; border-radius: 10px; cursor: pointer;
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  color: #fff; font-size: 14px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+  transition: opacity 0.2s;
+}
+.cai-notif-btn:hover { opacity: 0.9; }
+.cai-notif-btn:disabled { opacity: 0.55; cursor: default; }
+.cai-notif-status { font-size: 12.5px; line-height: 1.45; color: var(--muted); margin-top: 10px; min-height: 1px; }
 
 /* MI PLAN — list of two collapsible cards (rutina + dieta) */
 .cai-perfil-plan-list {
@@ -12213,6 +12231,20 @@ body.theme-king .cai-home-semanas .semana-analisis hr {
            data-en="When you close your first week, your analysis will appear here.">
         Cuando cierres tu primera semana, tu análisis aparecerá acá.
       </div>
+    </div>
+  </div>
+
+  <!-- NOTIFICACIONES — activar push (Fase 0) -->
+  <div class="cai-perfil-section">
+    <div class="cai-perfil-section-title" data-es="NOTIFICACIONES" data-en="NOTIFICATIONS">NOTIFICACIONES</div>
+    <div class="cai-notif-card">
+      <div class="cai-notif-desc"
+           data-es="Activá los recordatorios para no olvidarte de registrar tus comidas, entrenar y cerrar tu semana."
+           data-en="Turn on reminders so you don't forget to log meals, train, and close your week.">
+        Activá los recordatorios para no olvidarte de registrar tus comidas, entrenar y cerrar tu semana.
+      </div>
+      <button class="cai-notif-btn" id="notif-activate-btn" onclick="subscribeToPush()" type="button">🔔 Activar notificaciones</button>
+      <div class="cai-notif-status" id="notif-status"></div>
     </div>
   </div>
 
@@ -25448,6 +25480,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // Reflejar el estado actual de notificaciones en el botón de Perfil (sin pedir
+  // permiso — solo lee el estado ya otorgado).
+  refreshNotifButton().catch(() => {});
+
   // Version-update check: fight iOS PWA stale-cache. iOS aggressively caches
   // the initial HTML/JS bundle when a PWA is installed, so deploys can take
   // hours/days to show up — or never, until the user manually reinstalls.
@@ -25628,6 +25664,100 @@ async function pwaInstall() {
 
   // 3) No prompt available → show manual instructions for this platform.
   openPwaModal(detectPwaPlatform());
+}
+
+// ===== Web Push — notificaciones (Fase 0) =====
+// La llave PÚBLICA VAPID va acá (no es secreto). La PRIVADA vive en una env var
+// de Vercel (VAPID_PRIVATE_KEY) y solo la usa el enviador del lado servidor.
+const VAPID_PUBLIC_KEY = 'BMU0PM_rgcq81HVt8F1Qma0AwbjoHeja5yv6LfadmumHa2Z_IJNmLHuLBsQsrxw13Kso2Krgz7UrU1-ZhsN4WIo';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+
+// Refleja el estado del botón "Activar notificaciones" en Perfil SIN pedir
+// permiso (solo lee el estado ya otorgado). Se llama al cargar la app.
+async function refreshNotifButton() {
+  const btn = document.getElementById('notif-activate-btn');
+  const statusEl = document.getElementById('notif-status');
+  if (!btn) return;
+  const supported = ('serviceWorker' in navigator) && ('PushManager' in window) && ('Notification' in window);
+  if (!supported) {
+    btn.disabled = true;
+    btn.textContent = '🔔 No disponible acá';
+    if (statusEl) statusEl.textContent = 'En iPhone, instalá la app en tu pantalla de inicio para poder recibir notificaciones.';
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        btn.textContent = '✓ Activadas';
+        btn.disabled = true;
+        if (statusEl) statusEl.textContent = 'Notificaciones activadas en este dispositivo.';
+        return;
+      }
+    } catch (e) {}
+  } else if (Notification.permission === 'denied') {
+    if (statusEl) statusEl.textContent = '🔕 Bloqueadas. Activálas desde los ajustes de tu navegador/celular.';
+  }
+  btn.textContent = '🔔 Activar notificaciones';
+  btn.disabled = false;
+}
+
+// Pide permiso + suscribe al push + guarda la suscripción en la DB. Debe
+// dispararse desde un gesto del usuario (el click del botón) — requisito de iOS.
+async function subscribeToPush() {
+  const statusEl = document.getElementById('notif-status');
+  const btn = document.getElementById('notif-activate-btn');
+  const setStatus = (t) => { if (statusEl) statusEl.textContent = t; };
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+    setStatus('⚠ Tu navegador no soporta notificaciones. En iPhone, instalá la app en tu pantalla de inicio primero.');
+    return;
+  }
+  if (!currentUser || !sbClient) { setStatus('Iniciá sesión primero.'); return; }
+  try {
+    if (btn) btn.disabled = true;
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      setStatus(perm === 'denied'
+        ? '🔕 Notificaciones bloqueadas. Activálas desde los ajustes de tu navegador/celular.'
+        : 'Permiso no otorgado. Probá de nuevo.');
+      if (btn) btn.disabled = false;
+      return;
+    }
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    }
+    const json = sub.toJSON();
+    const { error } = await sbClient.from('push_subscriptions').upsert({
+      usuario_id: currentUser.id,
+      endpoint: sub.endpoint,
+      p256dh: json.keys.p256dh,
+      auth: json.keys.auth,
+      user_agent: (navigator.userAgent || '').slice(0, 250),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'endpoint' });
+    if (error) { setStatus('No se pudo guardar la suscripción: ' + error.message); if (btn) btn.disabled = false; return; }
+    setStatus('✓ Notificaciones activadas en este dispositivo.');
+    if (btn) { btn.textContent = '✓ Activadas'; btn.disabled = true; }
+    if (typeof trackEvent === 'function') trackEvent('push_subscribed', null);
+  } catch (e) {
+    console.error('[push] subscribe error', e);
+    setStatus('Error al activar: ' + (e.message || e));
+    if (btn) btn.disabled = false;
+  }
 }
 
 // ===== App version check (anti iOS-PWA stale cache) =====
