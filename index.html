@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260617-2030-fix-input-peso-reps-teclado-android--samsung-">
+<meta name="app-version" content="20260618-0112-nota-desplegable-como-leer-tu-plan-en-mi-alimentacion--king-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -1362,6 +1362,32 @@ body.theme-king .cai-alim-summary-kcal strong .total { color: var(--muted) !impo
 body.theme-king .cai-alim-progress {
   background: var(--border) !important;
 }
+
+/* "Cómo leer tu plan" — nota DESPLEGABLE de lectura de la dieta (solo King).
+   Cerrada por defecto (no tapa la comida del día); se abre al tocar el header. */
+.alim-tips-card {
+  margin: 0 0 14px;
+  background: rgba(255,79,123,0.05);
+  border: 1px solid rgba(255,79,123,0.18);
+  border-radius: 14px;
+  padding: 0 16px;
+}
+.alim-tips-title {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  list-style: none; cursor: pointer; user-select: none; padding: 12px 0;
+  font-size: 11.5px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--accent);
+}
+.alim-tips-title::-webkit-details-marker { display: none; }
+.alim-tips-chev { font-size: 12px; transition: transform 0.2s ease; }
+.alim-tips-card[open] .alim-tips-chev { transform: rotate(180deg); }
+.alim-tips-body { padding: 0 0 12px; }
+.alim-tips-item {
+  display: flex; gap: 9px; align-items: flex-start;
+  font-size: 13px; line-height: 1.45; color: var(--text); padding: 3px 0;
+}
+.alim-tips-item .ti-ic { flex-shrink: 0; font-size: 14px; line-height: 1.4; }
+.alim-tips-item b { color: var(--accent); font-weight: 700; }
 body.theme-king .cai-alim-progress-fill {
   background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
   box-shadow: 0 0 8px rgba(255,79,123,0.40) !important;
@@ -12716,6 +12742,18 @@ body.theme-king .cai-home-semanas .semana-analisis hr {
     </div>
   </div>
 
+  <!-- "Cómo leer tu plan" — reglas de lectura de la dieta (estilo Jesús).
+       Solo se muestra para clientas de King (body.theme-king); el show/hide
+       lo maneja renderMiAlimentacion según el tema. -->
+  <details class="alim-tips-card" id="alim-tips-card" style="display:none">
+    <summary class="alim-tips-title"><span>📋 Cómo leer tu plan</span><span class="alim-tips-chev">▾</span></summary>
+    <div class="alim-tips-body">
+      <div class="alim-tips-item"><span class="ti-ic">🔀</span><span>La barra <b>"/"</b> separa <b>opciones</b>: elegís <b>UNA</b>, no comés todo el ítem.</span></div>
+      <div class="alim-tips-item"><span class="ti-ic">⚖️</span><span>Todos los alimentos se pesan <b>cocidos</b>.</span></div>
+      <div class="alim-tips-item"><span class="ti-ic">🥗</span><span>En ensaladas podés usar vinagres, salsas 0 cal, sal a gusto (sin exagerar) y cualquier condimento. <b>Evitá los aceites</b> si no están incluidos en esa comida.</span></div>
+    </div>
+  </details>
+
   <!-- Meals list — populated by renderMiAlimentacion() -->
   <div class="cai-alim-meals" id="alim-meals-list"></div>
 
@@ -17115,14 +17153,15 @@ async function renderMiAlimentacion() {
   const headerSub = document.getElementById('alim-header-sub');
   const targetCard = document.getElementById('alim-target-card');
   const targetInfo = document.getElementById('alim-target-info');
+  const tipsCard   = document.getElementById('alim-tips-card');
   if (!mealsList) return;
 
   // Always update the page subtitle ("Lunes · hoy") regardless of state
   const todayName = new Date().toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', { weekday: 'long' });
   if (headerSub) headerSub.textContent = `${todayName.charAt(0).toUpperCase() + todayName.slice(1)} · ${lang === 'es' ? 'hoy' : 'today'}`;
 
-  const showFilled = () => { if (emptyState) emptyState.style.display = 'none'; if (summary) summary.style.display = 'block'; mealsList.style.display = 'flex'; };
-  const showEmpty  = () => { if (emptyState) emptyState.style.display = 'block'; if (summary) summary.style.display = 'none'; mealsList.style.display = 'none'; if (targetCard) targetCard.style.display = 'none'; };
+  const showFilled = () => { if (emptyState) emptyState.style.display = 'none'; if (summary) summary.style.display = 'block'; mealsList.style.display = 'flex'; if (tipsCard) tipsCard.style.display = document.body.classList.contains('theme-king') ? 'block' : 'none'; };
+  const showEmpty  = () => { if (emptyState) emptyState.style.display = 'block'; if (summary) summary.style.display = 'none'; mealsList.style.display = 'none'; if (targetCard) targetCard.style.display = 'none'; if (tipsCard) tipsCard.style.display = 'none'; };
 
   const dietaPlan = weeklyPlans && weeklyPlans.dieta;
   if (!dietaPlan || dietaPlan.closed) {
