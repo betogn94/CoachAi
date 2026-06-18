@@ -36,8 +36,5 @@
       "source": "/studio",
       "destination": "/studio/index.html"
     }
-  ],
-  "crons": [
-    { "path": "/api/cron-notifications", "schedule": "*/30 * * * *" }
   ]
 }
