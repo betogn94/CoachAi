@@ -119,6 +119,18 @@ function buildCardio(minutes) {
   return { title: '🏃 ¡No te olvides tu cardio!', body, url: '/', tag: 'cardio' };
 }
 
+// "Cierre del día" según lo que falte registrar (array 'comidas'/'entreno').
+function buildCierreDia(missing) {
+  let body;
+  if (missing.includes('comidas') && missing.includes('entreno'))
+    body = '¿Cómo te fue hoy? No te olvides de registrar tus comidas y tu entreno. 📝';
+  else if (missing.includes('comidas'))
+    body = 'Te faltó registrar tus comidas de hoy. 📝';
+  else
+    body = 'Te faltó registrar tu entreno de hoy. 📝';
+  return { title: '🌙 ¿Registraste tu día?', body, url: '/', tag: 'cierre-dia' };
+}
+
 export default async function handler(req, res) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return res.status(500).json({ error: 'cron_secret_not_configured' });
@@ -145,6 +157,14 @@ export default async function handler(req, res) {
         const rut = (await sbGet(`planes_semanales?usuario_id=eq.${u.id}&tipo=eq.rutina&select=contenido&order=fecha_entrega.desc&limit=1`))[0];
         const cardio = parseCardioMinutes(rut && rut.contenido);
         payload = buildCardio(cardio.minutes);
+      }
+      else if (testTipo === 'cierre_dia') {
+        const pd = (await sbGet(`progreso_diario?usuario_id=eq.${u.id}&fecha=eq.${lp.fecha}&select=calorias_consumidas,entreno`))[0];
+        const missing = [];
+        if (!(pd && Number(pd.calorias_consumidas) > 0)) missing.push('comidas');
+        if (training && !(pd && pd.entreno !== null && pd.entreno !== undefined)) missing.push('entreno');
+        // En test mostramos el mensaje aunque no falte nada (sample = ambos).
+        payload = buildCierreDia(missing.length ? missing : ['comidas', 'entreno']);
       }
       else return res.status(400).json({ error: 'unknown_test_tipo' });
       const sent = await pushToUser(u.id, payload);
@@ -183,6 +203,19 @@ export default async function handler(req, res) {
         if (cardio.has && await claimLog(u.id, 'cardio', lp.fecha)) {
           const n = await pushToUser(u.id, buildCardio(cardio.minutes));
           sentLog.push({ uid: u.id.slice(0, 8), tipo: 'cardio', sent: n });
+        }
+      }
+
+      // #3 CIERRE DEL DÍA — ~21:00 local, SOLO si le faltó registrar algo hoy.
+      // Comidas: siempre se esperan. Entreno: solo si hoy es día de entreno.
+      if (lp.hour === 21) {
+        const pd = (await sbGet(`progreso_diario?usuario_id=eq.${u.id}&fecha=eq.${lp.fecha}&select=calorias_consumidas,entreno`))[0];
+        const missing = [];
+        if (!(pd && Number(pd.calorias_consumidas) > 0)) missing.push('comidas');
+        if (isTrainingDay(u.dias_entreno, lp.weekday) && !(pd && pd.entreno !== null && pd.entreno !== undefined)) missing.push('entreno');
+        if (missing.length && await claimLog(u.id, 'cierre_dia', lp.fecha)) {
+          const n = await pushToUser(u.id, buildCierreDia(missing));
+          sentLog.push({ uid: u.id.slice(0, 8), tipo: 'cierre_dia', sent: n });
         }
       }
     }
