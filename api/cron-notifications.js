@@ -131,6 +131,29 @@ function buildCierreDia(missing) {
   return { title: '🌙 ¿Registraste tu día?', body, url: '/', tag: 'cierre-dia' };
 }
 
+// Semana del usuario basada en created_at (NO ISO), igual que getWeekNum del app:
+// semana 1 = [alta, alta+6], semana N = [alta+(N-1)*7, +6]. Devuelve
+// {weekNum, dayInWeek} (dayInWeek 0=primer día .. 6=último día) en la tz del user.
+function userWeek(createdAt, tz, todayLocal) {
+  let createdLocal;
+  try {
+    const f = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
+    const p = {}; for (const x of f.formatToParts(new Date(createdAt))) p[x.type] = x.value;
+    createdLocal = `${p.year}-${p.month}-${p.day}`;
+  } catch (e) { return null; }
+  const daysSince = Math.floor((Date.parse(todayLocal + 'T00:00:00Z') - Date.parse(createdLocal + 'T00:00:00Z')) / 86400000);
+  if (!isFinite(daysSince) || daysSince < 0) return null;
+  return { weekNum: Math.floor(daysSince / 7) + 1, dayInWeek: daysSince % 7 };
+}
+
+function buildCierreSemana() {
+  return {
+    title: '📊 ¡Terminaste tu semana!',
+    body: 'Cerrala para ver tu progreso y recibir tu plan nuevo. 💪',
+    url: '/', tag: 'cierre-semana',
+  };
+}
+
 export default async function handler(req, res) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return res.status(500).json({ error: 'cron_secret_not_configured' });
@@ -166,6 +189,7 @@ export default async function handler(req, res) {
         // En test mostramos el mensaje aunque no falte nada (sample = ambos).
         payload = buildCierreDia(missing.length ? missing : ['comidas', 'entreno']);
       }
+      else if (testTipo === 'cierre_semana') payload = buildCierreSemana();
       else return res.status(400).json({ error: 'unknown_test_tipo' });
       const sent = await pushToUser(u.id, payload);
       return res.status(200).json({ ok: true, mode: 'test', tipo: testTipo, sent, training, payload });
@@ -176,7 +200,7 @@ export default async function handler(req, res) {
     const uids = [...new Set((subs || []).map(s => s.usuario_id))].filter(Boolean);
     if (!uids.length) return res.status(200).json({ ok: true, processed: 0, sent: [] });
 
-    const users = await sbGet(`usuarios?id=in.(${uids.join(',')})&select=id,nombre,role,es_interno,timezone,dias_entreno`);
+    const users = await sbGet(`usuarios?id=in.(${uids.join(',')})&select=id,nombre,role,es_interno,timezone,dias_entreno,created_at`);
     const sentLog = [];
 
     for (const u of users) {
@@ -216,6 +240,23 @@ export default async function handler(req, res) {
         if (missing.length && await claimLog(u.id, 'cierre_dia', lp.fecha)) {
           const n = await pushToUser(u.id, buildCierreDia(missing));
           sentLog.push({ uid: u.id.slice(0, 8), tipo: 'cierre_dia', sent: n });
+        }
+      }
+
+      // #4 CERRÁ TU SEMANA — ~20:00 del ÚLTIMO día de su semana (dayInWeek 6) y,
+      // como catch-up, el día siguiente (dayInWeek 0). Solo si NO cerró esa semana.
+      // (Se limita solo a esos 2 días → máx 2 avisos, no hostiga.)
+      if (lp.hour === 20 && u.created_at) {
+        const w = userWeek(u.created_at, u.timezone, lp.fecha);
+        let targetWeek = null;
+        if (w && w.dayInWeek === 6) targetWeek = w.weekNum;                       // último día
+        else if (w && w.dayInWeek === 0 && w.weekNum > 1) targetWeek = w.weekNum - 1; // día siguiente
+        if (targetWeek) {
+          const cierre = (await sbGet(`cierres_semanales?usuario_id=eq.${u.id}&semana_num=eq.${targetWeek}&select=id&limit=1`))[0];
+          if (!cierre && await claimLog(u.id, 'cierre_semana', lp.fecha)) {
+            const n = await pushToUser(u.id, buildCierreSemana());
+            sentLog.push({ uid: u.id.slice(0, 8), tipo: 'cierre_semana', sent: n });
+          }
         }
       }
     }
