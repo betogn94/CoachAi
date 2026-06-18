@@ -100,6 +100,25 @@ function isTrainingDay(dias, weekday) {
   return dias.map(d => stripAccents(d).slice(0, 3)).includes(w3);
 }
 
+// Lee los minutos de cardio de la rutina (la línea que contiene "cardio", ej.
+// "🏃 Cardio: 30 min, 4 días"). Devuelve {has, minutes}. has=false si la rutina
+// NO tiene cardio → no mandamos el recordatorio. minutes=null si hay cardio pero
+// sin un "N min" parseable → mensaje genérico.
+function parseCardioMinutes(rutina) {
+  if (!rutina) return { has: false, minutes: null };
+  const line = String(rutina).split('\n').find(l => /cardio/i.test(l));
+  if (!line) return { has: false, minutes: null };
+  const m = line.match(/(\d+)\s*min/i);
+  return { has: true, minutes: m ? parseInt(m[1], 10) : null };
+}
+
+function buildCardio(minutes) {
+  const body = minutes
+    ? `Hoy toca ${minutes} min de cardio. ¡Dale que se puede! 💪`
+    : 'No te olvides de hacer tu cardio hoy. 💪';
+  return { title: '🏃 ¡No te olvides tu cardio!', body, url: '/', tag: 'cardio' };
+}
+
 export default async function handler(req, res) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return res.status(500).json({ error: 'cron_secret_not_configured' });
@@ -122,6 +141,11 @@ export default async function handler(req, res) {
       const training = isTrainingDay(u.dias_entreno, lp.weekday);
       let payload;
       if (testTipo === 'buen_dia') payload = buildBuenDia(u.nombre, training, new Date().getDate());
+      else if (testTipo === 'cardio') {
+        const rut = (await sbGet(`planes_semanales?usuario_id=eq.${u.id}&tipo=eq.rutina&select=contenido&order=fecha_entrega.desc&limit=1`))[0];
+        const cardio = parseCardioMinutes(rut && rut.contenido);
+        payload = buildCardio(cardio.minutes);
+      }
       else return res.status(400).json({ error: 'unknown_test_tipo' });
       const sent = await pushToUser(u.id, payload);
       return res.status(200).json({ ok: true, mode: 'test', tipo: testTipo, sent, training, payload });
@@ -149,6 +173,16 @@ export default async function handler(req, res) {
           const training = isTrainingDay(u.dias_entreno, lp.weekday);
           const n = await pushToUser(u.id, buildBuenDia(u.nombre, training, new Date(lp.fecha + 'T12:00:00').getDate()));
           sentLog.push({ uid: u.id.slice(0, 8), tipo: 'buen_dia', sent: n });
+        }
+      }
+
+      // #2 CARDIO — ~17:00 local, SOLO días de entreno, con los minutos de la rutina
+      if (lp.hour === 17 && isTrainingDay(u.dias_entreno, lp.weekday)) {
+        const rut = (await sbGet(`planes_semanales?usuario_id=eq.${u.id}&tipo=eq.rutina&select=contenido&order=fecha_entrega.desc&limit=1`))[0];
+        const cardio = parseCardioMinutes(rut && rut.contenido);
+        if (cardio.has && await claimLog(u.id, 'cardio', lp.fecha)) {
+          const n = await pushToUser(u.id, buildCardio(cardio.minutes));
+          sentLog.push({ uid: u.id.slice(0, 8), tipo: 'cardio', sent: n });
         }
       }
     }
