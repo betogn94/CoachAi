@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260618-1358-ocultar-card-de-notificaciones-en-perfil-una-vez-activadas">
+<meta name="app-version" content="20260618-1406-fase-2a-notificaciones---cron---buen-dia---timezone">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -16297,6 +16297,9 @@ async function launchCoach() {
     showRenewScreen(currentUser);
     return;
   }
+  // Guardar la zona horaria del usuario (para el cron de notificaciones). Skip en
+  // impersonación (?as=): la tz del navegador es la del coach, no la de la clienta.
+  if (!_getImpersonateUid()) captureTimezone().catch(() => {});
   // Upload initial photo if selected
   uploadFotoInicial().catch(console.error);
 
@@ -25771,6 +25774,20 @@ async function subscribeToPush() {
     setStatus('Error al activar: ' + (e.message || e));
     if (btn) btn.disabled = false;
   }
+}
+
+// Guarda la zona horaria del usuario (IANA, ej. America/Argentina/Buenos_Aires)
+// para que el cron de notificaciones sepa cuándo es "su" hora local. Se llama al
+// cargar la app (launchCoach). Solo escribe si cambió o falta — barato y silencioso.
+async function captureTimezone() {
+  try {
+    if (!currentUser || !sbClient) return;
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz && currentUser.timezone !== tz) {
+      await sbClient.from('usuarios').update({ timezone: tz }).eq('id', currentUser.id);
+      currentUser.timezone = tz;
+    }
+  } catch (e) { /* nunca rompe la app */ }
 }
 
 // ===== App version check (anti iOS-PWA stale cache) =====
