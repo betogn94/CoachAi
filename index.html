@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260619-1236-fix-chat---sanea-alternancia-del-historial-antes-de-la-api---arregla-error-de-conexion-permanente--cindy-">
+<meta name="app-version" content="20260619-1256-fix-onboarding---guarda-anti-doble-saludo--raiz-del-historial-corrupto-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -13776,6 +13776,14 @@ async function autoAdjustDiet(semanaIso) {
 // peor que el manual. Idempotente: solo genera los tipos que faltan. Las migradas
 // NO entran (su plan ya lo entregó migrateClientPreloadedPlans).
 let _autoGenInFlight = false;
+// Guarda contra el doble-saludo del onboarding: si launchCoach() corre dos veces
+// para el MISMO usuario en la misma carga de página (carrera entre el submit del
+// onboarding y un auth-state-change, p.ej.), el bloque de bienvenida nativa
+// (sendToAI(null,true)) se disparaba 2 veces → dos turnos 'assistant' seguidos que
+// corrompían la alternancia del historial (lo sufrieron Cindy, Milagros, Virginia,
+// Vicky). Marcamos el uid ya saludado ANTES del primer await para que una segunda
+// corrida concurrente lo saltee. Es por-uid: un usuario distinto sí recibe su saludo.
+let _welcomeFlowForUid = null;
 async function autoGenerateFirstPlans() {
   if (_autoGenInFlight) return;
   if (!sbClient || !currentUser) return;
@@ -16473,7 +16481,11 @@ async function launchCoach() {
 
   // ONLY trigger the onboarding welcome flow for true first-time users.
   // Any prior message means the user already has a relationship with CoachAI.
-  if (!renderedAny) {
+  if (!renderedAny && _welcomeFlowForUid !== (currentUser && currentUser.id)) {
+    // Marcá el uid ya saludado ANTES de cualquier await: si una 2da corrida de
+    // launchCoach() entra acá mientras la 1ra todavía no persistió el saludo, verá
+    // el flag seteado y saltea (evita el doble-saludo / historial corrupto).
+    _welcomeFlowForUid = currentUser && currentUser.id;
     // If the client was migrated by an existing coach (Daniel etc.), inject
     // a deterministic welcome that points to Mi Entreno + Mi Alimentación
     // BEFORE the generic AI greeting — so she sees the plan is already there
