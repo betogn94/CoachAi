@@ -11,6 +11,7 @@
 
 import { withAuth } from './_auth.js';
 import { sb, badRequest } from './_db.js';
+import webpush from 'web-push';
 
 const ESTADOS = ['por_hacer', 'en_progreso', 'hecha', 'en_pausa', 'cancelada', 'bloqueada'];
 const PRIOS   = ['alta', 'media', 'baja'];
@@ -25,9 +26,69 @@ function cleanAsignados(arr) {
   return [...new Set(arr.filter((m) => MEMBERS.includes(m)))];
 }
 
+// ---------- Push (notificaciones del Team) ----------
+const MEMBER_LABEL = { beto: 'Beto', jesus: 'Jesús', juli: 'Juli' };
+const VAPID_PUBLIC = 'BMU0PM_rgcq81HVt8F1Qma0AwbjoHeja5yv6LfadmumHa2Z_IJNmLHuLBsQsrxw13Kso2Krgz7UrU1-ZhsN4WIo';
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:support.coachaipro@gmail.com';
+let _vapidReady = false;
+function ensureVapid() {
+  if (_vapidReady) return true;
+  const pk = process.env.VAPID_PRIVATE_KEY;
+  if (!pk) return false;
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, pk);
+  _vapidReady = true;
+  return true;
+}
+// Manda un push a todos los dispositivos de los members dados. Limpia subs muertas (404/410).
+async function pushToMembers(members, payload) {
+  const list = [...new Set((members || []).filter((m) => MEMBERS.includes(m)))];
+  if (!list.length || !ensureVapid()) return;
+  let subs = [];
+  try { subs = await sb(`/team_push_subscriptions?member=in.(${list.join(',')})&select=endpoint,p256dh,auth`); }
+  catch (_) { return; }
+  await Promise.all((subs || []).map((s) =>
+    webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(payload))
+      .catch(async (err) => {
+        const code = err && err.statusCode;
+        if (code === 404 || code === 410) {
+          await sb(`/team_push_subscriptions?endpoint=eq.${encodeURIComponent(s.endpoint)}`, { method: 'DELETE' }).catch(() => {});
+        }
+      })
+  ));
+}
+
 export default withAuth(async (req, res, session) => {
   const method = req.method;
   const me = session?.mbr || null;
+
+  // ---------- SUSCRIPCIÓN PUSH (activar/desactivar notificaciones del Team) ----------
+  if (req.query.push) {
+    let pb = req.body;
+    if (typeof pb === 'string') { try { pb = JSON.parse(pb); } catch { pb = {}; } }
+    pb = pb || {};
+    if (method === 'POST') {
+      if (!me) return badRequest(res, 'sesión sin member — cerrá sesión y volvé a entrar');
+      const sub = pb.subscription || pb;
+      const endpoint = sub && sub.endpoint;
+      const keys = (sub && sub.keys) || {};
+      if (!endpoint || !keys.p256dh || !keys.auth) return badRequest(res, 'subscription inválida');
+      await sb('/team_push_subscriptions?on_conflict=endpoint', {
+        method: 'POST',
+        body: { member: me, endpoint, p256dh: keys.p256dh, auth: keys.auth, user_agent: String(req.headers['user-agent'] || '').slice(0, 300) },
+        prefer: 'resolution=merge-duplicates,return=minimal',
+      });
+      // Push de confirmación inmediato (prueba que llega).
+      await pushToMembers([me], { title: '🔔 Notificaciones activadas', body: 'Vas a recibir los avisos de tus tareas del Team.', url: '/tower/' });
+      return res.status(200).json({ ok: true });
+    }
+    if (method === 'DELETE') {
+      const endpoint = String(pb.endpoint || '');
+      if (endpoint) await sb(`/team_push_subscriptions?endpoint=eq.${encodeURIComponent(endpoint)}`, { method: 'DELETE' });
+      return res.status(200).json({ ok: true });
+    }
+    res.setHeader('Allow', 'POST, DELETE');
+    return res.status(405).json({ ok: false, error: 'method_not_allowed' });
+  }
 
   // ---------- LISTAR ----------
   if (method === 'GET') {
@@ -63,7 +124,14 @@ export default withAuth(async (req, res, session) => {
       created_by: me,
     };
     const created = await sb('/team_tasks', { method: 'POST', body: row, prefer: 'return=representation' });
-    return res.status(201).json({ ok: true, task: Array.isArray(created) ? created[0] : created });
+    const task = Array.isArray(created) ? created[0] : created;
+    // Aviso de asignación: push a los asignados (menos quien la creó).
+    const notify = row.asignados.filter((m) => m !== me);
+    if (notify.length) {
+      const quien = MEMBER_LABEL[me] || 'Alguien';
+      await pushToMembers(notify, { title: '📋 Nueva tarea', body: `${quien} te asignó: ${titulo}`, url: '/tower/' }).catch(() => {});
+    }
+    return res.status(201).json({ ok: true, task });
   }
 
   // ---------- EDITAR ----------

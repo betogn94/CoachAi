@@ -6,7 +6,7 @@
 //
 // Versioning: bump CACHE_VERSION to invalidate the precache on next deploy.
 
-const CACHE_VERSION = 'tower-v11';
+const CACHE_VERSION = 'tower-v12';
 const PRECACHE = [
   '/tower/',
   '/tower/index.html',
@@ -76,4 +76,32 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
+});
+
+// ---------- Push (notificaciones del Team) ----------
+// El servidor (api/tower/team) manda un payload JSON {title, body, url}. Lo
+// mostramos como notificación nativa. Click → enfoca/abre Tower.
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; }
+  catch (_) { data = { title: 'CoachAI Tower', body: event.data ? event.data.text() : '' }; }
+  const title = data.title || 'CoachAI Tower';
+  const options = {
+    body: data.body || '',
+    icon: '/tower/icon-192.png',
+    badge: '/tower/icon-192.png',
+    data: { url: data.url || '/tower/' },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || '/tower/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((cs) => {
+      for (const c of cs) { if (c.url.includes('/tower/') && 'focus' in c) return c.focus(); }
+      if (clients.openWindow) return clients.openWindow(target);
+    })
+  );
 });

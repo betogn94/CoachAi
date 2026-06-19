@@ -1955,8 +1955,50 @@
       juli:  { label: 'Juli',  color: '#a855f7' },
       jesus: { label: 'Jesús', color: '#14b8a6' },
     };
+    const TEAM_VAPID_PUBLIC = 'BMU0PM_rgcq81HVt8F1Qma0AwbjoHeja5yv6LfadmumHa2Z_IJNmLHuLBsQsrxw13Kso2Krgz7UrU1-ZhsN4WIo';
+    function teamB64ToUint8(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const raw = atob(base64); const arr = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+      return arr;
+    }
 
     let teamWeekOffset = 0, teamMyOnly = false, teamTasks = [], teamMe = null, teamDates = [];
+
+    // --- Push del Team: activar notificaciones desde Tower (1 toque por dispositivo) ---
+    function teamUpdateNotifBtn(active) {
+      const btn = document.getElementById('teamNotifBtn'); if (!btn) return;
+      if (active) { btn.textContent = '🔔 Notificaciones activadas'; btn.disabled = true; btn.style.opacity = '0.65'; }
+      else { btn.textContent = '🔔 Activar notificaciones'; btn.disabled = false; btn.style.opacity = ''; }
+    }
+    async function teamRefreshNotifState() {
+      const btn = document.getElementById('teamNotifBtn'); if (!btn) return;
+      try {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) { btn.style.display = 'none'; return; }
+        if (Notification.permission === 'granted') {
+          const reg = await navigator.serviceWorker.ready;
+          const sub = await reg.pushManager.getSubscription();
+          if (sub) { teamUpdateNotifBtn(true); return; }
+        }
+        teamUpdateNotifBtn(false);
+      } catch (_) { teamUpdateNotifBtn(false); }
+    }
+    async function teamSubscribePush() {
+      const btn = document.getElementById('teamNotifBtn');
+      try {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) { toast('Tu navegador no soporta notificaciones', 'error'); return; }
+        if (btn) { btn.disabled = true; btn.textContent = 'Activando…'; }
+        const perm = await Notification.requestPermission();
+        if (perm !== 'granted') { toast('No diste el permiso de notificaciones', 'error'); teamUpdateNotifBtn(false); return; }
+        const reg = await navigator.serviceWorker.ready;
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: teamB64ToUint8(TEAM_VAPID_PUBLIC) });
+        const { ok, data } = await api('/api/tower/team?push=sub', { method: 'POST', body: JSON.stringify({ subscription: sub.toJSON ? sub.toJSON() : sub }) });
+        if (ok && data?.ok) { toast('¡Listo! Notificaciones activadas ✅', 'success'); teamUpdateNotifBtn(true); }
+        else { toast('No se pudo activar: ' + (data?.error || 'reintentá'), 'error'); teamUpdateNotifBtn(false); }
+      } catch (e) { console.error('[team] push subscribe', e); toast('No se pudo activar (en iPhone, instalá Tower primero)', 'error'); teamUpdateNotifBtn(false); }
+    }
 
     function isoLocal(d) {
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -2031,7 +2073,10 @@
             <button class="btn" id="teamNext" title="Semana siguiente">›</button>
             <span class="team-weeklabel" id="teamWeekLabel">—</span>
           </div>
-          <label class="team-myonly"><input type="checkbox" id="teamMyOnlyChk"> Mis tareas</label>
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+            <button class="btn" id="teamNotifBtn" title="Recibir avisos de tus tareas">🔔 Activar notificaciones</button>
+            <label class="team-myonly"><input type="checkbox" id="teamMyOnlyChk"> Mis tareas</label>
+          </div>
         </div>
         <div id="teamBoard"><div class="placeholder"><span class="spinner"></span> &nbsp; Cargando…</div></div>
       `;
@@ -2041,6 +2086,8 @@
       document.getElementById('teamToday').addEventListener('click', () => { teamWeekOffset = 0; teamLoad(); });
       const chk = document.getElementById('teamMyOnlyChk'); chk.checked = teamMyOnly;
       chk.addEventListener('change', (e) => { teamMyOnly = e.target.checked; teamRenderBoard(teamDates); });
+      const notifBtn = document.getElementById('teamNotifBtn');
+      if (notifBtn) { notifBtn.addEventListener('click', teamSubscribePush); teamRefreshNotifState(); }
 
       const board = document.getElementById('teamBoard');
       board.addEventListener('change', (e) => {
