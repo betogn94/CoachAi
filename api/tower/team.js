@@ -15,6 +15,7 @@ import webpush from 'web-push';
 
 const ESTADOS = ['por_hacer', 'en_progreso', 'hecha', 'en_pausa', 'cancelada', 'bloqueada'];
 const PRIOS   = ['alta', 'media', 'baja'];
+const RECORDATORIOS = [0, 15, 30, 60];   // minutos antes de la hora (null = sin recordatorio)
 const MEMBERS = ['beto', 'jesus', 'juli'];
 const ACTIVE  = ['por_hacer', 'en_progreso'];   // los únicos estados que se "arrastran"
 
@@ -124,6 +125,7 @@ export default withAuth(async (req, res, session) => {
       hora:      isHora(body.hora) ? body.hora.slice(0, 5) : null,
       estado:    ESTADOS.includes(body.estado) ? body.estado : 'por_hacer',
       prioridad: PRIOS.includes(body.prioridad) ? body.prioridad : null,
+      recordatorio_min: RECORDATORIOS.includes(body.recordatorio_min) ? body.recordatorio_min : null,
       asignados: cleanAsignados(body.asignados),
       created_by: me,
     };
@@ -155,6 +157,11 @@ export default withAuth(async (req, res, session) => {
     else if (isHora(body.hora)) patch.hora = body.hora.slice(0, 5);
     if (Array.isArray(body.asignados)) patch.asignados = cleanAsignados(body.asignados);
     if (isDate(body.fecha)) patch.fecha = body.fecha;
+    if (body.recordatorio_min === null) patch.recordatorio_min = null;
+    else if (RECORDATORIOS.includes(body.recordatorio_min)) patch.recordatorio_min = body.recordatorio_min;
+    // Si cambió el día, la hora o el recordatorio → reseteamos el control de envío
+    // para que el recordatorio se vuelva a disparar con los datos nuevos.
+    if (patch.fecha !== undefined || patch.hora !== undefined || patch.recordatorio_min !== undefined) patch.recordatorio_sent_for = null;
 
     // Agregar una nota al hilo (lee las actuales, hace append).
     if (body.addNota && String(body.addNota).trim()) {

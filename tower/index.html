@@ -2169,6 +2169,8 @@
       const prioIcon = { alta: '🔴', media: '🟡', baja: '🟢' }[t.prioridad];
       const prio = prioIcon ? `<span class="tchip" title="Prioridad ${t.prioridad}">${prioIcon}</span>` : '';
       const hora = t.hora ? `<span class="tchip">🕐 ${escapeHtml(t.hora.slice(0, 5))}</span>` : '';
+      const remLbl = { 0: 'a la hora', 15: '15m antes', 30: '30m antes', 60: '1h antes' };
+      const rem = (t.recordatorio_min !== null && t.recordatorio_min !== undefined) ? `<span class="tchip" title="Recordatorio">⏰ ${remLbl[t.recordatorio_min] || ''}</span>` : '';
       const dragged = (t._display && t._display !== t.fecha) ? `<span class="tchip tdrag" title="Arrastrada desde ${escapeHtml(t.fecha)}">↪ arrastrada</span>` : '';
       const nCount = Array.isArray(t.notas) ? t.notas.length : 0;
       const opts = TEAM_ESTADOS.map(s => `<option value="${s}"${s === t.estado ? ' selected' : ''}>${ESTADO_META[s].label}</option>`).join('');
@@ -2179,7 +2181,7 @@
         </div>
         <div class="tcard-meta">
           <select class="tcard-estado" data-estado="${t.id}" style="color:${em.color}">${opts}</select>
-          ${prio}${hora}${dragged}
+          ${prio}${hora}${rem}${dragged}
           <span class="tcard-asignados">${teamMemberChips(t.asignados)}</span>
           <button class="tcard-notas" data-notas="${t.id}" title="Notas">📝${nCount ? ' ' + nCount : ''}</button>
         </div>
@@ -2200,6 +2202,8 @@
       const f = task || {};
       const fecha = f.fecha || defaultFecha || isoLocal(new Date());
       const isChecked = (m) => (f.asignados || []).includes(m) ? 'checked' : '';
+      const remCur = (f.recordatorio_min === null || f.recordatorio_min === undefined) ? '' : String(f.recordatorio_min);
+      const remOpts = [['', 'Sin recordatorio'], ['0', 'A la hora'], ['15', '15 min antes'], ['30', '30 min antes'], ['60', '1 hora antes']].map(([v, l]) => `<option value="${v}"${v === remCur ? ' selected' : ''}>${l}</option>`).join('');
       const html = `
         <h2>${isEdit ? 'Editar tarea' : 'Nueva tarea'}</h2>
         <div class="field"><label>Tarea</label><input id="tk_titulo" type="text" placeholder="Ej: Campaña Meta Ads" autocomplete="off" required></div>
@@ -2211,6 +2215,7 @@
           <div class="field"><label>Estado</label><select id="tk_estado">${TEAM_ESTADOS.map(s => `<option value="${s}"${(f.estado || 'por_hacer') === s ? ' selected' : ''}>${ESTADO_META[s].label}</option>`).join('')}</select></div>
           <div class="field"><label>Prioridad</label><select id="tk_prio"><option value="">— sin prioridad</option>${['alta', 'media', 'baja'].map(p => `<option value="${p}"${f.prioridad === p ? ' selected' : ''}>${p}</option>`).join('')}</select></div>
         </div>
+        <div class="field"><label>Recordatorio <span style="color:var(--text-muted);font-weight:400">(necesita hora)</span></label><select id="tk_rem">${remOpts}</select></div>
         <div class="field"><label>Asignar a</label><div class="tk-members">${Object.entries(MEMBER_META).map(([m, mm]) => `<label class="tk-mem"><input type="checkbox" class="tk_asig" value="${m}" ${isChecked(m)}> <span style="color:${mm.color};font-weight:600">${mm.label}</span></label>`).join('')}</div></div>
         <div class="modal-actions">
           ${isEdit ? '<button class="btn btn-danger-ghost" id="tk_del" style="margin-right:auto">Eliminar</button>' : ''}
@@ -2238,6 +2243,7 @@
           hora: back.querySelector('#tk_hora').value || null,
           estado: back.querySelector('#tk_estado').value,
           prioridad: back.querySelector('#tk_prio').value || null,
+          recordatorio_min: back.querySelector('#tk_rem').value === '' ? null : parseInt(back.querySelector('#tk_rem').value, 10),
           asignados: [...back.querySelectorAll('.tk_asig:checked')].map(c => c.value),
         };
         const btn = back.querySelector('#tk_save'); btn.disabled = true; btn.textContent = 'Guardando…';

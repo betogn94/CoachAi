@@ -154,6 +154,69 @@ function buildCierreSemana() {
   };
 }
 
+// ── TEAM (Tower): recordatorios de tareas ────────────────────────────────────
+// Las tablas del Team tienen RLS bloqueada para la anon key → se leen/escriben
+// con el SERVICE-ROLE. Todo el equipo (Beto/Jesús/Juli) está en Argentina, así
+// que la hora de las tareas se interpreta en esa zona.
+const TEAM_MEMBERS = ['beto', 'jesus', 'juli'];
+const TEAM_TZ = 'America/Argentina/Buenos_Aires';
+const SB_SVC_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SB_SVC_HEADERS = () => ({ apikey: SB_SVC_KEY, Authorization: 'Bearer ' + SB_SVC_KEY, 'Content-Type': 'application/json' });
+async function sbSvcGet(path) { const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: SB_SVC_HEADERS() }); return r.json(); }
+async function sbSvcPatch(path, body) { return fetch(`${SUPABASE_URL}/rest/v1/${path}`, { method: 'PATCH', headers: { ...SB_SVC_HEADERS(), Prefer: 'return=minimal' }, body: JSON.stringify(body) }); }
+async function sbSvcDelete(path) { return fetch(`${SUPABASE_URL}/rest/v1/${path}`, { method: 'DELETE', headers: SB_SVC_HEADERS() }); }
+
+// Hora actual en Argentina como {fecha, min} (min = minutos desde medianoche).
+function argNowParts() {
+  try {
+    const f = new Intl.DateTimeFormat('en-CA', { timeZone: TEAM_TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+    const p = {}; for (const x of f.formatToParts(new Date())) p[x.type] = x.value;
+    return { fecha: `${p.year}-${p.month}-${p.day}`, min: (parseInt(p.hour, 10) % 24) * 60 + parseInt(p.minute, 10) };
+  } catch (e) { return null; }
+}
+// Manda un push a todos los dispositivos de los members dados. Limpia muertas.
+async function pushToTeamMembers(members, payload) {
+  const list = [...new Set((members || []).filter(m => TEAM_MEMBERS.includes(m)))];
+  if (!list.length) return 0;
+  const subs = await sbSvcGet(`team_push_subscriptions?member=in.(${list.join(',')})&select=endpoint,p256dh,auth`);
+  if (!Array.isArray(subs) || !subs.length) return 0;
+  let sent = 0; const body = JSON.stringify(payload);
+  for (const s of subs) {
+    try { await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, body); sent++; }
+    catch (err) { if (err.statusCode === 404 || err.statusCode === 410) await sbSvcDelete(`team_push_subscriptions?endpoint=eq.${encodeURIComponent(s.endpoint)}`); }
+  }
+  return sent;
+}
+function buildTeamReminder(titulo, min, hora) {
+  const h = String(hora).slice(0, 5);
+  const cuando = min === 0 ? `Ahora (${h})` : `En ${min} min (${h})`;
+  return { title: '⏰ Recordatorio', body: `${cuando}: ${titulo}`, url: '/tower/' };
+}
+// Barre las tareas con recordatorio que caen en la ventana actual y las manda.
+// Dedup: `recordatorio_sent_for` = la fecha para la que ya se mandó (claim ANTES
+// de enviar → sin duplicados; si se reprograma a otra fecha, vuelve a disparar).
+// Ventana de 30 min (≥ intervalo del cron de 15) → no se pierde aunque drifte.
+async function runTeamReminders(sentLog) {
+  try {
+    const arg = argNowParts();
+    if (!arg) return;
+    const tasks = await sbSvcGet(`team_tasks?fecha=eq.${arg.fecha}&estado=in.(por_hacer,en_progreso)&hora=not.is.null&recordatorio_min=not.is.null&select=id,titulo,hora,recordatorio_min,asignados,recordatorio_sent_for`);
+    if (!Array.isArray(tasks)) return;
+    for (const t of tasks) {
+      if (t.recordatorio_sent_for === arg.fecha) continue;            // ya enviado hoy
+      const hm = String(t.hora).slice(0, 5).split(':');
+      const horaMin = parseInt(hm[0], 10) * 60 + parseInt(hm[1], 10);
+      if (!isFinite(horaMin)) continue;
+      const remMin = horaMin - t.recordatorio_min;
+      if (!(arg.min >= remMin && arg.min < remMin + 30)) continue;    // fuera de ventana
+      await sbSvcPatch(`team_tasks?id=eq.${t.id}`, { recordatorio_sent_for: arg.fecha }); // claim (anti-duplicado)
+      const recips = (Array.isArray(t.asignados) && t.asignados.length) ? t.asignados : TEAM_MEMBERS;
+      const n = await pushToTeamMembers(recips, buildTeamReminder(t.titulo, t.recordatorio_min, t.hora));
+      sentLog.push({ team_task: t.id.slice(0, 8), tipo: 'team_reminder', sent: n });
+    }
+  } catch (e) { console.error('[cron] team reminders', e); }
+}
+
 export default async function handler(req, res) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return res.status(500).json({ error: 'cron_secret_not_configured' });
@@ -195,13 +258,18 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, mode: 'test', tipo: testTipo, sent, training, payload });
     }
 
-    // ── MODO CRON: barrer clientas suscriptas y evaluar condiciones ──
+    // ── MODO CRON ──
+    const sentLog = [];
+
+    // (A) RECORDATORIOS DEL TEAM (Tower) — Argentina, en cada corrida.
+    await runTeamReminders(sentLog);
+
+    // (B) Notificaciones de clientas — cada una evaluada en SU timezone.
     const subs = await sbGet('push_subscriptions?select=usuario_id');
     const uids = [...new Set((subs || []).map(s => s.usuario_id))].filter(Boolean);
-    if (!uids.length) return res.status(200).json({ ok: true, processed: 0, sent: [] });
-
-    const users = await sbGet(`usuarios?id=in.(${uids.join(',')})&select=id,nombre,role,es_interno,timezone,dias_entreno,created_at`);
-    const sentLog = [];
+    const users = uids.length
+      ? await sbGet(`usuarios?id=in.(${uids.join(',')})&select=id,nombre,role,es_interno,timezone,dias_entreno,created_at`)
+      : [];
 
     for (const u of users) {
       if (u.role !== 'user' || u.es_interno === true) continue;
