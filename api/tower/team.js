@@ -9,7 +9,7 @@
 // Guardado por withAuth (sesión de Tower). Usa service-role (saltea RLS): la
 // tabla team_tasks está bloqueada para la anon key, solo Tower entra acá.
 
-import { withAuth } from './_auth.js';
+import { withAuth, memberFromUsername } from './_auth.js';
 import { sb, badRequest } from './_db.js';
 import webpush from 'web-push';
 
@@ -59,7 +59,9 @@ async function pushToMembers(members, payload) {
 
 export default withAuth(async (req, res, session) => {
   const method = req.method;
-  const me = session?.mbr || null;
+  // `mbr` viene en sesiones nuevas; para las viejas (token firmado antes de existir
+  // `mbr`) lo derivamos del username → no hace falta re-loguear.
+  const me = session?.mbr || memberFromUsername(session?.sub) || null;
 
   // ---------- SUSCRIPCIÓN PUSH (activar/desactivar notificaciones del Team) ----------
   if (req.query.push) {

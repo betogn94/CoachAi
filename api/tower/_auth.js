@@ -107,21 +107,32 @@ export function withAuth(handler) {
   };
 }
 
-// Returns { username, displayName } if user/pass match an env-configured admin.
-// Uses timing-safe comparison to avoid leaking which field is wrong.
+// `member` es un identificador ESTABLE (no cambia aunque cambie el TOWER_USER_X
+// que tipean) — lo usan las tareas del Team para asignar/filtrar "mis tareas".
+const TOWER_ADMINS = [
+  { env: 'BETO', display: 'Beto', member: 'beto' },
+  { env: 'JESUS', display: 'Jesús', member: 'jesus' },
+  { env: 'JULI', display: 'Juli', member: 'juli' },
+];
+
+// Deriva el member estable desde el username — para sesiones viejas cuyo token se
+// firmó ANTES de que existiera `mbr` (así no hace falta re-loguear). Matchea el
+// `sub` (username guardado) contra los TOWER_USER_<X> del entorno.
+export function memberFromUsername(username) {
+  if (!username) return null;
+  for (const a of TOWER_ADMINS) {
+    if (process.env[`TOWER_USER_${a.env}`] === username) return a.member;
+  }
+  return null;
+}
+
+// Returns { username, displayName, member } if user/pass match an env-configured
+// admin. Uses timing-safe comparison to avoid leaking which field is wrong.
 export function checkCredentials(username, password) {
   if (typeof username !== 'string' || typeof password !== 'string') return null;
   if (!username || !password) return null;
 
-  // `member` es un identificador ESTABLE (no cambia aunque cambie el TOWER_USER_X
-  // que tipean) — lo usan las tareas del Team para asignar/filtrar "mis tareas".
-  const admins = [
-    { env: 'BETO', display: 'Beto', member: 'beto' },
-    { env: 'JESUS', display: 'Jesús', member: 'jesus' },
-    { env: 'JULI', display: 'Juli', member: 'juli' },
-  ];
-
-  for (const a of admins) {
+  for (const a of TOWER_ADMINS) {
     const envUser = process.env[`TOWER_USER_${a.env}`];
     const envPass = process.env[`TOWER_PASS_${a.env}`];
     if (!envUser || !envPass) continue;
