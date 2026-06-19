@@ -1969,8 +1969,10 @@
     // --- Push del Team: activar notificaciones desde Tower (1 toque por dispositivo) ---
     function teamUpdateNotifBtn(active) {
       const btn = document.getElementById('teamNotifBtn'); if (!btn) return;
-      if (active) { btn.textContent = '🔔 Notificaciones activadas'; btn.disabled = true; btn.style.opacity = '0.65'; }
-      else { btn.textContent = '🔔 Activar notificaciones'; btn.disabled = false; btn.style.opacity = ''; }
+      // Ya activadas → el botón se esconde (no ocupa espacio residual). En otro
+      // dispositivo sin activar, vuelve a aparecer (el estado es por-dispositivo).
+      if (active) { btn.style.display = 'none'; }
+      else { btn.style.display = ''; btn.textContent = '🔔 Activar notificaciones'; btn.disabled = false; btn.style.opacity = ''; }
     }
     async function teamRefreshNotifState() {
       const btn = document.getElementById('teamNotifBtn'); if (!btn) return;
