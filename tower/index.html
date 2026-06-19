@@ -987,6 +987,12 @@
         Usuarios
       </div>
 
+      <div class="nav-section">Equipo</div>
+      <div class="nav-item" data-route="team">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+        Team
+      </div>
+
       <div class="nav-section">Negocio</div>
       <div class="nav-item" data-route="financiero">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
@@ -1316,6 +1322,7 @@
       metricas:     { label: 'Métricas',      render: renderMetricas },
       tenants:      { label: 'Tenants',       render: renderTenantsList },
       users:        { label: 'Usuarios',      render: () => placeholder('Usuarios', 'Vista global de todos los usuarios (across tenants). Llega luego — entrá por Tenants → click un tenant para ver sus usuarios.') },
+      team:         { label: 'Team',          render: renderTeam },
       financiero:   { label: 'Facturación',   render: renderFinanciero },
       costos:       { label: 'API / Costos',  render: renderCostos },
       dieta_alerts: { label: 'Alertas', render: renderAlertas },
@@ -1926,6 +1933,309 @@
           if (ok) { toast('Costo eliminado', 'success'); loadCostsTable(); }
           else { toast('No se pudo eliminar', 'error'); }
         });
+      });
+    }
+
+    // ---------- Views: TEAM (tablero de trabajo semanal) ----------
+    // Tablero compartido (Beto, Jesús, Juli). Datos: /api/tower/team.
+    // Arrastre: una tarea ACTIVA (por_hacer / en_progreso) con fecha < hoy se
+    // muestra en "hoy" hasta que se cierre o se le marque pausa/bloqueada.
+    const ESTADO_META = {
+      por_hacer:   { label: '📋 Por hacer',  color: '#64748b' },
+      en_progreso: { label: '🔄 En progreso', color: '#f59e0b' },
+      hecha:       { label: '✅ Hecha',       color: '#22c55e' },
+      en_pausa:    { label: '⏸️ En pausa',    color: '#8b5cf6' },
+      bloqueada:   { label: '🚧 Bloqueada',   color: '#f97316' },
+      cancelada:   { label: '❌ Cancelada',   color: '#ef4444' },
+    };
+    const TEAM_ESTADOS = Object.keys(ESTADO_META);
+    const TEAM_ACTIVE = ['por_hacer', 'en_progreso'];
+    const MEMBER_META = {
+      beto:  { label: 'Beto',  color: '#3b82f6' },
+      juli:  { label: 'Juli',  color: '#a855f7' },
+      jesus: { label: 'Jesús', color: '#14b8a6' },
+    };
+
+    let teamWeekOffset = 0, teamMyOnly = false, teamTasks = [], teamMe = null, teamDates = [];
+
+    function isoLocal(d) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    // Semana Lunes→Domingo, desplazada `offset` semanas. Mediodía local evita líos de DST.
+    function teamWeekDates(offset) {
+      const now = new Date(); now.setHours(12, 0, 0, 0);
+      const backToMon = (now.getDay() + 6) % 7;               // 0=dom..6=sab → lunes
+      const mon = new Date(now); mon.setDate(now.getDate() - backToMon + offset * 7);
+      const names = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+      const today = isoLocal(new Date());
+      const out = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(mon); d.setDate(mon.getDate() + i);
+        const iso = isoLocal(d);
+        out.push({ iso, name: names[i], dd: String(d.getDate()).padStart(2, '0'), mm: String(d.getMonth() + 1).padStart(2, '0'), isToday: iso === today });
+      }
+      return out;
+    }
+
+    const TEAM_STYLE = `<style>
+      .team-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 16px;flex-wrap:wrap}
+      .team-weeknav{display:flex;align-items:center;gap:6px}
+      .team-weeklabel{font-size:13px;color:var(--text-muted);margin-left:6px;letter-spacing:.03em}
+      .team-myonly{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-muted);cursor:pointer;user-select:none}
+      .tday{margin-bottom:16px}
+      .tday-head{display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid var(--border);margin-bottom:9px}
+      .tday-name{font-weight:700;font-size:14px;color:var(--text)}
+      .tday-date{font-size:12px;color:var(--text-muted)}
+      .tday-hoy{font-size:10px;font-weight:700;color:#fff;background:var(--accent);padding:1px 8px;border-radius:10px;letter-spacing:.05em}
+      .tday-today .tday-name{color:var(--accent)}
+      .tday-add{margin-left:auto;cursor:pointer;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;color:var(--text-muted);font-size:17px;font-weight:700}
+      .tday-add:hover{background:var(--bg-elev-2);color:var(--accent)}
+      .tday-empty{color:var(--text-dim);font-size:13px;padding:1px 4px}
+      .tcard{background:var(--bg-elev);border:1px solid var(--border);border-left:3px solid #64748b;border-radius:10px;padding:9px 11px;margin-bottom:7px}
+      .tcard-closed{opacity:.55}
+      .tcard-closed .tcard-titulo{text-decoration:line-through}
+      .tcard-top{display:flex;align-items:flex-start;gap:8px}
+      .tcard-titulo{font-weight:600;font-size:14px;flex:1;word-break:break-word;color:var(--text)}
+      .tcard-edit{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;line-height:1;padding:0 4px}
+      .tcard-edit:hover{color:var(--accent)}
+      .tcard-meta{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+      .tcard-estado{font-size:12px;font-weight:600;background:var(--input-bg);border:1px solid var(--border);border-radius:7px;padding:3px 6px;cursor:pointer}
+      .tcard-asignados{display:flex;gap:4px;flex-wrap:wrap}
+      .tmember{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px}
+      .tchip{font-size:11px;color:var(--text-muted);background:var(--bg-elev-2);padding:2px 7px;border-radius:6px}
+      .tdrag{color:var(--accent);background:var(--accent-soft)}
+      .tcard-notas{margin-left:auto;background:none;border:1px solid var(--border);border-radius:7px;color:var(--text-muted);cursor:pointer;font-size:12px;padding:3px 8px}
+      .tcard-notas:hover{color:var(--accent);border-color:var(--accent)}
+      .tk-members{display:flex;gap:16px;flex-wrap:wrap;padding-top:2px}
+      .tk-mem{display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer}
+      .tnotas-list{max-height:240px;overflow:auto;margin-bottom:10px;display:flex;flex-direction:column;gap:8px}
+      .tnota{background:var(--bg-elev-2);border-radius:8px;padding:7px 10px}
+      .tnota-head{font-size:11px;font-weight:600;display:flex;gap:8px;margin-bottom:3px}
+      .tnota-ts{color:var(--text-muted);font-weight:400}
+      .tnota-body{font-size:13px;white-space:pre-wrap;word-break:break-word;color:var(--text)}
+    </style>`;
+
+    async function renderTeam(el) {
+      el.innerHTML = TEAM_STYLE + `
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Team</h1>
+            <p class="page-sub">Tablero de trabajo semanal — Beto, Jesús y Juli.</p>
+          </div>
+          <button class="btn btn-primary-sm" id="teamAddBtn">+ Nueva tarea</button>
+        </div>
+        <div class="team-toolbar">
+          <div class="team-weeknav">
+            <button class="btn" id="teamPrev" title="Semana anterior">‹</button>
+            <button class="btn" id="teamToday">Hoy</button>
+            <button class="btn" id="teamNext" title="Semana siguiente">›</button>
+            <span class="team-weeklabel" id="teamWeekLabel">—</span>
+          </div>
+          <label class="team-myonly"><input type="checkbox" id="teamMyOnlyChk"> Mis tareas</label>
+        </div>
+        <div id="teamBoard"><div class="placeholder"><span class="spinner"></span> &nbsp; Cargando…</div></div>
+      `;
+      document.getElementById('teamAddBtn').addEventListener('click', () => openTeamTaskModal(null, isoLocal(new Date())));
+      document.getElementById('teamPrev').addEventListener('click', () => { teamWeekOffset--; teamLoad(); });
+      document.getElementById('teamNext').addEventListener('click', () => { teamWeekOffset++; teamLoad(); });
+      document.getElementById('teamToday').addEventListener('click', () => { teamWeekOffset = 0; teamLoad(); });
+      const chk = document.getElementById('teamMyOnlyChk'); chk.checked = teamMyOnly;
+      chk.addEventListener('change', (e) => { teamMyOnly = e.target.checked; teamRenderBoard(teamDates); });
+
+      const board = document.getElementById('teamBoard');
+      board.addEventListener('change', (e) => {
+        const sel = e.target.closest('.tcard-estado');
+        if (sel) teamSetEstado(sel.dataset.estado, sel.value);
+      });
+      board.addEventListener('click', (e) => {
+        const ed = e.target.closest('[data-edit]'); if (ed) { const t = teamTasks.find(x => x.id === ed.dataset.edit); if (t) openTeamTaskModal(t); return; }
+        const nt = e.target.closest('[data-notas]'); if (nt) { const t = teamTasks.find(x => x.id === nt.dataset.notas); if (t) openTeamNotasModal(t); return; }
+        const ad = e.target.closest('[data-add]'); if (ad) { openTeamTaskModal(null, ad.dataset.add); return; }
+      });
+      teamLoad();
+    }
+
+    async function teamLoad() {
+      teamDates = teamWeekDates(teamWeekOffset);
+      const from = teamDates[0].iso, to = teamDates[6].iso;
+      const lbl = document.getElementById('teamWeekLabel');
+      if (lbl) lbl.textContent = `${teamDates[0].dd}/${teamDates[0].mm} – ${teamDates[6].dd}/${teamDates[6].mm}`;
+      const board = document.getElementById('teamBoard');
+      board.innerHTML = '<div class="placeholder"><span class="spinner"></span> &nbsp; Cargando…</div>';
+      const { ok, data } = await api(`/api/tower/team?from=${from}&to=${to}`);
+      if (!ok || !data?.ok) {
+        board.innerHTML = `<div class="placeholder"><strong>Error</strong>${escapeHtml(data?.detail || data?.error || 'No se pudo cargar')}</div>`;
+        return;
+      }
+      teamTasks = data.tasks || [];
+      teamMe = data.me || (session && session.member) || null;
+      teamRenderBoard(teamDates);
+    }
+
+    function teamRenderBoard(dates) {
+      const today = isoLocal(new Date());
+      let tasks = teamTasks.slice();
+      if (teamMyOnly && teamMe) tasks = tasks.filter(t => (t.asignados || []).includes(teamMe));
+      // Fecha de visualización: una activa vieja se arrastra a "hoy".
+      tasks.forEach(t => {
+        const active = TEAM_ACTIVE.includes(t.estado);
+        t._display = (active && t.fecha < today) ? today : t.fecha;
+      });
+      const byDay = {};
+      tasks.forEach(t => { (byDay[t._display] = byDay[t._display] || []).push(t); });
+      const sortFn = (a, b) => (a.hora || '99:99').localeCompare(b.hora || '99:99') || (a.created_at || '').localeCompare(b.created_at || '');
+      const html = dates.map(d => {
+        const list = (byDay[d.iso] || []).sort(sortFn);
+        return `<div class="tday${d.isToday ? ' tday-today' : ''}">
+          <div class="tday-head">
+            <span class="tday-name">${d.name}</span>
+            <span class="tday-date">${d.dd}/${d.mm}</span>
+            ${d.isToday ? '<span class="tday-hoy">hoy</span>' : ''}
+            <span class="tday-add" data-add="${d.iso}" title="Agregar tarea en este día">+</span>
+          </div>
+          <div class="tday-list">${list.length ? list.map(teamTaskCard).join('') : '<div class="tday-empty">—</div>'}</div>
+        </div>`;
+      }).join('');
+      const board = document.getElementById('teamBoard');
+      if (board) board.innerHTML = html;
+    }
+
+    function teamMemberChips(asignados) {
+      return (asignados || []).map(m => {
+        const mm = MEMBER_META[m]; if (!mm) return '';
+        return `<span class="tmember" style="background:${mm.color}1f;color:${mm.color};border:1px solid ${mm.color}55">${mm.label}</span>`;
+      }).join('');
+    }
+
+    function teamTaskCard(t) {
+      const em = ESTADO_META[t.estado] || ESTADO_META.por_hacer;
+      const closed = (t.estado === 'hecha' || t.estado === 'cancelada');
+      const prioIcon = { alta: '🔴', media: '🟡', baja: '🟢' }[t.prioridad];
+      const prio = prioIcon ? `<span class="tchip" title="Prioridad ${t.prioridad}">${prioIcon}</span>` : '';
+      const hora = t.hora ? `<span class="tchip">🕐 ${escapeHtml(t.hora.slice(0, 5))}</span>` : '';
+      const dragged = (t._display && t._display !== t.fecha) ? `<span class="tchip tdrag" title="Arrastrada desde ${escapeHtml(t.fecha)}">↪ arrastrada</span>` : '';
+      const nCount = Array.isArray(t.notas) ? t.notas.length : 0;
+      const opts = TEAM_ESTADOS.map(s => `<option value="${s}"${s === t.estado ? ' selected' : ''}>${ESTADO_META[s].label}</option>`).join('');
+      return `<div class="tcard${closed ? ' tcard-closed' : ''}" data-id="${t.id}" style="border-left-color:${em.color}">
+        <div class="tcard-top">
+          <span class="tcard-titulo">${escapeHtml(t.titulo)}</span>
+          <button class="tcard-edit" data-edit="${t.id}" title="Editar">⋯</button>
+        </div>
+        <div class="tcard-meta">
+          <select class="tcard-estado" data-estado="${t.id}" style="color:${em.color}">${opts}</select>
+          ${prio}${hora}${dragged}
+          <span class="tcard-asignados">${teamMemberChips(t.asignados)}</span>
+          <button class="tcard-notas" data-notas="${t.id}" title="Notas">📝${nCount ? ' ' + nCount : ''}</button>
+        </div>
+      </div>`;
+    }
+
+    async function teamSetEstado(id, estado) {
+      const { ok, data } = await api(`/api/tower/team?id=${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ estado }) });
+      if (ok && data?.ok) {
+        const i = teamTasks.findIndex(t => t.id === id);
+        if (i >= 0) teamTasks[i] = data.task;
+        teamRenderBoard(teamDates);   // re-render: el cambio puede mover (arrastre) o cerrar la tarjeta
+      } else { toast('No se pudo actualizar', 'error'); teamLoad(); }
+    }
+
+    function openTeamTaskModal(task, defaultFecha) {
+      const isEdit = !!task;
+      const f = task || {};
+      const fecha = f.fecha || defaultFecha || isoLocal(new Date());
+      const isChecked = (m) => (f.asignados || []).includes(m) ? 'checked' : '';
+      const html = `
+        <h2>${isEdit ? 'Editar tarea' : 'Nueva tarea'}</h2>
+        <div class="field"><label>Tarea</label><input id="tk_titulo" type="text" placeholder="Ej: Campaña Meta Ads" autocomplete="off" required></div>
+        <div class="form-grid-2">
+          <div class="field"><label>Día</label><input id="tk_fecha" type="date" value="${fecha}" required></div>
+          <div class="field"><label>Hora (opcional)</label><input id="tk_hora" type="time" value="${f.hora ? escapeHtml(f.hora.slice(0, 5)) : ''}"></div>
+        </div>
+        <div class="form-grid-2">
+          <div class="field"><label>Estado</label><select id="tk_estado">${TEAM_ESTADOS.map(s => `<option value="${s}"${(f.estado || 'por_hacer') === s ? ' selected' : ''}>${ESTADO_META[s].label}</option>`).join('')}</select></div>
+          <div class="field"><label>Prioridad</label><select id="tk_prio"><option value="">— sin prioridad</option>${['alta', 'media', 'baja'].map(p => `<option value="${p}"${f.prioridad === p ? ' selected' : ''}>${p}</option>`).join('')}</select></div>
+        </div>
+        <div class="field"><label>Asignar a</label><div class="tk-members">${Object.entries(MEMBER_META).map(([m, mm]) => `<label class="tk-mem"><input type="checkbox" class="tk_asig" value="${m}" ${isChecked(m)}> <span style="color:${mm.color};font-weight:600">${mm.label}</span></label>`).join('')}</div></div>
+        <div class="modal-actions">
+          ${isEdit ? '<button class="btn btn-danger-ghost" id="tk_del" style="margin-right:auto">Eliminar</button>' : ''}
+          <button class="btn" data-modal-action="cancel">Cancelar</button>
+          <button class="btn btn-primary-sm" id="tk_save">${isEdit ? 'Guardar' : 'Crear'}</button>
+        </div>`;
+      const back = document.createElement('div');
+      back.className = 'modal-backdrop';
+      back.innerHTML = `<div class="modal">${html}</div>`;
+      document.body.appendChild(back);
+      lockBodyScroll();
+      const close = () => { back.remove(); unlockBodyScroll(); };
+      back.addEventListener('click', (e) => { if (e.target === back || e.target.matches('[data-modal-action="cancel"]')) close(); });
+      // Set título por propiedad (evita líos de escaping en el value).
+      setTimeout(() => { const ti = back.querySelector('#tk_titulo'); if (ti) { if (isEdit) ti.value = f.titulo || ''; ti.focus(); } }, 50);
+
+      back.querySelector('#tk_save').addEventListener('click', async () => {
+        const titulo = back.querySelector('#tk_titulo').value.trim();
+        const fechaV = back.querySelector('#tk_fecha').value;
+        if (!titulo) { toast('Poné un título', 'error'); return; }
+        if (!fechaV) { toast('Elegí un día', 'error'); return; }
+        const payload = {
+          titulo,
+          fecha: fechaV,
+          hora: back.querySelector('#tk_hora').value || null,
+          estado: back.querySelector('#tk_estado').value,
+          prioridad: back.querySelector('#tk_prio').value || null,
+          asignados: [...back.querySelectorAll('.tk_asig:checked')].map(c => c.value),
+        };
+        const btn = back.querySelector('#tk_save'); btn.disabled = true; btn.textContent = 'Guardando…';
+        const r = isEdit
+          ? await api(`/api/tower/team?id=${encodeURIComponent(f.id)}`, { method: 'PATCH', body: JSON.stringify(payload) })
+          : await api('/api/tower/team', { method: 'POST', body: JSON.stringify(payload) });
+        if (r.ok && r.data?.ok) { toast(isEdit ? 'Tarea actualizada' : 'Tarea creada', 'success'); close(); teamLoad(); }
+        else { btn.disabled = false; btn.textContent = isEdit ? 'Guardar' : 'Crear'; toast('No se pudo guardar', 'error'); }
+      });
+
+      if (isEdit) {
+        back.querySelector('#tk_del').addEventListener('click', async () => {
+          if (!confirm('¿Eliminar esta tarea? No se puede deshacer.')) return;
+          const r = await api(`/api/tower/team?id=${encodeURIComponent(f.id)}`, { method: 'DELETE' });
+          if (r.ok && r.data?.ok) { toast('Tarea eliminada', 'success'); close(); teamLoad(); }
+          else toast('No se pudo eliminar', 'error');
+        });
+      }
+    }
+
+    function fmtNotaTs(ts) {
+      try { const d = new Date(ts); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
+      catch { return ''; }
+    }
+
+    function openTeamNotasModal(task) {
+      const renderNota = (n) => {
+        const mm = MEMBER_META[n.autor] || {};
+        return `<div class="tnota"><div class="tnota-head"><span style="color:${mm.color || 'var(--text-muted)'}">${escapeHtml(mm.label || n.autor || '—')}</span><span class="tnota-ts">${fmtNotaTs(n.ts)}</span></div><div class="tnota-body">${escapeHtml(n.texto)}</div></div>`;
+      };
+      const notas = Array.isArray(task.notas) ? task.notas : [];
+      const html = `
+        <h2>Notas · ${escapeHtml(task.titulo)}</h2>
+        <div class="tnotas-list" id="tnotasList">${notas.length ? notas.map(renderNota).join('') : '<div class="tday-empty">Sin notas todavía.</div>'}</div>
+        <div class="field"><textarea id="tnota_input" placeholder="Escribí una nota para el equipo…"></textarea></div>
+        <div class="modal-actions"><button class="btn" data-modal-action="cancel">Cerrar</button><button class="btn btn-primary-sm" id="tnota_add">Agregar nota</button></div>`;
+      const back = document.createElement('div');
+      back.className = 'modal-backdrop';
+      back.innerHTML = `<div class="modal">${html}</div>`;
+      document.body.appendChild(back);
+      lockBodyScroll();
+      const close = () => { back.remove(); unlockBodyScroll(); teamRenderBoard(teamDates); };  // refresca el contador 📝
+      back.addEventListener('click', (e) => { if (e.target === back || e.target.matches('[data-modal-action="cancel"]')) close(); });
+      back.querySelector('#tnota_add').addEventListener('click', async () => {
+        const txt = back.querySelector('#tnota_input').value.trim(); if (!txt) return;
+        const btn = back.querySelector('#tnota_add'); btn.disabled = true;
+        const { ok, data } = await api(`/api/tower/team?id=${encodeURIComponent(task.id)}`, { method: 'PATCH', body: JSON.stringify({ addNota: txt }) });
+        if (ok && data?.ok) {
+          const i = teamTasks.findIndex(t => t.id === task.id); if (i >= 0) teamTasks[i] = data.task;
+          task.notas = data.task.notas || [];
+          const list = back.querySelector('#tnotasList');
+          if (list) { const empty = list.querySelector('.tday-empty'); if (empty) list.innerHTML = ''; list.insertAdjacentHTML('beforeend', renderNota(task.notas[task.notas.length - 1])); list.scrollTop = list.scrollHeight; }
+          back.querySelector('#tnota_input').value = ''; btn.disabled = false;
+        } else { btn.disabled = false; toast('No se pudo agregar la nota', 'error'); }
       });
     }
 
