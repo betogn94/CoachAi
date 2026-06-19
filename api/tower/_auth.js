@@ -125,7 +125,7 @@ const TOWER_ADMINS = [
 export const TEAM_OWNERS = ['beto', 'jesus'];
 // Miembros "solo Team": SOLO pueden entrar a la sección Team; cualquier otro
 // endpoint de Tower (facturación, costos, usuarios, etc.) les responde 403.
-export const TEAM_ONLY = ['aylen'];
+export const TEAM_ONLY = ['aylen', 'juli'];
 export function isTeamOnly(member) { return TEAM_ONLY.includes(member); }
 
 // Deriva el member estable desde el username — para sesiones viejas cuyo token se
