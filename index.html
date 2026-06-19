@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260618-1628-notif-cierre-de-semana--20h-ultimo-dia---catch-up--si-no-cerro-">
+<meta name="app-version" content="20260619-1236-fix-chat---sanea-alternancia-del-historial-antes-de-la-api---arregla-error-de-conexion-permanente--cindy-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -16691,6 +16691,29 @@ async function callChatAPI(payload, retries = 2) {
   }
 }
 
+// Anthropic exige (1) que el PRIMER mensaje sea role:'user' y (2) que los roles
+// ALTERNEN user/assistant (nunca dos seguidos del mismo rol). Un historial
+// guardado que viole esto —p.ej. dos saludos del coach seguidos quedados del
+// onboarding, o un slice de los últimos N turnos que arranca en 'assistant'—
+// hace que la API devuelva 400 en CADA envío y el chat queda CLAVADO mostrando
+// "error de conexión" para siempre (lo vivió Cindy: saludo duplicado en idx1/2 →
+// el slice(-40) arrancaba en 'assistant'). Saneamos el payload ANTES de mandarlo,
+// SIN mutar el historial local: descartamos turnos iniciales que no sean 'user' y
+// fusionamos turnos consecutivos del mismo rol en uno. Para un historial ya
+// válido (el caso común) es un no-op exacto.
+function sanitizeTurnsForAPI(turns) {
+  const out = [];
+  for (const t of (Array.isArray(turns) ? turns : [])) {
+    if (!t || (t.role !== 'user' && t.role !== 'assistant')) continue;
+    const content = typeof t.content === 'string' ? t.content : (t.content == null ? '' : String(t.content));
+    if (out.length === 0 && t.role !== 'user') continue;        // sin 'assistant' al inicio
+    const prev = out[out.length - 1];
+    if (prev && prev.role === t.role) prev.content += '\n\n' + content;  // fusioná consecutivos
+    else out.push({ role: t.role, content });
+  }
+  return out;
+}
+
 async function sendToAI(userMessage, isFirst = false) {
   const sendBtn = document.getElementById('send-btn');
   sendBtn.disabled = true;
@@ -16729,7 +16752,7 @@ async function sendToAI(userMessage, isFirst = false) {
     // Reintenta solo ante sobrecarga (429/529) — ver callChatAPI.
     const response = await callChatAPI({
       system: buildSystemPrompt(),
-      messages: conversationHistory,
+      messages: sanitizeTurnsForAPI(conversationHistory),
       // Haiku para generar planes Y chat. Probamos Sonnet pero, en tareas de
       // formato estricto (la dieta/rutina), "razona de más": muestra cálculos,
       // se auto-corrige y DUPLICA el plan en la misma respuesta → rompe el
