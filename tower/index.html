@@ -1161,7 +1161,17 @@
       appEl.classList.remove('faded');
       userName.textContent = session.displayName || session.username;
       userAvatar.textContent = (session.displayName || session.username || '?').charAt(0).toUpperCase();
-      route('dashboard');
+      // Scope "solo Team" (ej. Aylen): ocultamos el resto del menú y la mandamos a Team.
+      if (session.teamOnly) {
+        document.querySelectorAll('.nav-item').forEach(el => { if (el.dataset.route !== 'team') el.style.display = 'none'; });
+        document.querySelectorAll('.nav-section').forEach(el => { el.style.display = 'none'; });
+        route('team');
+      } else {
+        // Restaurar el menú por si una sesión "solo Team" previa lo ocultó (cambio
+        // de sesión sin recargar la página).
+        document.querySelectorAll('.nav-item, .nav-section').forEach(el => { el.style.display = ''; });
+        route('dashboard');
+      }
     }
 
     loginForm.addEventListener('submit', async (e) => {
@@ -1331,6 +1341,8 @@
     };
 
     function route(name, extra) {
+      // Scope "solo Team": cualquier intento de ir a otra sección lo redirige a Team.
+      if (session && session.teamOnly && name !== 'team') name = 'team';
       const r = ROUTES[name] || ROUTES.dashboard;
       document.querySelectorAll('.nav-item').forEach(el => {
         el.classList.toggle('active', el.dataset.route === name);
@@ -1954,6 +1966,7 @@
       beto:  { label: 'Beto',  color: '#3b82f6' },
       juli:  { label: 'Juli',  color: '#a855f7' },
       jesus: { label: 'Jesús', color: '#14b8a6' },
+      aylen: { label: 'Aylen', color: '#ec4899' },
     };
     const TEAM_VAPID_PUBLIC = 'BMU0PM_rgcq81HVt8F1Qma0AwbjoHeja5yv6LfadmumHa2Z_IJNmLHuLBsQsrxw13Kso2Krgz7UrU1-ZhsN4WIo';
     function teamB64ToUint8(base64String) {
@@ -2071,7 +2084,7 @@
         <div class="page-header">
           <div>
             <h1 class="page-title">Team</h1>
-            <p class="page-sub">Tablero de trabajo semanal — Beto, Jesús y Juli.</p>
+            <p class="page-sub">Tablero de trabajo semanal del equipo.</p>
           </div>
           <button class="btn btn-primary-sm" id="teamAddBtn">+ Nueva tarea</button>
         </div>

@@ -9,7 +9,7 @@
 // Guardado por withAuth (sesión de Tower). Usa service-role (saltea RLS): la
 // tabla team_tasks está bloqueada para la anon key, solo Tower entra acá.
 
-import { withAuth, memberFromUsername } from './_auth.js';
+import { withAuth, memberFromUsername, TEAM_OWNERS } from './_auth.js';
 import { sb, badRequest } from './_db.js';
 import webpush from 'web-push';
 
@@ -101,10 +101,14 @@ export default withAuth(async (req, res, session) => {
     const to   = String(req.query.to   || '').slice(0, 10);
     if (!isDate(from) || !isDate(to)) return badRequest(res, 'from/to (YYYY-MM-DD) requeridos');
 
+    // Visibilidad: los DUEÑOS (beto/jesus) ven todo; el resto solo las tareas donde
+    // están asignados (propias + compartidas). Filtrado en el SERVER (seguro).
+    const isOwner = TEAM_OWNERS.includes(me);
+    const mine = isOwner ? '' : `&asignados=cs.{${me || '__none__'}}`;
     // Dos consultas simples (PostgREST), se mergean: evita filtros or() anidados frágiles.
-    const enRango   = await sb(`/team_tasks?fecha=gte.${from}&fecha=lte.${to}&order=fecha.asc,created_at.asc`);
-    const arrastrad = await sb(`/team_tasks?fecha=lt.${from}&estado=in.(${ACTIVE.join(',')})&order=fecha.asc,created_at.asc`);
-    return res.status(200).json({ ok: true, tasks: [...arrastrad, ...enRango], me });
+    const enRango   = await sb(`/team_tasks?fecha=gte.${from}&fecha=lte.${to}${mine}&order=fecha.asc,created_at.asc`);
+    const arrastrad = await sb(`/team_tasks?fecha=lt.${from}&estado=in.(${ACTIVE.join(',')})${mine}&order=fecha.asc,created_at.asc`);
+    return res.status(200).json({ ok: true, tasks: [...arrastrad, ...enRango], me, owner: isOwner });
   }
 
   // body para POST/PATCH
@@ -119,6 +123,10 @@ export default withAuth(async (req, res, session) => {
     if (!titulo) return badRequest(res, 'titulo requerido');
     if (!isDate(fecha)) return badRequest(res, 'fecha (YYYY-MM-DD) requerida');
 
+    let asignados = cleanAsignados(body.asignados);
+    // Un MIEMBRO (no dueño) que no asigna a nadie → se agrega a sí mismo, así no
+    // crea una tarea que después no podría ver.
+    if (!asignados.length && me && !TEAM_OWNERS.includes(me)) asignados = [me];
     const row = {
       titulo,
       fecha,
@@ -126,7 +134,7 @@ export default withAuth(async (req, res, session) => {
       estado:    ESTADOS.includes(body.estado) ? body.estado : 'por_hacer',
       prioridad: PRIOS.includes(body.prioridad) ? body.prioridad : null,
       recordatorio_min: RECORDATORIOS.includes(body.recordatorio_min) ? body.recordatorio_min : null,
-      asignados: cleanAsignados(body.asignados),
+      asignados,
       created_by: me,
     };
     const created = await sb('/team_tasks', { method: 'POST', body: row, prefer: 'return=representation' });
@@ -187,4 +195,4 @@ export default withAuth(async (req, res, session) => {
 
   res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
   return res.status(405).json({ ok: false, error: 'method_not_allowed' });
-});
+}, { allowTeamOnly: true });

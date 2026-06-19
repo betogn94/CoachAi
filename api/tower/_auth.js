@@ -88,11 +88,15 @@ export function getSession(req) {
  * Usage:
  *   export default withAuth(async (req, res, session) => { ... });
  */
-export function withAuth(handler) {
+export function withAuth(handler, opts = {}) {
   return async function guarded(req, res) {
     const session = getSession(req);
     if (!session) {
       return res.status(401).json({ ok: false, error: 'unauthenticated' });
+    }
+    // Scope "solo Team" (ej. Aylen): bloqueado en TODO endpoint que no lo habilite.
+    if (!opts.allowTeamOnly && isTeamOnly(session.mbr || memberFromUsername(session.sub))) {
+      return res.status(403).json({ ok: false, error: 'forbidden_scope' });
     }
     try {
       return await handler(req, res, session);
@@ -113,7 +117,16 @@ const TOWER_ADMINS = [
   { env: 'BETO', display: 'Beto', member: 'beto' },
   { env: 'JESUS', display: 'Jesús', member: 'jesus' },
   { env: 'JULI', display: 'Juli', member: 'juli' },
+  { env: 'AYLEN', display: 'Aylen', member: 'aylen' },
 ];
+
+// DUEÑOS del tablero: ven TODAS las tareas del Team. El resto (miembros) ve solo
+// las suyas + las compartidas (donde están asignados).
+export const TEAM_OWNERS = ['beto', 'jesus'];
+// Miembros "solo Team": SOLO pueden entrar a la sección Team; cualquier otro
+// endpoint de Tower (facturación, costos, usuarios, etc.) les responde 403.
+export const TEAM_ONLY = ['aylen'];
+export function isTeamOnly(member) { return TEAM_ONLY.includes(member); }
 
 // Deriva el member estable desde el username — para sesiones viejas cuyo token se
 // firmó ANTES de que existiera `mbr` (así no hace falta re-loguear). Matchea el

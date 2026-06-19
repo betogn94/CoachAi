@@ -1,7 +1,7 @@
 // POST /api/tower/login  { username, password }
 // On success, sets HttpOnly session cookie and returns { ok:true, user }.
 
-import { checkCredentials, signSession, setSessionCookie, clearSessionCookie, SESSION_TTL_MS } from './_auth.js';
+import { checkCredentials, signSession, setSessionCookie, clearSessionCookie, SESSION_TTL_MS, isTeamOnly } from './_auth.js';
 
 export default async function handler(req, res) {
   // DELETE = logout. Consolidado en este endpoint (antes /api/tower/logout) para
@@ -47,6 +47,6 @@ export default async function handler(req, res) {
 
   return res.status(200).json({
     ok: true,
-    user: { username: user.username, displayName: user.displayName, member: user.member },
+    user: { username: user.username, displayName: user.displayName, member: user.member, teamOnly: isTeamOnly(user.member) },
   });
 }
