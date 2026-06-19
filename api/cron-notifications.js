@@ -15,6 +15,7 @@
 // dos veces en la misma ventana horaria.
 
 import webpush from 'web-push';
+import { TEAM_MEMBERS } from './tower/_auth.js';   // lista única de members (incluye a Aylen)
 
 const SUPABASE_URL  = 'https://vmvhlgzwufkardaruutt.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtdmhsZ3p3dWZrYXJkYXJ1dXR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNzA4NjcsImV4cCI6MjA5Mjg0Njg2N30.x9-lV9xi3Kdu_zpHcGC0PC80-GiXpc1WD4lnAuFI_iM';
@@ -158,7 +159,6 @@ function buildCierreSemana() {
 // Las tablas del Team tienen RLS bloqueada para la anon key → se leen/escriben
 // con el SERVICE-ROLE. Todo el equipo (Beto/Jesús/Juli) está en Argentina, así
 // que la hora de las tareas se interpreta en esa zona.
-const TEAM_MEMBERS = ['beto', 'jesus', 'juli'];
 const TEAM_TZ = 'America/Argentina/Buenos_Aires';
 const SB_SVC_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SB_SVC_HEADERS = () => ({ apikey: SB_SVC_KEY, Authorization: 'Bearer ' + SB_SVC_KEY, 'Content-Type': 'application/json' });

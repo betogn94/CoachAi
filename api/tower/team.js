@@ -9,14 +9,14 @@
 // Guardado por withAuth (sesión de Tower). Usa service-role (saltea RLS): la
 // tabla team_tasks está bloqueada para la anon key, solo Tower entra acá.
 
-import { withAuth, memberFromUsername, TEAM_OWNERS } from './_auth.js';
+import { withAuth, memberFromUsername, TEAM_OWNERS, TEAM_MEMBERS, TEAM_MEMBER_LABEL } from './_auth.js';
 import { sb, badRequest } from './_db.js';
 import webpush from 'web-push';
 
 const ESTADOS = ['por_hacer', 'en_progreso', 'hecha', 'en_pausa', 'cancelada', 'bloqueada'];
 const PRIOS   = ['alta', 'media', 'baja'];
 const RECORDATORIOS = [0, 15, 30, 60];   // minutos antes de la hora (null = sin recordatorio)
-const MEMBERS = ['beto', 'jesus', 'juli'];
+const MEMBERS = TEAM_MEMBERS;                    // lista única (incluye a Aylen) desde _auth.js
 const ACTIVE  = ['por_hacer', 'en_progreso'];   // los únicos estados que se "arrastran"
 
 const isDate = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -28,7 +28,7 @@ function cleanAsignados(arr) {
 }
 
 // ---------- Push (notificaciones del Team) ----------
-const MEMBER_LABEL = { beto: 'Beto', jesus: 'Jesús', juli: 'Juli' };
+const MEMBER_LABEL = TEAM_MEMBER_LABEL;
 const VAPID_PUBLIC = 'BMU0PM_rgcq81HVt8F1Qma0AwbjoHeja5yv6LfadmumHa2Z_IJNmLHuLBsQsrxw13Kso2Krgz7UrU1-ZhsN4WIo';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:support.coachaipro@gmail.com';
 let _vapidReady = false;

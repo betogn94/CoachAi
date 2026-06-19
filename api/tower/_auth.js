@@ -128,6 +128,13 @@ export const TEAM_OWNERS = ['beto', 'jesus'];
 export const TEAM_ONLY = ['aylen', 'juli'];
 export function isTeamOnly(member) { return TEAM_ONLY.includes(member); }
 
+// Lista ÚNICA de members + labels (derivada de TOWER_ADMINS). La usan team.js y el
+// cron para validar asignados + targetear push. Sumar un miembro a TOWER_ADMINS lo
+// propaga a TODOS lados → evita listas hardcodeadas que se desincronizan (bug que
+// rompió la activación de notifs de Aylen, 2026-06-19).
+export const TEAM_MEMBERS = TOWER_ADMINS.map(a => a.member);
+export const TEAM_MEMBER_LABEL = Object.fromEntries(TOWER_ADMINS.map(a => [a.member, a.display]));
+
 // Deriva el member estable desde el username — para sesiones viejas cuyo token se
 // firmó ANTES de que existiera `mbr` (así no hace falta re-loguear). Matchea el
 // `sub` (username guardado) contra los TOWER_USER_<X> del entorno.
