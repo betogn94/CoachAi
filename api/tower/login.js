@@ -39,6 +39,7 @@ export default async function handler(req, res) {
   const token = signSession({
     sub: user.username,
     name: user.displayName,
+    mbr: user.member,
     iat: Date.now(),
     exp,
   });
@@ -46,6 +47,6 @@ export default async function handler(req, res) {
 
   return res.status(200).json({
     ok: true,
-    user: { username: user.username, displayName: user.displayName },
+    user: { username: user.username, displayName: user.displayName, member: user.member },
   });
 }

@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   }
   return res.status(200).json({
     ok: true,
-    user: { username: session.sub, displayName: session.name },
+    user: { username: session.sub, displayName: session.name, member: session.mbr },
     exp: session.exp,
   });
 }

@@ -113,9 +113,12 @@ export function checkCredentials(username, password) {
   if (typeof username !== 'string' || typeof password !== 'string') return null;
   if (!username || !password) return null;
 
+  // `member` es un identificador ESTABLE (no cambia aunque cambie el TOWER_USER_X
+  // que tipean) — lo usan las tareas del Team para asignar/filtrar "mis tareas".
   const admins = [
-    { env: 'BETO', display: 'Beto' },
-    { env: 'JESUS', display: 'Jesús' },
+    { env: 'BETO', display: 'Beto', member: 'beto' },
+    { env: 'JESUS', display: 'Jesús', member: 'jesus' },
+    { env: 'JULI', display: 'Juli', member: 'juli' },
   ];
 
   for (const a of admins) {
@@ -124,7 +127,7 @@ export function checkCredentials(username, password) {
     if (!envUser || !envPass) continue;
     if (!safeEqStr(username, envUser)) continue;
     if (!safeEqStr(password, envPass)) continue;
-    return { username: envUser, displayName: a.display };
+    return { username: envUser, displayName: a.display, member: a.member };
   }
   return null;
 }
