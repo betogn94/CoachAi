@@ -1981,7 +1981,14 @@
         if (Notification.permission === 'granted') {
           const reg = await navigator.serviceWorker.ready;
           const sub = await reg.pushManager.getSubscription();
-          if (sub) { teamUpdateNotifBtn(true); return; }
+          if (sub) {
+            // Re-sincroniza con el server (idempotente, SIN push de confirmación):
+            // cubre el caso de un sub que quedó en el browser pero no se guardó en el
+            // server (p.ej. un intento previo con "sesión sin member"). Solo marca
+            // "activado" si el server confirma que lo tiene.
+            const { ok, data } = await api('/api/tower/team?push=sub', { method: 'POST', body: JSON.stringify({ subscription: sub.toJSON ? sub.toJSON() : sub, silent: true }) });
+            if (ok && data?.ok) { teamUpdateNotifBtn(true); return; }
+          }
         }
         teamUpdateNotifBtn(false);
       } catch (_) { teamUpdateNotifBtn(false); }

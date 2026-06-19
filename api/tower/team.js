@@ -79,8 +79,10 @@ export default withAuth(async (req, res, session) => {
         body: { member: me, endpoint, p256dh: keys.p256dh, auth: keys.auth, user_agent: String(req.headers['user-agent'] || '').slice(0, 300) },
         prefer: 'resolution=merge-duplicates,return=minimal',
       });
-      // Push de confirmación inmediato (prueba que llega).
-      await pushToMembers([me], { title: '🔔 Notificaciones activadas', body: 'Vas a recibir los avisos de tus tareas del Team.', url: '/tower/' });
+      // Push de confirmación SOLO en activación explícita (no en el re-sync silencioso).
+      if (!pb.silent) {
+        await pushToMembers([me], { title: '🔔 Notificaciones activadas', body: 'Vas a recibir los avisos de tus tareas del Team.', url: '/tower/' });
+      }
       return res.status(200).json({ ok: true });
     }
     if (method === 'DELETE') {
