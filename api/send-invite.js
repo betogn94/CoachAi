@@ -284,7 +284,7 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
           <tr>
             <td bgcolor="#ffffff" style="background:#ffffff;padding:18px 32px 22px;border-top:1px solid ${theme.footerBorder};">
               <div style="font-size:11px;color:#9494a8;line-height:1.55;text-align:center;">
-                Recibiste este mail porque activaste tu suscripción a CoachAI.<br>
+                Recibiste este mail porque se activó tu acceso a CoachAI.<br>
                 <a href="${appUrl}" style="color:${theme.footerLink};text-decoration:none;">coachaipro.ai</a>
               </div>
             </td>
