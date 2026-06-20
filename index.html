@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260620-2306-ui-premium---sombras-por-capas-en-cards---iconos--home---alimentacion-">
+<meta name="app-version" content="20260620-2314-ui-premium---extender-sombras-a-seguimiento--mi-entreno-y-perfil">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -10988,12 +10988,20 @@ body.theme-king {
 }
 /* Cards y superficies elevadas → sombra ambiental por capas */
 body .cai-home-hero, body .cai-home-card, body .cai-alim-summary, body .cai-meal, body .alim-tips-card,
-body.theme-king .cai-home-hero, body.theme-king .cai-home-card, body.theme-king .cai-alim-summary, body.theme-king .cai-meal, body.theme-king .alim-tips-card {
+body .semana-card, body .cai-ent-summary, body .cai-ent-hero, body .cai-ent-other, body .cai-perfil-section, body .cai-perfil-info,
+body.theme-king .cai-home-hero, body.theme-king .cai-home-card, body.theme-king .cai-alim-summary, body.theme-king .cai-meal, body.theme-king .alim-tips-card,
+body.theme-king .semana-card, body.theme-king .cai-home-semanas .semana-card, body.theme-king .cai-ent-summary, body.theme-king .cai-ent-hero, body.theme-king .cai-ent-other,
+body.theme-king .cai-perfil-section, body.theme-king .cai-perfil-info {
   box-shadow: var(--card-shadow) !important;
 }
 /* Tiles de íconos → elevación sutil */
-body .cai-home-card-ico, body.theme-king .cai-home-card-ico {
+body .cai-home-card-ico, body .cai-ent-cardio-ico, body .cai-ent-subcard-arrow,
+body.theme-king .cai-home-card-ico, body.theme-king .cai-ent-cardio-ico, body.theme-king .cai-ent-subcard-arrow {
   box-shadow: var(--icon-shadow) !important;
+}
+/* Elementos con gradiente de marca → sombra teñida con el acento */
+body .cai-perfil-info-avatar, body.theme-king .cai-perfil-info-avatar {
+  box-shadow: var(--accent-shadow) !important;
 }
 </style>
 <script>
