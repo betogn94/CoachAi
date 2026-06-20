@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260620-2321-ui-alim---tips-card-y-comidas-tildadas-en-blanco--no-rosa-">
+<meta name="app-version" content="20260620-2342-ui-home---saludo--hola--nombre---compacto---seguimiento-sin-contenedor">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11003,6 +11003,17 @@ body.theme-king .cai-home-card-ico, body.theme-king .cai-ent-cardio-ico, body.th
 body .cai-perfil-info-avatar, body.theme-king .cai-perfil-info-avatar {
   box-shadow: var(--accent-shadow) !important;
 }
+/* Seguimiento semanal: el contenedor que englobaba todo se vuelve INVISIBLE
+   (sin bg/border/sombra/blur) → las cards SEM 01/02 flotan solas con su sombra. */
+body .cai-home-semanas, body.theme-king .cai-home-semanas {
+  background: none !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  padding: 0 !important;
+}
 </style>
 <script>
 // Detect Safari mobile in browser-mode (not installed PWA) and tag the body.
@@ -11492,7 +11503,7 @@ body .cai-perfil-info-avatar, body.theme-king .cai-perfil-info-avatar {
         </div>
         <h2 class="cai-alim-header-h2" id="home-name">HOLA</h2>
       </div>
-      <div class="cai-alim-header-sub" id="home-greeting-sub">—</div>
+      <div class="cai-alim-header-sub" id="home-greeting-sub" style="display:none">—</div>
     </div>
   </div>
 
@@ -20281,7 +20292,23 @@ function renderHome() {
   // Replaces the old landing-style greeting block. The new header mirrors
   // the cai-alim-header pattern: brand title with name + sub-line with goal.
   const nameEl = document.getElementById('home-name');
-  if (nameEl) nameEl.textContent = (p.nombre || (isEs?'Atleta':'Athlete')).toUpperCase();
+  if (nameEl) {
+    // Saludo compacto "Hola [nombre]" — "Hola" en el color del texto, el nombre
+    // en coral. Reemplaza al nombre solo + el sub "Buenas noches · Definir" (ahora
+    // oculto), liberando espacio vertical para que las cards suban. Construido con
+    // nodos DOM (textContent) → sin riesgo de inyección, sin depender de escapeHtml.
+    const fn = (p.nombre || (isEs ? 'Atleta' : 'Athlete')).trim().split(/\s+/)[0];
+    nameEl.textContent = '';
+    const _hola = document.createElement('span');
+    _hola.style.color = 'var(--text)';        // "Hola" en negro (inline gana al color coral del título)
+    _hola.style.fontWeight = '800';
+    _hola.textContent = (isEs ? 'Hola ' : 'Hi ');
+    const _nm = document.createElement('span');
+    _nm.style.color = 'var(--accent)';        // el nombre en coral
+    _nm.style.fontWeight = '800';
+    _nm.textContent = fn;
+    nameEl.append(_hola, _nm);
+  }
 
   // Goal labels in Home are plain — emojis kept in Perfil header where the
   // subtitle has more space and less visual competition.
