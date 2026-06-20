@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260620-1807-ui-alim---card--c-mo-leer-tu-plan--iguala-el-ancho-de-las-dem-s">
+<meta name="app-version" content="20260620-2306-ui-premium---sombras-por-capas-en-cards---iconos--home---alimentacion-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -10967,6 +10967,33 @@ body.theme-king .cai-home-semanas .semana-analisis hr {
   .cierre-overlay .cierre-stat .num { font-size: 32px; }
   .cierre-overlay .cierre-title { font-size: 24px; }
   .cai-home-semanas .semana-transf-compare { height: 180px; }
+}
+
+/* ═══════ SOMBRAS PREMIUM POR CAPAS (design pass, 2026-06-20) ═══════
+   3 niveles (card / icon / accent). Default = negras profundas; KING = coral
+   translúcidas (elegantes sobre fondo claro). Al final del CSS para ganar a los
+   overrides de tema. Para subir/bajar intensidad global: tocar el alpha del
+   último valor de cada token. */
+body {
+  --card-shadow: 0 1px 0 rgba(255,255,255,.06) inset, 0 2px 6px rgba(0,0,0,.35),
+                 0 14px 28px -12px rgba(0,0,0,.6), 0 30px 64px -26px rgba(0,0,0,.9);
+  --icon-shadow: 0 1px 0 rgba(255,255,255,.06) inset, 0 5px 14px -5px rgba(0,0,0,.6);
+  --accent-shadow: 0 8px 22px -8px var(--accent);
+}
+body.theme-king {
+  --card-shadow: 0 1px 2px rgba(26,26,38,.04), 0 6px 16px -8px rgba(255,79,123,.16),
+                 0 22px 48px -22px rgba(224,58,111,.32);
+  --icon-shadow: 0 5px 14px -6px rgba(255,79,123,.32), 0 1px 2px rgba(26,26,38,.05);
+  --accent-shadow: 0 9px 24px -8px rgba(255,79,123,.5);
+}
+/* Cards y superficies elevadas → sombra ambiental por capas */
+body .cai-home-hero, body .cai-home-card, body .cai-alim-summary, body .cai-meal, body .alim-tips-card,
+body.theme-king .cai-home-hero, body.theme-king .cai-home-card, body.theme-king .cai-alim-summary, body.theme-king .cai-meal, body.theme-king .alim-tips-card {
+  box-shadow: var(--card-shadow) !important;
+}
+/* Tiles de íconos → elevación sutil */
+body .cai-home-card-ico, body.theme-king .cai-home-card-ico {
+  box-shadow: var(--icon-shadow) !important;
 }
 </style>
 <script>
