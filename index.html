@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260620-2314-ui-premium---extender-sombras-a-seguimiento--mi-entreno-y-perfil">
+<meta name="app-version" content="20260620-2321-ui-alim---tips-card-y-comidas-tildadas-en-blanco--no-rosa-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -1367,8 +1367,8 @@ body.theme-king .cai-alim-progress {
    Cerrada por defecto (no tapa la comida del día); se abre al tocar el header. */
 .alim-tips-card {
   margin: 0 18px 14px;
-  background: rgba(255,79,123,0.05);
-  border: 1px solid rgba(255,79,123,0.18);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 14px;
   padding: 0 16px;
 }
@@ -1407,7 +1407,7 @@ body.theme-king .cai-meal {
    clearly readable while staying visibly distinct from pending ones. */
 body.theme-king .cai-meal.done {
   opacity: 1 !important;
-  background: var(--surface2) !important;  /* subtle rosa tint to mark "done" */
+  background: var(--surface) !important;  /* blanco como las pendientes; el "hecho" se marca con el tachado + el check coral */
 }
 body.theme-king .cai-meal.done .cai-meal-name {
   color: var(--muted) !important;
