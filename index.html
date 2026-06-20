@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260620-2342-ui-home---saludo--hola--nombre---compacto---seguimiento-sin-contenedor">
+<meta name="app-version" content="20260620-2346-ui-home---sacar-el-header-de-saludo----cards-mas-arriba">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11494,8 +11494,8 @@ body .cai-home-semanas, body.theme-king .cai-home-semanas {
 <!-- HOME SCREEN -->
 <div class="diario-wrapper home-app-wrapper" id="home-wrapper">
 
-  <!-- Page header: greeting + name + back-to-chat shortcut on the right -->
-  <div class="cai-alim-header">
+  <!-- Page header oculto a pedido (saludo + icono sacados) → las cards suben. -->
+  <div class="cai-alim-header" style="display:none">
     <div>
       <div class="cai-alim-header-title">
         <div class="cai-alim-header-ico">
