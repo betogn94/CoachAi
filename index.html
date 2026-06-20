@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260620-1616-fix-invite---texto-neutro-del-mail--acceso-activado--no-suscripcion-">
+<meta name="app-version" content="20260620-1710-feat-billing---ruteo-de-renovacion-por-usuario--9-99-vs-19-99-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12969,7 +12969,7 @@ async function loginOrRegister(email, nombre) {
   // tenant correcto (un whitelabel client aterriza en su tenant desde el
   // primer login).
   const { data: invite } = await sbClient
-    .from('beta_invitados').select('email,tenant_slug,acceso_hasta').eq('email', email).maybeSingle();
+    .from('beta_invitados').select('email,tenant_slug,acceso_hasta,renew_url').eq('email', email).maybeSingle();
   if (!invite) {
     return { notInvited: true };
   }
@@ -13012,6 +13012,8 @@ async function loginOrRegister(email, nombre) {
   // Hereda el vencimiento de acceso desde la invitación (control de suscripción).
   // Si la invitación no tiene fecha (amigos/parientes en default), queda NULL = permanente.
   if (invite.acceso_hasta) insertRow.acceso_hasta = invite.acceso_hasta;
+  // Link de renovación per-user ($9.99 migrados vs $19.99). Null = usa el RENEW_URL global.
+  if (invite.renew_url) insertRow.renew_url = invite.renew_url;
 
   const { data: newUser, error } = await sbClient.from('usuarios').insert([insertRow]).select().single();
   if (error) throw error;
@@ -16276,9 +16278,10 @@ function showRenewScreen(user) {
   const ov = document.createElement('div');
   ov.id = 'renew-overlay';
   ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0a0a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;font-family:inherit;gap:18px';
-  const renewUrl = (RENEW_URL && user?.email)
-    ? `${RENEW_URL}?prefilled_email=${encodeURIComponent(user.email)}`
-    : RENEW_URL;
+  const baseRenew = user?.renew_url || RENEW_URL;
+  const renewUrl = (baseRenew && user?.email)
+    ? `${baseRenew}?prefilled_email=${encodeURIComponent(user.email)}`
+    : baseRenew;
   const cta = renewUrl
     ? `<a href="${renewUrl}" style="display:inline-block;background:${accent};color:#fff;text-decoration:none;font-weight:700;padding:14px 26px;border-radius:12px;font-size:15px;letter-spacing:.02em">Renovar ahora →</a>`
     : `<div style="opacity:.8;font-size:14px;line-height:1.6;max-width:340px">Comunicate con tu coach para reactivar tu acceso. Apenas renueves tu suscripción, volvés a entrar automáticamente.</div>`;
