@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260620-2346-ui-home---sacar-el-header-de-saludo----cards-mas-arriba">
+<meta name="app-version" content="20260620-2351-ui-home---titulo-seguimiento-semanal-con-mas-cuerpo--mas-grande---negrita---barra-coral-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -10317,10 +10317,13 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
    breathing room from the top edge without doubling the card's own padding. */
 .cai-home-semanas .cai-home-semanas-eyebrow {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 9.5px; letter-spacing: 1.4px;
+  font-size: 13px; letter-spacing: 0.8px; font-weight: 800;
   color: var(--accent-bright);
   margin-bottom: 14px;
   text-transform: uppercase;
+  border-left: 3px solid var(--accent);
+  padding-left: 9px;
+  line-height: 1.25;
 }
 
 /* Neutralise the legacy `.semana-card.activa` teal border — that rule
