@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260621-0113-tower--buscador-por-nombre-en-facturacion-y-tenants">
+<meta name="app-version" content="20260621-1628-dieta--notas-del-plan-ya-no-se-pegan-a-la-ultima-comida--van-a--como-leer-tu-plan-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12881,6 +12881,8 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       <div class="alim-tips-item"><span class="ti-ic">🔀</span><span>La barra <b>"/"</b> separa <b>opciones</b>: elegís <b>UNA</b>, no comés todo el ítem.</span></div>
       <div class="alim-tips-item"><span class="ti-ic">⚖️</span><span>Todos los alimentos se pesan <b>cocidos</b>.</span></div>
       <div class="alim-tips-item"><span class="ti-ic">🥗</span><span>En ensaladas podés usar vinagres, salsas 0 cal, sal a gusto (sin exagerar) y cualquier condimento. <b>Evitá los aceites</b> si no están incluidos en esa comida.</span></div>
+      <!-- Notas generales del plan (dinámicas, extraídas por parseDietaContenido) -->
+      <div id="alim-plan-notes"></div>
     </div>
   </details>
 
@@ -17351,6 +17353,25 @@ async function renderMiAlimentacion() {
   }
   _alimDays = parsed.days;
   _alimHeader = parsed.header;
+
+  // Notas generales del plan → se suman como tips normales dentro de "Cómo leer
+  // tu plan" (mismo estilo que los fijos). Idempotente: se limpia y repuebla en
+  // cada render. Construido con nodos DOM (sin innerHTML) por seguridad.
+  const _notesBox = document.getElementById('alim-plan-notes');
+  if (_notesBox) {
+    _notesBox.textContent = '';
+    for (const n of ((parsed && parsed.notes) || [])) {
+      const row = document.createElement('div');
+      row.className = 'alim-tips-item';
+      const ic = document.createElement('span');
+      ic.className = 'ti-ic';
+      ic.textContent = '•';
+      const tx = document.createElement('span');
+      tx.textContent = n;
+      row.append(ic, tx);
+      _notesBox.appendChild(row);
+    }
+  }
 
   if (!_alimDays || _alimDays.length === 0) {
     showEmpty();
@@ -21824,7 +21845,7 @@ function cardioAppliesToday(rule, isTodayRest) {
 // kcal suffix variations (— Xcal, - Xcal, – Xkcal).
 // ============================
 function parseDietaContenido(text) {
-  if (!text || typeof text !== 'string') return { header: null, days: [] };
+  if (!text || typeof text !== 'string') return { header: null, days: [], notes: [] };
   const DAY_NAMES_RE = /^(LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)\b/i;
   const DAY_TO_KEY = {
     'LUNES':'lun','MARTES':'mar','MIÉRCOLES':'mie','MIERCOLES':'mie',
@@ -21859,6 +21880,8 @@ function parseDietaContenido(text) {
   const stripAcc = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
   let header = null;
   const days = [];
+  const notes = [];      // notas generales del plan (post "---" / "Notas…")
+  let inNotes = false;   // una vez true, las líneas son notas, no comidas
   let current = null;
   for (const raw of text.split('\n')) {
     const line = raw.replace(/\r/g, '').trim();
@@ -21878,6 +21901,19 @@ function parseDietaContenido(text) {
       continue;
     }
     const clean = line.replace(/[*_#]/g, '').trim();
+    // Fin de la sección de comidas: un separador "---" o un encabezado "Notas…"
+    // marca el inicio de las notas generales del plan. Todo lo que sigue son
+    // notas, NO comida → así no se pegan a la última comida del último día
+    // (bug: los bullets "• …" finales se adjudicaban a la Cena del domingo).
+    if (!inNotes && (/^-{3,}$/.test(clean) || /^notas\b/i.test(stripAcc(clean).toLowerCase()))) {
+      inNotes = true;
+      continue;
+    }
+    if (inNotes) {
+      const nb = clean.match(/^[-·•*]\s+(.*)$/);
+      if (nb && nb[1].trim()) notes.push(nb[1].trim());
+      continue; // ignoramos encabezados/cierres; solo juntamos los bullets
+    }
     // Day header
     const dm = clean.match(DAY_NAMES_RE);
     if (dm) {
@@ -22025,10 +22061,10 @@ function parseDietaContenido(text) {
       meals: template.meals.map(m => ({ ...m })),
       totalKcal: template.totalKcal,
     }));
-    return { header: _deriveHeader(header, expanded), days: expanded };
+    return { header: _deriveHeader(header, expanded), days: expanded, notes };
   }
 
-  return { header: _deriveHeader(header, days), days };
+  return { header: _deriveHeader(header, days), days, notes };
 }
 
 // ============================
