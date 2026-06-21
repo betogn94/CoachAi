@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260621-2341-piloto-diseno-king--fondo-casi-blanco---sombra-susurro---eyebrows-de-home-en-gris">
+<meta name="app-version" content="20260621-2349-diseno-king--eyebrows-a-gris-en-toda-la-app--rollout-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11036,6 +11036,25 @@ body.theme-king {
   --icon-shadow: 0 1px 3px rgba(17,17,26,.08);
   --accent-shadow: 0 6px 18px -8px rgba(255,79,123,.4);
   --subcard-shadow: 0 1px 2px rgba(17,17,26,.04), 0 4px 12px -10px rgba(17,17,26,.10);
+}
+/* CALM EYEBROWS (refinamiento 2026-06-22): los eyebrows/labels de sección pasan
+   de coral a gris neutro en TODA la app (los de Home ya están en 703/715). El
+   coral se reserva para lo que importa: anillo+número, CTAs, nav activa, estados
+   (DESCANSO/PENDIENTE), íconos y logo. Las barritas coral (border-left) quedan
+   como hint. Para volver a coral: cambiar var(--muted) por var(--accent). */
+body.theme-king .cierre-photos-eyebrow,
+body.theme-king .cierre-photos-eyebrow svg,
+body.theme-king .cai-home-semanas-eyebrow,
+body.theme-king .alim-target-eyebrow,
+body.theme-king .cai-alim-summary-eyebrow,
+body.theme-king .cai-ent-hero-eyebrow,
+body.theme-king .cai-ent-cardio-title,
+body.theme-king .cai-ent-series-title,
+body.theme-king .cai-ent-other-title,
+body.theme-king .cai-perfil-section-title,
+body.theme-king .cai-perfil-transform-label,
+body.theme-king .cai-perfil-foto-inicio-eyebrow {
+  color: var(--muted) !important;
 }
 /* Cards y superficies elevadas → sombra ambiental por capas */
 body .cai-home-hero, body .cai-home-card, body .cai-alim-summary, body .cai-meal, body .alim-tips-card,
