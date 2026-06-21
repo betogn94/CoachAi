@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260621-0025-entreno--aire-arriba-de-resto-de-la-semana--sombra-hoy-no-toca-titulo-">
+<meta name="app-version" content="20260621-0030-quitar-boton-volver-a-inicio-en-alimentacion-entreno-perfil">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12244,7 +12244,6 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       </div>
       <div class="cai-alim-header-sub" id="perfil-header-sub">—</div>
     </div>
-    <button onclick="showHome()" id="perfil-back-btn" style="padding:8px 14px;border-radius:10px;background:rgba(255,255,255,0.025);border:1px solid rgba(124,106,255,0.18);color:var(--accent-bright);font-family:'JetBrains Mono', monospace;font-size:10.5px;letter-spacing:1px;display:flex;align-items:center;gap:6px;cursor:pointer">← INICIO</button>
   </div>
 
   <!-- MI PLAN DE LA SEMANA — collapsible rutina + dieta cards -->
@@ -12415,7 +12414,6 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       </div>
       <div class="cai-alim-header-sub" id="ent-header-sub">—</div>
     </div>
-    <button onclick="showHome()" id="entreno-back-btn" style="padding:8px 14px;border-radius:10px;background:rgba(255,255,255,0.025);border:1px solid rgba(124,106,255,0.18);color:var(--accent-bright);font-family:'JetBrains Mono', monospace;font-size:10.5px;letter-spacing:1px;display:flex;align-items:center;gap:6px;cursor:pointer">← INICIO</button>
   </div>
 
   <!-- Hero summary card (ESTA SEMANA · X/N días + adherencia bar) -->
@@ -12809,7 +12807,6 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       </div>
       <div class="cai-alim-header-sub" id="alim-header-sub">—</div>
     </div>
-    <button onclick="showHome()" id="diario-back-btn" style="padding:8px 14px;border-radius:10px;background:rgba(255,255,255,0.025);border:1px solid rgba(124,106,255,0.18);color:var(--accent-bright);font-family:'JetBrains Mono', monospace;font-size:10.5px;letter-spacing:1px;display:flex;align-items:center;gap:6px;cursor:pointer">← INICIO</button>
   </div>
 
   <!-- Daily target card — 4-stat grid (KCAL · PROTE · CARBOS · GRASA) with
