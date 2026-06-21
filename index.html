@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260621-1839-onboarding-nativo--pre-genera-dieta-rutina-en-el-paso-de-fotos--bienvenida-limpia---estado-preparando">
+<meta name="app-version" content="20260621-1858-onboarding--pre-gen-mas-temprana--resumen----entrega-por-seccion---aviso-de-carga-en-home">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -3727,6 +3727,21 @@ body.theme-king .cai-meal-macros {
    ====================================================================== */
 
 .home-app-wrapper { padding-top: 2px; }
+
+/* Aviso de carga post-onboarding (mientras se pre-generan dieta+rutina) */
+.home-plan-banner {
+  display: flex; align-items: center; gap: 10px;
+  margin: 10px 18px 12px; padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(124,106,255,0.08);
+  border: 1px solid rgba(124,106,255,0.18);
+  color: var(--text);
+  font-size: 13.5px; font-weight: 600;
+}
+.home-plan-banner .hpb-ico { font-size: 18px; animation: hpb-pulse 1.4s ease-in-out infinite; }
+.home-plan-banner .hpb-text { line-height: 1.3; }
+@keyframes hpb-pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+body.theme-king .home-plan-banner { background: #FFF0F4; border-color: rgba(255,79,123,0.22); }
 
 /* HERO ring card — ENTRENAMIENTOS X/N this week (informational only) */
 .cai-home-hero {
@@ -11561,6 +11576,12 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     </div>
   </div>
 
+  <!-- Aviso de carga post-onboarding: visible mientras se pre-generan los planes -->
+  <div class="home-plan-banner" id="home-plan-banner" style="display:none">
+    <span class="hpb-ico">⏳</span>
+    <span class="hpb-text" data-es="Preparando tu plan personalizado… en unos segundos lo tenés 💪" data-en="Preparing your personalized plan… ready in a few seconds 💪">Preparando tu plan personalizado… en unos segundos lo tenés 💪</span>
+  </div>
+
   <!-- HERO: ENTRENOS DE LA SEMANA — ring widget (informational only, NOT a shortcut) -->
   <div class="cai-home-hero" id="home-hero-entrenos">
     <div class="cai-home-hero-ring">
@@ -13964,34 +13985,57 @@ async function autoGenerateFirstPlans() {
 // planes_semanales (DB) y aparecen cargados en Mi Alimentación / Mi Entreno —
 // igual que las migradas. buildSystemPrompt() lee el perfil directo del form del
 // onboarding, así que en el paso de fotos (último panel) ya tiene todos los datos.
-let _planPrefetch = null;     // promesa de la pre-generación (allSettled), o null
-let _plansPreparing = false;  // true mientras la pre-generación está en vuelo → estado "preparando" en las secciones
+let _planPrefetch = null;            // promesa de la pre-generación (allSettled), o null
+const _prefetchInFlight = new Set();  // tipos generándose AHORA ('dieta'/'rutina')
+
+// ¿Está este tipo de plan generándose ahora? → estado "preparando" por sección.
+function _isPlanPreparing(tipo) { return _prefetchInFlight.has(tipo); }
+
+// Refresca SOLO la sección de un plan apenas termina (entrega progresiva), si la
+// app ya está visible (terminó el onboarding). Si todavía está en onboarding, no
+// hace nada: el render ocurre igual al terminar.
+function _refreshAfterPlan(tipo) {
+  try {
+    if (!document.body.classList.contains('app-active')) return;
+    if (tipo === 'dieta'  && typeof renderMiAlimentacion === 'function') renderMiAlimentacion();
+    if (tipo === 'rutina' && typeof renderMiEntreno === 'function') renderMiEntreno();
+    if (typeof refreshQuickButtons === 'function') refreshQuickButtons();
+    if (typeof renderHome === 'function') renderHome();   // renderHome actualiza el aviso de carga
+  } catch (e) {}
+}
 
 // Genera UN plan de forma HEADLESS (sin tocar el chat) y lo guarda en planes_semanales.
 async function prefetchPlan(tipo) {
-  const isEs = (lang === 'es');
-  const msg = tipo === 'rutina'
-    ? (isEs ? '💪 Rutina de la semana' : '💪 Weekly Routine')
-    : (isEs ? '🥗 Dieta de la semana'  : '🥗 Weekly Diet');
-  const res = await callChatAPI({
-    system: buildSystemPrompt(),
-    messages: [{ role: 'user', content: msg }],
-    model: 'haiku',
-  });
-  const data = await res.json();
-  const reply = data && data.content && data.content[0] && data.content[0].text;
-  if (!reply) throw new Error('respuesta vacía');
-  let planText = reply;
-  const hasStruct = (txt) => (typeof planReplyHasStructure === 'function') && planReplyHasStructure(tipo, txt);
-  if (!hasStruct(planText)) {
-    // Fallback: pedirle a la IA que reformatee al formato canónico (mismo que sendToAI).
-    const normalized = await aiNormalizePlan(tipo, reply);
-    if (normalized && hasStruct(normalized)) planText = normalized;
-    else throw new Error('sin estructura válida');
+  try {
+    const isEs = (lang === 'es');
+    const msg = tipo === 'rutina'
+      ? (isEs ? '💪 Rutina de la semana' : '💪 Weekly Routine')
+      : (isEs ? '🥗 Dieta de la semana'  : '🥗 Weekly Diet');
+    const res = await callChatAPI({
+      system: buildSystemPrompt(),
+      messages: [{ role: 'user', content: msg }],
+      model: 'haiku',
+    });
+    const data = await res.json();
+    const reply = data && data.content && data.content[0] && data.content[0].text;
+    if (!reply) throw new Error('respuesta vacía');
+    let planText = reply;
+    const hasStruct = (txt) => (typeof planReplyHasStructure === 'function') && planReplyHasStructure(tipo, txt);
+    if (!hasStruct(planText)) {
+      // Fallback: pedirle a la IA que reformatee al formato canónico (mismo que sendToAI).
+      const normalized = await aiNormalizePlan(tipo, reply);
+      if (normalized && hasStruct(normalized)) planText = normalized;
+      else throw new Error('sin estructura válida');
+    }
+    const saved = await saveWeeklyPlan(tipo, planText);
+    if (saved) { if (!weeklyPlans) weeklyPlans = {}; weeklyPlans[tipo] = saved; }
+    return saved;
+  } finally {
+    // Sea éxito o falla, este tipo ya no está "en vuelo" → entrega progresiva:
+    // se completa SU sección sin esperar a la otra.
+    _prefetchInFlight.delete(tipo);
+    _refreshAfterPlan(tipo);
   }
-  const saved = await saveWeeklyPlan(tipo, planText);
-  if (saved) { if (!weeklyPlans) weeklyPlans = {}; weeklyPlans[tipo] = saved; }
-  return saved;
 }
 
 // Dispara la pre-generación de rutina + dieta EN PARALELO (una sola vez). No
@@ -14003,18 +14047,25 @@ function startPlanPrefetch() {
   const has = (t) => weeklyPlans && weeklyPlans[t] && !weeklyPlans[t].closed;
   const tipos = ['rutina', 'dieta'].filter(t => !has(t));
   if (!tipos.length) return null;                                       // ya tiene planes activos
-  _plansPreparing = true;
+  tipos.forEach(t => _prefetchInFlight.add(t));
   try { if (typeof trackEvent === 'function') trackEvent('plan_prefetch_start', { tipos: tipos.join(',') }); } catch (e) {}
-  _planPrefetch = Promise.allSettled(tipos.map(t => prefetchPlan(t)))
-    .finally(() => { _plansPreparing = false; });
+  _planPrefetch = Promise.allSettled(tipos.map(t => prefetchPlan(t)));
   return _planPrefetch;
 }
 
-// Si la persona vuelve atrás desde fotos a editar el perfil, descartamos la
-// pre-generación para que al re-entrar a fotos se regenere con los datos nuevos.
+// Si la persona vuelve atrás a editar el perfil, descartamos la pre-generación
+// para que al volver se regenere con los datos nuevos.
 function resetPlanPrefetch() {
   _planPrefetch = null;
-  _plansPreparing = false;
+  _prefetchInFlight.clear();
+  try { if (typeof updatePlanPrepBanner === 'function') updatePlanPrepBanner(); } catch (e) {}
+}
+
+// Aviso de carga en Home: visible mientras haya algún plan generándose.
+function updatePlanPrepBanner() {
+  const banner = document.getElementById('home-plan-banner');
+  if (!banner) return;
+  banner.style.display = (_prefetchInFlight.size > 0) ? 'flex' : 'none';
 }
 
 // Bienvenida LIMPIA del coach para nativos (reemplaza el auto-pedido en el chat).
@@ -14039,29 +14090,32 @@ function postNativeWelcome() {
 
 // Flujo de primer plan para NATIVOS al terminar el onboarding. Decide entre:
 //  A) planes ya listos (pre-generados) → bienvenida limpia.
-//  B) pre-generación en vuelo/parcial → "preparando" + esperar + recargar + decidir.
+//  B) pre-generación en vuelo → aviso de carga + "preparando" por sección (cada
+//     una se entrega sola al terminar) + bienvenida cuando están las dos.
 //  C) sin pre-generación → fallback al camino legacy (auto-pedido en el chat).
 async function nativeFirstPlansFlow() {
-  const bothReady = () => weeklyPlans && weeklyPlans.dieta && !weeklyPlans.dieta.closed
-                       && weeklyPlans.rutina && !weeklyPlans.rutina.closed;
+  const ready = (t) => weeklyPlans && weeklyPlans[t] && !weeklyPlans[t].closed;
+  const bothReady = () => ready('dieta') && ready('rutina');
   const reRender = () => {
     try { if (typeof renderMiAlimentacion === 'function') renderMiAlimentacion(); } catch (e) {}
     try { if (typeof renderMiEntreno === 'function') renderMiEntreno(); } catch (e) {}
     try { if (typeof renderHome === 'function') renderHome(); } catch (e) {}
   };
   // A) Ya están los dos → bienvenida limpia, sin auto-pedido.
-  if (bothReady()) { postNativeWelcome(); return; }
-  // B) Hubo pre-generación → mostrar "preparando", esperar, recargar y decidir.
+  if (bothReady()) { try { updatePlanPrepBanner(); } catch (e) {} postNativeWelcome(); return; }
+  // B) Hubo pre-generación → aviso de carga + "preparando" en lo que falta. Cada
+  //    plan refresca SU sección al terminar (entrega progresiva, vía prefetchPlan);
+  //    acá esperamos a que terminen todas para la bienvenida + completar fallas.
   if (_planPrefetch) {
-    _plansPreparing = true;
+    try { updatePlanPrepBanner(); } catch (e) {}
     reRender();
     try { await _planPrefetch; } catch (e) {}
     try { weeklyPlans = await loadCurrentWeekPlans(); } catch (e) {}
-    _plansPreparing = false;
     try { if (typeof refreshQuickButtons === 'function') refreshQuickButtons(); } catch (e) {}
+    try { updatePlanPrepBanner(); } catch (e) {}   // _prefetchInFlight ya vacío → oculta el aviso
     reRender();
     if (bothReady()) { postNativeWelcome(); return; }
-    // Parcial/falló → completar lo que falte por el camino legacy.
+    // Alguno falló → completarlo por el camino legacy.
     await sendToAI(null, true);
     autoGenerateFirstPlans().catch(e => console.warn('[CoachAI] auto-gen fallback:', e));
     return;
@@ -15391,7 +15445,14 @@ function nextPanel() {
     if (targetCard) targetCard.classList.add('visible');
     currentStep = nxt.step;
     // buildResumen needs to run BEFORE measuring height on step 5
-    if (nxt.step === 5) buildResumen();
+    if (nxt.step === 5) {
+      buildResumen();
+      // Perfil COMPLETO (entramos al resumen) → arrancamos a pre-generar dieta +
+      // rutina EN PARALELO en background. Cuanto antes arranque, más runway tiene
+      // para estar lista cuando la persona termine el onboarding (antes era en el
+      // paso de fotos, que daba muy poco margen).
+      try { startPlanPrefetch(); } catch (e) { console.warn('[CoachAI] prefetch:', e); }
+    }
   }
 
   slideOnboardingToPanel(currentPanelIdx + 1);
@@ -15405,9 +15466,7 @@ function nextPanel() {
     if (typeof refreshFotosInicioReadiness === 'function') {
       requestAnimationFrame(() => refreshFotosInicioReadiness());
     }
-    // Entró al paso de fotos → pre-generamos dieta + rutina en paralelo, en
-    // background, así están listas (en la DB) cuando termine el onboarding.
-    try { startPlanPrefetch(); } catch (e) { console.warn('[CoachAI] prefetch:', e); }
+    // (La pre-generación de planes ya se disparó al entrar al resumen, antes.)
   }
 }
 
@@ -15416,9 +15475,10 @@ function prevPanel() {
   const cur = onbPanels[currentPanelIdx];
   const prv = onbPanels[currentPanelIdx - 1];
 
-  // Si retrocede desde el paso de fotos a editar el perfil, descartamos la
-  // pre-generación para que al volver a fotos se regenere con los datos nuevos.
-  if (cur.step === 5 && cur.panel === 2) { try { resetPlanPrefetch(); } catch (e) {} }
+  // Si retrocede desde el paso 5 (resumen/fotos) a editar el perfil (step < 5),
+  // descartamos la pre-generación para que al volver se regenere con los datos
+  // nuevos. (El disparo está al entrar al resumen.)
+  if (cur.step === 5 && prv.step !== 5) { try { resetPlanPrefetch(); } catch (e) {} }
 
   if (prv.step !== cur.step) {
     document.querySelectorAll('.progress-step').forEach((el, i) => {
@@ -17489,7 +17549,7 @@ async function renderMiAlimentacion() {
 
   const dietaPlan = weeklyPlans && weeklyPlans.dieta;
   if (!dietaPlan || dietaPlan.closed) {
-    if (_plansPreparing) showPreparing(); else showEmpty();
+    if (_isPlanPreparing('dieta')) showPreparing(); else showEmpty();
     _alimDays = null; _alimHeader = null;
     return;
   }
@@ -20511,6 +20571,9 @@ function renderHome() {
   if (!p) return;
   const isEs = lang === 'es';
 
+  // Aviso de carga (mientras se pre-generan los planes en el onboarding).
+  try { if (typeof updatePlanPrepBanner === 'function') updatePlanPrepBanner(); } catch (e) {}
+
   // ── Header ─────────────────────────────────────────────
   // Replaces the old landing-style greeting block. The new header mirrors
   // the cai-alim-header pattern: brand title with name + sub-line with goal.
@@ -22923,7 +22986,7 @@ function renderMiEntreno() {
     if (otherCard) otherCard.style.display = 'none';
     if (summary) summary.style.display = 'none';
     if (overrideChip) overrideChip.style.display = 'none';
-    if (_plansPreparing) {
+    if (_isPlanPreparing('rutina')) {
       if (emptyState) emptyState.style.display = 'none';
       if (prepState) prepState.style.display = 'block';
     } else {
