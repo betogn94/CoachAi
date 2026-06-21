@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260621-0041-anti-flash-de-toque-al-scrollear--subcards---headers-de-perfil-">
+<meta name="app-version" content="20260621-0053-home--cards-del-carrusel-con-alto-fijo--no-saltan-al-rotar----cardio-sin-recorte">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -3944,6 +3944,9 @@ button.cai-home-card:hover { border-color: rgba(124,106,255,0.20); }
   flex: 1;
   min-height: 100%;
 }
+/* TODAS las variantes en absolute → ninguna "define" el alto del slot. El slot
+   tiene alto FIJO (abajo) y solo se hace cross-fade del contenido por dentro:
+   la card nunca cambia de tamaño al rotar. */
 .cai-home-card-slot.is-rotating .cai-home-card-chat,
 .cai-home-card-slot.is-rotating .cai-home-card-cardio,
 .cai-home-card-slot.is-rotating .cai-home-card-kcal,
@@ -3952,6 +3955,9 @@ button.cai-home-card:hover { border-color: rgba(124,106,255,0.20); }
   inset: 0;
   width: 100%;
   height: 100%;
+  min-height: 0; /* anula min-heights propios (p.ej. kcal 200) dentro del slot fijo */
+  /* reserva abajo para los dots del rotador → el texto nunca queda debajo */
+  padding-bottom: 22px;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.5s ease, visibility 0.5s;
@@ -3959,16 +3965,11 @@ button.cai-home-card:hover { border-color: rgba(124,106,255,0.20); }
 .cai-home-card-slot.is-rotating .is-active {
   opacity: 1;
   visibility: visible;
-  position: relative; /* the visible one defines the slot's height */
 }
-.cai-home-card-slot.is-rotating .cai-home-card-cardio.is-active,
-.cai-home-card-slot.is-rotating .cai-home-card-cierre.is-active {
-  position: absolute;
-  inset: 0;
-}
-/* Keep at least the chat card's natural size when rotating */
+/* Alto FIJO del slot rotador (pensado para la variante más alta: kcal con su
+   mini-gráfico). Constante en todas las rotaciones → sin saltos ni recortes. */
 .cai-home-card-slot.is-rotating {
-  min-height: 168px;
+  height: 196px;
 }
 
 /* Cardio card — base palette (default tenant) mirrors Coach AI:
