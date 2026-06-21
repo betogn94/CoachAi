@@ -440,6 +440,47 @@
     .tl-red    .tl-dot { background: var(--danger);  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5); }
     .tl-gray   .tl-dot { background: var(--neutral); }
 
+    /* ---------- LIST TOOLBAR (search + traffic-light filter) ---------- */
+    .list-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .list-search { flex: 1 1 220px; min-width: 0; max-width: 380px; }
+    .tl-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tl-filter {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--bg-elev);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      transition: border-color 0.12s, background 0.12s, color 0.12s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tl-filter .tl-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .tl-filter:hover { border-color: var(--accent); }
+    .tl-filter.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--text);
+    }
+    .tl-filter-count {
+      color: var(--text-dim);
+      font-variant-numeric: tabular-nums;
+    }
+    .tl-filter.active .tl-filter-count { color: var(--text-muted); }
+
     /* ---------- TABLES ---------- */
     .data-table {
       width: 100%;
@@ -2219,6 +2260,62 @@
     }
   }
 
+  // ---- CLIENTAS list: search + traffic-light filter ----
+  // Enriched rows + current filter state are stashed at module scope so the
+  // filter helper can re-render the table body without re-fetching.
+  let _clientasEnriched = [];
+  let _clientasFilter = { q: '', color: 'all' };
+
+  // Lowercase + strip diacritics so "ramirez" matches "Ramírez".
+  function _normText(s) {
+    return (s || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+  }
+
+  const _CLIENTAS_THEAD = `
+    <thead><tr>
+      <th>Estado</th>
+      <th>Cliente</th>
+      <th>Tipo</th>
+      <th>Última actividad</th>
+      <th class="cell-right">Sesiones</th>
+      <th class="cell-right">Bugs</th>
+    </tr></thead>`;
+
+  function _clientaRowHTML(c) {
+    return `
+      <tr class="clickable" data-key="${esc(c.id || ('invite:' + c.email))}">
+        <td>${tlBadge(c._tl.color, c._tl.reason)}</td>
+        <td>
+          <div style="font-weight:500;">${esc(c.nombre || c.email)}</div>
+          <div class="cell-mono cell-dim" style="font-size:11px;">${esc(c.email)}</div>
+        </td>
+        <td>${c._isInvited ? '<span class="badge badge-pending">pendiente</span>' : '<span class="badge badge-accent">activo</span>'}</td>
+        <td class="cell-dim">${fmtRelative(c.last_active || c.created_at)}</td>
+        <td class="cell-right cell-mono">${c.session_count != null ? fmtInt(c.session_count) : '—'}</td>
+        <td class="cell-right">
+          ${c._openBugs > 0 ? `<span class="badge badge-danger">${c._openBugs}</span>` : '<span class="cell-dim">0</span>'}
+        </td>
+      </tr>`;
+  }
+
+  // Apply the active search text + color filter and re-render ONLY the table
+  // body inside #clientasTable. Row clicks are delegated to that container, so
+  // they keep working across re-renders.
+  function _renderClientasFiltered() {
+    const tbl = document.getElementById('clientasTable');
+    if (!tbl) return;
+    const q = _normText(_clientasFilter.q);
+    const color = _clientasFilter.color;
+    let list = _clientasEnriched;
+    if (color !== 'all') list = list.filter(c => c._tl.color === color);
+    if (q) list = list.filter(c => _normText((c.nombre || '') + ' ' + (c.email || '')).includes(q));
+    if (!list.length) {
+      tbl.innerHTML = `<div class="placeholder"><strong>Sin resultados</strong>Ningún cliente coincide con la búsqueda o el filtro.</div>`;
+      return;
+    }
+    tbl.innerHTML = `<table class="data-table">${_CLIENTAS_THEAD}<tbody>${list.map(_clientaRowHTML).join('')}</tbody></table>`;
+  }
+
   async function renderClientas(el) {
     el.innerHTML = `
       <div class="page-header">
@@ -2227,6 +2324,7 @@
           <p class="page-sub">Todos los clientes de <strong>${esc(currentTenant.name)}</strong> — activos y pendientes. Click en una fila para ver el detalle.</p>
         </div>
       </div>
+      <div id="clientasToolbar" class="list-toolbar" style="display:none;"></div>
       <div id="clientasTable" class="table-wrap"><div class="placeholder"><span class="spinner"></span> &nbsp; Cargando clientes…</div></div>
     `;
     const data = await fetchClientasData();
@@ -2249,47 +2347,63 @@
     _clientaIndex.clear();
     enriched.forEach(c => _clientaIndex.set(c.id || ('invite:' + c.email), c));
 
-    document.getElementById('clientasTable').innerHTML = `
-      <table class="data-table">
-        <thead><tr>
-          <th>Estado</th>
-          <th>Cliente</th>
-          <th>Tipo</th>
-          <th>Última actividad</th>
-          <th class="cell-right">Sesiones</th>
-          <th class="cell-right">Bugs</th>
-        </tr></thead>
-        <tbody>
-          ${enriched.map(c => `
-            <tr class="clickable" data-key="${esc(c.id || ('invite:' + c.email))}">
-              <td>${tlBadge(c._tl.color, c._tl.reason)}</td>
-              <td>
-                <div style="font-weight:500;">${esc(c.nombre || c.email)}</div>
-                <div class="cell-mono cell-dim" style="font-size:11px;">${esc(c.email)}</div>
-              </td>
-              <td>${c._isInvited ? '<span class="badge badge-pending">pendiente</span>' : '<span class="badge badge-accent">activo</span>'}</td>
-              <td class="cell-dim">${fmtRelative(c.last_active || c.created_at)}</td>
-              <td class="cell-right cell-mono">${c.session_count != null ? fmtInt(c.session_count) : '—'}</td>
-              <td class="cell-right">
-                ${c._openBugs > 0 ? `<span class="badge badge-danger">${c._openBugs}</span>` : '<span class="cell-dim">0</span>'}
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
+    // Stash for the filter helper + reset filter state for this fresh render.
+    _clientasEnriched = enriched;
+    _clientasFilter = { q: '', color: 'all' };
+
+    // Counts per traffic-light bucket → shown on the filter chips.
+    const counts = { all: enriched.length, green: 0, yellow: 0, red: 0, gray: 0 };
+    enriched.forEach(c => counts[c._tl.color]++);
+
+    const chip = (color, label) =>
+      `<button class="tl-filter ${color === 'all' ? '' : 'tl-' + color} ${_clientasFilter.color === color ? 'active' : ''}" data-color="${color}" type="button">${color === 'all' ? '' : '<span class="tl-dot"></span>'}${label} <span class="tl-filter-count">${counts[color] || 0}</span></button>`;
+
+    const toolbar = document.getElementById('clientasToolbar');
+    toolbar.innerHTML = `
+      <input id="clientasSearch" class="form-input list-search" type="search" placeholder="Buscar por nombre o email…" autocomplete="off" autocapitalize="none" spellcheck="false">
+      <div class="tl-filters">
+        ${chip('all', 'Todos')}
+        ${chip('green', 'Al día')}
+        ${chip('yellow', 'Atención')}
+        ${chip('red', 'Riesgo')}
+        ${chip('gray', 'Pendientes')}
+      </div>
     `;
-    document.querySelectorAll('#clientasTable tr.clickable').forEach(tr => {
-      tr.addEventListener('click', () => {
-        const c = _clientaIndex.get(tr.dataset.key);
-        if (!c) return;
-        if (c._isInvited) {
-          // No drill-down for invitadas — they have no usuario row yet, so
-          // there's no dieta/rutina/cierres to show. Just confirm the state.
-          alert(`${c.nombre || c.email}\n\nPendiente — todavía no completó el onboarding.\nCuando entre por primera vez, vas a ver todos sus datos acá.`);
-          return;
-        }
-        route('clienta', c);
+    toolbar.style.display = 'flex';
+
+    // First paint of the table body.
+    _renderClientasFiltered();
+
+    // Search box → live filter.
+    const search = document.getElementById('clientasSearch');
+    search.addEventListener('input', () => {
+      _clientasFilter.q = search.value;
+      _renderClientasFiltered();
+    });
+
+    // Color chips → toggle the active filter.
+    toolbar.querySelectorAll('.tl-filter').forEach(btn => {
+      btn.addEventListener('click', () => {
+        _clientasFilter.color = btn.dataset.color;
+        toolbar.querySelectorAll('.tl-filter').forEach(b => b.classList.toggle('active', b === btn));
+        _renderClientasFiltered();
       });
+    });
+
+    // Delegated row click — survives table-body re-renders on filter changes.
+    const tableHost = document.getElementById('clientasTable');
+    tableHost.addEventListener('click', (e) => {
+      const tr = e.target.closest('tr.clickable');
+      if (!tr) return;
+      const c = _clientaIndex.get(tr.dataset.key);
+      if (!c) return;
+      if (c._isInvited) {
+        // No drill-down for invitadas — they have no usuario row yet, so
+        // there's no dieta/rutina/cierres to show. Just confirm the state.
+        alert(`${c.nombre || c.email}\n\nPendiente — todavía no completó el onboarding.\nCuando entre por primera vez, vas a ver todos sus datos acá.`);
+        return;
+      }
+      route('clienta', c);
     });
   }
 
