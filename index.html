@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260620-2351-ui-home---titulo-seguimiento-semanal-con-mas-cuerpo--mas-grande---negrita---barra-coral-">
+<meta name="app-version" content="20260621-0000-ui-entreno---subcards-y-ejercicios-con-cuerpo-3d--sombra---sin-exceso-de-rosa-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -1570,8 +1570,8 @@ body.theme-king .cai-ent-hero-check.done {
    like xeroxed copies. The differences are very subtle (~5% lightness)
    but enough to break the flatness. */
 body.theme-king .cai-ent-ex {
-  background: linear-gradient(135deg, #FFEDF2 0%, #FFC8D8 100%) !important;
-  background-image: linear-gradient(135deg, #FFEDF2 0%, #FFC8D8 100%) !important;
+  background: linear-gradient(135deg, #FFF7FA 0%, #FFEAF1 100%) !important;
+  background-image: linear-gradient(135deg, #FFF7FA 0%, #FFEAF1 100%) !important;
   border: 1px solid rgba(255,79,123,0.18) !important;
   box-shadow: 0 1px 2px rgba(26,26,38,0.04), 0 4px 14px rgba(255,107,149,0.10) !important;
 }
@@ -11016,6 +11016,14 @@ body .cai-home-semanas, body.theme-king .cai-home-semanas {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
   padding: 0 !important;
+}
+/* Mi Entreno — subcards (resto de semana) + ejercicios con cuerpo 3D.
+   Subcards: fondo blanco (no el tinte rosa) + sombra. Ejercicios: mantienen su
+   degradé rosa pero ganan profundidad. Sombra premium por capas (token). */
+body.theme-king .cai-ent-subcard { background: var(--surface) !important; }
+body .cai-ent-subcard, body.theme-king .cai-ent-subcard,
+body .cai-ent-ex, body.theme-king .cai-ent-ex {
+  box-shadow: var(--card-shadow) !important;
 }
 </style>
 <script>
