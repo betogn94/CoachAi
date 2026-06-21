@@ -205,6 +205,35 @@
       border-color: var(--accent);
       box-shadow: 0 0 0 3px var(--accent-soft);
     }
+    /* ---------- LIST TOOLBAR (search box above tables) ---------- */
+    .list-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .list-search {
+      flex: 1 1 220px;
+      min-width: 0;
+      max-width: 380px;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 16px; /* 16px → sin auto-zoom en iOS */
+      transition: border-color 0.15s, box-shadow 0.15s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .list-search:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .list-search::placeholder { color: var(--text-dim); }
     .btn-primary {
       width: 100%;
       background: var(--accent);
@@ -1212,6 +1241,10 @@
         '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
       }[c]));
     }
+    // Lowercase + strip diacritics so "ramirez" matches "Ramírez" en los buscadores.
+    function normText(s) {
+      return String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+    }
     function fmtUsd(n) {
       const v = Number(n || 0);
       return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1665,6 +1698,7 @@
             <p class="page-sub">Todas las cuentas de CoachAI. Click en una fila para ver sus usuarios.</p>
           </div>
         </div>
+        <div id="tenantsToolbar" class="list-toolbar" style="display:none;"></div>
         <div id="tenantsTable" class="table-wrap"><div class="placeholder"><span class="spinner"></span> &nbsp; Cargando tenants…</div></div>
       `;
       const wrap = document.getElementById('tenantsTable');
@@ -1678,46 +1712,63 @@
         wrap.innerHTML = `<div class="placeholder">Sin tenants registrados.</div>`;
         return;
       }
-      wrap.innerHTML = `
-        <table class="data-table">
-          <thead><tr>
-            <th>Estado</th>
-            <th>Tenant</th>
-            <th>Tipo</th>
-            <th>Dominio</th>
-            <th class="cell-right">Usuarios</th>
-            <th>Última actividad</th>
-          </tr></thead>
-          <tbody>
-            ${rows.map(t => `
-              <tr class="clickable" data-slug="${escapeHtml(t.slug)}">
-                <td>${tlBadge(t.traffic_light)}</td>
-                <td>
-                  <div style="display:flex; align-items:center; gap:10px;">
-                    ${t.brand?.accent ? `<span class="swatch" style="width:18px;height:18px;border-radius:4px;background:${escapeHtml(t.brand.accent)};border:1px solid var(--border);display:inline-block;"></span>` : ''}
-                    <div>
-                      <div style="font-weight:500;">${escapeHtml(t.name)}</div>
-                      <div class="cell-mono cell-dim" style="font-size:11px;">${escapeHtml(t.slug)}</div>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  ${t.is_cofounder ? '<span class="badge badge-accent">co-founder</span>' : ''}
-                  ${t.is_whitelabel ? '<span class="badge">whitelabel</span>' : '<span class="badge">default</span>'}
-                </td>
-                <td class="cell-mono">${t.domain ? escapeHtml(t.domain) : '<span class="cell-dim">—</span>'}</td>
-                <td class="cell-right cell-mono">
-                  ${fmtInt(t.users.total)}${t.users.capacity ? ' / ' + fmtInt(t.users.capacity) : ' / ∞'}
-                  <div class="cell-dim" style="font-size:11px;">${fmtInt(t.users.active_7d)} activos 7d</div>
-                </td>
-                <td class="cell-dim">${fmtRelative(t.last_activity)}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
-      wrap.querySelectorAll('tr.clickable').forEach(tr => {
-        tr.addEventListener('click', () => openTenantDrill(tr.dataset.slug));
+
+      const THEAD = `
+        <thead><tr>
+          <th>Estado</th>
+          <th>Tenant</th>
+          <th>Tipo</th>
+          <th>Dominio</th>
+          <th class="cell-right">Usuarios</th>
+          <th>Última actividad</th>
+        </tr></thead>`;
+      const rowHTML = (t) => `
+        <tr class="clickable" data-slug="${escapeHtml(t.slug)}">
+          <td>${tlBadge(t.traffic_light)}</td>
+          <td>
+            <div style="display:flex; align-items:center; gap:10px;">
+              ${t.brand?.accent ? `<span class="swatch" style="width:18px;height:18px;border-radius:4px;background:${escapeHtml(t.brand.accent)};border:1px solid var(--border);display:inline-block;"></span>` : ''}
+              <div>
+                <div style="font-weight:500;">${escapeHtml(t.name)}</div>
+                <div class="cell-mono cell-dim" style="font-size:11px;">${escapeHtml(t.slug)}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            ${t.is_cofounder ? '<span class="badge badge-accent">co-founder</span>' : ''}
+            ${t.is_whitelabel ? '<span class="badge">whitelabel</span>' : '<span class="badge">default</span>'}
+          </td>
+          <td class="cell-mono">${t.domain ? escapeHtml(t.domain) : '<span class="cell-dim">—</span>'}</td>
+          <td class="cell-right cell-mono">
+            ${fmtInt(t.users.total)}${t.users.capacity ? ' / ' + fmtInt(t.users.capacity) : ' / ∞'}
+            <div class="cell-dim" style="font-size:11px;">${fmtInt(t.users.active_7d)} activos 7d</div>
+          </td>
+          <td class="cell-dim">${fmtRelative(t.last_activity)}</td>
+        </tr>`;
+
+      // Filtra por nombre / slug / dominio y re-renderiza solo la tabla.
+      function paint(q) {
+        const nq = normText(q);
+        const list = nq ? rows.filter(t => normText(`${t.name} ${t.slug} ${t.domain || ''}`).includes(nq)) : rows;
+        if (!list.length) {
+          wrap.innerHTML = `<div class="placeholder"><strong>Sin resultados</strong>Ningún tenant coincide con la búsqueda.</div>`;
+          return;
+        }
+        wrap.innerHTML = `<table class="data-table">${THEAD}<tbody>${list.map(rowHTML).join('')}</tbody></table>`;
+      }
+
+      const toolbar = document.getElementById('tenantsToolbar');
+      toolbar.innerHTML = `<input id="tenantsSearch" class="list-search" type="search" placeholder="Buscar tenant por nombre…" autocomplete="off" autocapitalize="none" spellcheck="false">`;
+      toolbar.style.display = 'flex';
+      paint('');
+
+      const search = document.getElementById('tenantsSearch');
+      search.addEventListener('input', () => paint(search.value));
+
+      // Click delegado → sobrevive a los re-render del filtro.
+      wrap.addEventListener('click', (e) => {
+        const tr = e.target.closest('tr.clickable');
+        if (tr) openTenantDrill(tr.dataset.slug);
       });
     }
 
@@ -2608,10 +2659,19 @@
           <button class="btn btn-primary-sm" id="addRevBtn">+ Nuevo ingreso</button>
         </div>
         <div id="revTotals" class="cards-grid"></div>
-        <div id="revTable" class="table-wrap" style="margin-top:8px;"><div class="placeholder"><span class="spinner"></span> &nbsp; Cargando…</div></div>
+        <div id="revToolbar" class="list-toolbar" style="display:none; margin-top:8px;"></div>
+        <div id="revTable" class="table-wrap"><div class="placeholder"><span class="spinner"></span> &nbsp; Cargando…</div></div>
       `;
       document.getElementById('addRevBtn').addEventListener('click', openAddRevenueModal);
       await loadRevenueTable();
+    }
+
+    // Texto buscable de un ingreso: nombre del pagador (cliente o coach/gym) +
+    // email + nombre suelto + slug/nombre del tenant.
+    function revSearchText(r) {
+      const u = r.usuarios, t = r.tenants;
+      const who = (u && u.nombre) || r.cliente_nombre || (r.payer_type === 'tenant' ? (t ? t.name : 'Coach/Gym') : '');
+      return `${who} ${u && u.email ? u.email : ''} ${r.cliente_nombre || ''} ${t ? t.slug + ' ' + t.name : ''}`;
     }
 
     function renderRevenueRow(r) {
@@ -2664,19 +2724,38 @@
       cards += statCard('Registros', fmtInt(data.totals.count), 'Ingresos totales cargados');
       totalsEl.innerHTML = cards;
 
+      const toolbar = document.getElementById('revToolbar');
       if (!rows.length) {
+        if (toolbar) toolbar.style.display = 'none';
         wrap.innerHTML = `<div class="placeholder"><strong>Sin ingresos cargados</strong>Cargá el primero con el botón "+ Nuevo ingreso".</div>`;
         return;
       }
-      wrap.innerHTML = `
-        <table class="data-table">
-          <thead><tr>
-            <th>Fecha</th><th>Cliente</th><th>Coach</th><th>Concepto</th>
-            <th>Medio</th><th>Frecuencia</th><th class="cell-right">Monto</th><th class="cell-right">Neto</th><th>Origen</th>
-          </tr></thead>
-          <tbody>${rows.map(r => renderRevenueRow(r)).join('')}</tbody>
-        </table>
-      `;
+
+      const THEAD = `
+        <thead><tr>
+          <th>Fecha</th><th>Cliente</th><th>Coach</th><th>Concepto</th>
+          <th>Medio</th><th>Frecuencia</th><th class="cell-right">Monto</th><th class="cell-right">Neto</th><th>Origen</th>
+        </tr></thead>`;
+
+      // Filtra por nombre de cliente (los totales de arriba siguen siendo
+      // globales — el buscador solo acota la lista de registros).
+      function paint(q) {
+        const nq = normText(q);
+        const list = nq ? rows.filter(r => normText(revSearchText(r)).includes(nq)) : rows;
+        if (!list.length) {
+          wrap.innerHTML = `<div class="placeholder"><strong>Sin resultados</strong>Ningún ingreso coincide con la búsqueda.</div>`;
+          return;
+        }
+        wrap.innerHTML = `<table class="data-table">${THEAD}<tbody>${list.map(r => renderRevenueRow(r)).join('')}</tbody></table>`;
+      }
+
+      if (toolbar) {
+        toolbar.innerHTML = `<input id="revSearch" class="list-search" type="search" placeholder="Buscar cliente por nombre…" autocomplete="off" autocapitalize="none" spellcheck="false">`;
+        toolbar.style.display = 'flex';
+        const search = document.getElementById('revSearch');
+        search.addEventListener('input', () => paint(search.value));
+      }
+      paint('');
       // Borrado de ingresos deshabilitado a propósito: un pago solo se elimina
       // manualmente en la base, bajo orden explícita (evita borrados accidentales).
     }
