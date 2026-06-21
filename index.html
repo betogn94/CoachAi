@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260621-2349-diseno-king--eyebrows-a-gris-en-toda-la-app--rollout-">
+<meta name="app-version" content="20260621-2357-consolidar-fondo-king-en-db---fallback-de-generacion-con-macros-garantizadas">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11028,10 +11028,8 @@ body.theme-king {
   /* Refinamiento minimalista (2026-06-22): blanco sobre casi-blanco con UN
      susurro de sombra neutra (gris, no coral) → profundidad sin peso, look
      Airbnb/Linear. Para subir/bajar definición: tocar el alpha del 2º valor.
-     --bg/--border se fuerzan acá (pisan al branding_config de la DB) para el
-     piloto; si queda, se consolidan en tenants.branding_config. */
-  --bg: #FAFAFB;
-  --border: #ECECF1;
+     (--bg #FAFAFB / --border #ECECF1 viven en tenants.branding_config de la DB,
+     fuente única; acá solo las sombras, que no son parte del branding_config.) */
   --card-shadow: 0 1px 2px rgba(17,17,26,.04), 0 8px 24px -14px rgba(17,17,26,.12);
   --icon-shadow: 0 1px 3px rgba(17,17,26,.08);
   --accent-shadow: 0 6px 18px -8px rgba(255,79,123,.4);
@@ -14206,6 +14204,32 @@ function postNativeWelcome() {
 //  B) pre-generación en vuelo → aviso de carga + "preparando" por sección (cada
 //     una se entrega sola al terminar) + bienvenida cuando están las dos.
 //  C) sin pre-generación → fallback al camino legacy (auto-pedido en el chat).
+// Fallback de generación: si la pre-generación no dejó algún plan VÁLIDO, lo
+// reintentamos por el camino FUERTE (prefetchPlan exige kcal/macros + reintentos),
+// así el fallback TAMBIÉN garantiza calidad (antes caía directo al legacy, que no
+// chequeaba macros → ahí se colaba la dieta pelada). Solo si aún falla, último
+// recurso legacy (muestra el chat + el botón manual para pedir el plan).
+async function fallbackGenerateMissing() {
+  const ready = (t) => weeklyPlans && weeklyPlans[t] && !weeklyPlans[t].closed;
+  const missing = ['rutina', 'dieta'].filter(t => !ready(t));
+  if (!missing.length) { postNativeWelcome(); return; }
+  missing.forEach(t => _prefetchInFlight.add(t));
+  try { if (typeof renderMiAlimentacion === 'function') renderMiAlimentacion(); } catch (e) {}
+  try { if (typeof renderMiEntreno === 'function') renderMiEntreno(); } catch (e) {}
+  try { updatePlanPrepBanner(); } catch (e) {}
+  await Promise.allSettled(missing.map(t => prefetchPlan(t)));   // fuerte: con macros
+  try { weeklyPlans = await loadCurrentWeekPlans(); } catch (e) {}
+  try { if (typeof refreshQuickButtons === 'function') refreshQuickButtons(); } catch (e) {}
+  try { updatePlanPrepBanner(); } catch (e) {}
+  try { if (typeof renderMiAlimentacion === 'function') renderMiAlimentacion(); } catch (e) {}
+  try { if (typeof renderMiEntreno === 'function') renderMiEntreno(); } catch (e) {}
+  try { if (typeof renderHome === 'function') renderHome(); } catch (e) {}
+  if (ready('dieta') && ready('rutina')) { postNativeWelcome(); return; }
+  // Último recurso (raro: ~4 generaciones fallidas) → legacy con botón manual.
+  await sendToAI(null, true);
+  autoGenerateFirstPlans().catch(e => console.warn('[CoachAI] auto-gen ultimo recurso:', e));
+}
+
 async function nativeFirstPlansFlow() {
   const ready = (t) => weeklyPlans && weeklyPlans[t] && !weeklyPlans[t].closed;
   const bothReady = () => ready('dieta') && ready('rutina');
@@ -14237,21 +14261,17 @@ async function nativeFirstPlansFlow() {
         try { if (typeof refreshQuickButtons === 'function') refreshQuickButtons(); } catch (e) {}
         try { updatePlanPrepBanner(); } catch (e) {}
         reRender();
-        if (bothReady()) { postNativeWelcome(); return; }
-        await sendToAI(null, true);
-        autoGenerateFirstPlans().catch(e => console.warn('[CoachAI] auto-gen fallback:', e));
+        await fallbackGenerateMissing();   // bienvenida si están; si no, reintento fuerte (con macros)
       });
       return;
     }
-    // El prefetch terminó pero faltan planes válidos → fallback legacy.
-    await sendToAI(null, true);
-    autoGenerateFirstPlans().catch(e => console.warn('[CoachAI] auto-gen fallback:', e));
+    // El prefetch terminó pero faltan planes válidos → reintento fuerte (con macros).
+    await fallbackGenerateMissing();
     return;
   }
-  // C) Sin pre-generación → comportamiento anterior.
+  // C) Sin pre-generación → generamos por el camino fuerte igual (con macros).
   try { hidePlanLoadingOverlay(); } catch (e) {}
-  await sendToAI(null, true);
-  autoGenerateFirstPlans().catch(e => console.warn('[CoachAI] auto-gen primer plan:', e));
+  await fallbackGenerateMissing();
 }
 
 // Detects whether a user message is asking for the weekly diet or routine.
