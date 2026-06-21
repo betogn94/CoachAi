@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260621-1628-dieta--notas-del-plan-ya-no-se-pegan-a-la-ultima-comida--van-a--como-leer-tu-plan-">
+<meta name="app-version" content="20260621-1839-onboarding-nativo--pre-genera-dieta-rutina-en-el-paso-de-fotos--bienvenida-limpia---estado-preparando">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12489,6 +12489,17 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     </div>
   </div>
 
+  <!-- Estado "preparando" — mientras la pre-generación del onboarding está en vuelo -->
+  <div class="cai-alim-empty" id="ent-preparing-state" style="display:none">
+    <div class="cai-alim-empty-card">
+      <div class="cai-alim-empty-ico">⏳</div>
+      <div>
+        <div class="cai-alim-empty-title" data-es="PREPARANDO TU RUTINA" data-en="PREPARING YOUR ROUTINE">PREPARANDO TU RUTINA</div>
+        <div class="cai-alim-empty-sub" data-es="Estoy armando tu rutina de la semana… unos segundos y aparece acá 💪" data-en="I'm building your weekly routine… it'll show up here in a few seconds 💪">Estoy armando tu rutina de la semana… unos segundos y aparece acá 💪</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Legacy ids kept hidden so any other code path that still references them doesn't crash -->
   <div id="entreno-days" style="display:none"></div>
   <div id="entreno-summary-card" style="display:none"><div id="entreno-progress-fill" style="display:none"></div><div id="entreno-progress-label" style="display:none"></div></div>
@@ -12903,6 +12914,17 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
         <span data-es="HABLAR CON EL COACH" data-en="TALK TO COACH">HABLAR CON EL COACH</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       </button>
+    </div>
+  </div>
+
+  <!-- Estado "preparando" — mientras la pre-generación del onboarding está en vuelo -->
+  <div class="cai-alim-empty" id="alim-preparing-state" style="display:none">
+    <div class="cai-alim-empty-card">
+      <div class="cai-alim-empty-ico">⏳</div>
+      <div>
+        <div class="cai-alim-empty-title" data-es="PREPARANDO TU DIETA" data-en="PREPARING YOUR MEAL PLAN">PREPARANDO TU DIETA</div>
+        <div class="cai-alim-empty-sub" data-es="Estoy armando tu dieta de la semana… unos segundos y aparece acá 💪" data-en="I'm building your weekly meal plan… it'll show up here in a few seconds 💪">Estoy armando tu dieta de la semana… unos segundos y aparece acá 💪</div>
+      </div>
     </div>
   </div>
 
@@ -13930,6 +13952,123 @@ async function autoGenerateFirstPlans() {
   } finally {
     _autoGenInFlight = false;
   }
+}
+
+// ============================================================================
+// PRE-GENERACIÓN DE PLANES DURANTE EL ONBOARDING (nativos)
+// ============================================================================
+// En vez de generar dieta+rutina recién al terminar el onboarding (lo que hacía
+// que el chat "se escribiera solo" pidiendo los planes, confuso para la clienta),
+// arrancamos la generación EN PARALELO y en segundo plano cuando la persona entra
+// al paso de fotos. Para cuando termina el onboarding, los planes ya están en
+// planes_semanales (DB) y aparecen cargados en Mi Alimentación / Mi Entreno —
+// igual que las migradas. buildSystemPrompt() lee el perfil directo del form del
+// onboarding, así que en el paso de fotos (último panel) ya tiene todos los datos.
+let _planPrefetch = null;     // promesa de la pre-generación (allSettled), o null
+let _plansPreparing = false;  // true mientras la pre-generación está en vuelo → estado "preparando" en las secciones
+
+// Genera UN plan de forma HEADLESS (sin tocar el chat) y lo guarda en planes_semanales.
+async function prefetchPlan(tipo) {
+  const isEs = (lang === 'es');
+  const msg = tipo === 'rutina'
+    ? (isEs ? '💪 Rutina de la semana' : '💪 Weekly Routine')
+    : (isEs ? '🥗 Dieta de la semana'  : '🥗 Weekly Diet');
+  const res = await callChatAPI({
+    system: buildSystemPrompt(),
+    messages: [{ role: 'user', content: msg }],
+    model: 'haiku',
+  });
+  const data = await res.json();
+  const reply = data && data.content && data.content[0] && data.content[0].text;
+  if (!reply) throw new Error('respuesta vacía');
+  let planText = reply;
+  const hasStruct = (txt) => (typeof planReplyHasStructure === 'function') && planReplyHasStructure(tipo, txt);
+  if (!hasStruct(planText)) {
+    // Fallback: pedirle a la IA que reformatee al formato canónico (mismo que sendToAI).
+    const normalized = await aiNormalizePlan(tipo, reply);
+    if (normalized && hasStruct(normalized)) planText = normalized;
+    else throw new Error('sin estructura válida');
+  }
+  const saved = await saveWeeklyPlan(tipo, planText);
+  if (saved) { if (!weeklyPlans) weeklyPlans = {}; weeklyPlans[tipo] = saved; }
+  return saved;
+}
+
+// Dispara la pre-generación de rutina + dieta EN PARALELO (una sola vez). No
+// bloquea: deja la promesa corriendo en background y la guarda en _planPrefetch.
+function startPlanPrefetch() {
+  if (_planPrefetch) return _planPrefetch;                              // una sola vez
+  if (!sbClient || !currentUser) return null;
+  if (currentUser.role && currentUser.role !== 'user') return null;     // no coaches/admins
+  const has = (t) => weeklyPlans && weeklyPlans[t] && !weeklyPlans[t].closed;
+  const tipos = ['rutina', 'dieta'].filter(t => !has(t));
+  if (!tipos.length) return null;                                       // ya tiene planes activos
+  _plansPreparing = true;
+  try { if (typeof trackEvent === 'function') trackEvent('plan_prefetch_start', { tipos: tipos.join(',') }); } catch (e) {}
+  _planPrefetch = Promise.allSettled(tipos.map(t => prefetchPlan(t)))
+    .finally(() => { _plansPreparing = false; });
+  return _planPrefetch;
+}
+
+// Si la persona vuelve atrás desde fotos a editar el perfil, descartamos la
+// pre-generación para que al re-entrar a fotos se regenere con los datos nuevos.
+function resetPlanPrefetch() {
+  _planPrefetch = null;
+  _plansPreparing = false;
+}
+
+// Bienvenida LIMPIA del coach para nativos (reemplaza el auto-pedido en el chat).
+// Mismo patrón que la bienvenida de migradas: mensaje único, persistido, con
+// enlaces a las secciones donde ya están los planes.
+function postNativeWelcome() {
+  const isEs = (lang === 'es');
+  const nombreCliente = (document.getElementById('f-nombre') && document.getElementById('f-nombre').value
+    || (currentUser && currentUser.nombre) || '').trim().split(' ')[0];
+  const html = isEs
+    ? `${nombreCliente ? '¡Hola ' + nombreCliente + '!' : '¡Hola!'} 👋 Ya te armé tu <strong>rutina</strong> y tu <strong>dieta</strong> de esta semana según tus objetivos. Las tenés acá:<br><br>` +
+      `💪 <a href="#" onclick="showMiEntreno();return false" style="color:var(--accent-bright)">Mi Entreno</a> — tu rutina de la semana día por día<br>` +
+      `🥗 <a href="#" onclick="showDiario();return false" style="color:var(--accent-bright)">Mi Alimentación</a> — las comidas de hoy (semana completa en tu <a href="#" onclick="showPerfil();return false" style="color:var(--accent-bright)">Perfil</a>)<br><br>` +
+      `Cuando quieras ajustar algo o tengas dudas, escribime acá nomás. ¡Vamos por todo! 🚀`
+    : `${nombreCliente ? 'Hi ' + nombreCliente + '!' : 'Hi!'} 👋 I've built your <strong>routine</strong> and <strong>meal plan</strong> for this week based on your goals. They're here:<br><br>` +
+      `💪 <a href="#" onclick="showMiEntreno();return false" style="color:var(--accent-bright)">My Training</a> — your weekly routine day by day<br>` +
+      `🥗 <a href="#" onclick="showDiario();return false" style="color:var(--accent-bright)">My Nutrition</a> — today's meals (full week in your <a href="#" onclick="showPerfil();return false" style="color:var(--accent-bright)">Profile</a>)<br><br>` +
+      `Whenever you want to adjust something or have questions, just write here. Let's go! 🚀`;
+  try { addMessage(html, 'coach', false); } catch (e) { return; }
+  try { saveChatToSupabase(chatMessages, todayConversation).catch(() => {}); } catch (e) {}
+}
+
+// Flujo de primer plan para NATIVOS al terminar el onboarding. Decide entre:
+//  A) planes ya listos (pre-generados) → bienvenida limpia.
+//  B) pre-generación en vuelo/parcial → "preparando" + esperar + recargar + decidir.
+//  C) sin pre-generación → fallback al camino legacy (auto-pedido en el chat).
+async function nativeFirstPlansFlow() {
+  const bothReady = () => weeklyPlans && weeklyPlans.dieta && !weeklyPlans.dieta.closed
+                       && weeklyPlans.rutina && !weeklyPlans.rutina.closed;
+  const reRender = () => {
+    try { if (typeof renderMiAlimentacion === 'function') renderMiAlimentacion(); } catch (e) {}
+    try { if (typeof renderMiEntreno === 'function') renderMiEntreno(); } catch (e) {}
+    try { if (typeof renderHome === 'function') renderHome(); } catch (e) {}
+  };
+  // A) Ya están los dos → bienvenida limpia, sin auto-pedido.
+  if (bothReady()) { postNativeWelcome(); return; }
+  // B) Hubo pre-generación → mostrar "preparando", esperar, recargar y decidir.
+  if (_planPrefetch) {
+    _plansPreparing = true;
+    reRender();
+    try { await _planPrefetch; } catch (e) {}
+    try { weeklyPlans = await loadCurrentWeekPlans(); } catch (e) {}
+    _plansPreparing = false;
+    try { if (typeof refreshQuickButtons === 'function') refreshQuickButtons(); } catch (e) {}
+    reRender();
+    if (bothReady()) { postNativeWelcome(); return; }
+    // Parcial/falló → completar lo que falte por el camino legacy.
+    await sendToAI(null, true);
+    autoGenerateFirstPlans().catch(e => console.warn('[CoachAI] auto-gen fallback:', e));
+    return;
+  }
+  // C) Sin pre-generación → comportamiento anterior.
+  await sendToAI(null, true);
+  autoGenerateFirstPlans().catch(e => console.warn('[CoachAI] auto-gen primer plan:', e));
 }
 
 // Detects whether a user message is asking for the weekly diet or routine.
@@ -15260,10 +15399,15 @@ function nextPanel() {
   // When sliding into the fotos panel (5.2), re-evaluate the gate so the
   // floating EMPEZAR button starts disabled and the status text appears
   // immediately instead of only after the first tap.
-  if (nxt.step === 5 && nxt.panel === 2 && typeof refreshFotosInicioReadiness === 'function') {
+  if (nxt.step === 5 && nxt.panel === 2) {
     // rAF lets the slide animation start before we touch the button state,
     // otherwise the disable can flicker through the transition.
-    requestAnimationFrame(() => refreshFotosInicioReadiness());
+    if (typeof refreshFotosInicioReadiness === 'function') {
+      requestAnimationFrame(() => refreshFotosInicioReadiness());
+    }
+    // Entró al paso de fotos → pre-generamos dieta + rutina en paralelo, en
+    // background, así están listas (en la DB) cuando termine el onboarding.
+    try { startPlanPrefetch(); } catch (e) { console.warn('[CoachAI] prefetch:', e); }
   }
 }
 
@@ -15271,6 +15415,10 @@ function prevPanel() {
   if (currentPanelIdx <= 0) return;
   const cur = onbPanels[currentPanelIdx];
   const prv = onbPanels[currentPanelIdx - 1];
+
+  // Si retrocede desde el paso de fotos a editar el perfil, descartamos la
+  // pre-generación para que al volver a fotos se regenere con los datos nuevos.
+  if (cur.step === 5 && cur.panel === 2) { try { resetPlanPrefetch(); } catch (e) {} }
 
   if (prv.step !== cur.step) {
     document.querySelectorAll('.progress-step').forEach((el, i) => {
@@ -16632,13 +16780,12 @@ async function launchCoach() {
           console.warn('[migration-welcome] persist failed:', e));
       } catch (e) { console.warn('[migration-welcome] persist threw:', e); }
     } else {
-      await sendToAI(null, true);
-      // Nativa, primer ingreso: generamos y entregamos el primer plan (rutina +
-      // dieta) sola, sin que toque botones. Background (no bloquea el resto del
-      // launch). Si una generación falla, sendToAI reaparece el botón (fallback).
-      // Solo corre en el primer launch (este bloque es !renderedAny); de ahí en
-      // adelante el plan ya existe y el auto-repeat lo mantiene semana a semana.
-      autoGenerateFirstPlans().catch(e => console.warn('[CoachAI] auto-gen primer plan:', e));
+      // Nativa, primer ingreso. Los planes pueden venir PRE-GENERADOS desde el
+      // paso de fotos del onboarding (startPlanPrefetch). nativeFirstPlansFlow
+      // decide: si ya están → bienvenida limpia; si están en vuelo → "preparando"
+      // + espera; si no hubo pre-gen → fallback al auto-pedido de siempre. No se
+      // awaitea para no bloquear el resto del launch (maneja su propia UI).
+      nativeFirstPlansFlow().catch(e => console.warn('[CoachAI] native first plans:', e));
     }
   } else {
     // Scroll to bottom so user lands at the most recent message.
@@ -17333,12 +17480,16 @@ async function renderMiAlimentacion() {
   const todayName = new Date().toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', { weekday: 'long' });
   if (headerSub) headerSub.textContent = `${todayName.charAt(0).toUpperCase() + todayName.slice(1)} · ${lang === 'es' ? 'hoy' : 'today'}`;
 
-  const showFilled = () => { if (emptyState) emptyState.style.display = 'none'; if (summary) summary.style.display = 'block'; mealsList.style.display = 'flex'; if (tipsCard) tipsCard.style.display = document.body.classList.contains('theme-king') ? 'block' : 'none'; };
-  const showEmpty  = () => { if (emptyState) emptyState.style.display = 'block'; if (summary) summary.style.display = 'none'; mealsList.style.display = 'none'; if (targetCard) targetCard.style.display = 'none'; if (tipsCard) tipsCard.style.display = 'none'; };
+  const prepState  = document.getElementById('alim-preparing-state');
+  const hidePrep   = () => { if (prepState) prepState.style.display = 'none'; };
+  const showFilled = () => { hidePrep(); if (emptyState) emptyState.style.display = 'none'; if (summary) summary.style.display = 'block'; mealsList.style.display = 'flex'; if (tipsCard) tipsCard.style.display = document.body.classList.contains('theme-king') ? 'block' : 'none'; };
+  const showEmpty  = () => { hidePrep(); if (emptyState) emptyState.style.display = 'block'; if (summary) summary.style.display = 'none'; mealsList.style.display = 'none'; if (targetCard) targetCard.style.display = 'none'; if (tipsCard) tipsCard.style.display = 'none'; };
+  // Estado "preparando": dieta aún no lista pero la pre-generación está en vuelo.
+  const showPreparing = () => { if (emptyState) emptyState.style.display = 'none'; if (summary) summary.style.display = 'none'; mealsList.style.display = 'none'; if (targetCard) targetCard.style.display = 'none'; if (tipsCard) tipsCard.style.display = 'none'; if (prepState) prepState.style.display = 'block'; };
 
   const dietaPlan = weeklyPlans && weeklyPlans.dieta;
   if (!dietaPlan || dietaPlan.closed) {
-    showEmpty();
+    if (_plansPreparing) showPreparing(); else showEmpty();
     _alimDays = null; _alimHeader = null;
     return;
   }
@@ -22764,17 +22915,26 @@ function renderMiEntreno() {
   const mapping = buildTrainingDayMapping();
   const esc = (typeof _esc === 'function') ? _esc : (x => String(x));
 
-  // Empty state — no active rutina
+  // Empty state — no active rutina (o "preparando" si la pre-generación del
+  // onboarding está en vuelo).
+  const prepState = document.getElementById('ent-preparing-state');
   if (!mapping) {
     hero.style.display = 'none';
     if (otherCard) otherCard.style.display = 'none';
     if (summary) summary.style.display = 'none';
     if (overrideChip) overrideChip.style.display = 'none';
-    if (emptyState) emptyState.style.display = 'block';
+    if (_plansPreparing) {
+      if (emptyState) emptyState.style.display = 'none';
+      if (prepState) prepState.style.display = 'block';
+    } else {
+      if (prepState) prepState.style.display = 'none';
+      if (emptyState) emptyState.style.display = 'block';
+    }
     _entOverrideIdx = null;
     return;
   }
   if (emptyState) emptyState.style.display = 'none';
+  if (prepState) prepState.style.display = 'none';
 
   const state = getEntrenoWeekState();
 
