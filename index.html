@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260621-1858-onboarding--pre-gen-mas-temprana--resumen----entrega-por-seccion---aviso-de-carga-en-home">
+<meta name="app-version" content="20260621-2307-onboarding--dieta-siempre-con-kcal-macros---pantalla-de-carga-al-entrar---tour-gateado">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -3742,6 +3742,27 @@ body.theme-king .cai-meal-macros {
 .home-plan-banner .hpb-text { line-height: 1.3; }
 @keyframes hpb-pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 body.theme-king .home-plan-banner { background: #FFF0F4; border-color: rgba(255,79,123,0.22); }
+
+/* Pantalla de carga full-screen al entrar desde el onboarding */
+#plan-loading-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  display: none; align-items: center; justify-content: center;
+  background: var(--bg);
+  padding: 24px;
+}
+#plan-loading-overlay .plo-card {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 18px; text-align: center; max-width: 300px;
+}
+#plan-loading-overlay .plo-spinner {
+  width: 46px; height: 46px; border-radius: 50%;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  animation: plo-spin 0.9s linear infinite;
+}
+@keyframes plo-spin { to { transform: rotate(360deg); } }
+#plan-loading-overlay .plo-title { font-size: 19px; font-weight: 800; color: var(--text); }
+#plan-loading-overlay .plo-sub { font-size: 13.5px; color: var(--muted); line-height: 1.45; min-height: 2.6em; }
 
 /* HERO ring card — ENTRENAMIENTOS X/N this week (informational only) */
 .cai-home-hero {
@@ -14005,28 +14026,53 @@ function _refreshAfterPlan(tipo) {
 }
 
 // Genera UN plan de forma HEADLESS (sin tocar el chat) y lo guarda en planes_semanales.
+// ¿La dieta generada trae kcal/macros en sus comidas? Haiku a veces las omite y
+// las cards salen "peladas" (sin calorías ni P/C/G). Exigimos que la MAYORÍA de
+// las comidas tengan kcal. SOLO se aplica a la generación automática (nativos),
+// NO a planes de coach migrados (que a veces vienen sin números a propósito).
+function dietaHasMacros(reply) {
+  try {
+    const p = parseDietaContenido(reply);
+    if (!p || !p.days || !p.days.length) return false;
+    let total = 0, withK = 0;
+    for (const d of p.days) for (const m of (d.meals || [])) { total++; if (m.kcal != null) withK++; }
+    return total > 0 && (withK / total) >= 0.8;
+  } catch (e) { return false; }
+}
+
+// Genera UN plan de forma HEADLESS (sin tocar el chat) y lo guarda en planes_semanales.
+// Reintenta para asegurar CALIDAD: la dieta DEBE traer kcal/macros (si no, reformatea
+// o regenera); la rutina DEBE traer ejercicios. Hasta 2 generaciones por tipo.
 async function prefetchPlan(tipo) {
   try {
     const isEs = (lang === 'es');
     const msg = tipo === 'rutina'
       ? (isEs ? '💪 Rutina de la semana' : '💪 Weekly Routine')
       : (isEs ? '🥗 Dieta de la semana'  : '🥗 Weekly Diet');
-    const res = await callChatAPI({
-      system: buildSystemPrompt(),
-      messages: [{ role: 'user', content: msg }],
-      model: 'haiku',
-    });
-    const data = await res.json();
-    const reply = data && data.content && data.content[0] && data.content[0].text;
-    if (!reply) throw new Error('respuesta vacía');
-    let planText = reply;
-    const hasStruct = (txt) => (typeof planReplyHasStructure === 'function') && planReplyHasStructure(tipo, txt);
-    if (!hasStruct(planText)) {
-      // Fallback: pedirle a la IA que reformatee al formato canónico (mismo que sendToAI).
-      const normalized = await aiNormalizePlan(tipo, reply);
-      if (normalized && hasStruct(normalized)) planText = normalized;
-      else throw new Error('sin estructura válida');
+    const valid = (txt) => {
+      if (!(typeof planReplyHasStructure === 'function' && planReplyHasStructure(tipo, txt))) return false;
+      if (tipo === 'dieta') return dietaHasMacros(txt);   // dieta: exige kcal/macros
+      return true;                                        // rutina: estructura + ejercicios (ya en planReplyHasStructure)
+    };
+    let planText = null;
+    for (let attempt = 0; attempt < 2 && !planText; attempt++) {
+      const res = await callChatAPI({
+        system: buildSystemPrompt(),
+        messages: [{ role: 'user', content: msg }],
+        model: 'haiku',
+      });
+      const data = await res.json();
+      const reply = data && data.content && data.content[0] && data.content[0].text;
+      if (!reply) continue;
+      if (valid(reply)) { planText = reply; break; }
+      // No vino bien (p.ej. dieta sin macros) → reformatear al formato canónico.
+      try {
+        const normalized = await aiNormalizePlan(tipo, reply);
+        if (normalized && valid(normalized)) { planText = normalized; break; }
+      } catch (e) {}
+      // Si sigue mal, el loop regenera de cero (segundo intento).
     }
+    if (!planText) throw new Error(tipo + ' inválido tras reintentos');
     const saved = await saveWeeklyPlan(tipo, planText);
     if (saved) { if (!weeklyPlans) weeklyPlans = {}; weeklyPlans[tipo] = saved; }
     return saved;
@@ -14068,6 +14114,48 @@ function updatePlanPrepBanner() {
   banner.style.display = (_prefetchInFlight.size > 0) ? 'flex' : 'none';
 }
 
+// ── Pantalla de carga al entrar a la app desde el onboarding ────────────────
+// Cubre toda la pantalla con una ruedita mientras se terminan de preparar los
+// planes, así la persona entra con TODO ya cargado. Frases rotativas para que la
+// espera se sienta activa + timeout de seguridad (nunca deja a nadie trabado).
+let _planLoadingTimer = null;
+let _planLoadingRotator = null;
+function showPlanLoadingOverlay() {
+  const ov = document.getElementById('plan-loading-overlay');
+  if (!ov) return;
+  ov.style.display = 'flex';
+  const isEs = (lang === 'es');
+  const msgs = isEs
+    ? ['Calculando tus calorías y macros…', 'Armando tu rutina de la semana…', 'Eligiendo tus comidas…', 'Casi listo 💪']
+    : ['Calculating your calories and macros…', 'Building your weekly routine…', 'Picking your meals…', 'Almost ready 💪'];
+  const sub = document.getElementById('plo-sub');
+  let i = 0;
+  if (sub) sub.textContent = msgs[0];
+  if (_planLoadingRotator) clearInterval(_planLoadingRotator);
+  _planLoadingRotator = setInterval(() => { i = (i + 1) % msgs.length; if (sub) sub.textContent = msgs[i]; }, 2600);
+  if (_planLoadingTimer) clearTimeout(_planLoadingTimer);
+  _planLoadingTimer = setTimeout(() => { try { hidePlanLoadingOverlay(); } catch (e) {} }, 35000);
+}
+function hidePlanLoadingOverlay() {
+  const ov = document.getElementById('plan-loading-overlay');
+  if (ov) ov.style.display = 'none';
+  if (_planLoadingTimer) { clearTimeout(_planLoadingTimer); _planLoadingTimer = null; }
+  if (_planLoadingRotator) { clearInterval(_planLoadingRotator); _planLoadingRotator = null; }
+  // Recién ahora (app a la vista) arranca el tour, si corresponde.
+  try { maybeStartTour(); } catch (e) {}
+}
+
+// Arranca el tour de bienvenida UNA sola vez, y NUNCA detrás de la pantalla de
+// carga (si está visible, se reintenta al cerrarla vía hidePlanLoadingOverlay).
+let _tourKicked = false;
+function maybeStartTour() {
+  if (_tourKicked) return;
+  const ov = document.getElementById('plan-loading-overlay');
+  if (ov && ov.style.display === 'flex') return;  // todavía cargando → se llama al cerrar
+  _tourKicked = true;
+  try { startTour(false); } catch (e) {}
+}
+
 // Bienvenida LIMPIA del coach para nativos (reemplaza el auto-pedido en el chat).
 // Mismo patrón que la bienvenida de migradas: mensaje único, persistido, con
 // enlaces a las secciones donde ya están los planes.
@@ -14101,26 +14189,42 @@ async function nativeFirstPlansFlow() {
     try { if (typeof renderMiEntreno === 'function') renderMiEntreno(); } catch (e) {}
     try { if (typeof renderHome === 'function') renderHome(); } catch (e) {}
   };
-  // A) Ya están los dos → bienvenida limpia, sin auto-pedido.
-  if (bothReady()) { try { updatePlanPrepBanner(); } catch (e) {} postNativeWelcome(); return; }
-  // B) Hubo pre-generación → aviso de carga + "preparando" en lo que falta. Cada
-  //    plan refresca SU sección al terminar (entrega progresiva, vía prefetchPlan);
-  //    acá esperamos a que terminen todas para la bienvenida + completar fallas.
+  const _delay = (ms) => new Promise(r => setTimeout(r, ms));
+  // A) Ya están los dos → cerrar el loader + bienvenida limpia.
+  if (bothReady()) { try { hidePlanLoadingOverlay(); updatePlanPrepBanner(); } catch (e) {} postNativeWelcome(); return; }
+  // B) Hubo pre-generación → esperamos DETRÁS de la pantalla de carga (que ya
+  //    prendió launchCoach) a que terminen ambas, o hasta el timeout (30s).
   if (_planPrefetch) {
-    try { updatePlanPrepBanner(); } catch (e) {}
     reRender();
-    try { await _planPrefetch; } catch (e) {}
+    await Promise.race([ _planPrefetch.catch(() => {}), _delay(30000) ]);
     try { weeklyPlans = await loadCurrentWeekPlans(); } catch (e) {}
     try { if (typeof refreshQuickButtons === 'function') refreshQuickButtons(); } catch (e) {}
-    try { updatePlanPrepBanner(); } catch (e) {}   // _prefetchInFlight ya vacío → oculta el aviso
+    hidePlanLoadingOverlay();                 // entramos a la app sí o sí
+    try { updatePlanPrepBanner(); } catch (e) {}
     reRender();
     if (bothReady()) { postNativeWelcome(); return; }
-    // Alguno falló → completarlo por el camino legacy.
+    // No están las dos. Si el prefetch SIGUE generando (timeout, no falla), lo
+    // dejamos terminar en background: cada sección se completa sola y posteamos
+    // la bienvenida al final. Evita doble-generación con el fallback.
+    if (_prefetchInFlight.size > 0) {
+      _planPrefetch.then(async () => {
+        try { weeklyPlans = await loadCurrentWeekPlans(); } catch (e) {}
+        try { if (typeof refreshQuickButtons === 'function') refreshQuickButtons(); } catch (e) {}
+        try { updatePlanPrepBanner(); } catch (e) {}
+        reRender();
+        if (bothReady()) { postNativeWelcome(); return; }
+        await sendToAI(null, true);
+        autoGenerateFirstPlans().catch(e => console.warn('[CoachAI] auto-gen fallback:', e));
+      });
+      return;
+    }
+    // El prefetch terminó pero faltan planes válidos → fallback legacy.
     await sendToAI(null, true);
     autoGenerateFirstPlans().catch(e => console.warn('[CoachAI] auto-gen fallback:', e));
     return;
   }
   // C) Sin pre-generación → comportamiento anterior.
+  try { hidePlanLoadingOverlay(); } catch (e) {}
   await sendToAI(null, true);
   autoGenerateFirstPlans().catch(e => console.warn('[CoachAI] auto-gen primer plan:', e));
 }
@@ -16615,6 +16719,10 @@ async function launchCoach() {
     showRenewScreen(currentUser);
     return;
   }
+  // Si venimos del onboarding con la pre-generación de planes en vuelo, mostramos
+  // la pantalla de carga ANTES de pintar la app, así la persona entra recién
+  // cuando dieta+rutina están listas (nativeFirstPlansFlow la cierra; hay timeout).
+  try { if (_prefetchInFlight && _prefetchInFlight.size > 0) showPlanLoadingOverlay(); } catch (e) {}
   // Guardar la zona horaria del usuario (para el cron de notificaciones). Skip en
   // impersonación (?as=): la tz del navegador es la del coach, no la de la clienta.
   if (!_getImpersonateUid()) captureTimezone().catch(() => {});
@@ -16872,7 +16980,7 @@ async function launchCoach() {
   // (localStorage flag), so reruns of launchCoach() are safe.
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      try { startTour(false); } catch (e) {}
+      try { maybeStartTour(); } catch (e) {}
     });
   });
 }
@@ -26478,6 +26586,15 @@ async function forceAppUpdate() {
      regular user (onboarding or launchCoach). Without this, a coach with an
      incomplete profile gets dropped straight into onboarding, which is the
      wrong default — they're here to coach, not to train. -->
+<!-- Pantalla de carga al entrar desde el onboarding (mientras se preparan los planes) -->
+<div id="plan-loading-overlay" style="display:none">
+  <div class="plo-card">
+    <div class="plo-spinner"></div>
+    <div class="plo-title" data-es="Preparando tu plan" data-en="Preparing your plan">Preparando tu plan</div>
+    <div class="plo-sub" id="plo-sub">Calculando tus calorías y macros…</div>
+  </div>
+</div>
+
 <div id="admin-choice-overlay" style="display:none; position:fixed; inset:0; z-index:2000; background:linear-gradient(135deg, var(--bg, #1a1535) 0%, var(--bg, #1a1535) 100%); padding:24px; padding-top:max(24px, env(safe-area-inset-top,0px)); padding-bottom:max(24px, env(safe-area-inset-bottom,0px)); overflow-y:auto; -webkit-overflow-scrolling:touch;">
   <div style="max-width:440px; margin:0 auto; padding-top:min(8vh, 60px); text-align:center;">
     <div id="admin-choice-logo" style="font-family:'Bebas Neue', sans-serif; font-size:36px; letter-spacing:0.18em; color:var(--accent-bright, #FF4F7B); margin-bottom:6px;">COACHAI</div>
