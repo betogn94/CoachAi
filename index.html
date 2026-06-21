@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260621-2307-onboarding--dieta-siempre-con-kcal-macros---pantalla-de-carga-al-entrar---tour-gateado">
+<meta name="app-version" content="20260621-2341-piloto-diseno-king--fondo-casi-blanco---sombra-susurro---eyebrows-de-home-en-gris">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -700,7 +700,7 @@ body.theme-king #home-wrapper { background: var(--bg) !important; }
 body.theme-king .cai-home-head-title { color: var(--text) !important; }
 body.theme-king .cai-home-head-sub { color: var(--muted) !important; }
 /* Hero (big "ENTRENAMIENTOS X/N COMPLETADOS") */
-body.theme-king .cai-home-hero-eyebrow { color: var(--accent) !important; }
+body.theme-king .cai-home-hero-eyebrow { color: var(--muted) !important; }
 body.theme-king .cai-home-hero-num { color: var(--text) !important; }
 body.theme-king .cai-home-hero-num #home-ring-done {
   background: linear-gradient(135deg, var(--accent-bright), var(--accent), var(--accent3)) !important;
@@ -712,7 +712,7 @@ body.theme-king .cai-home-ring-center { color: var(--accent) !important; }
 body.theme-king .cai-home-hero-info .label,
 body.theme-king .cai-home-hero-sub { color: var(--muted) !important; }
 /* Sub-cards grid (Próxima Comida, Hoy Toca, Calorías Hoy, Coach AI) */
-body.theme-king .cai-home-card-eyebrow { color: var(--accent) !important; }
+body.theme-king .cai-home-card-eyebrow { color: var(--muted) !important; }
 body.theme-king .cai-home-card-title { color: var(--text) !important; }
 body.theme-king .cai-home-card-title-grad {
   background: linear-gradient(135deg, var(--accent-bright), var(--accent), var(--accent3)) !important;
@@ -11025,11 +11025,17 @@ body {
   --subcard-shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 14px -8px rgba(0,0,0,.5);
 }
 body.theme-king {
-  --card-shadow: 0 1px 2px rgba(26,26,38,.04), 0 6px 16px -8px rgba(255,79,123,.16),
-                 0 22px 48px -22px rgba(224,58,111,.32);
-  --icon-shadow: 0 5px 14px -6px rgba(255,79,123,.32), 0 1px 2px rgba(26,26,38,.05);
-  --accent-shadow: 0 9px 24px -8px rgba(255,79,123,.5);
-  --subcard-shadow: 0 1px 2px rgba(26,26,38,.05), 0 6px 14px -9px rgba(224,58,111,.28);
+  /* Refinamiento minimalista (2026-06-22): blanco sobre casi-blanco con UN
+     susurro de sombra neutra (gris, no coral) → profundidad sin peso, look
+     Airbnb/Linear. Para subir/bajar definición: tocar el alpha del 2º valor.
+     --bg/--border se fuerzan acá (pisan al branding_config de la DB) para el
+     piloto; si queda, se consolidan en tenants.branding_config. */
+  --bg: #FAFAFB;
+  --border: #ECECF1;
+  --card-shadow: 0 1px 2px rgba(17,17,26,.04), 0 8px 24px -14px rgba(17,17,26,.12);
+  --icon-shadow: 0 1px 3px rgba(17,17,26,.08);
+  --accent-shadow: 0 6px 18px -8px rgba(255,79,123,.4);
+  --subcard-shadow: 0 1px 2px rgba(17,17,26,.04), 0 4px 12px -10px rgba(17,17,26,.10);
 }
 /* Cards y superficies elevadas → sombra ambiental por capas */
 body .cai-home-hero, body .cai-home-card, body .cai-alim-summary, body .cai-meal, body .alim-tips-card,
@@ -11303,10 +11309,10 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
         appleTouchIcon: '/tenants/jesus/icon-180.png',
         themeColor:     '#FF4F7B',
         vars: {
-          '--bg':            '#FDF7F8',
+          '--bg':            '#FAFAFB',
           '--surface':       '#FFFFFF',
           '--surface2':      '#FFF0F4',
-          '--border':        '#FFE1E8',
+          '--border':        '#ECECF1',
           '--accent':        '#FF4F7B',
           '--accent-bright': '#FF6B95',
           '--accent2':       '#FF6B95',
