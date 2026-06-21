@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260621-0030-quitar-boton-volver-a-inicio-en-alimentacion-entreno-perfil">
+<meta name="app-version" content="20260621-0041-anti-flash-de-toque-al-scrollear--subcards---headers-de-perfil-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11041,6 +11041,31 @@ body.theme-king .cai-ent-subcard { background: var(--surface) !important; }
 body .cai-ent-subcard, body.theme-king .cai-ent-subcard,
 body .cai-ent-ex, body.theme-king .cai-ent-ex {
   box-shadow: var(--subcard-shadow) !important;
+}
+/* ═══════ ANTI-FLASH DE TOQUE AL SCROLLEAR (2026-06-21) ═══════
+   En táctil, al deslizar el dedo "toca" la card y dispara :active/:hover →
+   destellaba el color de "tocando" aunque solo estuvieras navegando. Acá, SOLO
+   en dispositivos sin hover real, anulamos el cambio de color de fondo/borde de
+   subcards y headers de perfil (vuelven a su estado de reposo). Se mantiene el
+   transform: scale del :active como feedback del tap real, y en desktop el hover
+   sigue intacto (este bloque no aplica con mouse). */
+@media (hover: none), (pointer: coarse) {
+  body .cai-ent-subcard:hover, body .cai-ent-subcard:active {
+    border-color: rgba(255,255,255,0.05);
+    background: rgba(0,0,0,0.22);
+  }
+  body.theme-king .cai-ent-subcard:hover, body.theme-king .cai-ent-subcard:active {
+    border-color: var(--border) !important;
+    background: var(--surface) !important;
+  }
+  body .cai-perfil-plan-head:hover, body .cai-perfil-plan-head:active,
+  body .cai-perfil-info-head:hover, body .cai-perfil-info-head:active {
+    background: transparent;
+  }
+  body.theme-king .cai-perfil-plan-head:hover, body.theme-king .cai-perfil-plan-head:active,
+  body.theme-king .cai-perfil-info-head:hover, body.theme-king .cai-perfil-info-head:active {
+    background: transparent !important;
+  }
 }
 </style>
 <script>
