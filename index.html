@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-0202-perfil--badges-rutina-dieta-sin-coral--pills-neutros-">
+<meta name="app-version" content="20260622-0206-perfil--cards-de-rutina-dieta-a-blanco-puro--sin-wash-coral-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -1779,12 +1779,12 @@ body.theme-king .cai-perfil-info {
   backdrop-filter: none !important;
   box-shadow: 0 1px 2px rgba(26,26,38,0.04), 0 4px 14px rgba(255,107,149,0.08) !important;
 }
-/* Same subtle wash on the plan cards (Rutina/Dieta) for visual consistency
-   with the rest of the section. The A.1 universal reset already painted
-   them white — override here to add the wash. */
+/* Plan cards (Rutina/Dieta): blanco puro + sombra-susurro neutra (sin el wash
+   coral que tenían), consistente con el resto del Perfil premium. */
 body.theme-king .cai-perfil-plan {
-  background: linear-gradient(160deg, #FFFFFF 0%, #FFF4F7 100%) !important;
-  background-image: linear-gradient(160deg, #FFFFFF 0%, #FFF4F7 100%) !important;
+  background: var(--surface) !important;
+  background-image: none !important;
+  box-shadow: var(--card-shadow) !important;
 }
 body.theme-king .cai-perfil-section-title { color: var(--accent) !important; }
 
