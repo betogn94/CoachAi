@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-0042-seguimiento--quitar-foto-de-fondo--conservar-desplegable-de-semanas-anteriores">
+<meta name="app-version" content="20260622-0123-editar-comida--modal-mas-limpio--sin-planificado--sin-emoji-en-titulo--sin-tip-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -13015,9 +13015,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   <div class="alim-edit-card" onclick="event.stopPropagation()">
     <button class="alim-edit-close" onclick="closeAlimEdit()" aria-label="Cerrar">×</button>
     <div class="alim-edit-title" id="alim-edit-title">—</div>
-    <div class="alim-edit-planned" id="alim-edit-planned"></div>
     <textarea id="alim-edit-text" placeholder="Ej: 5 claras + 2 huevos enteros + 80g avena + 2 tostadas integrales + café" rows="3"></textarea>
-    <div class="alim-edit-tip" data-es="✨ Tip: separá los alimentos con + e indicá cantidad (gramos o unidades). Si tenés la etiqueta nutricional del paquete, mencioná marca + nombre exacto (ej: 'fideos Lucchetti al huevo 100g'). Cuanto más preciso el texto, más exactos van a ser los kcal y macros." data-en="✨ Tip: separate foods with + and include the amount (grams or units). If you have the package label, mention brand + product name (e.g. 'Lucchetti egg noodles 100g'). The more precise, the more accurate kcal and macros will be.">✨ Tip: separá los alimentos con + e indicá cantidad (gramos o unidades). Si tenés la etiqueta nutricional del paquete, mencioná marca + nombre exacto (ej: 'fideos Lucchetti al huevo 100g'). Cuanto más preciso el texto, más exactos van a ser los kcal y macros.</div>
     <div class="alim-edit-actions">
       <button class="alim-edit-cancel" onclick="closeAlimEdit()" type="button">Cancelar</button>
       <button class="alim-edit-save" id="alim-edit-save-btn" onclick="saveAlimEdit()" type="button">Guardar</button>
@@ -18033,8 +18031,7 @@ function editAlimComida(i, j) {
   if (!meal) return;
   _alimEditCtx = { i, j };
   const st = _alimEstado[`d${i}m${j}`] || {};
-  document.getElementById('alim-edit-title').textContent = `${meal.emoji} ${meal.name} — ${_alimDays[i].dayName}`;
-  document.getElementById('alim-edit-planned').textContent = `${lang === 'es' ? 'Planificado' : 'Planned'}: ${meal.content}${meal.kcal ? ` (${meal.kcal} kcal)` : ''}`;
+  document.getElementById('alim-edit-title').textContent = `${meal.name} — ${_alimDays[i].dayName}`;
   const ta = document.getElementById('alim-edit-text');
   ta.value = st.customText || meal.content;
   document.getElementById('alim-edit-status').textContent = '';
