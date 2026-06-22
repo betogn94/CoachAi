@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-1305-primer-ingreso-limpio--logros-de-arranque-silenciosos--sin-modal-ni-push--en-la-1ra-sesion">
+<meta name="app-version" content="20260622-1322-medallon-premium-estilo-apple-fitness-awards--rim-metalico---domo---emblema-en-relieve---numero-grabado---cinta-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11133,51 +11133,82 @@ body.theme-king .cai-perfil-transform-badge {
 .semanas-toggle .semanas-toggle-chev { font-size: 12px; transition: transform 0.2s ease; }
 .semanas-toggle.open .semanas-toggle-chev { transform: rotate(180deg); }
 .semanas-past { flex-direction: column; }
-/* ── LOGROS (medallas estilo award) + overlay de celebración ── */
+/* ── LOGROS — medallón premium (look "Apple Fitness Awards") ── */
 /* Vista colapsada: medalla destacada grande + botón "Ver todas" */
-.cai-logros-featured { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 0 2px; }
-.cai-logros-featured .logro-disc { width: 92px; height: 92px; border-width: 3px; }
-.cai-logros-featured .logro-disc svg { width: 42px; height: 42px; }
-.cai-logros-featured .logro-num { min-width: 26px; height: 26px; border-radius: 13px; font-size: 13px; bottom: 0; right: 0; }
+.cai-logros-featured { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 10px 0 2px; }
 .cai-logros-featured-name { font-size: 15px; font-weight: 700; color: var(--text); font-family: 'DM Sans', sans-serif; }
 .cai-logros-featured-empty { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.5; padding: 6px 0; }
 .cai-logros-toggle {
-  display: inline-flex; align-items: center; gap: 5px; margin-top: 2px; padding: 7px 15px;
+  display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; padding: 7px 15px;
   background: var(--surface, #fff); border: 1px solid var(--border); border-radius: 999px;
   font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: pointer;
   font-family: 'DM Sans', sans-serif; -webkit-tap-highlight-color: transparent;
 }
 .cai-logros-toggle .clt-chev { width: 13px; height: 13px; transition: transform 0.2s ease; }
 .cai-logros-toggle.open .clt-chev { transform: rotate(180deg); }
-.cai-logros-grid-wrap { margin-top: 14px; }
-.cai-perfil-logros-grid .logro-medal.earned { cursor: pointer; }
-.cai-perfil-logros-grid .logro-medal.is-pinned .logro-disc { outline: 2px solid var(--accent); outline-offset: 3px; }
-.cai-perfil-logros-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 8px; padding: 4px 2px; }
-.logro-medal { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.logro-disc {
-  width: 66px; height: 66px; border-radius: 50%; position: relative;
-  display: flex; align-items: center; justify-content: center;
-  border: 2.5px solid rgba(255,255,255,0.55);
-  box-shadow: 0 5px 14px -5px rgba(17,17,26,0.4), inset 0 2px 3px rgba(255,255,255,0.45), inset 0 -5px 10px rgba(0,0,0,0.22);
-}
-.logro-disc svg { width: 30px; height: 30px; }
-.logro-num {
-  position: absolute; bottom: -3px; right: -3px; min-width: 20px; height: 20px;
-  padding: 0 5px; box-sizing: border-box; display: flex; align-items: center; justify-content: center;
-  background: #fff; color: #1a1a22; border-radius: 10px; line-height: 1;
-  font-size: 11px; font-weight: 700; font-family: 'DM Sans', sans-serif;
-  box-shadow: 0 2px 5px -1px rgba(17,17,26,0.35);
-}
-.logro-num-big { bottom: 4px; right: 4px; min-width: 32px; height: 32px; border-radius: 16px; font-size: 16px; padding: 0 9px; }
-.logro-medal.locked .logro-disc { box-shadow: inset 0 2px 3px rgba(255,255,255,0.5), inset 0 -5px 10px rgba(0,0,0,0.10); }
-.logro-medal.locked { opacity: 0.85; }
-.logro-name { font-size: 11px; font-weight: 500; color: var(--text); text-align: center; line-height: 1.2; }
-.logro-medal.locked .logro-name { color: var(--muted2, var(--muted)); }
+.cai-logros-grid-wrap { margin-top: 16px; }
+.cai-perfil-logros-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px 8px; padding: 10px 2px 4px; justify-items: center; }
+.cai-perfil-logros-grid .medal-wrap:not(.is-locked) { cursor: pointer; }
+.cai-perfil-logros-grid .medal-wrap.is-pinned .medal { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* ===== MEDALLÓN ===== Tamaños: grilla 66 · destacada 92 (lg) · celebración 122 (xl) */
+.medal-wrap{ --d:66px; --rim:5px; --em:30px; --nb:21px; --glow:rgba(17,17,26,.28); --rimlight:rgba(255,255,255,.85);
+  position:relative; width:var(--d); display:flex; flex-direction:column; align-items:center; }
+.medal-wrap.lg{ --d:92px; --rim:7px; --em:42px; --nb:26px; }
+.medal-wrap.xl{ --d:122px; --rim:9px; --em:58px; --nb:32px; }
+.medal-wrap.fam-coral{ --glow:rgba(255,79,123,.5);  --rimlight:#FFE3EA; }
+.medal-wrap.fam-amber{ --glow:rgba(245,158,60,.5);  --rimlight:#FFF0C9; }
+.medal-wrap.fam-rose { --glow:rgba(196,76,134,.46); --rimlight:#F4DBC9; }
+.medal-wrap.is-locked{ --glow:rgba(17,17,26,.18);  --rimlight:rgba(255,255,255,.7); }
+.medal{ position:relative; width:var(--d); height:var(--d); border-radius:50%; padding:var(--rim); box-sizing:border-box;
+  background:conic-gradient(from 218deg,#ffffff,#c7c7d0 12%,#f6f6f8 26%,#b3b3bd 50%,#ffffff 63%,#c7c7d0 78%,#ededf1 90%,#ffffff 100%);
+  box-shadow:0 0 0 .5px var(--rimlight) inset, 0 1px 1px rgba(255,255,255,.6) inset, 0 10px 22px -8px rgba(17,17,26,.55), 0 3px 6px -2px rgba(17,17,26,.4), 0 12px 30px -10px var(--glow);
+  transition:transform var(--mo-dur-fast,.18s) var(--mo-ease,ease), box-shadow var(--mo-dur-fast,.18s) var(--mo-ease,ease); }
+.medal-wrap:active .medal{ transform:scale(.95); }
+.medal-wrap.fam-coral .medal{ background:conic-gradient(from 218deg,#FFF1F4,#E9A9B6 12%,#FFF7F9 26%,#D98599 50%,#FFF1F4 63%,#E9A9B6 78%,#FFE6EC 90%,#FFF1F4 100%); }
+.medal-wrap.fam-amber .medal{ background:conic-gradient(from 218deg,#FFF6DA,#E8B452 12%,#FFFBEC 26%,#C98A2E 50%,#FFF6DA 63%,#E8B452 78%,#FFEFC2 90%,#FFF6DA 100%); }
+.medal-wrap.fam-rose .medal{ background:conic-gradient(from 218deg,#F6DEC9,#CC9069 12%,#FFF1E5 26%,#9E5E3C 50%,#F6DEC9 63%,#CC9069 78%,#F2D2BC 90%,#F6DEC9 100%); }
+.medal-wrap.is-locked .medal{ background:conic-gradient(from 218deg,#FFFFFF,#CACAD2 12%,#F4F4F6 26%,#AEAEB8 50%,#FFFFFF 63%,#CACAD2 78%,#EDEDF1 90%,#FFFFFF 100%);
+  box-shadow:0 1px 1px rgba(255,255,255,.45) inset, 0 6px 14px -8px rgba(17,17,26,.4); }
+.medal-face{ position:relative; width:100%; height:100%; border-radius:50%; overflow:hidden; display:grid; place-items:center;
+  box-shadow:inset 0 2px 4px rgba(255,255,255,.6), inset 0 -8px 16px rgba(0,0,0,.34), inset 0 0 0 1.5px rgba(0,0,0,.16); }
+.medal-wrap.fam-coral .medal-face{ background:linear-gradient(180deg,rgba(255,255,255,.30),rgba(255,255,255,0) 40%,rgba(0,0,0,.16) 100%),radial-gradient(circle at 34% 26%, #FFB0C2 0%, #FF4F7B 50%, #B81F53 100%); }
+.medal-wrap.fam-amber .medal-face{ background:linear-gradient(180deg,rgba(255,255,255,.32),rgba(255,255,255,0) 40%,rgba(0,0,0,.16) 100%),radial-gradient(circle at 34% 26%, #FFE0AC 0%, #F59E3C 50%, #B5660C 100%); }
+.medal-wrap.fam-rose .medal-face{ background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0) 40%,rgba(0,0,0,.18) 100%),radial-gradient(circle at 34% 26%, #EEA8CC 0%, #C44C86 50%, #6E1F48 100%); }
+.medal-wrap.is-locked .medal-face{ background:linear-gradient(180deg,rgba(255,255,255,.4),rgba(255,255,255,0) 44%,rgba(0,0,0,.1) 100%),radial-gradient(circle at 34% 28%, #EDEDF1 0%, #CFCFD6 55%, #AEAEB8 100%); }
+.medal-face::before{ content:''; position:absolute; left:14%; top:8%; width:58%; height:42%; z-index:2; border-radius:50%;
+  background:radial-gradient(ellipse at 40% 34%, rgba(255,255,255,.95), rgba(255,255,255,.35) 46%, transparent 70%); filter:blur(.5px); pointer-events:none; mix-blend-mode:screen; }
+.medal-face::after{ content:''; position:absolute; inset:0; border-radius:50%; pointer-events:none; background:radial-gradient(circle at 50% 122%, rgba(0,0,0,.28), transparent 42%); }
+.medal-em{ position:relative; z-index:3; width:var(--em); height:var(--em); color:#fff; display:grid; place-items:center; }
+.medal-em svg{ width:100%; height:100%; }
+.medal-em svg path, .medal-em svg circle, .medal-em svg rect, .medal-em svg polygon{ filter:drop-shadow(0 1.2px 0.6px rgba(0,0,0,.42)) drop-shadow(0 -0.6px 0.4px rgba(255,255,255,.55)); }
+.medal-wrap.is-locked .medal-em{ color:#8A8A95; }
+.medal-wrap.is-locked .medal-em svg path, .medal-wrap.is-locked .medal-em svg rect{ filter:drop-shadow(0 1px 0.5px rgba(0,0,0,.18)); }
+.medal-num{ position:absolute; left:50%; bottom:0; transform:translate(-50%,34%); z-index:3; min-width:var(--nb); height:var(--nb); padding:0 6px; border-radius:999px; display:grid; place-items:center; box-sizing:border-box;
+  font-family:'Bebas Neue',sans-serif; font-size:calc(var(--nb) * .62); line-height:1; letter-spacing:.02em; color:#fff;
+  border:1.5px solid rgba(255,255,255,.6); text-shadow:0 1px 1px rgba(0,0,0,.4), 0 -0.5px 0 rgba(255,255,255,.25); box-shadow:0 3px 7px -2px rgba(17,17,26,.55), inset 0 1px 1px rgba(255,255,255,.5); }
+.medal-wrap.fam-coral .medal-num{ background:linear-gradient(#FF6F94,#B0234F); }
+.medal-wrap.fam-amber .medal-num{ background:linear-gradient(#F4A93E,#A85E0C); }
+.medal-wrap.fam-rose .medal-num{ background:linear-gradient(#C95B95,#6B1E46); }
+.medal-wrap.is-locked .medal-num{ background:linear-gradient(#D8D8DE,#A9A9B4); color:#6E6E78; text-shadow:none; }
+.medal-mult{ position:absolute; top:0; right:0; transform:translate(22%,-22%); z-index:3; font-family:'JetBrains Mono',monospace; font-weight:600; font-size:calc(var(--d) * .15); padding:2px 6px; border-radius:999px; color:#fff; letter-spacing:.02em; background:linear-gradient(#1b1b27,#000); border:1.5px solid rgba(255,255,255,.18); box-shadow:0 3px 8px -3px rgba(0,0,0,.6); }
+.medal-ribbon{ position:absolute; left:50%; top:62%; transform:translateX(-50%); z-index:0; display:flex; gap:calc(var(--d) * .28); }
+.medal-ribbon i{ width:calc(var(--d) * .18); height:calc(var(--d) * .42); clip-path:polygon(0 0,100% 0,100% 100%,50% 78%,0 100%); display:block; }
+.medal-wrap.fam-coral .medal-ribbon i{ background:linear-gradient(#FF4F7B,#9C1D45); }
+.medal-wrap.fam-amber .medal-ribbon i{ background:linear-gradient(#F59E3C,#9C5A0B); }
+.medal-wrap.fam-rose .medal-ribbon i{ background:linear-gradient(#C44C86,#5E1A3D); }
+.medal-wrap.is-locked .medal-ribbon i{ background:linear-gradient(#CFCFD6,#9A9AA4); }
+.medal-ribbon i:last-child{ filter:brightness(.86); }
+.medal-lockchip{ position:absolute; right:2%; bottom:2%; z-index:3; width:calc(var(--d) * .30); height:calc(var(--d) * .30); border-radius:50%; display:grid; place-items:center; color:#7A7A85; background:linear-gradient(#FCFCFD,#DEDEE4); border:1.5px solid #fff; box-shadow:0 2px 5px -1px rgba(17,17,26,.4); }
+.medal-lockchip svg{ width:58%; height:58%; }
+.medal-label{ margin-top:14px; text-align:center; }
+.medal-label .t{ font-size:11px; font-weight:600; color:var(--text); line-height:1.18; }
+.medal-wrap.is-locked .medal-label .t{ color:var(--muted); }
+
 /* Overlay de celebración */
 .logro-celebr-card { text-align: center; }
-.logro-celebr-eyebrow { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 1.6px; color: var(--accent); margin-bottom: 16px; }
-.logro-disc-big { width: 122px; height: 122px; margin: 0 auto 18px; border-width: 4px; }
-.logro-disc-big svg { width: 58px; height: 58px; }
+.logro-celebr-eyebrow { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 1.6px; color: var(--accent); margin-bottom: 18px; }
+.logro-celebr-medal { display: flex; justify-content: center; margin: 0 auto 20px; }
 .logro-celebr-title { font-size: 23px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
 .logro-celebr-desc { font-size: 14px; color: var(--muted); line-height: 1.5; margin: 0 auto 22px; max-width: 280px; }
 .logro-celebr-btn {
@@ -13193,7 +13224,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   <div class="alim-edit-card logro-celebr-card" onclick="event.stopPropagation()">
     <button class="alim-edit-close logro-celebr-close" onclick="closeLogro()" aria-label="Cerrar">×</button>
     <div class="logro-celebr-eyebrow" data-es="LOGRO DESBLOQUEADO" data-en="ACHIEVEMENT UNLOCKED">LOGRO DESBLOQUEADO</div>
-    <div class="logro-disc logro-disc-big" id="logro-disc-big"></div>
+    <div class="logro-celebr-medal" id="logro-disc-big"></div>
     <div class="logro-celebr-title" id="logro-celebr-title">—</div>
     <div class="logro-celebr-desc" id="logro-celebr-desc">—</div>
     <button class="logro-celebr-btn" onclick="closeLogro()" type="button">¡Genial! 🎉</button>
@@ -21895,7 +21926,7 @@ const LOGROS_CATALOG = [
   { key:'racha_7',   titulo:'Racha de 7',   desc:'7 días seguidos registrando. ¡Imparable!',           color:'amber', emblem:'flame', num:7 },
   { key:'racha_14',  titulo:'Racha de 14',  desc:'Dos semanas al hilo sin aflojar.',                    color:'amber', emblem:'flame', num:14 },
   { key:'racha_30',  titulo:'Racha de 30',  desc:'Un mes entero sin romper la cadena.',                 color:'amber', emblem:'flame', num:30 },
-  { key:'racha_100', titulo:'Racha de 100', desc:'100 días seguidos. Esto ya es leyenda.',              color:'amber', emblem:'flame', num:100 },
+  { key:'racha_100', titulo:'Racha de 100', desc:'100 días seguidos. Esto ya es leyenda.',              color:'amber', emblem:'flame', num:100, top:true },
   // — Volumen —
   { key:'diez_entrenos',      titulo:'10 entrenos',  desc:'Llegaste a 10 entrenos cumplidos. La constancia se nota.',  color:'amber', emblem:'barbell', num:10 },
   { key:'cincuenta_entrenos', titulo:'50 entrenos',  desc:'50 entrenos en el cuerpo. Otra versión tuya.',              color:'amber', emblem:'barbell', num:50 },
@@ -21906,7 +21937,7 @@ const LOGROS_CATALOG = [
   { key:'primer_mes', titulo:'Primer mes', desc:'Un mes entero en CoachAI. ¡Esto es un estilo de vida!', color:'rose', emblem:'calendar', num:1 },
   { key:'tres_meses', titulo:'3 meses',    desc:'Tres meses sostenidos. Pocos llegan acá.',             color:'rose', emblem:'calendar', num:3 },
   { key:'seis_meses', titulo:'6 meses',    desc:'Medio año transformándote. Imparable.',                color:'rose', emblem:'calendar', num:6 },
-  { key:'un_ano',     titulo:'1 año',      desc:'Un año entero. Esto ya es quien sos.',                 color:'rose', emblem:'crown' },
+  { key:'un_ano',     titulo:'1 año',      desc:'Un año entero. Esto ya es quien sos.',                 color:'rose', emblem:'crown', top:true },
   // — Extra —
   { key:'primera_foto', titulo:'Primera foto', desc:'Subiste tu foto de inicio: el "antes" de tu transformación.', color:'rose', emblem:'camera' },
 ];
@@ -21926,36 +21957,45 @@ const MEDAL_GRAD = {
   rose:   'radial-gradient(circle at 34% 28%, #E59BC4 0%, #C44C86 52%, #7A2350 100%)',
   locked: 'radial-gradient(circle at 34% 28%, #EDEDF1 0%, #CFCFD6 55%, #AEAEB8 100%)',
 };
+// Emblemas en relieve (trazo/relleno blanco vía currentColor; el relieve lo da
+// el filtro drop-shadow de .medal-em en CSS). Look "Apple Fitness Awards".
 const EMBLEM_SVG = {
-  trophy:  '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4z"/><path d="M7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3"/></svg>',
-  star:    '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.8 6.8 19l1-5.8L3.5 9.2l5.9-.9z"/></svg>',
-  flame:   '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1.2 3 4 4.5 4 8a4 4 0 0 1-8 0c0-1.2.5-2.2 1.2-3C9 9 9 7 9 5.5c1.8 1 2.4-.2 3-3.5z"/><path d="M12 20a2.2 2.2 0 0 0 2.2-2.2c0-1.6-2.2-2.8-2.2-2.8s-2.2 1.2-2.2 2.8A2.2 2.2 0 0 0 12 20z"/></svg>',
-  barbell: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10"/></svg>',
-  calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/><path d="M12 13l.8 1.6 1.7.2-1.3 1.2.3 1.7-1.5-.8-1.5.8.3-1.7L9.5 14.8l1.7-.2z"/></svg>',
-  camera:  '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.4"/></svg>',
-  flag:    '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4h10l-2.2 3.2L16 10.5H6"/></svg>',
-  utensils:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v18M6 3v4a2 2 0 0 0 2 2 2 2 0 0 0 2-2V3"/><path d="M16 3c-1.4 0-2.4 2-2.4 4.4S15 12 16 12v9"/></svg>',
-  crown:   '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M4.5 18l-1.2-9 5.2 4L12 6l3.5 7 5.2-4-1.2 9"/></svg>',
-  lock:    '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+  flag:    '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M6 21V4.5"/><path fill="currentColor" stroke="none" opacity=".92" d="M6.8 5h9.4l-1.7 3.4 1.7 3.4H6.8z"/></svg>',
+  trophy:  '<svg viewBox="0 0 24 24"><path fill="currentColor" stroke="none" opacity=".92" d="M7 4h10v4.5a5 5 0 0 1-10 0z"/><path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M7 5H4.5v1.5A3.5 3.5 0 0 0 8 10M17 5h2.5v1.5A3.5 3.5 0 0 1 16 10"/><path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M12 13.5V17M9 20h6M10 17h4"/></svg>',
+  star:    '<svg viewBox="0 0 24 24"><path fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" d="M12 3.5l2.6 5.2 5.8.8-4.2 4.1 1 5.7L12 16.6 6.9 19.3l1-5.7-4.2-4.1 5.8-.8z"/></svg>',
+  flame:   '<svg viewBox="0 0 24 24"><path fill="currentColor" stroke="none" fill-rule="evenodd" clip-rule="evenodd" d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5Zm3.5 4.5a2 2 0 0 0 2-2c0-1-.5-1.8-1.4-2.5-.3.6-.7 1-1.3 1.3.1.7-.2 1.2-.6 1.4.2-1-.5-2.1-1.2-2.7-.5.8-1 1.6-1 2.5a2 2 0 0 0 2.5 1.9 2 2 0 0 0 2-1.9Z"/></svg>',
+  barbell: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M7 12h10"/><path fill="currentColor" stroke="none" d="M3 9h2.2v6H3zM5.6 7.6h2.2v8.8H5.6zM16.2 7.6h2.2v8.8h-2.2zM18.8 9H21v6h-2.2z"/></svg>',
+  utensils:'<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M7 3v7M5 3v4.5a2 2 0 0 0 4 0V3M7 10v11"/><path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M16.5 3c-1.6 0-2.5 2-2.5 4.5S15 12 16.5 12 19 9 19 7.5 18.1 3 16.5 3zM16.5 12v9"/></svg>',
+  calendar:'<svg viewBox="0 0 24 24"><rect fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" x="4" y="5.5" width="16" height="15" rx="2.6"/><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M4 10.2h16"/><path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M8.5 3.2v4M15.5 3.2v4"/></svg>',
+  camera:  '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M4 8h3l1.4-2h7.2L18 8h2v11H4z"/><circle fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" cx="12" cy="13" r="3.2"/></svg>',
+  crown:   '<svg viewBox="0 0 24 24"><path fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" d="M4 8.5l3.4 3L12 5l4.6 6.5 3.4-3-1.4 9.5H5.4z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M5.4 21h13.2"/></svg>',
+  lock:    '<svg viewBox="0 0 24 24"><rect fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" x="5.5" y="11" width="13" height="8.5" rx="2.4"/><path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M8.2 11V8.4a3.8 3.8 0 0 1 7.6 0V11"/></svg>',
 };
 
-function medalHtml(logro, earned) {
-  const grad = earned ? (MEDAL_GRAD[logro.color] || MEDAL_GRAD.coral) : MEDAL_GRAD.locked;
-  const emblem = earned ? (EMBLEM_SVG[logro.emblem] || EMBLEM_SVG.trophy) : EMBLEM_SVG.lock;
-  const num = (earned && logro.num) ? `<span class="logro-num">${logro.num}</span>` : '';
-  return `<div class="logro-medal${earned ? ' earned' : ' locked'}" data-key="${logro.key}" title="${logro.titulo}">
-      <div class="logro-disc" style="background:${grad}">${emblem}${num}</div>
-      <div class="logro-name">${logro.titulo}</div>
+// Construye un medallón (look Apple Fitness Awards). opts: {size:'lg'|'xl', mult:N, label:false}.
+// `mult` (recurrentes ×N) → tag arriba-derecha; `num` (números fijos) → badge grabado.
+function medalHtml(logro, earned, opts) {
+  opts = opts || {};
+  const size = opts.size === 'lg' ? ' lg' : (opts.size === 'xl' ? ' xl' : '');
+  const fam = earned ? ('fam-' + (logro.color || 'coral')) : 'is-locked';
+  const emblem = EMBLEM_SVG[logro.emblem] || EMBLEM_SVG.trophy;
+  const ribbon = (earned && logro.top) ? '<div class="medal-ribbon"><i></i><i></i></div>' : '';
+  const num  = (earned && logro.num)  ? `<div class="medal-num">${logro.num}</div>` : '';
+  const mult = (earned && opts.mult)  ? `<div class="medal-mult">×${opts.mult}</div>` : '';
+  const lockchip = earned ? '' : `<div class="medal-lockchip">${EMBLEM_SVG.lock}</div>`;
+  const label = (opts.label === false) ? '' : `<div class="medal-label"><div class="t">${logro.titulo}</div></div>`;
+  const aria = `${logro.titulo}${earned ? '' : ' (bloqueada)'}`;
+  return `<div class="medal-wrap${size} ${fam}" data-key="${logro.key}" role="img" aria-label="${aria}" title="${logro.titulo}">
+      ${ribbon}
+      <div class="medal"><div class="medal-face"><div class="medal-em">${emblem}</div></div>${num}${mult}${lockchip}</div>
+      ${label}
     </div>`;
 }
-// Medalla destacada (grande) para la vista colapsada de la sección de logros.
+// Medalla destacada (grande, sin label propio — el nombre va aparte).
 function logrosFeaturedHtml(tpl, count) {
-  const grad = MEDAL_GRAD[tpl.color] || MEDAL_GRAD.coral;
-  const emblem = EMBLEM_SVG[tpl.emblem] || EMBLEM_SVG.trophy;
-  const n = (count && count >= 2) ? count : (tpl.num || null);
-  const num = n ? `<span class="logro-num">${n}</span>` : '';
-  return `<div class="logro-disc" style="background:${grad}">${emblem}${num}</div>
-          <div class="cai-logros-featured-name">${tpl.titulo}</div>`;
+  const mult = tpl.recurring && count ? count : 0;
+  return medalHtml(tpl, true, { size: 'lg', label: false, mult }) +
+         `<div class="cai-logros-featured-name">${tpl.titulo}</div>`;
 }
 
 // Pinta la grilla de medallas en Perfil (ganadas a color, pendientes en gris).
@@ -21982,7 +22022,7 @@ async function renderPerfilLogros() {
   if (grid) {
     grid.innerHTML = LOGROS_CATALOG.map(l => {
       const c = tplCount(l);
-      return medalHtml((l.recurring && c >= 2) ? { ...l, num: c } : l, c >= 1);
+      return medalHtml(l, c >= 1, { mult: l.recurring ? c : 0 });
     }).join('');
   }
 
@@ -22011,9 +22051,9 @@ async function renderPerfilLogros() {
 
   // Marca la destacada en la grilla + click para destacar (solo el dueño real).
   if (grid) {
-    if (featTpl) { const el = grid.querySelector(`.logro-medal[data-key="${featTpl.key}"]`); if (el) el.classList.add('is-pinned'); }
+    if (featTpl) { const el = grid.querySelector(`.medal-wrap[data-key="${featTpl.key}"]`); if (el) el.classList.add('is-pinned'); }
     if (!impersonating) {
-      grid.querySelectorAll('.logro-medal.earned').forEach(el => {
+      grid.querySelectorAll('.medal-wrap:not(.is-locked)').forEach(el => {
         el.onclick = () => pinLogro(el.getAttribute('data-key'));
       });
     }
@@ -22165,7 +22205,7 @@ async function checkAndAwardLogros() {
       let cele = tpl;
       if (tpl.recurring) {
         const total = [...have, ...newKeys].filter(k => k.indexOf(tpl.prefix) === 0).length;
-        cele = { ...tpl, num: total, descripcion: total >= 2 ? `¡Tu semana perfecta N°${total}! Seguí sumando.` : tpl.desc };
+        cele = { ...tpl, _mult: total, descripcion: total >= 2 ? `¡Tu semana perfecta N°${total}! Seguí sumando.` : tpl.desc };
       }
       queueLogroCele(cele);
     }
@@ -22196,16 +22236,12 @@ function queueLogroCele(logro) {
   }, 1500);
 }
 
-// Momento de celebración (overlay) con la medalla grande.
+// Momento de celebración (overlay) con el medallón grande (xl).
 function showLogroCelebration(logro) {
   const ov = document.getElementById('logro-overlay');
   if (!ov || !logro) return;
-  const disc = document.getElementById('logro-disc-big');
-  if (disc) {
-    disc.style.background = MEDAL_GRAD[logro.color] || MEDAL_GRAD.coral;
-    const num = logro.num ? `<span class="logro-num logro-num-big">${logro.num}</span>` : '';
-    disc.innerHTML = (EMBLEM_SVG[logro.emblem] || EMBLEM_SVG.trophy) + num;
-  }
+  const box = document.getElementById('logro-disc-big');
+  if (box) box.innerHTML = medalHtml(logro, true, { size: 'xl', label: false, mult: logro._mult || 0 });
   const t = document.getElementById('logro-celebr-title'); if (t) t.textContent = logro.titulo;
   const d = document.getElementById('logro-celebr-desc');  if (d) d.textContent = logro.descripcion || logro.desc || '';
   ov.classList.add('open');
