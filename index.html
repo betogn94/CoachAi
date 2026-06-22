@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260621-2357-consolidar-fondo-king-en-db---fallback-de-generacion-con-macros-garantizadas">
+<meta name="app-version" content="20260622-0021-prueba--foto-de-fondo---scrim-en-card-de-semana-activa--seguimiento--king-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11053,6 +11053,35 @@ body.theme-king .cai-perfil-section-title,
 body.theme-king .cai-perfil-transform-label,
 body.theme-king .cai-perfil-foto-inicio-eyebrow {
   color: var(--muted) !important;
+}
+/* PILOTO (2026-06-22): foto de fondo en la card de la semana ACTIVA del
+   seguimiento (solo King). Imagen + scrim oscuro→coral para legibilidad del
+   texto (blanco encima). Si NO convence: borrar este bloque + el archivo
+   tenants/jesus/seguimiento-bg.jpg. */
+body.theme-king .cai-home-semanas .semana-card.activa {
+  background-color: #1a0810 !important;
+  background-image:
+    linear-gradient(180deg, rgba(18,8,13,0.62) 0%, rgba(18,8,13,0.38) 45%, rgba(224,58,111,0.58) 100%),
+    url('/tenants/jesus/seguimiento-bg.jpg') !important;
+  background-size: cover !important;
+  background-position: center 26% !important;
+  background-repeat: no-repeat !important;
+  border-color: transparent !important;
+}
+body.theme-king .cai-home-semanas .semana-card.activa .semana-meta-eyebrow,
+body.theme-king .cai-home-semanas .semana-card.activa .semana-week-day,
+body.theme-king .cai-home-semanas .semana-card.activa .semana-strip-day .d,
+body.theme-king .cai-home-semanas .semana-card.activa .semana-strip-summary .label,
+body.theme-king .cai-home-semanas .semana-card.activa .semana-strip-summary .num,
+body.theme-king .cai-home-semanas .semana-card.activa .semana-strip-summary .num .den,
+body.theme-king .cai-home-semanas .semana-card.activa .semana-chevron,
+body.theme-king .cai-home-semanas .semana-card.activa .semana-tl-date,
+body.theme-king .cai-home-semanas .semana-card.activa .semana-tl-status {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+body.theme-king .cai-home-semanas .semana-card.activa .semana-strip-day .bar {
+  background: rgba(255,255,255,0.28) !important;
 }
 /* Cards y superficies elevadas → sombra ambiental por capas */
 body .cai-home-hero, body .cai-home-card, body .cai-alim-summary, body .cai-meal, body .alim-tips-card,
