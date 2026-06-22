@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-0134-mi-entreno--resto-de-semana-desplegable---hero-abre-por-defecto---ejercicios-blanco-grisaceo">
+<meta name="app-version" content="20260622-0140-entreno--chip-de-override-grisaceo---inputs-reps-kg-blancos">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -1637,8 +1637,8 @@ body.theme-king .cai-ent-serie-saved { color: var(--accent3) !important; }
    visible on cream. Use a soft rosa fill + pink border + dark text so the
    input boxes read clearly. iOS Safari's default inner shadow nuked too. */
 body.theme-king .cai-ent-serie-input {
-  background: var(--surface2) !important;
-  border: 1px solid rgba(255,79,123,0.25) !important;
+  background: #FFFFFF !important;
+  border: 1px solid var(--border) !important;
   color: var(--text) !important;
   -webkit-appearance: none !important;
   appearance: none !important;
@@ -1721,8 +1721,8 @@ body.theme-king .ej-modal-desc {
 
 /* Override chip ("plan modificado...") — violet → coral */
 body.theme-king .cai-ent-override-chip {
-  background: rgba(255,79,123,0.08) !important;
-  border: 1px solid rgba(255,79,123,0.28) !important;
+  background: #F4F5F7 !important;
+  border: 1px solid var(--border) !important;
   color: var(--text) !important;
 }
 body.theme-king .cai-ent-override-chip button {
