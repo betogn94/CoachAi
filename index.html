@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-0140-entreno--chip-de-override-grisaceo---inputs-reps-kg-blancos">
+<meta name="app-version" content="20260622-0144-entreno--subcards-de-ejercicio-y-chip-a-blanco-puro--blanco-sobre-blanco-con-borde-sombra-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -1570,7 +1570,7 @@ body.theme-king .cai-ent-hero-check.done {
    like xeroxed copies. The differences are very subtle (~5% lightness)
    but enough to break the flatness. */
 body.theme-king .cai-ent-ex {
-  background: #F4F5F7 !important;             /* blanco grisáceo (no coral) → blanco sobre blanco */
+  background: #FFFFFF !important;             /* blanco puro → blanco sobre blanco (depth por borde + sombra) */
   background-image: none !important;
   border: 1px solid var(--border) !important;
   /* la sombra de profundidad la da var(--subcard-shadow) en el bloque premium */
@@ -1721,8 +1721,9 @@ body.theme-king .ej-modal-desc {
 
 /* Override chip ("plan modificado...") — violet → coral */
 body.theme-king .cai-ent-override-chip {
-  background: #F4F5F7 !important;
+  background: #FFFFFF !important;
   border: 1px solid var(--border) !important;
+  box-shadow: var(--subcard-shadow) !important;
   color: var(--text) !important;
 }
 body.theme-king .cai-ent-override-chip button {
