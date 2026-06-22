@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-1322-medallon-premium-estilo-apple-fitness-awards--rim-metalico---domo---emblema-en-relieve---numero-grabado---cinta-">
+<meta name="app-version" content="20260622-1701-guard-anti-pisado-de-migradas--el-onboarding-no-auto-genera-si-ya-hay-planes-cargados">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -14310,13 +14310,22 @@ async function prefetchPlan(tipo) {
 
 // Dispara la pre-generación de rutina + dieta EN PARALELO (una sola vez). No
 // bloquea: deja la promesa corriendo en background y la guarda en _planPrefetch.
-function startPlanPrefetch() {
+async function startPlanPrefetch() {
   if (_planPrefetch) return _planPrefetch;                              // una sola vez
   if (!sbClient || !currentUser) return null;
   if (currentUser.role && currentUser.role !== 'user') return null;     // no coaches/admins
+  // GUARD anti-pisado de migradas: en el onboarding weeklyPlans todavía NO está
+  // hidratado (launchCoach lo carga después), así que consultamos la BASE. Si la
+  // clienta ya tiene planes cargados (migrada/beta), NO generamos — nunca pisamos
+  // lo migrado. Las nativas (sin planes) generan normal.
+  try {
+    const dbPlans = await loadCurrentWeekPlans();
+    if (dbPlans) weeklyPlans = { ...(weeklyPlans || {}), ...dbPlans };
+  } catch (e) {}
+  if (_planPrefetch) return _planPrefetch;                              // re-check tras el await
   const has = (t) => weeklyPlans && weeklyPlans[t] && !weeklyPlans[t].closed;
   const tipos = ['rutina', 'dieta'].filter(t => !has(t));
-  if (!tipos.length) return null;                                       // ya tiene planes activos
+  if (!tipos.length) return null;                                       // ya tiene planes (migrada/activos) → no generar
   tipos.forEach(t => _prefetchInFlight.add(t));
   try { if (typeof trackEvent === 'function') trackEvent('plan_prefetch_start', { tipos: tipos.join(',') }); } catch (e) {}
   _planPrefetch = Promise.allSettled(tipos.map(t => prefetchPlan(t)));
