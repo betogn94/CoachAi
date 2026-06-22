@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-1701-guard-anti-pisado-de-migradas--el-onboarding-no-auto-genera-si-ya-hay-planes-cargados">
+<meta name="app-version" content="20260622-1753-guard-migradas-reforzado--tambien-detecta-pre--pendientes-en-beta-invitados">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -14315,14 +14315,23 @@ async function startPlanPrefetch() {
   if (!sbClient || !currentUser) return null;
   if (currentUser.role && currentUser.role !== 'user') return null;     // no coaches/admins
   // GUARD anti-pisado de migradas: en el onboarding weeklyPlans todavía NO está
-  // hidratado (launchCoach lo carga después), así que consultamos la BASE. Si la
-  // clienta ya tiene planes cargados (migrada/beta), NO generamos — nunca pisamos
-  // lo migrado. Las nativas (sin planes) generan normal.
+  // hidratado (launchCoach lo carga después), así que consultamos la BASE. Dos
+  // señales de "es migrada → NO generar": (a) ya tiene planes cargados en
+  // planes_semanales, o (b) tiene pre_* esperando en beta_invitados (migrada que
+  // entra por primera vez — sus pre_* se cargan en launchCoach, DESPUÉS de este
+  // prefetch del onboarding). Las nativas (sin nada) generan normal.
+  let migradaPendiente = false;
   try {
     const dbPlans = await loadCurrentWeekPlans();
     if (dbPlans) weeklyPlans = { ...(weeklyPlans || {}), ...dbPlans };
+    if (currentUser.email) {
+      const { data: inv } = await sbClient.from('beta_invitados')
+        .select('pre_rutina, pre_dieta').ilike('email', currentUser.email).maybeSingle();
+      if (inv && (inv.pre_rutina || inv.pre_dieta)) migradaPendiente = true;
+    }
   } catch (e) {}
   if (_planPrefetch) return _planPrefetch;                              // re-check tras el await
+  if (migradaPendiente) return null;                                    // migrada con plan migrado pendiente → no auto-generar
   const has = (t) => weeklyPlans && weeklyPlans[t] && !weeklyPlans[t].closed;
   const tipos = ['rutina', 'dieta'].filter(t => !has(t));
   if (!tipos.length) return null;                                       // ya tiene planes (migrada/activos) → no generar
