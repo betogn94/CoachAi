@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-0144-entreno--subcards-de-ejercicio-y-chip-a-blanco-puro--blanco-sobre-blanco-con-borde-sombra-">
+<meta name="app-version" content="20260622-0158-perfil-premium--tipografia-sans--no-mono----transformacion-limpia--fotos-flotantes-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11066,6 +11066,42 @@ body.theme-king .cai-perfil-section-title,
 body.theme-king .cai-perfil-transform-label,
 body.theme-king .cai-perfil-foto-inicio-eyebrow {
   color: var(--muted) !important;
+}
+/* ── PERFIL PREMIUM (2026-06-22): tipografía sans (no mono "C++") + contenedores
+   limpios (blanco sobre blanco, sombra-susurro, sin coral/marco tosco). ── */
+/* De monoespaciada a sans limpia en títulos/labels de Perfil. */
+body.theme-king .cai-perfil-section-title,
+body.theme-king .cai-perfil-plan-badge,
+body.theme-king .cai-perfil-plan-status,
+body.theme-king .cai-perfil-transform-badge,
+body.theme-king .cai-perfil-transform-label,
+body.theme-king .cai-perfil-foto-inicio-eyebrow,
+body.theme-king .cai-perfil-foto-inicio-btn {
+  font-family: 'DM Sans', sans-serif !important;
+}
+/* Section header estilo iOS: sans, gris, un poco más de cuerpo. */
+body.theme-king .cai-perfil-section-title {
+  font-size: 12px !important; font-weight: 600 !important; letter-spacing: 0.5px !important;
+}
+/* Contenedor de Transformación: invisible → las fotos flotan (como seguimiento). */
+body.theme-king .cai-perfil-transform {
+  background: none !important; background-image: none !important;
+  border: none !important; box-shadow: none !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+body.theme-king .cai-perfil-transform-scroll { padding: 4px 2px 12px !important; }
+/* Fotos: tarjetas blancas flotantes con sombra-susurro, sin borde coral. */
+body.theme-king .cai-perfil-transform-card,
+body.theme-king .cai-perfil-transform-card.is-current,
+body.theme-king .cai-perfil-transform-card.is-inicio {
+  background: #FFFFFF !important;
+  border: 0.5px solid var(--border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--subcard-shadow) !important;
+}
+/* Badge sobre la foto: pill neutro oscuro (legible sobre cualquier imagen). */
+body.theme-king .cai-perfil-transform-badge {
+  background: rgba(17,17,26,0.55) !important; color: #fff !important; font-weight: 500 !important;
 }
 /* Desplegable "Ver semanas anteriores" (seguimiento Home) */
 .semanas-toggle {
