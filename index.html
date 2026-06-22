@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-0349-logros--catalogo-ampliado--17---medallas-de-racha-con-numero---dia-de-perdon">
+<meta name="app-version" content="20260622-0353-logros--contador-de-racha-vivo-en-home">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -3839,6 +3839,20 @@ body.theme-king .home-plan-banner { background: #FFF0F4; border-color: rgba(255,
   color: var(--muted);
   margin-top: 2px;
 }
+
+/* Racha viva (chip bajo el hero) */
+.home-streak-chip {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 0 14px; padding: 12px 14px;
+  background: var(--surface, #fff); border: 1px solid var(--border);
+  border-radius: 14px; box-shadow: var(--subcard-shadow); cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.home-streak-chip:active { transform: scale(0.99); }
+.home-streak-chip .hsc-flame { font-size: 20px; line-height: 1; flex-shrink: 0; }
+.home-streak-chip .hsc-text { flex: 1; min-width: 0; font-size: 14px; color: var(--text); font-family: 'DM Sans', sans-serif; }
+.home-streak-chip .hsc-text b { font-weight: 700; }
+.home-streak-chip .hsc-chev { width: 16px; height: 16px; color: var(--muted2, var(--muted)); flex-shrink: 0; }
 
 /* 2-col grid for the action cards (shortcuts + chart + chat) */
 .cai-home-grid {
@@ -11746,6 +11760,13 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       <div class="cai-home-hero-label" data-es="COMPLETADOS" data-en="COMPLETED">COMPLETADOS</div>
       <div class="cai-home-hero-sub" data-es="esta semana" data-en="this week">esta semana</div>
     </div>
+  </div>
+
+  <!-- Racha viva: días seguidos registrando comidas (visible solo desde 2 días). -->
+  <div id="home-streak-chip" class="home-streak-chip" style="display:none" onclick="showPerfil(); setActiveNav('nav-perfil')" role="button" tabindex="0">
+    <span class="hsc-flame" aria-hidden="true">🔥</span>
+    <span class="hsc-text"><b id="home-streak-num">0</b> <span id="home-streak-label">días en racha</span></span>
+    <svg class="hsc-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
   </div>
 
   <!-- Row 1: shortcut cards (Próxima comida + Hoy toca) -->
@@ -20912,6 +20933,7 @@ function renderHome() {
   try { renderHomeKcalChart(); }      catch (e) { console.warn('[home] kcal:', e); }
   try { renderHomeCardioCard(p); }    catch (e) { console.warn('[home] cardio card:', e); }
   try { renderHomeCierreCard(); }     catch (e) { console.warn('[home] cierre card:', e); }
+  try { renderStreakChip(); }         catch (e) { console.warn('[home] streak chip:', e); }
   // Network-dependent widgets
   renderHomeRing().catch(e => console.warn('[home] ring:', e));
   // Alimentación caches lazy-load on first visit to Mi Alimentación; for the
@@ -20959,6 +20981,24 @@ async function renderHomeRing() {
   const targetEl = document.getElementById('home-ring-target');
   if (doneEl) doneEl.textContent = completed;
   if (targetEl) targetEl.textContent = target;
+}
+
+// Chip de racha viva en Home: días seguidos registrando comidas (con 1 perdón).
+// Se muestra solo a partir de 2 días para que el número tenga peso.
+function renderStreakChip() {
+  const chip = document.getElementById('home-streak-chip');
+  if (!chip) return;
+  let cur = 0;
+  try { cur = computeStreaks(recentDiario, 1).current; } catch (e) { cur = 0; }
+  if (cur >= 2) {
+    const numEl = document.getElementById('home-streak-num');
+    const lblEl = document.getElementById('home-streak-label');
+    if (numEl) numEl.textContent = cur;
+    if (lblEl) lblEl.textContent = (lang === 'es') ? 'días en racha' : 'day streak';
+    chip.style.display = 'flex';
+  } else {
+    chip.style.display = 'none';
+  }
 }
 
 // Próxima comida — finds the next non-cumplida meal of TODAY from _alimDays.
