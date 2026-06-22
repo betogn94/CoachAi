@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-0206-perfil--cards-de-rutina-dieta-a-blanco-puro--sin-wash-coral-">
+<meta name="app-version" content="20260622-0215-perfil--quitar-coral-de-ultimo-analisis---mi-informacion--wash--inputs--glow-avatar-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -1772,12 +1772,12 @@ body.theme-king .entreno-serie-input:focus {
 body.theme-king .cai-perfil-transform,
 body.theme-king .cai-perfil-analisis,
 body.theme-king .cai-perfil-info {
-  background: linear-gradient(160deg, #FFFFFF 0%, #FFF4F7 100%) !important;
-  background-image: linear-gradient(160deg, #FFFFFF 0%, #FFF4F7 100%) !important;
+  background: var(--surface) !important;
+  background-image: none !important;
   border: 1px solid var(--border) !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
-  box-shadow: 0 1px 2px rgba(26,26,38,0.04), 0 4px 14px rgba(255,107,149,0.08) !important;
+  box-shadow: var(--card-shadow) !important;
 }
 /* Plan cards (Rutina/Dieta): blanco puro + sombra-susurro neutra (sin el wash
    coral que tenían), consistente con el resto del Perfil premium. */
@@ -1859,7 +1859,7 @@ body.theme-king .cai-perfil-foto-inicio-status { color: var(--muted) !important;
 
 /* Último análisis — empty state + CTA */
 body.theme-king .cai-perfil-analisis-empty { color: var(--muted) !important; }
-body.theme-king .cai-perfil-analisis-week  { color: var(--accent) !important; }
+body.theme-king .cai-perfil-analisis-week  { color: var(--muted) !important; }
 body.theme-king .cai-perfil-analisis-text  { color: var(--muted) !important; }
 body.theme-king .cai-perfil-analisis-cta {
   background: rgba(255,79,123,0.08) !important;
@@ -1878,7 +1878,7 @@ body.theme-king .cai-perfil-info-avatar {
      instead of a flat pink disc. Soft coral glow around it. */
   background: radial-gradient(circle at 30% 25%, #FF92AE 0%, #FF4F7B 45%, #C42960 100%) !important;
   color: #fff !important;
-  box-shadow: 0 4px 14px rgba(255,79,123,0.40), inset 0 1px 2px rgba(255,255,255,0.25) !important;
+  box-shadow: 0 2px 8px rgba(17,17,26,0.12), inset 0 1px 2px rgba(255,255,255,0.25) !important;
   border: 1px solid rgba(255,255,255,0.30) !important;
 }
 body.theme-king .cai-perfil-info-name  { color: var(--text) !important; }
@@ -1890,8 +1890,8 @@ body.theme-king .cai-perfil-info-field:first-child {
 body.theme-king .cai-perfil-info-field label { color: var(--muted) !important; }
 body.theme-king .cai-perfil-info-optional { color: var(--muted) !important; }
 body.theme-king .cai-perfil-info-field input {
-  background: var(--surface2) !important;
-  border: 1px solid rgba(255,79,123,0.22) !important;
+  background: #FFFFFF !important;
+  border: 1px solid var(--border) !important;
   color: var(--text) !important;
   -webkit-appearance: none !important;
   appearance: none !important;
@@ -11121,8 +11121,10 @@ body .cai-home-card-ico, body .cai-ent-cardio-ico, body .cai-ent-subcard-arrow,
 body.theme-king .cai-home-card-ico, body.theme-king .cai-ent-cardio-ico, body.theme-king .cai-ent-subcard-arrow {
   box-shadow: var(--icon-shadow) !important;
 }
-/* Elementos con gradiente de marca → sombra teñida con el acento */
-body .cai-perfil-info-avatar, body.theme-king .cai-perfil-info-avatar {
+/* Elementos con gradiente de marca → sombra teñida con el acento (solo tema
+   default; en King el avatar usa sombra neutra, definida arriba, para no sumar
+   halo coral). */
+body:not(.theme-king) .cai-perfil-info-avatar {
   box-shadow: var(--accent-shadow) !important;
 }
 /* Seguimiento semanal: el contenedor que englobaba todo se vuelve INVISIBLE
