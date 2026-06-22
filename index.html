@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-1959-cierre--overlay-obligatorio-que-bloquea-home-chat-perfil---cierre-solo-el-ultimo-dia">
+<meta name="app-version" content="20260622-2332-cierre--el-overlay-obligatorio-pasa-por-completar-dias-faltantes-antes-de-las-fotos">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -8450,6 +8450,10 @@ body.theme-king .alim-edit-tip {
   background: rgba(255,170,80,0.10); border: 1px solid rgba(255,170,80,0.35);
   border-radius: 8px; padding: 5px 10px;
 }
+/* En el flujo de cierre cada chip es un botón que abre el panel de completar ese día */
+.cwd-chip-btn { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; -webkit-tap-highlight-color: transparent; }
+.cwd-chip-btn:active { transform: scale(0.97); }
+.cwd-chip-btn .cwd-chip-arrow { font-weight: 700; opacity: 0.8; }
 
 /* Panel Completar día — checklist de comidas + toggle entreno (reusa .alim-edit-*) */
 .completar-card { max-width: 460px; }
@@ -20039,10 +20043,17 @@ function setCompletarEntreno(v) {
   document.getElementById('cmd-ent-no')?.classList.toggle('sel-no', v === false);
 }
 
+let _completarReturnToWarn = false;   // true si el panel se abrió desde el aviso pre-cierre
 function closeCompletarDia() {
   const overlay = document.getElementById('completar-overlay');
   if (overlay) overlay.classList.remove('open');
   _completarCtx = null;
+  // Si vino del aviso de días faltantes, volvemos a él (refrescado): re-evalúa los
+  // días pendientes; si ya no queda ninguno, attemptCierreSemana sigue al cierre.
+  if (_completarReturnToWarn) {
+    _completarReturnToWarn = false;
+    if (_cierreWarnWeek != null) { try { attemptCierreSemana(_cierreWarnWeek); } catch (e) {} }
+  }
 }
 
 // ============================
@@ -20064,29 +20075,35 @@ function attemptCierreSemana(w) {
   document.getElementById('cierre-warn-sub').textContent = isEs
     ? 'Podés completarlos antes de cerrar la semana, o cerrarla igual.'
     : 'You can complete them before closing the week, or close it anyway.';
+  // Cada día es TAPPABLE → abre el panel de completar (comidas + entreno) de ESE día.
   document.getElementById('cierre-warn-days').innerHTML = pend
-    .map(c => `<span class="cwd-chip">${_esc(c.label)} · ${_esc(formatDateShort(c.dateStr))}</span>`).join('');
+    .map(c => `<button class="cwd-chip cwd-chip-btn" type="button" onclick="completarFromWarn('${c.dateStr}')">${_esc(c.label)} · ${_esc(formatDateShort(c.dateStr))} <span class="cwd-chip-arrow">→</span></button>`).join('');
   ov.classList.add('open');
 }
 function closeCierreWarn() {
   const ov = document.getElementById('cierre-warn-overlay');
   if (ov) ov.classList.remove('open');
   _cierreWarnWeek = null;
+  // Si cerró el aviso sin cerrar la semana, el gate obligatorio reaparece.
+  try { applyCierreGate(); } catch (e) {}
 }
 function proceedCierreSemana() { // "Cerrar igual" → cierre normal
   const w = _cierreWarnWeek;
   closeCierreWarn();
   if (w != null) openCierreSemana(w);
 }
-function completarDesdeAviso() { // "Completar ahora" → lleva a la sección de la semana
-  const w = _cierreWarnWeek;
-  closeCierreWarn();
-  const sec = document.getElementById('semana-completar-' + w);
-  if (sec) {
-    sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    sec.classList.add('semana-completar-flash');
-    setTimeout(() => sec.classList.remove('semana-completar-flash'), 1600);
-  }
+function completarDesdeAviso() { // "Completar ahora" → abre el primer día faltante
+  const pend = _weekCompletable[_cierreWarnWeek] || [];
+  if (pend.length) completarFromWarn(pend[0].dateStr);
+}
+// Desde el aviso: oculta el aviso (preservando la semana) y abre el panel de
+// completar ese día. Al cerrar/guardar el panel se vuelve al aviso (refrescado);
+// si ya no quedan días, sigue directo al cierre.
+function completarFromWarn(dateStr) {
+  const ov = document.getElementById('cierre-warn-overlay');
+  if (ov) ov.classList.remove('open');     // ocultar SIN nullear _cierreWarnWeek
+  _completarReturnToWarn = true;
+  try { openCompletarDia(dateStr); } catch (e) { console.warn('[completar] open:', e); }
 }
 
 async function saveCompletarDia() {
@@ -21395,8 +21412,9 @@ function applyCierreGate(navId) {
   // No gatear a coaches/admins (solo clientes). Si por algo está abierto, lo cerramos.
   if (currentUser && currentUser.role && currentUser.role !== 'user') { ov.classList.remove('open'); return; }
   if (navId == null) navId = _currentNavId();
-  // No pisar el modal de cierre en sí (donde leen su análisis).
-  const modalOpen = !!document.querySelector('#cierre-overlay.open');
+  // No pisar los modales del flujo de cierre (análisis, aviso de días faltantes,
+  // o el panel de completar un día) — el gate no debe aparecer encima de ellos.
+  const modalOpen = !!document.querySelector('#cierre-overlay.open, #cierre-warn-overlay.open, #completar-overlay.open');
   let week = null;
   if (!modalOpen && _cierresLoaded && _CIERRE_GATE_BLOCKED.indexOf(navId) !== -1) {
     try { week = pendingCierreWeek(); } catch (e) { week = null; }
@@ -21411,8 +21429,10 @@ function renderCierreGate(week) {
 }
 function cierreGateClose() {
   const ov = document.getElementById('cierre-gate-overlay');
-  if (ov) ov.classList.remove('open');                 // ocultamos el gate antes de abrir el modal
-  if (_cierreGateWeek != null) { try { openCierreSemana(_cierreGateWeek); } catch (e) { console.warn('[cierre-gate] open:', e); } }
+  if (ov) ov.classList.remove('open');                 // ocultamos el gate antes de abrir el flujo
+  // Pasa por attemptCierreSemana: si quedan días pasados sin registrar, muestra el
+  // aviso (con los días tappables para completarlos) ANTES de la card del cierre.
+  if (_cierreGateWeek != null) { try { attemptCierreSemana(_cierreGateWeek); } catch (e) { console.warn('[cierre-gate] open:', e); } }
 }
 
 function renderHomeCierreCard() {
@@ -21452,7 +21472,7 @@ function renderHomeCierreCard() {
     msg = (isEs ? 'Este ' : 'This ') + dn.charAt(0).toUpperCase() + dn.slice(1);
   }
   if (msgEl) msgEl.textContent = msg;
-  card.onclick = () => { try { openCierreSemana(week); } catch (e) { console.warn('[home] cierre tap:', e); } };
+  card.onclick = () => { try { attemptCierreSemana(week); } catch (e) { console.warn('[home] cierre tap:', e); } };
 
   // Activar rotador kcal ↔ cierre
   card.style.display = '';
