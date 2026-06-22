@@ -31,6 +31,9 @@ async function sbGet(path) {
 async function sbDelete(path) {
   return fetch(`${SUPABASE_URL}/rest/v1/${path}`, { method: 'DELETE', headers: SB_HEADERS });
 }
+async function sbPatch(path, body) {
+  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, { method: 'PATCH', headers: { ...SB_HEADERS, Prefer: 'return=minimal' }, body: JSON.stringify(body) });
+}
 // Inserta una fila de log. Devuelve true si la creó (201), false si ya existía
 // (409 = duplicado → ya se mandó hoy). Es el candado anti-duplicados.
 async function claimLog(usuario_id, tipo, fecha) {
@@ -155,6 +158,19 @@ function buildCierreSemana() {
   };
 }
 
+// #5 LOGRO — push del logro recién desbloqueado. El título destaca el momento;
+// el cuerpo invita a verlo en Perfil (donde está la colección + el futuro botón
+// compartir). tag único por logro → no se pisa con otras notis en la bandeja.
+function buildLogroNotif(logro) {
+  const t = logro && logro.titulo ? logro.titulo : 'Nuevo logro';
+  return {
+    title: '🏅 ¡Logro desbloqueado!',
+    body: `Desbloqueaste "${t}". Mirá tu medalla en Perfil 🏆`,
+    url: '/#perfil',
+    tag: 'logro-' + (logro && logro.logro_key ? logro.logro_key : 'nuevo'),
+  };
+}
+
 // ── TEAM (Tower): recordatorios de tareas ────────────────────────────────────
 // Las tablas del Team tienen RLS bloqueada para la anon key → se leen/escriben
 // con el SERVICE-ROLE. Todo el equipo (Beto/Jesús/Juli) está en Argentina, así
@@ -253,6 +269,10 @@ export default async function handler(req, res) {
         payload = buildCierreDia(missing.length ? missing : ['comidas', 'entreno']);
       }
       else if (testTipo === 'cierre_semana') payload = buildCierreSemana();
+      else if (testTipo === 'logro') {
+        const lg = (await sbGet(`user_logros?usuario_id=eq.${u.id}&select=logro_key,titulo,descripcion&order=awarded_at.desc&limit=1`))[0];
+        payload = buildLogroNotif(lg || { logro_key: 'sample', titulo: 'Semana perfecta' });
+      }
       else return res.status(400).json({ error: 'unknown_test_tipo' });
       const sent = await pushToUser(u.id, payload);
       return res.status(200).json({ ok: true, mode: 'test', tipo: testTipo, sent, training, payload });
@@ -327,6 +347,25 @@ export default async function handler(req, res) {
           }
         }
       }
+
+      // #5 LOGROS — notifica los logros recién desbloqueados (notificado=false).
+      // El logro lo escribe el cliente al ganarlo; acá mandamos el push que lo
+      // deja en la bandeja y empuja a mirar/compartir la medalla. Doble candado:
+      // notification_log (anti-doble-envío en la misma corrida) + notificado=true
+      // (lock permanente → nunca se re-manda en días siguientes). 1 por corrida
+      // para no llenar la bandeja si desbloqueó varios juntos; el resto sale en
+      // las próximas pasadas del cron.
+      try {
+        const pend = await sbGet(`user_logros?usuario_id=eq.${u.id}&notificado=eq.false&select=logro_key,titulo,descripcion&order=awarded_at.asc&limit=1`);
+        if (Array.isArray(pend) && pend.length) {
+          const lg = pend[0];
+          if (await claimLog(u.id, 'logro_' + lg.logro_key, lp.fecha)) {
+            const n = await pushToUser(u.id, buildLogroNotif(lg));
+            sentLog.push({ uid: u.id.slice(0, 8), tipo: 'logro_' + lg.logro_key, sent: n });
+          }
+          await sbPatch(`user_logros?usuario_id=eq.${u.id}&logro_key=eq.${lg.logro_key}`, { notificado: true });
+        }
+      } catch (eLg) { console.error('[cron] logro notif', eLg); }
     }
 
     return res.status(200).json({ ok: true, processed: users.length, sent: sentLog });
