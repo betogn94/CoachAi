@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-0415-semana-perfecta-recurrente---acumulable--medalla-con-contador-">
+<meta name="app-version" content="20260622-0419-logros-desplegables--medalla-destacada--ultima-o-fijada----ver-todas---fijar-tocando">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11134,6 +11134,24 @@ body.theme-king .cai-perfil-transform-badge {
 .semanas-toggle.open .semanas-toggle-chev { transform: rotate(180deg); }
 .semanas-past { flex-direction: column; }
 /* ── LOGROS (medallas estilo award) + overlay de celebración ── */
+/* Vista colapsada: medalla destacada grande + botón "Ver todas" */
+.cai-logros-featured { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 0 2px; }
+.cai-logros-featured .logro-disc { width: 92px; height: 92px; border-width: 3px; }
+.cai-logros-featured .logro-disc svg { width: 42px; height: 42px; }
+.cai-logros-featured .logro-num { min-width: 26px; height: 26px; border-radius: 13px; font-size: 13px; bottom: 0; right: 0; }
+.cai-logros-featured-name { font-size: 15px; font-weight: 700; color: var(--text); font-family: 'DM Sans', sans-serif; }
+.cai-logros-featured-empty { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.5; padding: 6px 0; }
+.cai-logros-toggle {
+  display: inline-flex; align-items: center; gap: 5px; margin-top: 2px; padding: 7px 15px;
+  background: var(--surface, #fff); border: 1px solid var(--border); border-radius: 999px;
+  font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: pointer;
+  font-family: 'DM Sans', sans-serif; -webkit-tap-highlight-color: transparent;
+}
+.cai-logros-toggle .clt-chev { width: 13px; height: 13px; transition: transform 0.2s ease; }
+.cai-logros-toggle.open .clt-chev { transform: rotate(180deg); }
+.cai-logros-grid-wrap { margin-top: 14px; }
+.cai-perfil-logros-grid .logro-medal.earned { cursor: pointer; }
+.cai-perfil-logros-grid .logro-medal.is-pinned .logro-disc { outline: 2px solid var(--accent); outline-offset: 3px; }
 .cai-perfil-logros-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 8px; padding: 4px 2px; }
 .logro-medal { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .logro-disc {
@@ -12520,7 +12538,12 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   <!-- LOGROS — medallas (gamificación), pintadas por renderPerfilLogros() -->
   <div class="cai-perfil-section">
     <div class="cai-perfil-section-title" data-es="LOGROS" data-en="ACHIEVEMENTS">LOGROS</div>
-    <div class="cai-perfil-logros-grid" id="perfil-logros-body"></div>
+    <!-- Vista colapsada: una medalla destacada (última obtenida o fijada) + "Ver todas". -->
+    <div class="cai-logros-featured" id="perfil-logros-featured"></div>
+    <!-- Grilla completa (se despliega). Tocar una medalla ganada la destaca. -->
+    <div class="cai-logros-grid-wrap" id="perfil-logros-gridwrap" style="display:none">
+      <div class="cai-perfil-logros-grid" id="perfil-logros-body"></div>
+    </div>
   </div>
 
   <!-- ÚLTIMO ANÁLISIS — most recent week analysis preview -->
@@ -21920,33 +21943,104 @@ function medalHtml(logro, earned) {
   const grad = earned ? (MEDAL_GRAD[logro.color] || MEDAL_GRAD.coral) : MEDAL_GRAD.locked;
   const emblem = earned ? (EMBLEM_SVG[logro.emblem] || EMBLEM_SVG.trophy) : EMBLEM_SVG.lock;
   const num = (earned && logro.num) ? `<span class="logro-num">${logro.num}</span>` : '';
-  return `<div class="logro-medal${earned ? '' : ' locked'}" title="${logro.titulo}">
+  return `<div class="logro-medal${earned ? ' earned' : ' locked'}" data-key="${logro.key}" title="${logro.titulo}">
       <div class="logro-disc" style="background:${grad}">${emblem}${num}</div>
       <div class="logro-name">${logro.titulo}</div>
     </div>`;
 }
+// Medalla destacada (grande) para la vista colapsada de la sección de logros.
+function logrosFeaturedHtml(tpl, count) {
+  const grad = MEDAL_GRAD[tpl.color] || MEDAL_GRAD.coral;
+  const emblem = EMBLEM_SVG[tpl.emblem] || EMBLEM_SVG.trophy;
+  const n = (count && count >= 2) ? count : (tpl.num || null);
+  const num = n ? `<span class="logro-num">${n}</span>` : '';
+  return `<div class="logro-disc" style="background:${grad}">${emblem}${num}</div>
+          <div class="cai-logros-featured-name">${tpl.titulo}</div>`;
+}
 
 // Pinta la grilla de medallas en Perfil (ganadas a color, pendientes en gris).
 async function renderPerfilLogros() {
-  const box = document.getElementById('perfil-logros-body');
-  if (!box) return;
-  let have = new Set();
+  const grid = document.getElementById('perfil-logros-body');
+  const featured = document.getElementById('perfil-logros-featured');
+  if (!grid && !featured) return;
+  const impersonating = (typeof _getImpersonateUid === 'function' && !!_getImpersonateUid());
+  let rows = [];
   try {
-    const uid = (typeof _getImpersonateUid === 'function' && _getImpersonateUid()) || (currentUser && currentUser.id);
+    const uid = (impersonating && _getImpersonateUid()) || (currentUser && currentUser.id);
     if (uid && sbClient) {
-      const { data } = await sbClient.from('user_logros').select('logro_key').eq('usuario_id', uid);
-      have = new Set((data || []).map(r => r.logro_key));
+      const { data } = await sbClient.from('user_logros').select('logro_key,awarded_at').eq('usuario_id', uid);
+      rows = data || [];
     }
   } catch (e) {}
-  box.innerHTML = LOGROS_CATALOG.map(l => {
-    if (l.recurring) {
-      // Agrupa todas las ocurrencias (ej. semana_perfecta_*) en una sola medalla;
-      // el badge muestra el acumulado (a partir de 2).
-      const count = [...have].filter(k => k === l.key || k.indexOf(l.prefix) === 0).length;
-      return medalHtml(count >= 2 ? { ...l, num: count } : l, count >= 1);
+  const have = new Set(rows.map(r => r.logro_key));
+  // Estado por template (cuenta ocurrencias en recurrentes).
+  const tplCount  = (l) => l.recurring ? [...have].filter(k => k === l.key || k.indexOf(l.prefix) === 0).length : (have.has(l.key) ? 1 : 0);
+  const tplEarned = (l) => tplCount(l) >= 1;
+  const earnedTotal = LOGROS_CATALOG.filter(tplEarned).length;
+
+  // Grilla completa
+  if (grid) {
+    grid.innerHTML = LOGROS_CATALOG.map(l => {
+      const c = tplCount(l);
+      return medalHtml((l.recurring && c >= 2) ? { ...l, num: c } : l, c >= 1);
+    }).join('');
+  }
+
+  // Medalla destacada: la fijada (si está ganada) o la última obtenida.
+  let featTpl = null;
+  const pinnedKey = currentUser && currentUser.logro_destacado;
+  if (pinnedKey) { const t = logroTemplateForKey(pinnedKey); if (t && tplEarned(t)) featTpl = t; }
+  if (!featTpl) {
+    let lastKey = null, lastAt = '';
+    for (const r of rows) { if ((r.awarded_at || '') >= lastAt) { lastAt = r.awarded_at || ''; lastKey = r.logro_key; } }
+    featTpl = lastKey ? logroTemplateForKey(lastKey) : null;
+  }
+  if (featured) {
+    if (featTpl) {
+      const toggleLbl = (lang === 'es') ? `Ver todas (${earnedTotal})` : `View all (${earnedTotal})`;
+      featured.innerHTML = logrosFeaturedHtml(featTpl, tplCount(featTpl)) +
+        `<button class="cai-logros-toggle" data-count="${earnedTotal}" onclick="toggleLogrosGrid(this)" type="button">
+           <span class="clt-label">${toggleLbl}</span>
+           <svg class="clt-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+         </button>`;
+    } else {
+      featured.innerHTML = `<div class="cai-logros-featured-empty">${(lang==='es')?'Todavía no tenés logros. ¡Tu primera medalla está cerca! 🏅':'No achievements yet. Your first medal is close! 🏅'}</div>`;
     }
-    return medalHtml(l, have.has(l.key));
-  }).join('');
+    featured.style.display = 'flex';
+  }
+
+  // Marca la destacada en la grilla + click para destacar (solo el dueño real).
+  if (grid) {
+    if (featTpl) { const el = grid.querySelector(`.logro-medal[data-key="${featTpl.key}"]`); if (el) el.classList.add('is-pinned'); }
+    if (!impersonating) {
+      grid.querySelectorAll('.logro-medal.earned').forEach(el => {
+        el.onclick = () => pinLogro(el.getAttribute('data-key'));
+      });
+    }
+  }
+}
+
+// Despliega / colapsa la grilla completa de medallas.
+function toggleLogrosGrid(btn) {
+  const wrap = document.getElementById('perfil-logros-gridwrap');
+  if (!wrap || !btn) return;
+  const open = wrap.style.display !== 'block';
+  wrap.style.display = open ? 'block' : 'none';
+  btn.classList.toggle('open', open);
+  const lbl = btn.querySelector('.clt-label');
+  if (lbl) lbl.textContent = open ? ((lang==='es')?'Ver menos':'View less') : ((lang==='es')?`Ver todas (${btn.dataset.count||''})`:`View all (${btn.dataset.count||''})`);
+}
+
+// Fija (destaca) una medalla ganada; tocarla de nuevo la desfija. Persiste en
+// usuarios.logro_destacado. Solo el dueño real (no el coach en preview).
+async function pinLogro(key) {
+  if (!key || !currentUser || !sbClient) return;
+  if (currentUser.role && currentUser.role !== 'user') return;
+  if (typeof _getImpersonateUid === 'function' && _getImpersonateUid()) return;
+  const newVal = (currentUser.logro_destacado === key) ? null : key;
+  currentUser.logro_destacado = newVal;
+  try { await sbClient.from('usuarios').update({ logro_destacado: newVal }).eq('id', currentUser.id); } catch (e) {}
+  try { renderPerfilLogros(); } catch (e) {}
 }
 
 // ── RACHAS ───────────────────────────────────────────────────────────────────
