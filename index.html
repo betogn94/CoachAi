@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-0428-fuego-de-racha--dos-tamanos-legibles--26-medio---34-grande-">
+<meta name="app-version" content="20260622-1305-primer-ingreso-limpio--logros-de-arranque-silenciosos--sin-modal-ni-push--en-la-1ra-sesion">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -22146,15 +22146,21 @@ async function checkAndAwardLogros() {
     const have = new Set((existing || []).map(r => r.logro_key));
     const newKeys = [...earned].filter(k => !have.has(k) && logroTemplateForKey(k));
     if (!newKeys.length) return;
+    // Primera sesión = primer ingreso. El tutorial ya es el momento de bienvenida,
+    // así que los logros de arranque (comienza_camino, primera foto…) se otorgan
+    // EN SILENCIO: sin modal de celebración y sin push (notificado=true) → aparecen
+    // encendidos en la colección para que la persona los descubra. Desde la 2ª
+    // sesión, todo normal (celebración + push) para los hitos de verdad.
+    const firstSession = (currentUser.session_count || 0) <= 1;
     const rows = newKeys.map(k => {
       const c = logroTemplateForKey(k);
-      return { usuario_id: currentUser.id, logro_key: k, titulo: c.titulo, descripcion: c.desc, icon: c.emblem };
+      return { usuario_id: currentUser.id, logro_key: k, titulo: c.titulo, descripcion: c.desc, icon: c.emblem, notificado: firstSession };
     });
     await sbClient.from('user_logros').upsert(rows, { onConflict: 'usuario_id,logro_key', ignoreDuplicates: true });
     try { renderPerfilLogros(); } catch (e) {}
-    // Celebración: mostramos UNA (la primera) para no spamear modales (ej. usuarios
-    // existentes que califican a varios de golpe). El resto aparece en la colección.
-    const tpl = logroTemplateForKey(newKeys[0]);
+    // Celebración: mostramos UNA (la primera) para no spamear modales. En la primera
+    // sesión NO celebramos (el tour es el único momento grande del minuto uno).
+    const tpl = firstSession ? null : logroTemplateForKey(newKeys[0]);
     if (tpl) {
       let cele = tpl;
       if (tpl.recurring) {
@@ -22163,7 +22169,7 @@ async function checkAndAwardLogros() {
       }
       queueLogroCele(cele);
     }
-    try { if (typeof trackEvent === 'function') trackEvent('logros_awarded', { keys: newKeys.join(',') }); } catch (e) {}
+    try { if (typeof trackEvent === 'function') trackEvent('logros_awarded', { keys: newKeys.join(','), silent: firstSession }); } catch (e) {}
   } catch (e) { console.warn('[logros] award:', e); }
   finally { _logrosChecking = false; }
 }

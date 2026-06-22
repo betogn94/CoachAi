@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CoachAI · Sistema de Logros — spec de diseño (para upgrade look iOS Fitness)</title>
+<style>
+  :root{
+    --accent:#FF4F7B; --bg:#FAFAFB; --surface:#FFFFFF; --border:#ECECF1;
+    --text:#16161D; --muted:#6B6B76; --muted2:#9A9AA4;
+    --card-shadow:0 1px 2px rgba(17,17,26,.04), 0 8px 24px -14px rgba(17,17,26,.12);
+    --subcard-shadow:0 1px 2px rgba(17,17,26,.04), 0 4px 12px -10px rgba(17,17,26,.10);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:920px;margin:0 auto;padding:40px 22px 80px;}
+  h1{font-size:30px;font-weight:800;margin:0 0 6px;letter-spacing:-0.5px;}
+  h2{font-size:13px;font-weight:700;letter-spacing:1.6px;color:var(--muted);text-transform:uppercase;margin:48px 0 16px;}
+  h3{font-size:18px;font-weight:700;margin:26px 0 10px;}
+  p{margin:0 0 12px;font-size:15px;color:#33333c;}
+  .lead{font-size:16px;color:var(--muted);max-width:680px;margin-bottom:8px;}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--card-shadow);padding:26px 24px;margin-bottom:18px;}
+  .brief{background:#FFF4F7;border:1px solid #FAD5DF;}
+  .brief ul{margin:8px 0 0;padding-left:18px;}
+  .brief li{font-size:14.5px;margin-bottom:7px;color:#3a2a30;}
+  code{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12.5px;background:#F3F3F6;padding:1px 6px;border-radius:6px;color:#7A2350;}
+  pre{background:#16161D;color:#E8E8EE;border-radius:12px;padding:14px 16px;overflow-x:auto;font-size:11.5px;line-height:1.5;font-family:ui-monospace,'SF Mono',Menlo,monospace;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px;}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);}
+  th{font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);font-weight:700;}
+  td .sw{display:inline-block;width:13px;height:13px;border-radius:4px;vertical-align:-2px;margin-right:6px;}
+
+  /* ── MEDALLAS (1:1 con la app) ── */
+  .logros-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:22px 8px;}
+  .logro-medal{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;}
+  .logro-disc{
+    width:66px;height:66px;border-radius:50%;position:relative;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    border:2.5px solid rgba(255,255,255,0.55);
+    box-shadow:0 5px 14px -5px rgba(17,17,26,0.4), inset 0 2px 3px rgba(255,255,255,0.45), inset 0 -5px 10px rgba(0,0,0,0.22);
+  }
+  .logro-disc svg{width:30px;height:30px;}
+  .logro-num{position:absolute;bottom:-3px;right:-3px;min-width:20px;height:20px;padding:0 5px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;background:#fff;color:#1a1a22;border-radius:10px;line-height:1;font-size:11px;font-weight:700;box-shadow:0 2px 5px -1px rgba(17,17,26,0.35);}
+  .logro-num-big{bottom:4px;right:4px;min-width:32px;height:32px;border-radius:16px;font-size:16px;padding:0 9px;}
+  .logro-medal.locked .logro-disc{box-shadow:inset 0 2px 3px rgba(255,255,255,0.5), inset 0 -5px 10px rgba(0,0,0,0.10);}
+  .logro-medal.locked{opacity:0.85;}
+  .logro-name{font-size:11px;font-weight:500;color:var(--text);line-height:1.2;}
+
+  /* tamaños grandes */
+  .disc-featured{width:92px;height:92px;border-width:3px;}
+  .disc-featured svg{width:42px;height:42px;}
+  .disc-featured .logro-num{min-width:26px;height:26px;border-radius:13px;font-size:13px;bottom:0;right:0;}
+  .disc-celebr{width:122px;height:122px;border-width:4px;}
+  .disc-celebr svg{width:58px;height:58px;}
+
+  /* ── CARD DE RACHA (fuego animado) ── */
+  .streak-demo{display:flex;gap:14px;flex-wrap:wrap;}
+  .home-streak-chip{display:flex;align-items:center;gap:11px;padding:11px 16px;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--subcard-shadow);min-width:230px;}
+  .hsc-flame{display:flex;align-items:center;justify-content:center;width:34px;flex-shrink:0;}
+  .hsc-flame-svg{transform-origin:50% 92%;animation:hscFlameFlicker .85s ease-in-out infinite;filter:drop-shadow(0 1px 4px rgba(255,120,0,0.45));}
+  .hsc-text{flex:1;font-size:14px;color:var(--text);}
+  .hsc-text b{font-weight:700;}
+  @keyframes hscFlameFlicker{0%,100%{transform:scale(1,1) rotate(-1deg);}25%{transform:scale(1.05,0.96) rotate(1.2deg);}50%{transform:scale(0.97,1.05) rotate(-1.6deg);}75%{transform:scale(1.04,0.98) rotate(1.6deg);}}
+
+  .row{display:flex;align-items:flex-end;gap:36px;flex-wrap:wrap;}
+  .cap{font-size:11px;color:var(--muted2);margin-top:8px;text-align:center;}
+  .tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.4px;padding:2px 8px;border-radius:999px;background:#F1F1F4;color:var(--muted);margin-left:6px;}
+  .tag.coral{background:#FFE6EC;color:#C42960;}
+  .tag.amber{background:#FBEBD6;color:#9A5B0B;}
+  .tag.rose{background:#F6E3EF;color:#7A2350;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>CoachAI · Sistema de Logros 🏅</h1>
+  <p class="lead">Spec completo del sistema de medallas + rachas (tenant King / Jesús). Todo lo que ves acá está LIVE y renderizado 1:1 con la app. El objetivo de este documento es <b>upgradear el look de las medallas imitando el estilo "Awards" de Apple Fitness</b> — manteniendo identidad, conducta y medidas, elevando solo lo visual.</p>
+
+  <!-- ───────── BRIEF DE DISEÑO ───────── -->
+  <h2>El encargo — look iOS Fitness</h2>
+  <div class="panel brief">
+    <p style="color:#3a2a30;margin-bottom:4px;"><b>Objetivo:</b> que cada medalla se sienta como un objeto físico premium (medallón / coin 3D), como los premios de Apple Fitness, en vez de un disco plano con un ícono de línea.</p>
+    <p style="color:#7A2350;font-weight:700;margin:14px 0 2px;">Elevar (lo nuevo):</p>
+    <ul>
+      <li><b>Profundidad y bisel:</b> aro metálico con relieve, borde facetado/biselado, sensación de volumen 3D.</li>
+      <li><b>Brillo especular:</b> highlight de luz arriba-izquierda + sombra inferior, acabado metálico pulido (no flat).</li>
+      <li><b>Emblema en relieve:</b> el ícono grabado/embossed sobre el metal, no una línea plana — puede tener su propio bisel.</li>
+      <li><b>Acabados por familia:</b> coral → tono rosado/oro rosa; amber → oro; rose → bronce/magenta metálico. Mantener la distinción de color por familia.</li>
+      <li><b>Número grabado:</b> en las medallas con número (rachas, entrenos, comidas, meses) el número puede ir grabado en el metal o en un badge más rico (hoy es una píldora blanca simple).</li>
+      <li>Opcional: cinta/ribbon o destellos para las medallas "tope" (racha 100, semana perfecta acumulada alta, 1 año).</li>
+    </ul>
+    <p style="color:#7A2350;font-weight:700;margin:14px 0 2px;">Mantener (no romper):</p>
+    <ul>
+      <li>Las <b>3 familias de color</b> (coral / amber / rose) y qué medalla es de cada una.</li>
+      <li>Los <b>emblemas</b> (trofeo, estrella, llama, mancuerna, calendario, cámara, bandera, cubiertos, corona) — se pueden re-dibujar más ricos pero deben seguir leyéndose igual.</li>
+      <li>El <b>estado bloqueado</b> (gris + candado) para las no obtenidas.</li>
+      <li>El <b>badge de número</b> y el <b>contador acumulado</b> (ej. "Semana perfecta ×3").</li>
+      <li>Los <b>3 tamaños de uso</b>: grilla 66px · destacada 92px · celebración 122px (ver abajo).</li>
+    </ul>
+  </div>
+
+  <!-- ───────── LAS 17 MEDALLAS ───────── -->
+  <h2>Las 17 medallas (estado actual)</h2>
+  <div class="panel">
+    <div class="logros-grid" id="board"></div>
+  </div>
+
+  <!-- ───────── ESTADOS Y TAMAÑOS ───────── -->
+  <h2>Estados y tamaños de uso</h2>
+  <div class="panel">
+    <div class="row" id="sizes"></div>
+  </div>
+
+  <!-- ───────── CARD DE RACHA ───────── -->
+  <h2>Card de racha (Home) — fuego animado</h2>
+  <div class="panel">
+    <p>Card <b>informativa</b> bajo el hero. El fuego <b>flamea constantemente</b> y tiene <b>2 tamaños</b>: medio (26px, días 1–3 del ciclo) y grande (34px, días 4–7). Reinicia cada semana (el día 8 vuelve a medio aunque el número siga subiendo). Gradiente del fuego: <code>#FF3D00 → #FF8A00 → #FFD400</code>.</p>
+    <div class="streak-demo" id="streak"></div>
+    <p style="margin-top:14px;font-size:13px;color:var(--muted);">Para el upgrade: el fuego puede volverse más volumétrico/realista (degradé con núcleo claro, lametones, glow cálido), manteniendo el flameo y los 2 tamaños.</p>
+  </div>
+
+  <!-- ───────── TOKENS ───────── -->
+  <h2>Gradientes de las medallas</h2>
+  <div class="panel">
+    <table>
+      <tr><th>Familia</th><th>Stops (radial-gradient · circle at 34% 28%)</th><th>Medallas</th></tr>
+      <tr><td><span class="sw" style="background:#FF4F7B"></span><b>coral</b></td><td><code>#FF9FB6 0% → #FF4F7B 52% → #C42960 100%</code></td><td>Comienza tu camino · Primer cierre · Semana perfecta</td></tr>
+      <tr><td><span class="sw" style="background:#F59E3C"></span><b>amber</b></td><td><code>#FFD79A 0% → #F59E3C 52% → #C2710F 100%</code></td><td>Rachas (7/14/30/100) · Entrenos (10/50/100) · Comidas (100/500)</td></tr>
+      <tr><td><span class="sw" style="background:#C44C86"></span><b>rose</b></td><td><code>#E59BC4 0% → #C44C86 52% → #7A2350 100%</code></td><td>Meses (1/3/6) · 1 año · Primera foto</td></tr>
+      <tr><td><span class="sw" style="background:#CFCFD6"></span><b>locked</b></td><td><code>#EDEDF1 0% → #CFCFD6 55% → #AEAEB8 100%</code></td><td>Cualquiera no obtenida (+ candado)</td></tr>
+    </table>
+    <h3>Medidas del disco</h3>
+    <table>
+      <tr><th>Uso</th><th>Disco</th><th>Emblema</th><th>Borde</th><th>Nº badge</th></tr>
+      <tr><td>Grilla (colección)</td><td>66px</td><td>30px</td><td>2.5px</td><td>20px</td></tr>
+      <tr><td>Destacada (Perfil)</td><td>92px</td><td>42px</td><td>3px</td><td>26px</td></tr>
+      <tr><td>Celebración (overlay)</td><td>122px</td><td>58px</td><td>4px</td><td>32px</td></tr>
+    </table>
+    <p style="font-size:12.5px;color:var(--muted);margin-top:10px;">Sombra actual del disco: <code>0 5px 14px -5px rgba(17,17,26,.4), inset 0 2px 3px rgba(255,255,255,.45), inset 0 -5px 10px rgba(0,0,0,.22)</code> · Borde: <code>2.5px rgba(255,255,255,.55)</code> · Emblemas: trazo blanco <code>#fff</code> 1.7px. Accent del tenant: <code>#FF4F7B</code>.</p>
+  </div>
+
+  <!-- ───────── CATÁLOGO ───────── -->
+  <h2>Catálogo completo (keys + condiciones)</h2>
+  <div class="panel">
+    <table id="catalog"></table>
+  </div>
+
+  <!-- ───────── EMBLEMAS SVG ───────── -->
+  <h2>Emblemas — código SVG (fuente)</h2>
+  <div class="panel">
+    <p style="font-size:13px;color:var(--muted);">Cada emblema es un SVG de trazo blanco 24×24. Se pueden re-dibujar con más relieve/bisel para el look metálico, manteniendo la silueta reconocible.</p>
+    <pre id="emblems"></pre>
+  </div>
+
+</div>
+
+<script>
+const ACCENT='#FF4F7B';
+const MEDAL_GRAD={
+  coral:'radial-gradient(circle at 34% 28%, #FF9FB6 0%, #FF4F7B 52%, #C42960 100%)',
+  amber:'radial-gradient(circle at 34% 28%, #FFD79A 0%, #F59E3C 52%, #C2710F 100%)',
+  rose:'radial-gradient(circle at 34% 28%, #E59BC4 0%, #C44C86 52%, #7A2350 100%)',
+  locked:'radial-gradient(circle at 34% 28%, #EDEDF1 0%, #CFCFD6 55%, #AEAEB8 100%)',
+};
+const EMBLEM_SVG={
+  trophy:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4z"/><path d="M7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3"/></svg>',
+  star:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.8 6.8 19l1-5.8L3.5 9.2l5.9-.9z"/></svg>',
+  flame:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1.2 3 4 4.5 4 8a4 4 0 0 1-8 0c0-1.2.5-2.2 1.2-3C9 9 9 7 9 5.5c1.8 1 2.4-.2 3-3.5z"/><path d="M12 20a2.2 2.2 0 0 0 2.2-2.2c0-1.6-2.2-2.8-2.2-2.8s-2.2 1.2-2.2 2.8A2.2 2.2 0 0 0 12 20z"/></svg>',
+  barbell:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10"/></svg>',
+  calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/><path d="M12 13l.8 1.6 1.7.2-1.3 1.2.3 1.7-1.5-.8-1.5.8.3-1.7L9.5 14.8l1.7-.2z"/></svg>',
+  camera:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.4"/></svg>',
+  flag:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4h10l-2.2 3.2L16 10.5H6"/></svg>',
+  utensils:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v18M6 3v4a2 2 0 0 0 2 2 2 2 0 0 0 2-2V3"/><path d="M16 3c-1.4 0-2.4 2-2.4 4.4S15 12 16 12v9"/></svg>',
+  crown:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M4.5 18l-1.2-9 5.2 4L12 6l3.5 7 5.2-4-1.2 9"/></svg>',
+  lock:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+};
+const CATALOG=[
+  {key:'comienza_camino',titulo:'Comienza tu camino',desc:'Diste el primer paso. ¡Bienvenido a tu transformación!',color:'coral',emblem:'flag',cond:'Primer ingreso a la app'},
+  {key:'primer_cierre',titulo:'Primer cierre',desc:'Cerraste tu primera semana. ¡Arrancó el viaje!',color:'coral',emblem:'trophy',cond:'1+ cierre semanal'},
+  {key:'semana_perfecta',titulo:'Semana perfecta',desc:'Cumpliste todos tus entrenos y comidas en una semana.',color:'coral',emblem:'star',num:3,recurring:true,cond:'RECURRENTE — por cada semana cerrada con todos los entrenos del plan + 6 días o más de registro (se acumula ×N)'},
+  {key:'racha_7',titulo:'Racha de 7',desc:'7 días seguidos registrando. ¡Imparable!',color:'amber',emblem:'flame',num:7,cond:'Racha de 7 días (1 día de perdón)'},
+  {key:'racha_14',titulo:'Racha de 14',desc:'Dos semanas al hilo sin aflojar.',color:'amber',emblem:'flame',num:14,cond:'Racha de 14 días'},
+  {key:'racha_30',titulo:'Racha de 30',desc:'Un mes entero sin romper la cadena.',color:'amber',emblem:'flame',num:30,cond:'Racha de 30 días'},
+  {key:'racha_100',titulo:'Racha de 100',desc:'100 días seguidos. Esto ya es leyenda.',color:'amber',emblem:'flame',num:100,cond:'Racha de 100 días'},
+  {key:'diez_entrenos',titulo:'10 entrenos',desc:'Llegaste a 10 entrenos cumplidos. La constancia se nota.',color:'amber',emblem:'barbell',num:10,cond:'10 entrenos registrados'},
+  {key:'cincuenta_entrenos',titulo:'50 entrenos',desc:'50 entrenos en el cuerpo. Otra versión tuya.',color:'amber',emblem:'barbell',num:50,cond:'50 entrenos registrados'},
+  {key:'cien_entrenos',titulo:'100 entrenos',desc:'100 entrenos. Esto es disciplina pura.',color:'amber',emblem:'barbell',num:100,cond:'100 entrenos registrados'},
+  {key:'cien_comidas',titulo:'100 comidas',desc:'100 comidas registradas. La nutrición es la mitad del trabajo.',color:'amber',emblem:'utensils',num:100,cond:'100 comidas registradas'},
+  {key:'quinientas_comidas',titulo:'500 comidas',desc:'500 comidas registradas. Un hábito de verdad.',color:'amber',emblem:'utensils',num:500,cond:'500 comidas registradas'},
+  {key:'primer_mes',titulo:'Primer mes',desc:'Un mes entero en CoachAI. ¡Esto es un estilo de vida!',color:'rose',emblem:'calendar',num:1,cond:'30 días desde el alta'},
+  {key:'tres_meses',titulo:'3 meses',desc:'Tres meses sostenidos. Pocos llegan acá.',color:'rose',emblem:'calendar',num:3,cond:'90 días desde el alta'},
+  {key:'seis_meses',titulo:'6 meses',desc:'Medio año transformándote. Imparable.',color:'rose',emblem:'calendar',num:6,cond:'180 días desde el alta'},
+  {key:'un_ano',titulo:'1 año',desc:'Un año entero. Esto ya es quien sos.',color:'rose',emblem:'crown',cond:'365 días desde el alta'},
+  {key:'primera_foto',titulo:'Primera foto',desc:'Subiste tu foto de inicio: el "antes" de tu transformación.',color:'rose',emblem:'camera',cond:'Subir la primera foto de inicio'},
+];
+
+function disc(color,emblem,num,extraClass,numClass){
+  const n = num ? `<span class="logro-num ${numClass||''}">${num}</span>` : '';
+  return `<div class="logro-disc ${extraClass||''}" style="background:${MEDAL_GRAD[color]}">${EMBLEM_SVG[emblem]}${n}</div>`;
+}
+
+// Board de las 17 (grilla)
+document.getElementById('board').innerHTML = CATALOG.map(l => {
+  const num = l.recurring ? l.num : l.num; // recurrente muestra ×N; estáticas su número
+  return `<div class="logro-medal earned">${disc(l.color,l.emblem,num)}<div class="logro-name">${l.titulo}</div></div>`;
+}).join('');
+
+// Tamaños + estados
+document.getElementById('sizes').innerHTML = `
+  <div><div class="logro-medal earned">${disc('amber','flame',30)}<div class="logro-name">Grilla 66px</div></div></div>
+  <div><div class="logro-medal earned">${disc('amber','flame',30,'disc-featured')}<div class="logro-name">Destacada 92px</div></div></div>
+  <div><div class="logro-medal earned">${disc('amber','flame',30,'disc-celebr','logro-num-big')}<div class="logro-name">Celebración 122px</div></div></div>
+  <div><div class="logro-medal locked">${disc('locked','lock')}<div class="logro-name">Bloqueada</div></div></div>
+  <div><div class="logro-medal earned">${disc('coral','star',3)}<div class="logro-name">Recurrente ×N</div></div></div>
+`;
+
+// Card de racha (2 tamaños)
+const flameSvg = (px) => `<span class="hsc-flame"><svg class="hsc-flame-svg" viewBox="0 0 32 32" style="width:${px}px;height:${px}px"><defs><linearGradient id="fg${px}" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#FF3D00"/><stop offset="45%" stop-color="#FF8A00"/><stop offset="100%" stop-color="#FFD400"/></linearGradient></defs><path d="M16 2.5c2 5 7 7.2 7 13.2a7 7 0 0 1-14 0c0-2.2.9-3.9 2.1-5.3-.3 2.1.6 3.5 2 3.5 1.7 0 2.3-1.7 1-4.6C16.4 7 16 4.7 16 2.5z" fill="url(#fg${px})"/><path d="M16 15.5c1.5 0 3.2 1.7 3.2 3.8A3.2 3.2 0 0 1 12.8 19.3c0-1.5 1.5-3.8 3.2-3.8z" fill="#FFE9A8"/></svg></span>`;
+document.getElementById('streak').innerHTML = `
+  <div><div class="home-streak-chip">${flameSvg(26)}<span class="hsc-text"><b>3</b> días en racha</span></div><div class="cap">Medio (26px) · días 1–3</div></div>
+  <div><div class="home-streak-chip">${flameSvg(34)}<span class="hsc-text"><b>6</b> días en racha</span></div><div class="cap">Grande (34px) · días 4–7</div></div>
+`;
+
+// Tabla catálogo
+document.getElementById('catalog').innerHTML =
+  '<tr><th>Medalla</th><th>key</th><th>Familia</th><th>Emblema</th><th>Nº</th><th>Cómo se gana</th></tr>' +
+  CATALOG.map(l => `<tr>
+    <td><b>${l.titulo}</b></td>
+    <td><code>${l.key}${l.recurring?'_&lt;n&gt;':''}</code></td>
+    <td><span class="tag ${l.color}">${l.color}</span></td>
+    <td>${l.emblem}</td>
+    <td>${l.recurring?'×N':(l.num||'—')}</td>
+    <td style="font-size:12px;color:var(--muted)">${l.cond}</td>
+  </tr>`).join('');
+
+// Emblemas fuente
+document.getElementById('emblems').textContent =
+  Object.entries(EMBLEM_SVG).map(([k,v]) => `${k}:\n${v}\n`).join('\n');
+</script>
+</body>
+</html>
