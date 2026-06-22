@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-1753-guard-migradas-reforzado--tambien-detecta-pre--pendientes-en-beta-invitados">
+<meta name="app-version" content="20260622-1943-cierre--plan-nuevo-activo-el-mismo-dia--fecha-entrega---dia-siguiente-al-cierre-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -14022,16 +14022,23 @@ async function autoRepeatPlans() {
       return p && p.closed && p.contenido && p.semana_iso && p.semana_iso < wkNow;
     });
     if (!tipos.length) return false;
-    // Guard anti-loop: clonamos solo si HOY es posterior al último cierre, así el
-    // plan nuevo (fecha_entrega = hoy) queda ACTIVO y no se re-cierra/re-clona.
-    // Espeja la regla de loadCurrentWeekPlans (closed iff maxCierreEnd >= fecha).
-    // Cubre el borde "cierre a mitad de semana": ahí hoy <= cierre_end → no clona.
     const { data: cierres } = await sbClient.from('cierres_semanales')
       .select('fecha_fin').eq('usuario_id', currentUser.id);
     const ends = (cierres || []).map(c => (c.fecha_fin || '').slice(0, 10)).filter(Boolean).sort();
     const maxCierreEnd = ends.length ? ends[ends.length - 1] : null;
     const hoy = getTodayKey();
-    if (maxCierreEnd && !(hoy > maxCierreEnd)) return false;
+    // fecha_entrega = SIEMPRE posterior al último cierre → el plan clonado nace
+    // ACTIVO aunque cierren el ÚLTIMO día de la semana (cierre_end = hoy). Antes esto
+    // se BLOQUEABA (hoy <= cierre_end → return) y la app quedaba sin plan ese día
+    // (caso Carina). El "día siguiente al cierre" garantiza activo + sin loop (su
+    // fecha siempre > cierre_end → loadCurrentWeekPlans nunca lo re-marca closed).
+    const _dayAfter = (ymd) => {
+      const [y, m, d] = String(ymd).split('-').map(Number);
+      const dt = new Date(Date.UTC(y, m - 1, d));
+      dt.setUTCDate(dt.getUTCDate() + 1);
+      return dt.toISOString().slice(0, 10);
+    };
+    const fechaEntrega = (maxCierreEnd && maxCierreEnd >= hoy) ? _dayAfter(maxCierreEnd) : hoy;
     let copied = false;
     for (const tipo of tipos) {
       let contenido = weeklyPlans[tipo].contenido;
@@ -14040,7 +14047,7 @@ async function autoRepeatPlans() {
         usuario_id: currentUser.id,
         tipo,
         semana_iso: wkNow,
-        fecha_entrega: hoy,
+        fecha_entrega: fechaEntrega,
         contenido,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'usuario_id,tipo,semana_iso' });
