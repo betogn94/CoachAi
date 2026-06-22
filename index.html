@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-1943-cierre--plan-nuevo-activo-el-mismo-dia--fecha-entrega---dia-siguiente-al-cierre-">
+<meta name="app-version" content="20260622-1959-cierre--overlay-obligatorio-que-bloquea-home-chat-perfil---cierre-solo-el-ultimo-dia">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11217,6 +11217,37 @@ body.theme-king .cai-perfil-transform-badge {
   color: #fff; font-size: 15px; font-weight: 700; font-family: 'DM Sans', sans-serif;
 }
 .logro-celebr-btn:active { transform: scale(0.98); }
+/* ── Overlay de cierre obligatorio (bloquea Home/Chat/Perfil; tapa el nav z-index:90) ── */
+.cierre-gate-overlay {
+  position: fixed; inset: 0; z-index: 4000;
+  display: none; align-items: center; justify-content: center; padding: 24px;
+  background: rgba(17,17,26,0.55);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+}
+.cierre-gate-overlay.open { display: flex; }
+.cierre-gate-card {
+  background: var(--surface, #fff); border: 1px solid var(--border, rgba(0,0,0,0.08));
+  border-radius: 22px; box-shadow: 0 20px 60px -20px rgba(0,0,0,0.5);
+  padding: 30px 24px 24px; max-width: 360px; width: 100%; text-align: center;
+}
+.cierre-gate-eyebrow { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1.8px; color: var(--accent); margin-bottom: 10px; }
+.cierre-gate-emoji { font-size: 46px; line-height: 1; margin-bottom: 12px; }
+.cierre-gate-title { font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+.cierre-gate-desc { font-size: 14px; color: var(--muted); line-height: 1.5; margin: 0 auto 22px; max-width: 300px; }
+.cierre-gate-btn {
+  width: 100%; padding: 15px; border: none; border-radius: 14px; cursor: pointer;
+  background: linear-gradient(135deg, var(--accent-bright, var(--accent)), var(--accent), var(--accent3, var(--accent)));
+  color: #fff; font-size: 16px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+.cierre-gate-btn:active { transform: scale(0.98); }
+.cierre-gate-links { display: flex; gap: 8px; margin-top: 14px; }
+.cierre-gate-link {
+  flex: 1; padding: 11px 8px; border: 1px solid var(--border, rgba(0,0,0,0.08)); border-radius: 12px;
+  background: var(--surface, #fff); color: var(--muted); font-size: 12.5px; font-weight: 600;
+  font-family: 'DM Sans', sans-serif; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.cierre-gate-link:active { transform: scale(0.98); }
 /* Cards y superficies elevadas → sombra ambiental por capas */
 body .cai-home-hero, body .cai-home-card, body .cai-alim-summary, body .cai-meal, body .alim-tips-card,
 body .semana-card, body .cai-ent-summary, body .cai-ent-hero, body .cai-perfil-section, body .cai-perfil-info,
@@ -13188,6 +13219,23 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
        (e.g. _alimDirtyDays sync flow that does `document.getElementById('alim-days-container')`).
        Hidden — not used by the new render. -->
   <div id="alim-days-container" style="display:none"></div>
+</div>
+
+<!-- Overlay de CIERRE OBLIGATORIO: bloquea Home/Chat/Perfil hasta que cierren la
+     semana completa. Mi Alimentación / Mi Entreno siguen accesibles (links de abajo
+     o el nav). No es descartable tocando afuera — el único salir es cerrar o ir a cargar. -->
+<div class="cierre-gate-overlay" id="cierre-gate-overlay" role="dialog" aria-modal="true" aria-label="Cerrar tu semana">
+  <div class="cierre-gate-card">
+    <div class="cierre-gate-eyebrow" data-es="SEMANA COMPLETA" data-en="WEEK COMPLETE">SEMANA COMPLETA</div>
+    <div class="cierre-gate-emoji" aria-hidden="true">🎉</div>
+    <div class="cierre-gate-title" id="cierre-gate-title">¡Lograste otra semana!</div>
+    <div class="cierre-gate-desc" data-es="Cerrá tu semana para ver tu progreso y arrancar la próxima. Si te falta algo, podés terminar de cargar tu alimentación o tu entreno antes." data-en="Close your week to see your progress and start the next one. If you're missing anything, you can finish logging your meals or workouts first.">Cerrá tu semana para ver tu progreso y arrancar la próxima. Si te falta algo, podés terminar de cargar tu alimentación o tu entreno antes.</div>
+    <button class="cierre-gate-btn" type="button" onclick="cierreGateClose()" data-es="Cerrar mi semana" data-en="Close my week">Cerrar mi semana</button>
+    <div class="cierre-gate-links">
+      <button class="cierre-gate-link" type="button" onclick="showDiario(); setActiveNav('nav-diario')" data-es="Falta cargar comidas" data-en="Log meals">Falta cargar comidas</button>
+      <button class="cierre-gate-link" type="button" onclick="showMiEntreno(); setActiveNav('nav-entreno')" data-es="Falta cargar entrenos" data-en="Log workouts">Falta cargar entrenos</button>
+    </div>
+  </div>
 </div>
 
 <!-- Edit comida modal -->
@@ -19581,10 +19629,12 @@ async function renderSemanas() {
     loadFotosProgreso()
   ]);
   cierresSemanales = cierres;
+  _cierresLoaded = true;   // recién ahora el gate puede evaluar sin riesgo de falso-bloqueo
   // Con los cierres ya cargados, re-evaluamos el recordatorio de cierre de Home
   // (dato autoritativo del closed-state, por si la primera llamada en renderHome
   // corrió antes de tener los cierres).
   try { renderHomeCierreCard(); } catch (e) {}
+  try { applyCierreGate(); } catch (e) {}   // muestra/oculta el overlay de cierre obligatorio
 
   // Compute baseline vistas explicitly so the home transformación grid can
   // pair frente-vs-frente and espalda-vs-espalda. pickBaselinePhoto alone
@@ -20266,6 +20316,9 @@ function closeCierrePanel() {
     delete preview.dataset.objUrl;
   }
   document.getElementById('cierre-overlay').classList.remove('open');
+  // Al cerrar el modal, re-evaluamos el gate: si quedan semanas pendientes (catch-up
+  // secuencial) lo vuelve a mostrar; si ya cerró todo, queda libre.
+  try { applyCierreGate(); } catch (e) {}
 }
 
 // Per-vista preview for the weekly cierre. Vista is 'frente' | 'espalda'.
@@ -21304,11 +21357,9 @@ function isWeekCierreEligible(weekNum, hasCierre) {
   const today = getTodayKey();
   if (range.start > today) return false;            // semana futura → no
   if (range.end < today) return true;               // semana pasada sin cerrar → catch-up
-  // semana en curso → solo en los últimos 2 días (incluye hoy)
-  const end = new Date(range.end + 'T00:00:00');
-  const t = new Date(today + 'T00:00:00');
-  const daysLeft = Math.round((end - t) / 86400000);
-  return daysLeft >= 0 && daysLeft <= 2;
+  // semana en curso → SOLO el ÚLTIMO día (no antes), así no cierran a medias y el
+  // cierre arranca recién cuando la semana se completó. El overlay guiado fuerza ahí.
+  return range.end === today;
 }
 
 // Semana pendiente de cerrar: la MÁS VIEJA elegible (prioriza el catch-up de una
@@ -21322,6 +21373,46 @@ function pendingCierreWeek() {
     if (isWeekCierreEligible(w, closed.has(w))) return w;
   }
   return null;
+}
+
+// ── OVERLAY DE CIERRE OBLIGATORIO ────────────────────────────────────────────
+// Cuando una semana se COMPLETÓ y no está cerrada, bloqueamos Home/Chat/Perfil con
+// un overlay que las guía a cerrar (Mi Alimentación y Mi Entreno quedan accesibles
+// para terminar de cargar). Es secuencial (la más vieja primero, vía pendingCierreWeek)
+// y persistente (reaparece al volver a una sección bloqueada hasta que cierren).
+// FAIL-SAFE: nunca bloquea si los cierres no se cargaron (_cierresLoaded) — así un
+// arranque sin datos no atrapa a nadie creyendo que no cerró.
+let _cierresLoaded = false;
+let _cierreGateWeek = null;
+const _CIERRE_GATE_BLOCKED = ['nav-inicio', 'nav-coach', 'nav-perfil'];
+function _currentNavId() {
+  const a = document.querySelector('.nav-item.active');
+  return a ? a.id : 'nav-inicio';
+}
+function applyCierreGate(navId) {
+  const ov = document.getElementById('cierre-gate-overlay');
+  if (!ov) return;
+  // No gatear a coaches/admins (solo clientes). Si por algo está abierto, lo cerramos.
+  if (currentUser && currentUser.role && currentUser.role !== 'user') { ov.classList.remove('open'); return; }
+  if (navId == null) navId = _currentNavId();
+  // No pisar el modal de cierre en sí (donde leen su análisis).
+  const modalOpen = !!document.querySelector('#cierre-overlay.open');
+  let week = null;
+  if (!modalOpen && _cierresLoaded && _CIERRE_GATE_BLOCKED.indexOf(navId) !== -1) {
+    try { week = pendingCierreWeek(); } catch (e) { week = null; }
+  }
+  if (week != null) { renderCierreGate(week); ov.classList.add('open'); }
+  else { ov.classList.remove('open'); }
+}
+function renderCierreGate(week) {
+  _cierreGateWeek = week;
+  const t = document.getElementById('cierre-gate-title');
+  if (t) t.textContent = (lang === 'es') ? `¡Lograste tu semana ${week}!` : `You completed week ${week}!`;
+}
+function cierreGateClose() {
+  const ov = document.getElementById('cierre-gate-overlay');
+  if (ov) ov.classList.remove('open');                 // ocultamos el gate antes de abrir el modal
+  if (_cierreGateWeek != null) { try { openCierreSemana(_cierreGateWeek); } catch (e) { console.warn('[cierre-gate] open:', e); } }
 }
 
 function renderHomeCierreCard() {
@@ -21521,6 +21612,9 @@ function setActiveNav(id) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   const el = document.getElementById(id);
   if (el) el.classList.add('active');
+  // Gate de cierre obligatorio: si la sección es bloqueada y hay semana pendiente,
+  // muestra el overlay; si es Alim/Entreno (o no hay pendiente), lo oculta.
+  try { applyCierreGate(id); } catch (e) {}
 
   // Slide direccional de la sección, matcheando la dirección del thumb del nav:
   // ir a un tab "más a la derecha" en _NAV_ORDER → entra desde la derecha, y al revés.
