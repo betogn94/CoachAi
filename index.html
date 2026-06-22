@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-0123-editar-comida--modal-mas-limpio--sin-planificado--sin-emoji-en-titulo--sin-tip-">
+<meta name="app-version" content="20260622-0134-mi-entreno--resto-de-semana-desplegable---hero-abre-por-defecto---ejercicios-blanco-grisaceo">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -1570,10 +1570,10 @@ body.theme-king .cai-ent-hero-check.done {
    like xeroxed copies. The differences are very subtle (~5% lightness)
    but enough to break the flatness. */
 body.theme-king .cai-ent-ex {
-  background: linear-gradient(135deg, #FFF7FA 0%, #FFEAF1 100%) !important;
-  background-image: linear-gradient(135deg, #FFF7FA 0%, #FFEAF1 100%) !important;
-  border: 1px solid rgba(255,79,123,0.18) !important;
-  box-shadow: 0 1px 2px rgba(26,26,38,0.04), 0 4px 14px rgba(255,107,149,0.10) !important;
+  background: #F4F5F7 !important;             /* blanco grisáceo (no coral) → blanco sobre blanco */
+  background-image: none !important;
+  border: 1px solid var(--border) !important;
+  /* la sombra de profundidad la da var(--subcard-shadow) en el bloque premium */
 }
 body.theme-king .cai-ent-ex-name { color: var(--text) !important; }
 body.theme-king .cai-ent-ex-note { color: var(--muted) !important; }
@@ -3657,7 +3657,19 @@ body.theme-king .cai-meal-macros {
 }
 .cai-ent-other-list {
   display: flex; flex-direction: column; gap: 8px;
+  margin-top: 14px;   /* aire bajo el toggle cuando está abierto */
 }
+/* "Resto de la semana" como desplegable */
+.cai-ent-other-toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.cai-ent-other-toggle .cai-ent-other-title { margin-bottom: 0; }
+.cai-ent-other-chev {
+  font-size: 13px; color: var(--muted); flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+.cai-ent-other-toggle.open .cai-ent-other-chev { transform: rotate(180deg); }
 .cai-ent-subcard {
   display: flex; align-items: center; justify-content: space-between;
   gap: 10px;
@@ -23135,12 +23147,27 @@ function toggleEntHero() {
   if (_entOverrideIdx !== null && mapping.days[_entOverrideIdx]) displayIdx = _entOverrideIdx;
   else if (!mapping.isTodayRest) displayIdx = mapping.todayRoutineIdx;
   else return;  // rest hero has no body to toggle
-  _entHeroOpen[displayIdx] = !_entHeroOpen[displayIdx];
+  // undefined = abierta por defecto → el primer tap debe COLAPSAR (false).
+  _entHeroOpen[displayIdx] = _entHeroOpen[displayIdx] === undefined ? false : !_entHeroOpen[displayIdx];
   const card = document.getElementById('cai-ent-hero-card');
   if (card) {
     card.classList.toggle('open', !!_entHeroOpen[displayIdx]);
     const headBtn = card.querySelector('.cai-ent-hero-head');
     if (headBtn) headBtn.setAttribute('aria-expanded', _entHeroOpen[displayIdx] ? 'true' : 'false');
+  }
+}
+
+// Despliega/oculta la lista de "Resto de la semana" (Mi Entreno). Colapsada por
+// defecto: el usuario la abre para ver los demás días.
+function toggleEntOther() {
+  const list = document.getElementById('cai-ent-other-list');
+  const tog = document.getElementById('cai-ent-other-toggle');
+  if (!list) return;
+  const isOpen = list.style.display !== 'none';
+  list.style.display = isOpen ? 'none' : 'flex';
+  if (tog) {
+    tog.classList.toggle('open', !isOpen);
+    tog.setAttribute('aria-expanded', !isOpen ? 'true' : 'false');
   }
 }
 
@@ -23345,7 +23372,9 @@ function renderMiEntreno() {
       // encounters a nested <button> — putting the check button inside a real
       // button-head would tear the DOM apart, dropping .cai-ent-hero-body-wrap
       // outside the card.
-      const wasOpen = !!_entHeroOpen[displayIdx];
+      // Por defecto la card del día arranca DESPLEGADA (ejercicios listos). Si el
+      // usuario la colapsa, _entHeroOpen[displayIdx] queda en false y se respeta.
+      const wasOpen = (_entHeroOpen[displayIdx] === undefined) ? true : !!_entHeroOpen[displayIdx];
       hero.innerHTML = `
         <div class="cai-ent-hero${done ? ' done' : ''}${wasOpen ? ' open' : ''}" id="cai-ent-hero-card">
           <div class="cai-ent-hero-top">
@@ -23435,8 +23464,13 @@ function renderMiEntreno() {
       otherCard.style.display = 'block';
       otherCard.innerHTML = `
         <div class="cai-ent-other">
-          <div class="cai-ent-other-title">${lang==='es'?'RESTO DE LA SEMANA':'REST OF THE WEEK'}</div>
-          <div class="cai-ent-other-list">${subCards.join('')}</div>
+          <div class="cai-ent-other-toggle" id="cai-ent-other-toggle" onclick="toggleEntOther()"
+               role="button" tabindex="0" aria-expanded="false"
+               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleEntOther();}">
+            <div class="cai-ent-other-title">${lang==='es'?'RESTO DE LA SEMANA':'REST OF THE WEEK'}</div>
+            <span class="cai-ent-other-chev" aria-hidden="true">▾</span>
+          </div>
+          <div class="cai-ent-other-list" id="cai-ent-other-list" style="display:none">${subCards.join('')}</div>
         </div>
       `;
     } else {
