@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-0353-logros--contador-de-racha-vivo-en-home">
+<meta name="app-version" content="20260622-0412-racha-card--fuego-animado-que-crece-por-semana---ancho-igualado-a-hero---informativa">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -3840,19 +3840,30 @@ body.theme-king .home-plan-banner { background: #FFF0F4; border-color: rgba(255,
   margin-top: 2px;
 }
 
-/* Racha viva (chip bajo el hero) */
+/* Racha viva (card informativa bajo el hero — iguala el ancho de la hero: 18px a los lados) */
 .home-streak-chip {
-  display: flex; align-items: center; gap: 10px;
-  margin: 0 0 14px; padding: 12px 14px;
+  display: flex; align-items: center; gap: 11px;
+  margin: 0 18px 14px; padding: 11px 16px;
   background: var(--surface, #fff); border: 1px solid var(--border);
-  border-radius: 14px; box-shadow: var(--subcard-shadow); cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+  border-radius: 14px; box-shadow: var(--subcard-shadow);
 }
-.home-streak-chip:active { transform: scale(0.99); }
-.home-streak-chip .hsc-flame { font-size: 20px; line-height: 1; flex-shrink: 0; }
+/* slot fijo (= tamaño máximo del fuego) para que el texto no se mueva al crecer */
+.home-streak-chip .hsc-flame { display: flex; align-items: center; justify-content: center; width: 30px; flex-shrink: 0; }
+.home-streak-chip .hsc-flame-svg {
+  transform-origin: 50% 92%;
+  animation: hscFlameFlicker 0.85s ease-in-out infinite;
+  filter: drop-shadow(0 1px 4px rgba(255,120,0,0.45));
+  transition: width 0.5s ease, height 0.5s ease;
+}
 .home-streak-chip .hsc-text { flex: 1; min-width: 0; font-size: 14px; color: var(--text); font-family: 'DM Sans', sans-serif; }
 .home-streak-chip .hsc-text b { font-weight: 700; }
-.home-streak-chip .hsc-chev { width: 16px; height: 16px; color: var(--muted2, var(--muted)); flex-shrink: 0; }
+@keyframes hscFlameFlicker {
+  0%, 100% { transform: scale(1, 1) rotate(-1deg); }
+  25% { transform: scale(1.05, 0.96) rotate(1.2deg); }
+  50% { transform: scale(0.97, 1.05) rotate(-1.6deg); }
+  75% { transform: scale(1.04, 0.98) rotate(1.6deg); }
+}
+@media (prefers-reduced-motion: reduce) { .home-streak-chip .hsc-flame-svg { animation: none; } }
 
 /* 2-col grid for the action cards (shortcuts + chart + chat) */
 .cai-home-grid {
@@ -11762,11 +11773,19 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     </div>
   </div>
 
-  <!-- Racha viva: días seguidos registrando comidas (visible solo desde 2 días). -->
-  <div id="home-streak-chip" class="home-streak-chip" style="display:none" onclick="showPerfil(); setActiveNav('nav-perfil')" role="button" tabindex="0">
-    <span class="hsc-flame" aria-hidden="true">🔥</span>
+  <!-- Racha viva (informativa): días seguidos registrando comidas (visible desde 2 días).
+       El fuego flamea siempre y crece dentro del ciclo de 7 días, reiniciando cada semana. -->
+  <div id="home-streak-chip" class="home-streak-chip" style="display:none">
+    <span class="hsc-flame" aria-hidden="true">
+      <svg id="home-streak-flame" class="hsc-flame-svg" viewBox="0 0 32 32" style="width:22px;height:22px">
+        <defs><linearGradient id="homeFlameGrad" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stop-color="#FF3D00"/><stop offset="45%" stop-color="#FF8A00"/><stop offset="100%" stop-color="#FFD400"/>
+        </linearGradient></defs>
+        <path d="M16 2.5c2 5 7 7.2 7 13.2a7 7 0 0 1-14 0c0-2.2.9-3.9 2.1-5.3-.3 2.1.6 3.5 2 3.5 1.7 0 2.3-1.7 1-4.6C16.4 7 16 4.7 16 2.5z" fill="url(#homeFlameGrad)"/>
+        <path d="M16 15.5c1.5 0 3.2 1.7 3.2 3.8A3.2 3.2 0 0 1 12.8 19.3c0-1.5 1.5-3.8 3.2-3.8z" fill="#FFE9A8"/>
+      </svg>
+    </span>
     <span class="hsc-text"><b id="home-streak-num">0</b> <span id="home-streak-label">días en racha</span></span>
-    <svg class="hsc-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
   </div>
 
   <!-- Row 1: shortcut cards (Próxima comida + Hoy toca) -->
@@ -20995,6 +21014,12 @@ function renderStreakChip() {
     const lblEl = document.getElementById('home-streak-label');
     if (numEl) numEl.textContent = cur;
     if (lblEl) lblEl.textContent = (lang === 'es') ? 'días en racha' : 'day streak';
+    // El fuego crece dentro del ciclo de 7 días y se reinicia cada semana: día
+    // 1-2 chico → crece cada ~2 días → máximo el día 7; el día 8 vuelve a chico.
+    const cycleDay = ((cur - 1) % 7) + 1;
+    const sizePx = cycleDay <= 2 ? 18 : (cycleDay <= 4 ? 22 : (cycleDay <= 6 ? 26 : 30));
+    const flame = document.getElementById('home-streak-flame');
+    if (flame) { flame.style.width = sizePx + 'px'; flame.style.height = sizePx + 'px'; }
     chip.style.display = 'flex';
   } else {
     chip.style.display = 'none';
