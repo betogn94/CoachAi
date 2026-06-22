@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-0323-logros--sistema-de-medallas---coleccion-en-perfil---celebracion--fase-1-">
+<meta name="app-version" content="20260622-0349-logros--catalogo-ampliado--17---medallas-de-racha-con-numero---dia-de-perdon">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11112,12 +11112,20 @@ body.theme-king .cai-perfil-transform-badge {
 .cai-perfil-logros-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 8px; padding: 4px 2px; }
 .logro-medal { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .logro-disc {
-  width: 66px; height: 66px; border-radius: 50%;
+  width: 66px; height: 66px; border-radius: 50%; position: relative;
   display: flex; align-items: center; justify-content: center;
   border: 2.5px solid rgba(255,255,255,0.55);
   box-shadow: 0 5px 14px -5px rgba(17,17,26,0.4), inset 0 2px 3px rgba(255,255,255,0.45), inset 0 -5px 10px rgba(0,0,0,0.22);
 }
 .logro-disc svg { width: 30px; height: 30px; }
+.logro-num {
+  position: absolute; bottom: -3px; right: -3px; min-width: 20px; height: 20px;
+  padding: 0 5px; box-sizing: border-box; display: flex; align-items: center; justify-content: center;
+  background: #fff; color: #1a1a22; border-radius: 10px; line-height: 1;
+  font-size: 11px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+  box-shadow: 0 2px 5px -1px rgba(17,17,26,0.35);
+}
+.logro-num-big { bottom: 4px; right: 4px; min-width: 32px; height: 32px; border-radius: 16px; font-size: 16px; padding: 0 9px; }
 .logro-medal.locked .logro-disc { box-shadow: inset 0 2px 3px rgba(255,255,255,0.5), inset 0 -5px 10px rgba(0,0,0,0.10); }
 .logro-medal.locked { opacity: 0.85; }
 .logro-name { font-size: 11px; font-weight: 500; color: var(--text); text-align: center; line-height: 1.2; }
@@ -21791,12 +21799,28 @@ async function renderPerfil() {
 // Catálogo en código (copy + estética); user_logros (DB) guarda qué ganó cada
 // uno (key + titulo/desc/icon para que el push del cron no duplique el catálogo).
 const LOGROS_CATALOG = [
-  { key:'primer_cierre',   titulo:'Primer cierre',   desc:'Cerraste tu primera semana. ¡Arrancó el viaje!',                 color:'coral', emblem:'trophy' },
-  { key:'semana_perfecta', titulo:'Semana perfecta', desc:'Cumpliste todos tus entrenos y tus comidas en una semana.',      color:'coral', emblem:'star' },
-  { key:'racha_7',         titulo:'Racha de fuego',  desc:'7 días seguidos sin aflojar. ¡Imparable!',                       color:'amber', emblem:'flame' },
-  { key:'diez_entrenos',   titulo:'10 entrenos',     desc:'Llegaste a 10 entrenos cumplidos. La constancia se nota.',       color:'amber', emblem:'barbell' },
-  { key:'primer_mes',      titulo:'Primer mes',      desc:'Un mes entero en CoachAI. ¡Esto es un estilo de vida!',          color:'rose',  emblem:'calendar' },
-  { key:'primera_foto',    titulo:'Primera foto',    desc:'Subiste tu foto de inicio: el "antes" de tu transformación.',    color:'rose',  emblem:'camera' },
+  // — Arranque —
+  { key:'comienza_camino', titulo:'Comienza tu camino', desc:'Diste el primer paso. ¡Bienvenido a tu transformación!',        color:'coral', emblem:'flag' },
+  { key:'primer_cierre',   titulo:'Primer cierre',      desc:'Cerraste tu primera semana. ¡Arrancó el viaje!',                color:'coral', emblem:'trophy' },
+  { key:'semana_perfecta', titulo:'Semana perfecta',    desc:'Cumpliste todos tus entrenos y tus comidas en una semana.',      color:'coral', emblem:'star' },
+  // — Rachas (con 1 día de perdón) —
+  { key:'racha_7',   titulo:'Racha de 7',   desc:'7 días seguidos registrando. ¡Imparable!',           color:'amber', emblem:'flame', num:7 },
+  { key:'racha_14',  titulo:'Racha de 14',  desc:'Dos semanas al hilo sin aflojar.',                    color:'amber', emblem:'flame', num:14 },
+  { key:'racha_30',  titulo:'Racha de 30',  desc:'Un mes entero sin romper la cadena.',                 color:'amber', emblem:'flame', num:30 },
+  { key:'racha_100', titulo:'Racha de 100', desc:'100 días seguidos. Esto ya es leyenda.',              color:'amber', emblem:'flame', num:100 },
+  // — Volumen —
+  { key:'diez_entrenos',      titulo:'10 entrenos',  desc:'Llegaste a 10 entrenos cumplidos. La constancia se nota.',  color:'amber', emblem:'barbell', num:10 },
+  { key:'cincuenta_entrenos', titulo:'50 entrenos',  desc:'50 entrenos en el cuerpo. Otra versión tuya.',              color:'amber', emblem:'barbell', num:50 },
+  { key:'cien_entrenos',      titulo:'100 entrenos', desc:'100 entrenos. Esto es disciplina pura.',                    color:'amber', emblem:'barbell', num:100 },
+  { key:'cien_comidas',       titulo:'100 comidas',  desc:'100 comidas registradas. La nutrición es la mitad del trabajo.', color:'amber', emblem:'utensils', num:100 },
+  { key:'quinientas_comidas', titulo:'500 comidas',  desc:'500 comidas registradas. Un hábito de verdad.',             color:'amber', emblem:'utensils', num:500 },
+  // — Permanencia —
+  { key:'primer_mes', titulo:'Primer mes', desc:'Un mes entero en CoachAI. ¡Esto es un estilo de vida!', color:'rose', emblem:'calendar', num:1 },
+  { key:'tres_meses', titulo:'3 meses',    desc:'Tres meses sostenidos. Pocos llegan acá.',             color:'rose', emblem:'calendar', num:3 },
+  { key:'seis_meses', titulo:'6 meses',    desc:'Medio año transformándote. Imparable.',                color:'rose', emblem:'calendar', num:6 },
+  { key:'un_ano',     titulo:'1 año',      desc:'Un año entero. Esto ya es quien sos.',                 color:'rose', emblem:'crown' },
+  // — Extra —
+  { key:'primera_foto', titulo:'Primera foto', desc:'Subiste tu foto de inicio: el "antes" de tu transformación.', color:'rose', emblem:'camera' },
 ];
 const LOGRO_BY_KEY = Object.fromEntries(LOGROS_CATALOG.map(l => [l.key, l]));
 const MEDAL_GRAD = {
@@ -21812,14 +21836,18 @@ const EMBLEM_SVG = {
   barbell: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10"/></svg>',
   calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/><path d="M12 13l.8 1.6 1.7.2-1.3 1.2.3 1.7-1.5-.8-1.5.8.3-1.7L9.5 14.8l1.7-.2z"/></svg>',
   camera:  '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.4"/></svg>',
+  flag:    '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4h10l-2.2 3.2L16 10.5H6"/></svg>',
+  utensils:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v18M6 3v4a2 2 0 0 0 2 2 2 2 0 0 0 2-2V3"/><path d="M16 3c-1.4 0-2.4 2-2.4 4.4S15 12 16 12v9"/></svg>',
+  crown:   '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16M4.5 18l-1.2-9 5.2 4L12 6l3.5 7 5.2-4-1.2 9"/></svg>',
   lock:    '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
 };
 
 function medalHtml(logro, earned) {
   const grad = earned ? (MEDAL_GRAD[logro.color] || MEDAL_GRAD.coral) : MEDAL_GRAD.locked;
   const emblem = earned ? (EMBLEM_SVG[logro.emblem] || EMBLEM_SVG.trophy) : EMBLEM_SVG.lock;
+  const num = (earned && logro.num) ? `<span class="logro-num">${logro.num}</span>` : '';
   return `<div class="logro-medal${earned ? '' : ' locked'}" title="${logro.titulo}">
-      <div class="logro-disc" style="background:${grad}">${emblem}</div>
+      <div class="logro-disc" style="background:${grad}">${emblem}${num}</div>
       <div class="logro-name">${logro.titulo}</div>
     </div>`;
 }
@@ -21839,39 +21867,54 @@ async function renderPerfilLogros() {
   box.innerHTML = LOGROS_CATALOG.map(l => medalHtml(l, have.has(l.key))).join('');
 }
 
-// ¿Hay una racha de N días consecutivos con actividad (entreno o comidas)?
-function _logroHasStreak(diario, n) {
-  if (!Array.isArray(diario)) return false;
+// ── RACHAS ───────────────────────────────────────────────────────────────────
+// Un día "cuenta" para la racha si registró sus comidas (la racha se basa en
+// comidas; el entreno solo aplica los días de entreno y se mide aparte). La
+// racha tolera 1 día de "perdón" (estilo Duolingo): un solo hueco no la rompe.
+function _logroDayLogged(d) {
+  return !!d && ((d.calorias_consumidas != null && d.calorias_consumidas > 0)
+    || !!d.desayuno || !!d.almuerzo || !!d.merienda || !!d.cena);
+}
+function _logroDateIdx(s) { return Math.floor(Date.parse(s + 'T00:00:00Z') / 86400000); }
+// Devuelve {current, best}: racha actual (terminando hoy o ayer si aún no
+// registró hoy) y la mejor racha histórica. grace = días de perdón permitidos.
+function computeStreaks(diario, grace = 1) {
   const active = new Set();
-  for (const d of diario) {
-    if (!d || !d.fecha) continue;
-    const isActive = d.entreno === true || (d.calorias_consumidas != null && d.calorias_consumidas > 0)
-      || !!d.desayuno || !!d.almuerzo || !!d.merienda || !!d.cena;
-    if (isActive) active.add(d.fecha);
-  }
-  for (const dateStr of active) {
-    let ok = true;
-    const base = new Date(dateStr + 'T12:00:00');
-    for (let i = 1; i < n; i++) {
-      const prev = new Date(base.getTime() - i * 86400000).toISOString().slice(0, 10);
-      if (!active.has(prev)) { ok = false; break; }
+  for (const d of (diario || [])) if (d && d.fecha && _logroDayLogged(d)) active.add(_logroDateIdx(d.fecha));
+  const lenEndingAt = (idx) => {
+    if (!active.has(idx)) return 0;
+    let len = 0, g = grace, i = idx, guard = 0;
+    while (guard++ < 2000) {
+      if (active.has(i)) { len++; i--; }
+      else if (g > 0) { g--; i--; }
+      else break;
     }
-    if (ok) return true;
-  }
-  return false;
+    return len;
+  };
+  let best = 0;
+  for (const idx of active) { const l = lenEndingAt(idx); if (l > best) best = l; }
+  const todayIdx = _logroDateIdx(getTodayKey());
+  let current = lenEndingAt(todayIdx);
+  if (!active.has(todayIdx)) current = lenEndingAt(todayIdx - 1); // aún no registró hoy → vale la de ayer
+  return { current, best };
 }
 
-// Computa qué logros CALIFICA el usuario ahora (Set de keys), desde los datos ya cargados.
+// Computa qué logros CALIFICA el usuario ahora (Set de keys).
 async function computeEarnedLogroKeys() {
   const keys = new Set();
   const u = currentUser;
   if (!u) return keys;
-  // primer_mes — 30+ días desde el alta
+  // Comienza tu camino — por estar dentro de la app (primer ingreso)
+  keys.add('comienza_camino');
+  // Permanencia — días desde el alta
   if (u.created_at) {
     const days = Math.floor((Date.now() - new Date(u.created_at).getTime()) / 86400000);
-    if (days >= 30) keys.add('primer_mes');
+    if (days >= 30)  keys.add('primer_mes');
+    if (days >= 90)  keys.add('tres_meses');
+    if (days >= 180) keys.add('seis_meses');
+    if (days >= 365) keys.add('un_ano');
   }
-  // cierres
+  // Cierres semanales
   let cierres = [];
   try { cierres = await loadCierresSemanales(); } catch (e) {}
   if (cierres.length >= 1) keys.add('primer_cierre');
@@ -21881,12 +21924,26 @@ async function computeEarnedLogroKeys() {
   if (target > 0 && cierres.some(c => c.stats && c.stats.trained != null && c.stats.trained >= target && (c.stats.totalLogs || 0) >= 6)) {
     keys.add('semana_perfecta');
   }
-  // entrenos totales (recentDiario cubre ~90d) — 10 entrenos
-  const entrenoCount = Array.isArray(recentDiario) ? recentDiario.filter(d => d && d.entreno).length : 0;
-  if (entrenoCount >= 10) keys.add('diez_entrenos');
-  // racha de 7
-  if (_logroHasStreak(recentDiario, 7)) keys.add('racha_7');
-  // primera foto de inicio
+  // Historial diario amplio (~1 año) para conteos acumulados y rachas largas.
+  let diario = [];
+  try { diario = await loadRecentDiario(370); } catch (e) { diario = Array.isArray(recentDiario) ? recentDiario : []; }
+  // Entrenos acumulados
+  const entrenoCount = diario.filter(d => d && d.entreno === true).length;
+  if (entrenoCount >= 10)  keys.add('diez_entrenos');
+  if (entrenoCount >= 50)  keys.add('cincuenta_entrenos');
+  if (entrenoCount >= 100) keys.add('cien_entrenos');
+  // Comidas acumuladas (suma de las 4 comidas por día)
+  let comidasCount = 0;
+  for (const d of diario) { if (!d) continue; comidasCount += (d.desayuno?1:0)+(d.almuerzo?1:0)+(d.merienda?1:0)+(d.cena?1:0); }
+  if (comidasCount >= 100) keys.add('cien_comidas');
+  if (comidasCount >= 500) keys.add('quinientas_comidas');
+  // Rachas (con 1 día de perdón)
+  const { best } = computeStreaks(diario, 1);
+  if (best >= 7)   keys.add('racha_7');
+  if (best >= 14)  keys.add('racha_14');
+  if (best >= 30)  keys.add('racha_30');
+  if (best >= 100) keys.add('racha_100');
+  // Primera foto de inicio
   try {
     const fotos = await loadFotosProgreso();
     if (Array.isArray(fotos) && fotos.some(f => f.tipo === 'inicio')) keys.add('primera_foto');
@@ -21917,10 +21974,32 @@ async function checkAndAwardLogros() {
     // Celebración: mostramos UNA (la primera) para no spamear modales (ej. usuarios
     // existentes que califican a varios de golpe). El resto aparece en la colección.
     const first = LOGRO_BY_KEY[newKeys[0]];
-    if (first) showLogroCelebration(first);
+    if (first) queueLogroCele(first);
     try { if (typeof trackEvent === 'function') trackEvent('logros_awarded', { keys: newKeys.join(',') }); } catch (e) {}
   } catch (e) { console.warn('[logros] award:', e); }
   finally { _logrosChecking = false; }
+}
+
+// La celebración no debe pisar el overlay de carga del onboarding. Si está
+// abierto, encolamos y reintentamos hasta que cierre (máx ~60s); si no, va ya.
+let _pendingLogroCele = null, _pendingLogroPoll = null;
+function _celeBlocked() {
+  const ov = document.getElementById('plan-loading-overlay');
+  return !!(ov && getComputedStyle(ov).display !== 'none');
+}
+function queueLogroCele(logro) {
+  if (!logro) return;
+  if (!_celeBlocked()) { showLogroCelebration(logro); return; }
+  _pendingLogroCele = logro;
+  if (_pendingLogroPoll) return;
+  let tries = 0;
+  _pendingLogroPoll = setInterval(() => {
+    if (!_celeBlocked() && _pendingLogroCele) {
+      const l = _pendingLogroCele; _pendingLogroCele = null;
+      clearInterval(_pendingLogroPoll); _pendingLogroPoll = null;
+      showLogroCelebration(l);
+    } else if (++tries > 40) { clearInterval(_pendingLogroPoll); _pendingLogroPoll = null; }
+  }, 1500);
 }
 
 // Momento de celebración (overlay) con la medalla grande.
@@ -21928,7 +22007,11 @@ function showLogroCelebration(logro) {
   const ov = document.getElementById('logro-overlay');
   if (!ov || !logro) return;
   const disc = document.getElementById('logro-disc-big');
-  if (disc) { disc.style.background = MEDAL_GRAD[logro.color] || MEDAL_GRAD.coral; disc.innerHTML = EMBLEM_SVG[logro.emblem] || EMBLEM_SVG.trophy; }
+  if (disc) {
+    disc.style.background = MEDAL_GRAD[logro.color] || MEDAL_GRAD.coral;
+    const num = logro.num ? `<span class="logro-num logro-num-big">${logro.num}</span>` : '';
+    disc.innerHTML = (EMBLEM_SVG[logro.emblem] || EMBLEM_SVG.trophy) + num;
+  }
   const t = document.getElementById('logro-celebr-title'); if (t) t.textContent = logro.titulo;
   const d = document.getElementById('logro-celebr-desc');  if (d) d.textContent = logro.descripcion || logro.desc || '';
   ov.classList.add('open');
