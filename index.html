@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-0158-perfil-premium--tipografia-sans--no-mono----transformacion-limpia--fotos-flotantes-">
+<meta name="app-version" content="20260622-0202-perfil--badges-rutina-dieta-sin-coral--pills-neutros-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -1788,19 +1788,13 @@ body.theme-king .cai-perfil-plan {
 }
 body.theme-king .cai-perfil-section-title { color: var(--accent) !important; }
 
-/* Mi plan — RUTINA / DIETA badges. RUTINA gets a soft-coral outline pill
-   (white-ish bg, coral border + text). DIETA gets a FILLED deeper-coral
-   pill so the two are immediately distinguishable at a glance — they
-   read as "primary action / secondary action" instead of two siblings. */
-body.theme-king .cai-perfil-plan-badge {
-  background: rgba(255,79,123,0.10) !important;
-  color: var(--accent) !important;
-  border: 1px solid rgba(255,79,123,0.35) !important;
-}
+/* Mi plan — RUTINA / DIETA badges. Sin coral (a pedido): pills neutros grises;
+   el texto RUTINA/DIETA ya los distingue. */
+body.theme-king .cai-perfil-plan-badge,
 body.theme-king .cai-perfil-plan-badge.dieta {
-  background: var(--accent3) !important;
-  color: #fff !important;
-  border-color: var(--accent3) !important;
+  background: #F1F1F4 !important;
+  color: var(--muted) !important;
+  border: 1px solid var(--border) !important;
 }
 body.theme-king .cai-perfil-plan-head:hover,
 body.theme-king .cai-perfil-plan-head:active {
