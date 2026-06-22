@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-0215-perfil--quitar-coral-de-ultimo-analisis---mi-informacion--wash--inputs--glow-avatar-">
+<meta name="app-version" content="20260622-0323-logros--sistema-de-medallas---coleccion-en-perfil---celebracion--fase-1-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11108,6 +11108,33 @@ body.theme-king .cai-perfil-transform-badge {
 .semanas-toggle .semanas-toggle-chev { font-size: 12px; transition: transform 0.2s ease; }
 .semanas-toggle.open .semanas-toggle-chev { transform: rotate(180deg); }
 .semanas-past { flex-direction: column; }
+/* ── LOGROS (medallas estilo award) + overlay de celebración ── */
+.cai-perfil-logros-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 8px; padding: 4px 2px; }
+.logro-medal { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.logro-disc {
+  width: 66px; height: 66px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 2.5px solid rgba(255,255,255,0.55);
+  box-shadow: 0 5px 14px -5px rgba(17,17,26,0.4), inset 0 2px 3px rgba(255,255,255,0.45), inset 0 -5px 10px rgba(0,0,0,0.22);
+}
+.logro-disc svg { width: 30px; height: 30px; }
+.logro-medal.locked .logro-disc { box-shadow: inset 0 2px 3px rgba(255,255,255,0.5), inset 0 -5px 10px rgba(0,0,0,0.10); }
+.logro-medal.locked { opacity: 0.85; }
+.logro-name { font-size: 11px; font-weight: 500; color: var(--text); text-align: center; line-height: 1.2; }
+.logro-medal.locked .logro-name { color: var(--muted2, var(--muted)); }
+/* Overlay de celebración */
+.logro-celebr-card { text-align: center; }
+.logro-celebr-eyebrow { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 1.6px; color: var(--accent); margin-bottom: 16px; }
+.logro-disc-big { width: 122px; height: 122px; margin: 0 auto 18px; border-width: 4px; }
+.logro-disc-big svg { width: 58px; height: 58px; }
+.logro-celebr-title { font-size: 23px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+.logro-celebr-desc { font-size: 14px; color: var(--muted); line-height: 1.5; margin: 0 auto 22px; max-width: 280px; }
+.logro-celebr-btn {
+  width: 100%; padding: 14px; border: none; border-radius: 12px; cursor: pointer;
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent), var(--accent3));
+  color: #fff; font-size: 15px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+}
+.logro-celebr-btn:active { transform: scale(0.98); }
 /* Cards y superficies elevadas → sombra ambiental por capas */
 body .cai-home-hero, body .cai-home-card, body .cai-alim-summary, body .cai-meal, body .alim-tips-card,
 body .semana-card, body .cai-ent-summary, body .cai-ent-hero, body .cai-perfil-section, body .cai-perfil-info,
@@ -12442,6 +12469,12 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     </div>
   </div>
 
+  <!-- LOGROS — medallas (gamificación), pintadas por renderPerfilLogros() -->
+  <div class="cai-perfil-section">
+    <div class="cai-perfil-section-title" data-es="LOGROS" data-en="ACHIEVEMENTS">LOGROS</div>
+    <div class="cai-perfil-logros-grid" id="perfil-logros-body"></div>
+  </div>
+
   <!-- ÚLTIMO ANÁLISIS — most recent week analysis preview -->
   <div class="cai-perfil-section">
     <div class="cai-perfil-section-title" data-es="ÚLTIMO ANÁLISIS" data-en="LATEST ANALYSIS">ÚLTIMO ANÁLISIS</div>
@@ -13081,6 +13114,18 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       <button class="alim-edit-save" id="completar-save-btn" onclick="saveCompletarDia()" type="button">Guardar día</button>
     </div>
     <div class="alim-edit-status" id="completar-status"></div>
+  </div>
+</div>
+
+<!-- Logro desbloqueado — momento de celebración con la medalla grande -->
+<div class="alim-edit-overlay" id="logro-overlay" onclick="closeLogro(event)" role="dialog" aria-modal="true" aria-label="Logro desbloqueado">
+  <div class="alim-edit-card logro-celebr-card" onclick="event.stopPropagation()">
+    <button class="alim-edit-close logro-celebr-close" onclick="closeLogro()" aria-label="Cerrar">×</button>
+    <div class="logro-celebr-eyebrow" data-es="LOGRO DESBLOQUEADO" data-en="ACHIEVEMENT UNLOCKED">LOGRO DESBLOQUEADO</div>
+    <div class="logro-disc logro-disc-big" id="logro-disc-big"></div>
+    <div class="logro-celebr-title" id="logro-celebr-title">—</div>
+    <div class="logro-celebr-desc" id="logro-celebr-desc">—</div>
+    <button class="logro-celebr-btn" onclick="closeLogro()" type="button">¡Genial! 🎉</button>
   </div>
 </div>
 
@@ -16914,6 +16959,10 @@ async function launchCoach() {
   recentDiario = recentDiarioData;
   weeklyPlans = plans;
 
+  // Logros: con los datos cargados, chequeamos y otorgamos los que correspondan
+  // (no bloquea el resto del launch). Celebra los nuevos + refresca la colección.
+  try { if (typeof checkAndAwardLogros === 'function') checkAndAwardLogros(); } catch (e) {}
+
   // FLUJO JESÚS/KING — precarga automática del plan post-cierre. Si la clienta es
   // de Jesús, cerró su semana y arrancó una semana ISO nueva sin plan, clona su
   // rutina + dieta de la semana anterior a esta semana (rutina limpia, dieta igual)
@@ -20378,6 +20427,8 @@ async function ejecutarCierreSemana() {
         console.warn('[cierre] no se pudo refrescar weeklyPlans post-cierre:', e2?.message || e2);
       }
       await renderSemanas();
+      // Logros: post-cierre puede desbloquear "primer cierre" / "semana perfecta".
+      try { if (typeof checkAndAwardLogros === 'function') checkAndAwardLogros(); } catch (eL) {}
     } catch(e) {
       console.error('Post-analysis save/refresh failed (analysis still shown):', e);
       _setBtnTxt(lang === 'es' ? '⚠ Análisis no guardado' : '⚠ Analysis not saved');
@@ -21731,6 +21782,163 @@ async function renderPerfil() {
   if (typeof renderFotoInicioCard === 'function') {
     renderFotoInicioCard().catch(() => {});
   }
+  try { if (typeof renderPerfilLogros === 'function') renderPerfilLogros(); } catch (e) {}
+}
+
+// ============================================================================
+// LOGROS (gamificación) — medallas estilo award + colección + celebración
+// ============================================================================
+// Catálogo en código (copy + estética); user_logros (DB) guarda qué ganó cada
+// uno (key + titulo/desc/icon para que el push del cron no duplique el catálogo).
+const LOGROS_CATALOG = [
+  { key:'primer_cierre',   titulo:'Primer cierre',   desc:'Cerraste tu primera semana. ¡Arrancó el viaje!',                 color:'coral', emblem:'trophy' },
+  { key:'semana_perfecta', titulo:'Semana perfecta', desc:'Cumpliste todos tus entrenos y tus comidas en una semana.',      color:'coral', emblem:'star' },
+  { key:'racha_7',         titulo:'Racha de fuego',  desc:'7 días seguidos sin aflojar. ¡Imparable!',                       color:'amber', emblem:'flame' },
+  { key:'diez_entrenos',   titulo:'10 entrenos',     desc:'Llegaste a 10 entrenos cumplidos. La constancia se nota.',       color:'amber', emblem:'barbell' },
+  { key:'primer_mes',      titulo:'Primer mes',      desc:'Un mes entero en CoachAI. ¡Esto es un estilo de vida!',          color:'rose',  emblem:'calendar' },
+  { key:'primera_foto',    titulo:'Primera foto',    desc:'Subiste tu foto de inicio: el "antes" de tu transformación.',    color:'rose',  emblem:'camera' },
+];
+const LOGRO_BY_KEY = Object.fromEntries(LOGROS_CATALOG.map(l => [l.key, l]));
+const MEDAL_GRAD = {
+  coral:  'radial-gradient(circle at 34% 28%, #FF9FB6 0%, #FF4F7B 52%, #C42960 100%)',
+  amber:  'radial-gradient(circle at 34% 28%, #FFD79A 0%, #F59E3C 52%, #C2710F 100%)',
+  rose:   'radial-gradient(circle at 34% 28%, #E59BC4 0%, #C44C86 52%, #7A2350 100%)',
+  locked: 'radial-gradient(circle at 34% 28%, #EDEDF1 0%, #CFCFD6 55%, #AEAEB8 100%)',
+};
+const EMBLEM_SVG = {
+  trophy:  '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4z"/><path d="M7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3"/></svg>',
+  star:    '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.8 6.8 19l1-5.8L3.5 9.2l5.9-.9z"/></svg>',
+  flame:   '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1.2 3 4 4.5 4 8a4 4 0 0 1-8 0c0-1.2.5-2.2 1.2-3C9 9 9 7 9 5.5c1.8 1 2.4-.2 3-3.5z"/><path d="M12 20a2.2 2.2 0 0 0 2.2-2.2c0-1.6-2.2-2.8-2.2-2.8s-2.2 1.2-2.2 2.8A2.2 2.2 0 0 0 12 20z"/></svg>',
+  barbell: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10"/></svg>',
+  calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/><path d="M12 13l.8 1.6 1.7.2-1.3 1.2.3 1.7-1.5-.8-1.5.8.3-1.7L9.5 14.8l1.7-.2z"/></svg>',
+  camera:  '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.4"/></svg>',
+  lock:    '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+};
+
+function medalHtml(logro, earned) {
+  const grad = earned ? (MEDAL_GRAD[logro.color] || MEDAL_GRAD.coral) : MEDAL_GRAD.locked;
+  const emblem = earned ? (EMBLEM_SVG[logro.emblem] || EMBLEM_SVG.trophy) : EMBLEM_SVG.lock;
+  return `<div class="logro-medal${earned ? '' : ' locked'}" title="${logro.titulo}">
+      <div class="logro-disc" style="background:${grad}">${emblem}</div>
+      <div class="logro-name">${logro.titulo}</div>
+    </div>`;
+}
+
+// Pinta la grilla de medallas en Perfil (ganadas a color, pendientes en gris).
+async function renderPerfilLogros() {
+  const box = document.getElementById('perfil-logros-body');
+  if (!box) return;
+  let have = new Set();
+  try {
+    const uid = (typeof _getImpersonateUid === 'function' && _getImpersonateUid()) || (currentUser && currentUser.id);
+    if (uid && sbClient) {
+      const { data } = await sbClient.from('user_logros').select('logro_key').eq('usuario_id', uid);
+      have = new Set((data || []).map(r => r.logro_key));
+    }
+  } catch (e) {}
+  box.innerHTML = LOGROS_CATALOG.map(l => medalHtml(l, have.has(l.key))).join('');
+}
+
+// ¿Hay una racha de N días consecutivos con actividad (entreno o comidas)?
+function _logroHasStreak(diario, n) {
+  if (!Array.isArray(diario)) return false;
+  const active = new Set();
+  for (const d of diario) {
+    if (!d || !d.fecha) continue;
+    const isActive = d.entreno === true || (d.calorias_consumidas != null && d.calorias_consumidas > 0)
+      || !!d.desayuno || !!d.almuerzo || !!d.merienda || !!d.cena;
+    if (isActive) active.add(d.fecha);
+  }
+  for (const dateStr of active) {
+    let ok = true;
+    const base = new Date(dateStr + 'T12:00:00');
+    for (let i = 1; i < n; i++) {
+      const prev = new Date(base.getTime() - i * 86400000).toISOString().slice(0, 10);
+      if (!active.has(prev)) { ok = false; break; }
+    }
+    if (ok) return true;
+  }
+  return false;
+}
+
+// Computa qué logros CALIFICA el usuario ahora (Set de keys), desde los datos ya cargados.
+async function computeEarnedLogroKeys() {
+  const keys = new Set();
+  const u = currentUser;
+  if (!u) return keys;
+  // primer_mes — 30+ días desde el alta
+  if (u.created_at) {
+    const days = Math.floor((Date.now() - new Date(u.created_at).getTime()) / 86400000);
+    if (days >= 30) keys.add('primer_mes');
+  }
+  // cierres
+  let cierres = [];
+  try { cierres = await loadCierresSemanales(); } catch (e) {}
+  if (cierres.length >= 1) keys.add('primer_cierre');
+  const target = (typeof getWeeklyTrainingTarget === 'function')
+    ? getWeeklyTrainingTarget()
+    : (Array.isArray(u.dias_entreno) ? u.dias_entreno.length : 0);
+  if (target > 0 && cierres.some(c => c.stats && c.stats.trained != null && c.stats.trained >= target && (c.stats.totalLogs || 0) >= 6)) {
+    keys.add('semana_perfecta');
+  }
+  // entrenos totales (recentDiario cubre ~90d) — 10 entrenos
+  const entrenoCount = Array.isArray(recentDiario) ? recentDiario.filter(d => d && d.entreno).length : 0;
+  if (entrenoCount >= 10) keys.add('diez_entrenos');
+  // racha de 7
+  if (_logroHasStreak(recentDiario, 7)) keys.add('racha_7');
+  // primera foto de inicio
+  try {
+    const fotos = await loadFotosProgreso();
+    if (Array.isArray(fotos) && fotos.some(f => f.tipo === 'inicio')) keys.add('primera_foto');
+  } catch (e) {}
+  return keys;
+}
+
+// Otorga los logros nuevos (persiste en user_logros) + dispara la celebración.
+let _logrosChecking = false;
+async function checkAndAwardLogros() {
+  if (_logrosChecking || !sbClient || !currentUser) return;
+  if (currentUser.role && currentUser.role !== 'user') return;            // no coaches/admins
+  if (typeof _getImpersonateUid === 'function' && _getImpersonateUid()) return; // no otorgar en preview del coach
+  _logrosChecking = true;
+  try {
+    const earned = await computeEarnedLogroKeys();
+    if (!earned.size) return;
+    const { data: existing } = await sbClient.from('user_logros').select('logro_key').eq('usuario_id', currentUser.id);
+    const have = new Set((existing || []).map(r => r.logro_key));
+    const newKeys = [...earned].filter(k => !have.has(k));
+    if (!newKeys.length) return;
+    const rows = newKeys.map(k => {
+      const c = LOGRO_BY_KEY[k];
+      return { usuario_id: currentUser.id, logro_key: k, titulo: c.titulo, descripcion: c.desc, icon: c.emblem };
+    });
+    await sbClient.from('user_logros').upsert(rows, { onConflict: 'usuario_id,logro_key', ignoreDuplicates: true });
+    try { renderPerfilLogros(); } catch (e) {}
+    // Celebración: mostramos UNA (la primera) para no spamear modales (ej. usuarios
+    // existentes que califican a varios de golpe). El resto aparece en la colección.
+    const first = LOGRO_BY_KEY[newKeys[0]];
+    if (first) showLogroCelebration(first);
+    try { if (typeof trackEvent === 'function') trackEvent('logros_awarded', { keys: newKeys.join(',') }); } catch (e) {}
+  } catch (e) { console.warn('[logros] award:', e); }
+  finally { _logrosChecking = false; }
+}
+
+// Momento de celebración (overlay) con la medalla grande.
+function showLogroCelebration(logro) {
+  const ov = document.getElementById('logro-overlay');
+  if (!ov || !logro) return;
+  const disc = document.getElementById('logro-disc-big');
+  if (disc) { disc.style.background = MEDAL_GRAD[logro.color] || MEDAL_GRAD.coral; disc.innerHTML = EMBLEM_SVG[logro.emblem] || EMBLEM_SVG.trophy; }
+  const t = document.getElementById('logro-celebr-title'); if (t) t.textContent = logro.titulo;
+  const d = document.getElementById('logro-celebr-desc');  if (d) d.textContent = logro.descripcion || logro.desc || '';
+  ov.classList.add('open');
+}
+function closeLogro(event) {
+  if (event && event.target && event.target.id !== 'logro-overlay'
+      && !event.target.classList.contains('logro-celebr-close')
+      && !event.target.classList.contains('logro-celebr-btn')) return;
+  const ov = document.getElementById('logro-overlay');
+  if (ov) ov.classList.remove('open');
 }
 
 // "Mi información" card — populates the discreet collapsed header
