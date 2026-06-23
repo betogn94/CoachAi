@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260622-2332-cierre--el-overlay-obligatorio-pasa-por-completar-dias-faltantes-antes-de-las-fotos">
+<meta name="app-version" content="20260623-0012-onboarding-fijo--sin-scroll-de-pagina--oculta-footer---saca-margen-del-form-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -2513,6 +2513,11 @@ h1 {
    script also nudges display:none for browsers without :has() support. */
 body:has(.form-wrapper[style*="block"]) #hero-section { display: none !important; }
 body:has(.form-wrapper[style*="block"]) .home-wrapper { display: none !important; }
+/* Onboarding FIJO: que el paso entre en pantalla sin scroll de página. La hero ya
+   está oculta (regla de arriba); sacamos el footer y el margen inferior del form,
+   que eran lo que empujaba la página unos px más allá del viewport. */
+body:has(.form-wrapper[style*="block"]) > footer { display: none !important; }
+body:has(.form-wrapper[style*="block"]) .form-wrapper { margin-bottom: 0 !important; }
 
 /* Floating bottom nav — single shared element OUTSIDE the panels. Respects
    iOS safe-area-inset-bottom so the button row doesn't touch the home
