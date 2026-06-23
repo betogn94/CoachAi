@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260623-1908-onboarding-mas-corto--fuera-medidas-y-duracion">
+<meta name="app-version" content="20260623-1945-backup-rutina-varon---getbackupplan-sexo-aware">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -14375,15 +14375,21 @@ function evaluatePlanQuality(tipo, contenido, opts) {
 async function getBackupPlan(tipo, target) {
   if (!sbClient || !currentUser) return null;
   try {
-    const { data } = await sbClient.from('plan_templates').select('contenido, dias, kcal_base').eq('tipo', tipo);
+    const { data } = await sbClient.from('plan_templates').select('contenido, dias, kcal_base, sexo').eq('tipo', tipo);
     if (!data || !data.length) return null;
+    // Preferí plantillas del MISMO SEXO: la rutina de varón (split de fuerza) NO es la
+    // de mujer (glúteo-céntrica, método Reloj de Arena). Si no hay del sexo del cliente,
+    // caé a todas. En dieta el kcal ya rutea casi todo, pero igual respetamos el sexo.
+    const sexo = currentUser && currentUser.sexo;
+    const sameSex = data.filter(t => t.sexo === sexo);
+    const pool = sameSex.length ? sameSex : data;
     let tpl;
     if (tipo === 'rutina') {
       const want = (typeof getWeeklyTrainingTarget === 'function' ? getWeeklyTrainingTarget() : 0) || 4;
-      tpl = data.reduce((a, b) => Math.abs((b.dias || 4) - want) < Math.abs((a.dias || 4) - want) ? b : a);
+      tpl = pool.reduce((a, b) => Math.abs((b.dias || 4) - want) < Math.abs((a.dias || 4) - want) ? b : a);
     } else {
       const want = (target && target.kcal) || 1400;
-      tpl = data.reduce((a, b) => Math.abs((b.kcal_base || 1400) - want) < Math.abs((a.kcal_base || 1400) - want) ? b : a);
+      tpl = pool.reduce((a, b) => Math.abs((b.kcal_base || 1400) - want) < Math.abs((a.kcal_base || 1400) - want) ? b : a);
     }
     let c = tpl.contenido;
     c = c.replace(/\{NOMBRE\}/g, (currentUser.nombre || '').trim() || 'vos');
