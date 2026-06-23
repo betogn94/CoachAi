@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260623-1426-fix-cierre--no-forzar-cerrar-semanas-sin-plan--created-at-viejo---migradas-">
+<meta name="app-version" content="20260623-1908-onboarding-mas-corto--fuera-medidas-y-duracion">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12122,49 +12122,11 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       <div class="step-panel-dots">
         <span class="pdot active"></span>
         <span class="pdot"></span>
-        <span class="pdot"></span>
       </div>
     </div>
 
-    <!-- ============ PANEL 1.2 · MEDIDAS (opcional) ============ -->
+    <!-- ============ PANEL 1.2 · OBJETIVO ============ -->
     <div class="step-panel" data-step="1" data-panel="2">
-      <div class="section-card" id="step1-cuerpo">
-        <div class="section-header">
-          <div class="section-number">01</div>
-          <div class="section-info">
-            <div class="section-title" data-es="MEDIDAS" data-en="MEASUREMENTS">MEDIDAS</div>
-            <div class="section-desc" data-es="Opcional · para calcular % graso con más precisión" data-en="Optional · for a more precise body fat %">Opcional · para calcular % graso con más precisión</div>
-          </div>
-        </div>
-        <div class="section-body">
-          <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5">
-            Estas medidas nos permiten calcular tu % de grasa corporal inicial con mayor precisión. Podés saltearlas y completarlas más tarde desde Perfil.
-          </div>
-          <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 12px">
-            <div class="form-group">
-              <label data-es="Cuello (cm)" data-en="Neck (cm)">Cuello (cm)</label>
-              <input type="number" inputmode="numeric" id="f-cuello" placeholder="Ej: 38" min="20" max="60">
-            </div>
-            <div class="form-group">
-              <label data-es="Cintura (cm)" data-en="Waist (cm)">Cintura (cm)</label>
-              <input type="number" inputmode="numeric" id="f-cintura-form" placeholder="Ej: 85" min="40" max="200">
-            </div>
-          </div>
-          <div class="form-group full" style="margin-top:12px">
-            <label data-es="Cadera (cm) — solo mujeres" data-en="Hips (cm) — women only">Cadera (cm) — solo mujeres</label>
-            <input type="number" inputmode="numeric" id="f-cadera-form" placeholder="Ej: 95" min="40" max="200">
-          </div>
-        </div>
-      </div>
-      <div class="step-panel-dots">
-        <span class="pdot"></span>
-        <span class="pdot active"></span>
-        <span class="pdot"></span>
-      </div>
-    </div>
-
-    <!-- ============ PANEL 1.3 · OBJETIVO ============ -->
-    <div class="step-panel" data-step="1" data-panel="3">
       <div class="section-card" id="step1-objetivo">
         <div class="section-header">
           <div class="section-number">01</div>
@@ -12196,7 +12158,6 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
         </div>
       </div>
       <div class="step-panel-dots">
-        <span class="pdot"></span>
         <span class="pdot"></span>
         <span class="pdot active"></span>
       </div>
@@ -12290,17 +12251,6 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
               <div class="dia-card" onclick="toggleDia(this,'sab')"><div class="dia-name" data-es="SÁB" data-en="SAT">SÁB</div><div class="dia-num">S</div></div>
               <div class="dia-card" onclick="toggleDia(this,'dom')"><div class="dia-name" data-es="DOM" data-en="SUN">DOM</div><div class="dia-num">D</div></div>
             </div>
-          </div>
-          <div class="form-group full" style="margin-bottom:14px">
-            <label data-es="Duración por sesión" data-en="Session duration">Duración por sesión</label>
-            <select id="f-duracion">
-              <option value="" data-es="— Seleccionar —" data-en="— Select —">— Seleccionar —</option>
-              <option value="30min" data-es="30 minutos" data-en="30 minutes">30 minutos</option>
-              <option value="45min" data-es="45 minutos" data-en="45 minutes">45 minutos</option>
-              <option value="60min" data-es="1 hora" data-en="1 hour">1 hora</option>
-              <option value="75min" data-es="1 hora 15 min" data-en="1 hour 15 min">1 hora 15 min</option>
-              <option value="90min" data-es="1 hora 30 min" data-en="1 hour 30 min">1 hora 30 min</option>
-            </select>
           </div>
           <div class="form-group full">
             <label data-es="Lugar de entrenamiento" data-en="Training location">Lugar de entrenamiento</label>
@@ -15458,7 +15408,6 @@ function saveProfile() {
     peso: document.getElementById('f-peso').value,
     altura: document.getElementById('f-altura').value,
     actividad: document.getElementById('f-actividad').value,
-    duracion: document.getElementById('f-duracion').value,
     lugar: document.getElementById('f-lugar').value,
     nodislike: document.getElementById('f-nodislike').value,
     selectedDias,
@@ -15526,7 +15475,7 @@ function resetAppState() {
   const chatBox = document.getElementById('chat-messages');
   if (chatBox) chatBox.innerHTML = '';
   // Wipe form fields so a new user doesn't see prior values pre-filled
-  ['f-nombre','f-edad','f-sexo','f-peso','f-altura','f-actividad','f-duracion',
+  ['f-nombre','f-edad','f-sexo','f-peso','f-altura','f-actividad',
    'f-lugar','f-nodislike','f-cuello','f-cintura-form','f-cadera-form']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 }
@@ -15552,7 +15501,6 @@ function restoreFormFromProfile(p) {
   document.getElementById('f-peso').value = p.peso || '';
   document.getElementById('f-altura').value = p.altura || '';
   document.getElementById('f-actividad').value = p.actividad || '';
-  document.getElementById('f-duracion').value = p.duracion || '';
   document.getElementById('f-lugar').value = p.lugar || '';
   document.getElementById('f-nodislike').value = p.nodislike || '';
   if (document.getElementById('f-cuello')) document.getElementById('f-cuello').value = p.cuello || '';
@@ -16601,7 +16549,6 @@ function buildSystemPrompt() {
   const peso = document.getElementById('f-peso').value;
   const altura = document.getElementById('f-altura').value;
   const actividad = document.getElementById('f-actividad').value;
-  const duracion = document.getElementById('f-duracion').value || 'no especificada';
   const lugar = document.getElementById('f-lugar').value || 'no especificado';
   const noDislike = document.getElementById('f-nodislike').value || 'ninguno';
   const pesoNum = parseFloat(peso);
@@ -16674,7 +16621,6 @@ PERFIL COMPLETO DEL USUARIO:
 
 ENTRENAMIENTO:
 - Días disponibles: ${diasStr} (${selectedDias.length} días/semana)
-- Duración por sesión: ${duracion}
 - Lugar: ${lugar}
 - Lesiones / limitaciones: ${lesiones}
 
@@ -16893,7 +16839,6 @@ USER PROFILE:
 
 TRAINING:
 - Available days: ${diasStr} (${selectedDias.length} days/week)
-- Session duration: ${duracion}
 - Location: ${lugar}
 - Injuries / limitations: ${lesiones}
 
