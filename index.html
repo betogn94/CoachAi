@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260623-2043-logros-de-arranque--se-celebran-en-la-2da-entrada--no-en-la-1ra-">
+<meta name="app-version" content="20260623-2102-celebracion-de-logros-server-side--robusta-a-cierres-de-app-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -22491,43 +22491,42 @@ async function checkAndAwardLogros() {
     const { data: existing } = await sbClient.from('user_logros').select('logro_key').eq('usuario_id', currentUser.id);
     const have = new Set((existing || []).map(r => r.logro_key));
     const newKeys = [...earned].filter(k => !have.has(k) && logroTemplateForKey(k));
-    if (!newKeys.length) return;
-    // (firstSession se capturó arriba del flag del tutorial; en silencio = sin modal
-    // de celebración y sin push (notificado=true) → la medalla aparece encendida en la
-    // colección para que la persona la descubra sin que le interrumpa el minuto uno.)
-    const rows = newKeys.map(k => {
-      const c = logroTemplateForKey(k);
-      return { usuario_id: currentUser.id, logro_key: k, titulo: c.titulo, descripcion: c.desc, icon: c.emblem, notificado: firstSession };
-    });
-    await sbClient.from('user_logros').upsert(rows, { onConflict: 'usuario_id,logro_key', ignoreDuplicates: true });
-    try { renderPerfilLogros(); } catch (e) {}
-    // Celebración DIFERIDA a la 2da entrada (idea de Beto): en la PRIMERA entrada guiada
-    // (tutorial sin ver) NO celebramos —solo el tutorial—; guardamos los logros de arranque
-    // como pendientes. En la PRÓXIMA entrada (tutorial ya visto) celebramos esos pendientes
-    // + el primer hito nuevo de esta sesión, en cola (de a uno, en orden). Anti-spam: de lo
-    // nuevo de la sesión actual se celebra solo el primero; los diferidos (arranque) van todos.
-    const PENDING_KEY = 'coachai_pending_cele_v1';
-    if (firstSession) {
-      try {
-        const prev = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]');
-        localStorage.setItem(PENDING_KEY, JSON.stringify([...new Set([...prev, ...newKeys])]));
-      } catch (e) {}
-    } else {
-      let pending = [];
-      try { pending = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]'); if (pending.length) localStorage.removeItem(PENDING_KEY); } catch (e) {}
-      const toCele = [...pending, ...(newKeys[0] ? [newKeys[0]] : [])].filter((k, i, a) => a.indexOf(k) === i);
-      for (const k of toCele) {
-        const tpl = logroTemplateForKey(k);
-        if (!tpl) continue;
-        let cele = tpl;
-        if (tpl.recurring) {
-          const total = [...have, ...newKeys].filter(x => x.indexOf(tpl.prefix) === 0).length;
-          cele = { ...tpl, _mult: total, descripcion: total >= 2 ? `¡Tu semana perfecta N°${total}! Seguí sumando.` : tpl.desc };
-        }
-        queueLogroCele(cele);
-      }
+    // Otorgamos las nuevas con celebrado=false (pendientes de celebrar). En la primera
+    // entrada guiada NO va push (notificado=true) y NO se celebra —solo el tutorial—:
+    // quedan celebrado=false y se celebran en la PRÓXIMA entrada.
+    if (newKeys.length) {
+      const rows = newKeys.map(k => {
+        const c = logroTemplateForKey(k);
+        return { usuario_id: currentUser.id, logro_key: k, titulo: c.titulo, descripcion: c.desc, icon: c.emblem, notificado: firstSession, celebrado: false };
+      });
+      await sbClient.from('user_logros').upsert(rows, { onConflict: 'usuario_id,logro_key', ignoreDuplicates: true });
+      try { renderPerfilLogros(); } catch (e) {}
+      try { if (typeof trackEvent === 'function') trackEvent('logros_awarded', { keys: newKeys.join(','), silent: firstSession }); } catch (e) {}
     }
-    try { if (typeof trackEvent === 'function') trackEvent('logros_awarded', { keys: newKeys.join(','), silent: firstSession }); } catch (e) {}
+    // CELEBRACIÓN — server-side (robusta a cierres de app, a diferencia de localStorage).
+    // En la primera entrada guiada no celebramos (solo el tutorial). Desde la 2da (tutorial
+    // ya visto) traemos TODO lo pendiente (celebrado=false): los diferidos de la 1ra entrada
+    // + lo nuevo de esta sesión, y lo mostramos en cola (de a uno). Idea de Beto.
+    if (firstSession) return;
+    const { data: pend } = await sbClient.from('user_logros').select('logro_key').eq('usuario_id', currentUser.id).eq('celebrado', false);
+    const pendKeys = (pend || []).map(r => r.logro_key);
+    if (!pendKeys.length) return;
+    // Marcamos TODO como celebrado de una (no se re-celebra aunque capemos cuántas mostramos).
+    try { await sbClient.from('user_logros').update({ celebrado: true }).eq('usuario_id', currentUser.id).eq('celebrado', false); } catch (e) {}
+    // Orden del catálogo (comienza_camino primero) + anti-spam: hasta 3 modales; el resto
+    // ya quedó marcado y aparece encendido en la colección.
+    const _idx = (k) => { const t = logroTemplateForKey(k); const i = LOGROS_CATALOG.indexOf(t); return i < 0 ? 99 : i; };
+    pendKeys.sort((a, b) => _idx(a) - _idx(b));
+    for (const k of pendKeys.slice(0, 3)) {
+      const tpl = logroTemplateForKey(k);
+      if (!tpl) continue;
+      let cele = tpl;
+      if (tpl.recurring) {
+        const total = [...have, ...newKeys].filter(x => x.indexOf(tpl.prefix) === 0).length;
+        cele = { ...tpl, _mult: total, descripcion: total >= 2 ? `¡Tu semana perfecta N°${total}! Seguí sumando.` : tpl.desc };
+      }
+      queueLogroCele(cele);
+    }
   } catch (e) { console.warn('[logros] award:', e); }
   finally { _logrosChecking = false; }
 }
