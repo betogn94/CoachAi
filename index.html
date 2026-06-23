@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260623-2102-celebracion-de-logros-server-side--robusta-a-cierres-de-app-">
+<meta name="app-version" content="20260623-2122-mi-entreno--separar-dato--chip--de-tecnica--nota-suave--en-ejercicios">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -1584,6 +1584,7 @@ body.theme-king .cai-ent-ex-detail {
   color: var(--accent) !important;
   border: 1px solid rgba(255,79,123,0.25) !important;
 }
+body.theme-king .cai-ent-ex-cue { border-left-color: rgba(255,79,123,0.35) !important; }
 
 /* Cardio chip (Mi Entreno) in King theme — pink gradient like the other
    surface elements, with pink accent for icon & title. */
@@ -3524,9 +3525,20 @@ body.theme-king .cai-meal-macros {
   white-space: normal;
   line-height: 1.45;
 }
+/* Indicación de técnica (intensificador, tempo, etc.) — nota suave debajo del chip
+   de series. Separar el DATO (chip) de la INDICACIÓN (cue) evita que un texto largo
+   infle el chip coral y dé sensación de saturado. */
+.cai-ent-ex-cue {
+  margin-top: 8px;
+  padding: 1px 0 1px 10px;
+  border-left: 2px solid rgba(46,207,181,0.32);
+  font-size: 11px; line-height: 1.5;
+  letter-spacing: 0.1px;
+  color: var(--muted);
+}
 .cai-ent-ex-info-btn {
   display: inline-flex; align-items: center; gap: 5px;
-  margin-top: 4px;
+  margin-top: 8px;
   padding: 4px 9px;
   background: rgba(124,106,255,0.08);
   border: 1px solid rgba(124,106,255,0.22);
@@ -24232,12 +24244,21 @@ function renderMiEntreno() {
             <span class="cai-ent-serie-saved" id="ews-${sk}">✓</span>
           </div>`);
         }
+        // Partimos el detail en DATO (series×reps → chip) + INDICACIÓN (técnica → cue suave).
+        // Así un intensificador largo no infla el chip coral (se veía saturado): queda un chip
+        // chico con el número + una nota prolija debajo. El primer " · " separa ambos.
+        let exSerie = ex.detail || '', exCue = '';
+        if (exSerie) {
+          const _sep = exSerie.search(/\s[·–—-]\s/);
+          if (_sep !== -1) { exCue = exSerie.slice(_sep + 3).trim(); exSerie = exSerie.slice(0, _sep).trim(); }
+        }
         const exNameSafe = String(ex.name).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         return `<div class="cai-ent-ex">
           <div class="cai-ent-ex-top">
             <div class="cai-ent-ex-name">${esc(ex.name)}</div>
-            ${ex.detail ? `<div class="cai-ent-ex-detail">${esc(ex.detail)}</div>` : ''}
+            ${exSerie ? `<div class="cai-ent-ex-detail">${esc(exSerie)}</div>` : ''}
           </div>
+          ${exCue ? `<div class="cai-ent-ex-cue">${esc(exCue)}</div>` : ''}
           <button class="cai-ent-ex-info-btn" onclick="event.stopPropagation();showEjercicioModal('${exNameSafe}')" type="button"><svg class="cai-ent-ex-info-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z" fill="currentColor" stroke="none"/></svg>${lang === 'es' ? 'Cómo se hace' : 'How to do it'}</button>
           ${ex.note ? `<div class="cai-ent-ex-note">${esc(ex.note)}</div>` : ''}
           <div class="cai-ent-series">
