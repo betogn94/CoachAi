@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260623-2015-medallas-png-webp-estilo-apple-fitness-awards">
+<meta name="app-version" content="20260623-2033-primera-entrada--solo-tutorial--logros-de-arranque-en-silencio">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -22478,6 +22478,13 @@ async function checkAndAwardLogros() {
   if (currentUser.role && currentUser.role !== 'user') return;            // no coaches/admins
   if (typeof _getImpersonateUid === 'function' && _getImpersonateUid()) return; // no otorgar en preview del coach
   _logrosChecking = true;
+  // El tutorial es el ÚNICO momento de bienvenida del minuto uno. Mientras NO se haya
+  // completado (primera entrada guiada), los logros de arranque se otorgan EN SILENCIO
+  // (aparecen en la colección, sin modal). Atado al tour —no al session_count, que cuenta
+  // logins y se rompía si la persona entraba/salía varias veces antes de terminar. Lo
+  // capturamos ANTES de los awaits para que no haya carrera si cierra el tour rápido.
+  let firstSession = true;
+  try { firstSession = (localStorage.getItem(TOUR_DONE_KEY) !== '1'); } catch (e) {}
   try {
     const earned = await computeEarnedLogroKeys();
     if (!earned.size) return;
@@ -22485,12 +22492,9 @@ async function checkAndAwardLogros() {
     const have = new Set((existing || []).map(r => r.logro_key));
     const newKeys = [...earned].filter(k => !have.has(k) && logroTemplateForKey(k));
     if (!newKeys.length) return;
-    // Primera sesión = primer ingreso. El tutorial ya es el momento de bienvenida,
-    // así que los logros de arranque (comienza_camino, primera foto…) se otorgan
-    // EN SILENCIO: sin modal de celebración y sin push (notificado=true) → aparecen
-    // encendidos en la colección para que la persona los descubra. Desde la 2ª
-    // sesión, todo normal (celebración + push) para los hitos de verdad.
-    const firstSession = (currentUser.session_count || 0) <= 1;
+    // (firstSession se capturó arriba del flag del tutorial; en silencio = sin modal
+    // de celebración y sin push (notificado=true) → la medalla aparece encendida en la
+    // colección para que la persona la descubra sin que le interrumpa el minuto uno.)
     const rows = newKeys.map(k => {
       const c = logroTemplateForKey(k);
       return { usuario_id: currentUser.id, logro_key: k, titulo: c.titulo, descripcion: c.desc, icon: c.emblem, notificado: firstSession };
