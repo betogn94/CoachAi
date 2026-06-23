@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260623-0012-onboarding-fijo--sin-scroll-de-pagina--oculta-footer---saca-margen-del-form-">
+<meta name="app-version" content="20260623-0024-onboarding--sin-rebote--overscroll-behavior-none----campos-numericos-con-teclado-numerico">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -1986,7 +1986,7 @@ body.theme-king .tour-replay-btn:hover {
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overscroll-behavior: none; }
 
 body {
   background: var(--bg);
@@ -1994,6 +1994,9 @@ body {
   font-family: 'DM Sans', sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
+  /* Mata el rebote/pull-to-refresh del PWA (el "deslizable" aunque el contenido
+     entre). No afecta el scroll normal dentro de las secciones. */
+  overscroll-behavior: none;
   /* Prevent double-tap zoom on iOS Safari + Chrome mobile. Works in tandem
      with the viewport meta tag (maximum-scale=1, user-scalable=no) and the
      JS gesturestart listener at the end of <body>. Triple defense because
@@ -12066,7 +12069,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
           <div class="form-grid" style="margin-bottom:12px">
             <div class="form-group">
               <label data-es="Edad" data-en="Age">Edad</label>
-              <input type="number" id="f-edad" placeholder="Ej: 28 años" min="14" max="80">
+              <input type="number" inputmode="numeric" id="f-edad" placeholder="Ej: 28 años" min="14" max="80">
             </div>
             <div class="form-group">
               <label data-es="Sexo" data-en="Sex">Sexo</label>
@@ -12081,11 +12084,11 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
           <div class="form-grid">
             <div class="form-group">
               <label data-es="Peso (kg)" data-en="Weight (kg)">Peso (kg)</label>
-              <input type="number" id="f-peso" placeholder="Ej: 75" min="30" max="250">
+              <input type="number" inputmode="decimal" id="f-peso" placeholder="Ej: 75" min="30" max="250">
             </div>
             <div class="form-group">
               <label data-es="Altura (cm)" data-en="Height (cm)">Altura (cm)</label>
-              <input type="number" id="f-altura" placeholder="Ej: 175" min="140" max="220">
+              <input type="number" inputmode="numeric" id="f-altura" placeholder="Ej: 175" min="140" max="220">
             </div>
           </div>
         </div>
@@ -12114,16 +12117,16 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
           <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 12px">
             <div class="form-group">
               <label data-es="Cuello (cm)" data-en="Neck (cm)">Cuello (cm)</label>
-              <input type="number" id="f-cuello" placeholder="Ej: 38" min="20" max="60">
+              <input type="number" inputmode="numeric" id="f-cuello" placeholder="Ej: 38" min="20" max="60">
             </div>
             <div class="form-group">
               <label data-es="Cintura (cm)" data-en="Waist (cm)">Cintura (cm)</label>
-              <input type="number" id="f-cintura-form" placeholder="Ej: 85" min="40" max="200">
+              <input type="number" inputmode="numeric" id="f-cintura-form" placeholder="Ej: 85" min="40" max="200">
             </div>
           </div>
           <div class="form-group full" style="margin-top:12px">
             <label data-es="Cadera (cm) — solo mujeres" data-en="Hips (cm) — women only">Cadera (cm) — solo mujeres</label>
-            <input type="number" id="f-cadera-form" placeholder="Ej: 95" min="40" max="200">
+            <input type="number" inputmode="numeric" id="f-cadera-form" placeholder="Ej: 95" min="40" max="200">
           </div>
         </div>
       </div>
