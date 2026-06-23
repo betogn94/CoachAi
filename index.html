@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260623-0109-ia--regla-de-lenguaje-limpio--nunca-insultos-malas-palabras--en-chat-y-analisis">
+<meta name="app-version" content="20260623-0219-capa-de-calidad--vara---fallback-a-plantilla-de-jesus-si-el-plan-ia-no-llega-al-estandar">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -14331,6 +14331,98 @@ function dietaHasMacros(reply) {
   } catch (e) { return false; }
 }
 
+// ── CAPA DE CALIDAD ──────────────────────────────────────────────────────────
+// Target determinístico (mismo Mifflin-St Jeor que el system prompt, standalone).
+function computeDietTarget(p) {
+  const peso = parseFloat(p && p.peso), altura = parseFloat(p && p.altura), edad = parseInt(p && p.edad, 10);
+  if (!(peso > 0 && altura > 0 && edad > 0)) return null;
+  const bmr = 10 * peso + 6.25 * altura - 5 * edad + (p.sexo === 'masculino' ? 5 : -161);
+  const af = ({ leve: 1.375, moderado: 1.55, activo: 1.725 })[p.actividad] || 1.55;
+  let kcal = bmr * af;
+  if (p.objetivo === 'definir') kcal -= 400;
+  else if (p.objetivo === 'volumen') kcal += 250;
+  kcal = Math.round(kcal / 10) * 10;
+  const floor = p.sexo === 'masculino' ? 1500 : 1200;
+  if (kcal < floor) kcal = floor;
+  const prot = Math.round((p.objetivo === 'definir' ? 2.0 : 1.8) * peso);
+  const fat = Math.round((kcal * 0.25) / 9);
+  const carbs = Math.max(0, Math.round((kcal - prot * 4 - fat * 9) / 4));
+  return { kcal, prot, carbs, fat, floor };
+}
+
+// VARA DE CALIDAD: juzga si un plan está a la altura (no solo si parsea). { ok, reasons }.
+// Acepta los 2 formatos de dieta: kcal por comida (IA) O Target en el header (Jesús).
+// Umbrales calibrados contra los 22 planes reales de Jesús (ver scripts/check-quality.mjs).
+function evaluatePlanQuality(tipo, contenido, opts) {
+  opts = opts || {};
+  const reasons = [];
+  try {
+    if (tipo === 'dieta') {
+      const p = parseDietaContenido(contenido);
+      const days = (p && p.days) || [];
+      if (days.length < 7) reasons.push('menos de 7 dias');
+      let totalMeals = 0, mealsWithK = 0, fewMeals = false;
+      const dayK = [], dayP = [];
+      for (const d of days) {
+        const meals = d.meals || [];
+        if (meals.length < 3) fewMeals = true;
+        let dk = 0, dp = 0, hasK = false;
+        for (const m of meals) { totalMeals++; if (m.kcal != null) { mealsWithK++; dk += m.kcal; dp += (m.prot || 0); hasK = true; } }
+        if (hasK) { dayK.push(dk); dayP.push(dp); }
+      }
+      if (fewMeals) reasons.push('algun dia con menos de 3 comidas');
+      const t = opts.target;
+      const headerK = p && p.header && p.header.targetKcal, headerP = p && p.header && p.header.targetProt;
+      const effK = dayK.length ? Math.round(dayK.reduce((a, b) => a + b, 0) / dayK.length) : (headerK || null);
+      const effP = dayP.length ? Math.round(dayP.reduce((a, b) => a + b, 0) / dayP.length) : (headerP || null);
+      if (effK == null) reasons.push('sin kcal');
+      else if (t && t.kcal && Math.abs(effK - t.kcal) / t.kcal > 0.15) reasons.push('kcal lejos del target');
+      if (effP == null) reasons.push('sin proteina objetivo');
+      else if (t && t.prot && effP < t.prot * 0.85) reasons.push('proteina baja');
+    } else if (tipo === 'rutina') {
+      const days = parseRutinaContenido(contenido) || [];
+      const trainDays = days.filter(d => !d.isRest && d.exercises && d.exercises.length > 0);
+      if (!trainDays.length) reasons.push('sin dias de entreno');
+      else if (opts.expectedDays && trainDays.length < opts.expectedDays) reasons.push('menos dias de entreno de los esperados');
+      if (trainDays.some(d => d.exercises.length < 3)) reasons.push('algun dia con menos de 3 ejercicios');
+      if (trainDays.length && trainDays.reduce((a, d) => a + d.exercises.length, 0) / trainDays.length < 4) reasons.push('promedio bajo de ejercicios');
+      if (!/cardio/i.test(contenido)) reasons.push('falta cardio');
+      if (!/descanso/i.test(contenido)) reasons.push('falta descanso');
+    }
+  } catch (e) { reasons.push('error al parsear'); }
+  return { ok: reasons.length === 0, reasons };
+}
+
+// Trae la PLANTILLA de Jesús más apropiada (rutina por días / dieta por kcal más
+// cercano) y le inyecta el nombre + (dieta) el Target del usuario. Es la red de
+// calidad: si la IA no llega al estándar, se entrega esto (plan probado de Jesús).
+async function getBackupPlan(tipo, target) {
+  if (!sbClient || !currentUser) return null;
+  try {
+    const { data } = await sbClient.from('plan_templates').select('contenido, dias, kcal_base').eq('tipo', tipo);
+    if (!data || !data.length) return null;
+    let tpl;
+    if (tipo === 'rutina') {
+      const want = (typeof getWeeklyTrainingTarget === 'function' ? getWeeklyTrainingTarget() : 0) || 4;
+      tpl = data.reduce((a, b) => Math.abs((b.dias || 4) - want) < Math.abs((a.dias || 4) - want) ? b : a);
+    } else {
+      const want = (target && target.kcal) || 1400;
+      tpl = data.reduce((a, b) => Math.abs((b.kcal_base || 1400) - want) < Math.abs((a.kcal_base || 1400) - want) ? b : a);
+    }
+    let c = tpl.contenido;
+    c = c.replace(/\{NOMBRE\}/g, (currentUser.nombre || '').trim() || 'vos');
+    if (tipo === 'dieta') {
+      const tgtStr = target
+        ? `Target: ${target.kcal} kcal/día | P:${target.prot}g C:${target.carbs}g G:${target.fat}g`
+        : (tpl.kcal_base ? `Target: ${tpl.kcal_base} kcal/día` : '');   // perfil incompleto → al menos kcal de la plantilla
+      c = tgtStr ? c.replace(/\{TARGET\}/g, tgtStr) : c.replace(/\s*\|?\s*\{TARGET\}/g, '');
+    } else {
+      c = c.replace(/\s*\|?\s*\{TARGET\}/g, '');
+    }
+    return c;
+  } catch (e) { console.warn('[backup] getBackupPlan:', e); return null; }
+}
+
 // Genera UN plan de forma HEADLESS (sin tocar el chat) y lo guarda en planes_semanales.
 // Reintenta para asegurar CALIDAD: la dieta DEBE traer kcal/macros (si no, reformatea
 // o regenera); la rutina DEBE traer ejercicios. Hasta 2 generaciones por tipo.
@@ -14363,7 +14455,30 @@ async function prefetchPlan(tipo) {
       } catch (e) {}
       // Si sigue mal, el loop regenera de cero (segundo intento).
     }
-    if (!planText) throw new Error(tipo + ' inválido tras reintentos');
+    // ── VARA DE CALIDAD + FALLBACK A PLANTILLA ──
+    // Arriba garantizamos ESTRUCTURA. Acá medimos CALIDAD (kcal en target, ejercicios
+    // suficientes, etc.). Si el plan no llega al estándar —o no se generó— caemos a una
+    // PLANTILLA de Jesús con el target del usuario. ADITIVO: un plan bueno se guarda tal
+    // cual; solo los flojos/fallidos van al backup → nunca se entrega un plan malo.
+    const _profile = {
+      peso: currentUser && currentUser.peso, altura: currentUser && currentUser.altura,
+      edad: currentUser && currentUser.edad, sexo: currentUser && currentUser.sexo,
+      objetivo: currentUser && currentUser.objetivo,
+    };
+    const _target = computeDietTarget(_profile);
+    const _expDays = (typeof getWeeklyTrainingTarget === 'function') ? getWeeklyTrainingTarget() : 0;
+    let _useBackup = false, _reasons = [];
+    if (!planText) { _useBackup = true; _reasons = ['no se genero']; }
+    else {
+      const q = evaluatePlanQuality(tipo, planText, { target: _target, expectedDays: _expDays });
+      if (!q.ok) { _useBackup = true; _reasons = q.reasons; }
+    }
+    if (_useBackup) {
+      try { if (typeof trackEvent === 'function') trackEvent('plan_quality_fallback', { tipo, reasons: _reasons.join(' | ') }); } catch (e) {}
+      const backup = await getBackupPlan(tipo, _target);
+      if (backup) planText = backup;
+    }
+    if (!planText) throw new Error(tipo + ' inválido y sin plantilla de backup');
     const saved = await saveWeeklyPlan(tipo, planText);
     if (saved) { if (!weeklyPlans) weeklyPlans = {}; weeklyPlans[tipo] = saved; }
     return saved;
