@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260623-1945-backup-rutina-varon---getbackupplan-sexo-aware">
+<meta name="app-version" content="20260623-2015-medallas-png-webp-estilo-apple-fitness-awards">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11207,7 +11207,7 @@ body.theme-king .cai-perfil-transform-badge {
 .medal-wrap.fam-amber .medal-num{ background:linear-gradient(#F4A93E,#A85E0C); }
 .medal-wrap.fam-rose .medal-num{ background:linear-gradient(#C95B95,#6B1E46); }
 .medal-wrap.is-locked .medal-num{ background:linear-gradient(#D8D8DE,#A9A9B4); color:#6E6E78; text-shadow:none; }
-.medal-mult{ position:absolute; top:0; right:0; transform:translate(22%,-22%); z-index:3; font-family:'JetBrains Mono',monospace; font-weight:600; font-size:calc(var(--d) * .15); padding:2px 6px; border-radius:999px; color:#fff; letter-spacing:.02em; background:linear-gradient(#1b1b27,#000); border:1.5px solid rgba(255,255,255,.18); box-shadow:0 3px 8px -3px rgba(0,0,0,.6); }
+.medal-mult{ position:absolute; left:50%; bottom:8%; transform:translateX(-50%); z-index:4; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:calc(var(--d) * .15); line-height:1; padding:2px 7px; border-radius:999px; color:#fff; letter-spacing:.02em; background:linear-gradient(#1b1b27,#000); border:1.5px solid rgba(255,255,255,.22); box-shadow:0 3px 8px -3px rgba(0,0,0,.6); }
 .medal-ribbon{ position:absolute; left:50%; top:62%; transform:translateX(-50%); z-index:0; display:flex; gap:calc(var(--d) * .28); }
 .medal-ribbon i{ width:calc(var(--d) * .18); height:calc(var(--d) * .42); clip-path:polygon(0 0,100% 0,100% 100%,50% 78%,0 100%); display:block; }
 .medal-wrap.fam-coral .medal-ribbon i{ background:linear-gradient(#FF4F7B,#9C1D45); }
@@ -11217,6 +11217,13 @@ body.theme-king .cai-perfil-transform-badge {
 .medal-ribbon i:last-child{ filter:brightness(.86); }
 .medal-lockchip{ position:absolute; right:2%; bottom:2%; z-index:3; width:calc(var(--d) * .30); height:calc(var(--d) * .30); border-radius:50%; display:grid; place-items:center; color:#7A7A85; background:linear-gradient(#FCFCFD,#DEDEE4); border:1.5px solid #fff; box-shadow:0 2px 5px -1px rgba(17,17,26,.4); }
 .medal-lockchip svg{ width:58%; height:58%; }
+/* ── Medallas con PNG/WebP: el arte completo (rim + emblema + número + ribbon)
+   viene dibujado en la imagen. .medal queda como contenedor; sin gradiente/sombra
+   propios para no asomar un anillo detrás de las esquinas transparentes del PNG. ── */
+.medal.medal--img{ padding:0; background:none; box-shadow:none; }
+.medal-img{ width:100%; height:100%; object-fit:contain; display:block; -webkit-user-drag:none; user-select:none;
+  filter:drop-shadow(0 3px 5px rgba(17,17,26,.28)); }
+.medal-wrap.is-locked .medal-img{ filter:grayscale(1) opacity(.45) drop-shadow(0 2px 4px rgba(17,17,26,.18)); }
 .medal-label{ margin-top:14px; text-align:center; }
 .medal-label .t{ font-size:11px; font-weight:600; color:var(--text); line-height:1.18; }
 .medal-wrap.is-locked .medal-label .t{ color:var(--muted); }
@@ -22268,17 +22275,18 @@ const EMBLEM_SVG = {
 function medalHtml(logro, earned, opts) {
   opts = opts || {};
   const size = opts.size === 'lg' ? ' lg' : (opts.size === 'xl' ? ' xl' : '');
-  const fam = earned ? ('fam-' + (logro.color || 'coral')) : 'is-locked';
-  const emblem = EMBLEM_SVG[logro.emblem] || EMBLEM_SVG.trophy;
-  const ribbon = (earned && logro.top) ? '<div class="medal-ribbon"><i></i><i></i></div>' : '';
-  const num  = (earned && logro.num)  ? `<div class="medal-num">${logro.num}</div>` : '';
+  const lockState = earned ? '' : ' is-locked';
+  // Key del template para el PNG: una recurrente ganada llega como 'semana_perfecta_7'
+  // → la resolvemos a 'semana_perfecta' para apuntar al archivo correcto.
+  const imgKey = ((typeof logroTemplateForKey === 'function' && logroTemplateForKey(logro.key)) || logro).key;
+  // El número, el emblema y el ribbon vienen DIBUJADOS en el PNG. Solo superponemos
+  // el conteo de las recurrentes (sobre el ribbon "xN") y el candado si está bloqueada.
   const mult = (earned && opts.mult)  ? `<div class="medal-mult">×${opts.mult}</div>` : '';
   const lockchip = earned ? '' : `<div class="medal-lockchip">${EMBLEM_SVG.lock}</div>`;
   const label = (opts.label === false) ? '' : `<div class="medal-label"><div class="t">${logro.titulo}</div></div>`;
   const aria = `${logro.titulo}${earned ? '' : ' (bloqueada)'}`;
-  return `<div class="medal-wrap${size} ${fam}" data-key="${logro.key}" role="img" aria-label="${aria}" title="${logro.titulo}">
-      ${ribbon}
-      <div class="medal"><div class="medal-face"><div class="medal-em">${emblem}</div></div>${num}${mult}${lockchip}</div>
+  return `<div class="medal-wrap${size}${lockState}" data-key="${logro.key}" role="img" aria-label="${aria}" title="${logro.titulo}">
+      <div class="medal medal--img"><img class="medal-img" src="medals/${imgKey}.webp" alt="" draggable="false">${mult}${lockchip}</div>
       ${label}
     </div>`;
 }
