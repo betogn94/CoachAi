@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260623-0024-onboarding--sin-rebote--overscroll-behavior-none----campos-numericos-con-teclado-numerico">
+<meta name="app-version" content="20260623-0109-ia--regla-de-lenguaje-limpio--nunca-insultos-malas-palabras--en-chat-y-analisis">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -16599,6 +16599,8 @@ REGLAS DE PLANES SEMANALES (IMPORTANTÍSIMO):
 ${(dietaPlan && !dietaPlan.closed) ? `\nCONTENIDO DE LA DIETA ACTIVA (vigente):\n"""\n${dietaPlan.contenido}\n"""` : ''}
 ${(rutinaPlan && !rutinaPlan.closed) ? `\nCONTENIDO DE LA RUTINA ACTIVA (vigente):\n"""\n${rutinaPlan.contenido}\n"""` : ''}
 
+LENGUAJE (REGLA IMPORTANTE, SIEMPRE — chat, planes y análisis): NUNCA uses insultos ni malas palabras, ni siquiera en tono cariñoso o de confianza (PROHIBIDO: "boluda", "boludo", "cagar", "cagaste", "mierda", "carajo", "joder", "pelotuda", etc.). Mantené SIEMPRE un tono amigable, motivador, cálido y cercano, pero con lenguaje 100% limpio, respetuoso y profesional. La usan clientas de todas las edades y la app va a estar en las tiendas.
+
 ESTILO DE COMUNICACIÓN SEGÚN CONTEXTO:
 - CHAT CASUAL (preguntas, dudas, seguimiento): warm, motivador, humano — 2 a 5 oraciones.
 - PLANES SEMANALES (dieta / rutina): MODE COACH PROFESIONAL. Sin intro larga. Sin filler emocional. Empezá DIRECTAMENTE con el plan. El token budget se gasta en información útil, no en palabras de relleno.
@@ -20869,7 +20871,7 @@ Escribí un análisis cálido y motivador de 4-5 párrafos. El ORDEN importa: SI
 2. FOTOS: si ves mejoras —por sutiles que sean— marcalas PRIMERO y con entusiasmo, conectándolas con lo que hizo (entrenó + déficit → se ve más definida). Si es la primera semana y los cambios son sutiles, decilo con honestidad pero sin desinflar (es totalmente normal).
 3. OPORTUNIDADES (nunca "errores" ni "fugas"): presentá lo mejorable como "el próximo nivel". Hacé inferencias físicas con evidencia (déficit+entreno → perdiendo grasa; proteína baja → cuidemos el músculo) pero enmarcadas en positivo ("si sumás un poco más de proteína, recuperás aún mejor"). Honesto con los números, pero con energía de coach que la banca. EVITÁ palabras duras: "fuga", "fallaste", "incompleto", "no-negociable".
 4. Si es semana 2 o más, mencioná PRIMERO lo que mejoró vs semanas anteriores. CERRÁ MOTIVANDO con 2-3 objetivos concretos y ALCANZABLES, dejando la sensación de "vas muy bien, seguí así, la próxima la rompés".
-CALIBRÁ EL TONO SEGÚN LA SEMANA: semana buena (alta adherencia/registro) → celebrá fuerte y mencioná los ajustes al pasar; semana floja → sé MÁS contenedor, NO más duro (es justo cuando la persona está por abandonar): empatía, recordale por qué empezó, y dale UN solo objetivo chico para retomar. La severidad nunca sube; lo que cambia es cuánto celebrás. Nunca inventes progreso que no hubo, pero entregá la verdad de forma que dé ganas de seguir. Sé específico con los números reales.${photoInstructions}`
+CALIBRÁ EL TONO SEGÚN LA SEMANA: semana buena (alta adherencia/registro) → celebrá fuerte y mencioná los ajustes al pasar; semana floja → sé MÁS contenedor, NO más duro (es justo cuando la persona está por abandonar): empatía, recordale por qué empezó, y dale UN solo objetivo chico para retomar. La severidad nunca sube; lo que cambia es cuánto celebrás. Nunca inventes progreso que no hubo, pero entregá la verdad de forma que dé ganas de seguir. Sé específico con los números reales. LENGUAJE (IMPORTANTE): NUNCA uses insultos ni malas palabras, ni en tono cariñoso (PROHIBIDO "boluda", "cagar", "mierda", "carajo", etc.). Tono cálido, motivador y cercano, pero con lenguaje 100% limpio y profesional.${photoInstructions}`
     : `Generate the Week ${weekNum} analysis for client ${nombre}.
 
 CLIENT PROFILE:
