@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260623-1415-boton-instalar-app-en-home--solo-navegador-">
+<meta name="app-version" content="20260623-1426-fix-cierre--no-forzar-cerrar-semanas-sin-plan--created-at-viejo---migradas-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -19737,6 +19737,11 @@ document.addEventListener('keydown', e => {
 // ============================
 let cierresSemanales = [];
 let cierreActualWeekNum = null;
+// Fecha (YYYY-MM-DD) del PRIMER plan entregado al usuario. Ancla el "reloj" de los
+// cierres a la actividad real: una cuenta con created_at viejo (test) o una migrada
+// que entra semanas después NO debe arrastrar un backlog fantasma de semanas en las
+// que nunca tuvo un plan. null = todavía sin cargar o sin ningún plan (→ no se gatea).
+let _cierreActivityStart = null;
 
 function getWeekNum(createdAt) {
   const start = new Date(createdAt.slice(0, 10) + 'T00:00:00');
@@ -19805,11 +19810,22 @@ async function renderSemanas() {
   const createdAt = currentUser.created_at || new Date().toISOString();
   const currentWeek = getWeekNum(createdAt);
 
-  const [cierres, fotos] = await Promise.all([
+  const [cierres, fotos, firstPlan] = await Promise.all([
     loadCierresSemanales(),
-    loadFotosProgreso()
+    loadFotosProgreso(),
+    // Fecha del PRIMER plan entregado — ancla los cierres a la actividad real.
+    (async () => {
+      try {
+        if (!sbClient || !currentUser) return null;
+        const { data } = await sbClient.from('planes_semanales')
+          .select('fecha_entrega').eq('usuario_id', currentUser.id)
+          .order('fecha_entrega', { ascending: true }).limit(1);
+        return (data && data[0] && data[0].fecha_entrega) ? data[0].fecha_entrega.slice(0, 10) : null;
+      } catch (e) { return null; }
+    })()
   ]);
   cierresSemanales = cierres;
+  _cierreActivityStart = firstPlan;
   _cierresLoaded = true;   // recién ahora el gate puede evaluar sin riesgo de falso-bloqueo
   // Con los cierres ya cargados, re-evaluamos el recordatorio de cierre de Home
   // (dato autoritativo del closed-state, por si la primera llamada en renderHome
@@ -21550,7 +21566,12 @@ let _kcalRotInterval = null;
 function isWeekCierreEligible(weekNum, hasCierre) {
   if (hasCierre) return false;
   if (!currentUser || !currentUser.created_at || typeof getWeekRange !== 'function') return false;
+  // Nada que cerrar si el usuario nunca tuvo un plan, o si la semana terminó ANTES
+  // de su primer plan. Evita el backlog fantasma en cuentas con created_at viejo
+  // (test) o migradas que entran tarde: no se las fuerza a "cerrar" semanas vacías.
+  if (!_cierreActivityStart) return false;
   const range = getWeekRange(currentUser.created_at, weekNum);
+  if (range.end < _cierreActivityStart) return false;
   const today = getTodayKey();
   if (range.start > today) return false;            // semana futura → no
   if (range.end < today) return true;               // semana pasada sin cerrar → catch-up
