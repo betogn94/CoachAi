@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260623-1403-few-shot-ia--planes-al-toque---estilo-jesus">
+<meta name="app-version" content="20260623-1415-boton-instalar-app-en-home--solo-navegador-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -9052,6 +9052,10 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 }
 .pwa-install-btn:active { transform: translateY(0) scale(0.98); }
 
+/* Variante en Home: mismo pill pero centrado como bloque (el base es inline-flex
+   pensado para la landing). Se muestra como flex desde JS solo en navegador. */
+.pwa-install-home { display: none; width: max-content; max-width: 92%; margin: 2px auto 16px; }
+
 /* Ícono wrap con anillo conic girando */
 .pwa-install-btn .pi-icon-wrap {
   position: relative;
@@ -11864,6 +11868,28 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       <div class="cai-home-hero-sub" data-es="esta semana" data-en="this week">esta semana</div>
     </div>
   </div>
+
+  <!-- Instalar la app — SOLO en navegador (se oculta dentro de la PWA instalada).
+       Empuja la instalación a propósito: resuelve la gran mayoría de bugs que
+       reportan las clientas (caché vieja, pantallas que no refrescan, etc.).
+       Lo muestra/oculta refreshHomeInstallBtn() según display-mode standalone. -->
+  <button id="pwa-install-home" class="pwa-install-btn pwa-install-home" onclick="pwaInstall()" style="display:none" aria-label="Instalar CoachAI como app">
+    <span class="pi-icon-wrap">
+      <span class="pi-icon-ring" aria-hidden="true"></span>
+      <span class="pi-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="2" width="14" height="20" rx="2.5"></rect>
+          <path d="M9 11l3 3 3-3"></path>
+          <line x1="12" y1="7" x2="12" y2="14"></line>
+        </svg>
+      </span>
+    </span>
+    <span class="pi-text">
+      <span class="pi-title" data-es="Instalá la app" data-en="Install the app">Instalá la app</span>
+      <span class="pi-sub" data-es="Más rápida y sin errores" data-en="Faster and bug-free">Más rápida y sin errores</span>
+    </span>
+    <span class="pi-arrow" aria-hidden="true">→</span>
+  </button>
 
   <!-- Racha viva (informativa): días seguidos registrando comidas (visible desde 2 días).
        El fuego flamea siempre y crece dentro del ciclo de 7 días, reiniciando cada semana. -->
@@ -21200,6 +21226,9 @@ function renderHome() {
   // Aviso de carga (mientras se pre-generan los planes en el onboarding).
   try { if (typeof updatePlanPrepBanner === 'function') updatePlanPrepBanner(); } catch (e) {}
 
+  // Botón "Instalá la app" — visible solo en navegador (se oculta en la PWA instalada).
+  try { if (typeof refreshHomeInstallBtn === 'function') refreshHomeInstallBtn(); } catch (e) {}
+
   // ── Header ─────────────────────────────────────────────
   // Replaces the old landing-style greeting block. The new header mirrors
   // the cai-alim-header pattern: brand title with name + sub-line with goal.
@@ -26998,6 +27027,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     try { if (typeof trackEvent === 'function') trackEvent('pwa_installed', null); } catch (e) {}
     const btn = document.getElementById('pwa-install-btn');
     if (btn) btn.style.display = 'none';
+    const homeBtn = document.getElementById('pwa-install-home');
+    if (homeBtn) homeBtn.style.display = 'none';
     closePwaModal();
   });
 });
@@ -27138,6 +27169,18 @@ async function pwaInstall() {
 
   // 3) No prompt available → show manual instructions for this platform.
   openPwaModal(detectPwaPlatform());
+}
+
+// Botón "Instalá la app" en Home — SOLO navegador. Dentro de la PWA instalada
+// (display-mode: standalone, o navigator.standalone en iOS) se oculta. Se llama
+// desde renderHome y desde el handler appinstalled. Medida puente hasta tener la
+// app en las stores: instalar la PWA resuelve la mayoría de los bugs reportados.
+function refreshHomeInstallBtn() {
+  const btn = document.getElementById('pwa-install-home');
+  if (!btn) return;
+  const inStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+                    || window.navigator.standalone === true;
+  btn.style.display = inStandalone ? 'none' : 'flex';
 }
 
 // ===== Web Push — notificaciones (Fase 0) =====
