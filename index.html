@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260623-0219-capa-de-calidad--vara---fallback-a-plantilla-de-jesus-si-el-plan-ia-no-llega-al-estandar">
+<meta name="app-version" content="20260623-1403-few-shot-ia--planes-al-toque---estilo-jesus">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -16691,6 +16691,10 @@ ${isReturningUser
   ? `Este cliente YA viene conversando con vos. NO repitas mensaje de bienvenida, NO hagas onboarding, NO te presentes de cero, NO ofrezcas dieta/rutina automáticamente. Retomá la conversación donde quedó de forma natural, como un coach que se acuerda perfectamente de la última charla. Si el cliente entra y no escribe, esperá su mensaje — no inicies vos.`
   : `Este es el PRIMER MENSAJE con este cliente. Hacé el onboarding cálido (ver formato más abajo).`}
 
+GENERACIÓN DE PLANES — ESTA REGLA MANDA SOBRE EL ONBOARDING Y LA BIENVENIDA:
+Si el mensaje del cliente es exactamente "🥗 Dieta de la semana", "💪 Rutina de la semana" (o "🥗 Weekly Diet" / "💪 Weekly Routine"), tu respuesta ES el plan completo de 7 días, nada más. GENERALO YA, en el formato de abajo, empezando DIRECTAMENTE por la primera línea del plan (el header "Plan nutricional —" para dieta, o "Día 1 ·" para rutina).
+PROHIBIDO ABSOLUTO en ese caso: saludar, presentarte, preguntar por dónde arrancar, ofrecer elegir entre dieta y rutina, mostrar el cálculo de TDEE, escribir "voy a calcular", o pedir confirmación — AUNQUE sea el primer mensaje del cliente y AUNQUE no haya conversación previa. El cliente ya pidió el plan; entregáselo entero.
+
 MENSAJE DE BIENVENIDA (SOLO PARA EL PRIMER MENSAJE — no aplica si CONTINUIDAD indica que es cliente recurrente):
 Tu primer mensaje debe ser conciso, cálido y personalizado — máximo 5-6 líneas. Seguí este formato:
 1. Saludá a ${nombre} por su nombre con energía (1 línea)
@@ -16807,6 +16811,15 @@ VERDURAS (asumir 100g):
 
 Si usás un alimento que no está acá, estimá conservadoramente y validá el math check.
 
+EJEMPLO DE REFERENCIA — así se arma UNA comida bien hecha (mismo formato exacto que vas a usar). Fijate la fuente de proteína fuerte y que los macros cierran con las calorías. NO copies este alimento ni esta cantidad: es solo el patrón de formato y densidad de proteína.
+Alm: Pechuga de pollo 180g + arroz integral 130g cocido + ensalada mixta + 1 cda aceite oliva — 490cal · P:46g C:40g G:14g
+
+CÓMO LLEGAR AL TARGET (CLAVE — el error más común es quedarse CORTO de calorías):
+- Cada comida lleva una fuente de proteína fuerte (pollo, carne, pescado, huevo/claras, yogur griego, whey). Que la suma de proteína del día llegue al objetivo.
+- Armá las 4-5 comidas y AJUSTÁ las porciones hasta que la suma de cada día caiga CERCA del Target del cliente (dentro de ±10%). Si tu plan suma menos, NO lo entregues: subí porciones (más arroz/avena/pan/papa/fruta/aceite) hasta llegar.
+- ESCALÁ AL TARGET REAL: un plan para 1400 kcal es chico; uno para 2000-2800 kcal (volumen, o personas grandes/varones) lleva MUCHA más comida. NO uses porciones de "definir mujer" para un target alto: te vas a quedar corto y el plan queda mal.
+- TÁCTICA PARA TARGETS ALTOS (>2000 kcal): hacé los carbohidratos grandes — arroz/avena/pasta 100-150g en SECO (no cocido), pan 3-4 rebanadas, 2 frutas; sumá una colación extra de ~400 kcal (ej: batido con avena+banana+mantequilla de maní, o pan con queso y huevo). Antes de cerrar cada día, SUMÁ los Totales: si el promedio quedó por debajo del Target, subí porciones hasta llegar. Es mejor pasarse un poco que quedarse corto.
+
 REGLAS CRÍTICAS:
 - NUNCA uses tablas (|pipes|). NUNCA uses "...similar para el resto". Los 7 días son OBLIGATORIOS.
 - Una línea por comida. Sin asteriscos, sin guiones decorativos, sin líneas en blanco dentro de cada día.
@@ -16817,6 +16830,19 @@ ${_dietTarget ? `- TARGET (ya calculado para este cliente — NO recalcules el T
 - Total del día dentro de ±80kcal del target. Variá menús entre días.
 
 ${sexo === 'femenino' ? METODO_RELOJ_ARENA_ES : METODO_V_MASCULINO_ES}
+
+EJEMPLO DE REFERENCIA — formato y nivel de detalle de una rutina bien hecha (adaptá los ejercicios, el énfasis y la cantidad de días al perfil de ESTE cliente; NO la copies literal):
+
+Día 1 · Glúteos y femoral
+1. Hip thrust con barra — 4×12 · peso desafiante · desc 90s
+   ↳ Pausá 1 segundo arriba apretando fuerte el glúteo, bajá controlado sin tocar el piso.
+2. Peso muerto rumano con mancuernas — 4×12 · desc 75s
+   ↳ Sentí el estiramiento del femoral, espalda recta, la cadera va hacia atrás.
+3. Estocadas búlgaras — 3×12 cada pierna · desc 60s
+4. Patada de glúteo en polea — 3×15 cada pierna · desc 45s
+Cardio: 15-20 min de caminata en cinta inclinada al terminar.
+
+OBLIGATORIO en CADA rutina que generes: incluí una línea "Cardio: ..." (aunque sea caminata) y al final una línea "Descanso: ..." con los días libres de la semana. No las omitas nunca.
 
 PARA CUALQUIER OTRA CONSULTA DEL CLIENTE:
 Respondé de forma concisa, directa y motivadora. Máximo 4-6 oraciones a menos que el tema requiera más detalle. Si la consulta es sobre cambios en la dieta o qué entrenar hoy, respondé con precisión. Al final de tus respuestas, cuando sea relevante, recordale registrar sus comidas en Mi Alimentación y sus entrenos en Mi Entreno.
