@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260624-1524-entreno-completado--momento-compartible-al-marcar-entreno-hecho">
+<meta name="app-version" content="20260624-1539-compartir--icono-share-clasico---cierra-overlay-al-elegir-foto---boton-cerrar-mas-abajo">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11256,7 +11256,7 @@ body.theme-king .cai-perfil-transform-badge {
 /* ── Preview de compartir logro (foto + medalla → story 9:16) ── */
 .share-prev-overlay { position: fixed; inset: 0; z-index: 4200; background: rgba(10,10,16,.8); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 18px; }
 .share-prev-overlay.open { display: flex; }
-.share-prev-x { position: absolute; top: 14px; right: 16px; width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(255,255,255,.14); color: #fff; font-size: 22px; line-height: 1; cursor: pointer; }
+.share-prev-x { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 18px); right: 16px; width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(255,255,255,.14); color: #fff; font-size: 22px; line-height: 1; cursor: pointer; }
 .share-prev-stage { position: relative; display: flex; justify-content: center; }
 .share-prev-img { width: auto; max-width: 100%; max-height: 64vh; border-radius: 16px; box-shadow: 0 20px 50px -18px rgba(0,0,0,.7); display: block; }
 .share-prev-spin { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; }
@@ -13302,7 +13302,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     <div class="logro-celebr-medal" id="logro-disc-big"></div>
     <div class="logro-celebr-title" id="logro-celebr-title">—</div>
     <div class="logro-celebr-desc" id="logro-celebr-desc">—</div>
-    <button class="logro-celebr-btn" onclick="shareLogroFromCele()" type="button">📤 Compartir mi logro</button>
+    <button class="logro-celebr-btn" onclick="shareLogroFromCele()" type="button"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" style="vertical-align:-3px;margin-right:7px" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>Compartir mi logro</button>
     <button class="logro-celebr-btn ghost" onclick="closeLogro()" type="button">Listo</button>
   </div>
 </div>
@@ -13316,7 +13316,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     <div class="share-prev-spin" id="share-prev-spin"><div class="sp"></div></div>
   </div>
   <div class="share-prev-actions">
-    <button class="share-prev-btn" onclick="shareComposed()" type="button">📤 Compartir</button>
+    <button class="share-prev-btn" onclick="shareComposed()" type="button"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="vertical-align:-3px;margin-right:8px" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>Compartir</button>
     <div class="share-prev-sub">
       <button onclick="changeSharePhoto()" type="button">Cambiar foto</button>
       <button onclick="downloadComposed()" type="button">Descargar</button>
@@ -13330,7 +13330,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     <img class="entreno-done-medal" src="medals/entreno_completado.webp" alt="" draggable="false">
     <div class="entreno-done-title">¡Entreno completado! 💪</div>
     <div class="entreno-done-sub" id="entreno-done-sub">—</div>
-    <button class="logro-celebr-btn" onclick="shareEntrenoFromMoment()" type="button">📤 Compartir</button>
+    <button class="logro-celebr-btn" onclick="shareEntrenoFromMoment()" type="button"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" style="vertical-align:-3px;margin-right:7px" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>Compartir</button>
     <button class="logro-celebr-btn ghost" onclick="closeEntrenoDone()" type="button">Listo</button>
   </div>
 </div>
@@ -22716,6 +22716,10 @@ function changeSharePhoto(){ const inp=document.getElementById('share-photo-inpu
 async function onSharePhotoPicked(inp){
   const file = inp && inp.files && inp.files[0]; if(!file || !_shareLogro) return;
   const ov = document.getElementById('share-prev-overlay'); if(ov) ov.classList.add('open');
+  // El overlay de origen (celebración o "entreno completado") se va: ya pasamos al preview,
+  // así no queda atrás dando sensación de proceso trabado.
+  const _eo=document.getElementById('entreno-done-overlay'); if(_eo) _eo.classList.remove('open');
+  const _lo=document.getElementById('logro-overlay'); if(_lo) _lo.classList.remove('open');
   const spin = document.getElementById('share-prev-spin'); if(spin) spin.style.display='flex';
   try{
     const photo = await _shLoadFile(file);
@@ -22753,6 +22757,9 @@ function downloadComposed(){ if(!_shareCanvas) return; _shareCanvas.toBlob((b)=>
 function closeSharePreview(event){
   if(event && event.target && event.target.id !== 'share-prev-overlay' && !event.target.classList.contains('share-prev-x')) return;
   const ov=document.getElementById('share-prev-overlay'); if(ov) ov.classList.remove('open'); _shareCanvas=null;
+  // Si veníamos de una celebración (que ocultamos para compartir), reanudamos la cola.
+  _celeShowing = false;
+  setTimeout(() => { try { _drainCele(); } catch (e) {} }, 380);
 }
 
 // ── MOMENTO "ENTRENO COMPLETADO" ──────────────────────────────────────────────
