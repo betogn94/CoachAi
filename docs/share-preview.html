@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>CoachAI · Preview compartir logro</title>
+<style>
+  :root{ --coral:#FF4F7B; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:#0f0f15; color:#fff; font-family:-apple-system,'Segoe UI',system-ui,sans-serif;
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:26px 16px 40px; }
+  .head{ text-align:center; margin-bottom:20px; }
+  .head .eb{ color:var(--coral); font-size:11px; font-weight:800; letter-spacing:.2em; text-transform:uppercase; }
+  .head h1{ font-size:20px; margin:8px 0 4px; font-weight:800; }
+  .head p{ color:#9a9aa8; font-size:13px; margin:0; max-width:340px; }
+
+  /* ===== STORY 9:16 (así se exporta la imagen) ===== */
+  .story{ position:relative; width:min(86vw,330px); aspect-ratio:9/16; border-radius:20px; overflow:hidden;
+    box-shadow:0 24px 60px -22px rgba(0,0,0,.7); }
+  .photo{ position:absolute; inset:0; background:linear-gradient(160deg,#7d8a86 0%,#586460 38%,#3f4a52 70%,#2c343d 100%); }
+  .photo::after{ content:'tu foto'; position:absolute; inset:0; display:grid; place-items:center; color:rgba(255,255,255,.14); font-size:9vw; max-font-size:36px; font-weight:800; letter-spacing:.1em; }
+  .scrim-t{ position:absolute; top:0; left:0; right:0; height:22%; background:linear-gradient(180deg,rgba(0,0,0,.3),transparent); }
+  .scrim-b{ position:absolute; bottom:0; left:0; right:0; height:38%; background:linear-gradient(0deg,rgba(0,0,0,.6),transparent); }
+  .brand{ position:absolute; top:5.5%; left:6.5%; color:#fff; font-weight:800; letter-spacing:.2em; font-size:3.4vw; display:inline-flex; align-items:center; gap:6px; }
+  .brand .pro{ font-size:2.1vw; background:rgba(255,255,255,.24); padding:2px 6px; border-radius:100px; }
+  .glow{ position:absolute; top:50%; right:-2%; width:58%; aspect-ratio:1; transform:translateY(-50%); border-radius:50%;
+    background:radial-gradient(circle,rgba(0,0,0,.3),transparent 60%); filter:blur(6px); }
+  .medal{ position:absolute; top:50%; right:4%; width:40%; transform:translateY(-50%); filter:drop-shadow(0 8px 18px rgba(0,0,0,.5)); }
+  .ach{ position:absolute; left:7%; right:7%; bottom:6%; }
+  .ach .eb{ color:#FF8AA6; font-size:3.2vw; font-weight:800; letter-spacing:.18em; text-transform:uppercase; margin:0 0 2.5%; }
+  .ach .title{ color:#fff; font-size:9vw; font-weight:800; letter-spacing:-.01em; line-height:1.04; margin:0; text-shadow:0 2px 14px rgba(0,0,0,.5); }
+  .ach .sub{ color:rgba(255,255,255,.9); font-size:4.2vw; margin:2.5% 0 0; text-shadow:0 1px 8px rgba(0,0,0,.4); }
+  .handle{ position:absolute; bottom:6%; right:7%; color:rgba(255,255,255,.6); font-size:3vw; font-weight:700; letter-spacing:.08em; }
+  @media(min-width:420px){
+    .photo::after{ font-size:34px; } .brand{ font-size:12px; } .brand .pro{ font-size:7.5px; }
+    .ach .eb{ font-size:11px; } .ach .title{ font-size:31px; } .ach .sub{ font-size:14.5px; } .handle{ font-size:10.5px; }
+  }
+  .foot{ color:#6b6b7d; font-size:12px; margin-top:22px; text-align:center; max-width:320px; line-height:1.5; }
+</style></head><body>
+  <div class="head">
+    <div class="eb">Fase 1 · Compartir logros</div>
+    <h1>Así se vería la imagen</h1>
+    <p>Formato story 9:16. La foto de la clienta es protagonista; la medalla, un sello al costado.</p>
+  </div>
+
+  <div class="story">
+    <div class="photo"></div>
+    <div class="scrim-t"></div>
+    <div class="scrim-b"></div>
+    <div class="brand">COACHAI <span class="pro">PRO</span></div>
+    <div class="glow"></div>
+    <img class="medal" src="/medals/racha_7.webp" alt="medalla">
+    <div class="ach">
+      <p class="eb">★ Logro desbloqueado</p>
+      <p class="title">¡Racha de 7!</p>
+      <p class="sub">7 días seguidos sin aflojar 🔥</p>
+    </div>
+    <div class="handle">coachaipro.ai</div>
+  </div>
+
+  <p class="foot">Donde dice "tu foto" va la foto que cargue o se saque la clienta. El texto del logro cambia según la medalla.</p>
+</body></html>
