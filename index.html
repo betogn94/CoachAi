@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260624-1505-compartir-logros--foto---medalla----imagen-story-para-compartir">
+<meta name="app-version" content="20260624-1524-entreno-completado--momento-compartible-al-marcar-entreno-hecho">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11267,6 +11267,11 @@ body.theme-king .cai-perfil-transform-badge {
 .share-prev-btn:active { transform: scale(.98); }
 .share-prev-sub { display: flex; gap: 20px; justify-content: center; }
 .share-prev-sub button { background: none; border: none; color: rgba(255,255,255,.8); font-size: 13.5px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+/* Momento "entreno completado" — card liviana */
+.entreno-done-card { text-align: center; }
+.entreno-done-medal { width: 104px; height: 104px; object-fit: contain; margin: 2px auto 14px; display: block; filter: drop-shadow(0 6px 14px rgba(17,17,26,.18)); }
+.entreno-done-title { font-size: 21px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+.entreno-done-sub { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
 /* ── Overlay de cierre obligatorio (bloquea Home/Chat/Perfil; tapa el nav z-index:90) ── */
 .cierre-gate-overlay {
   position: fixed; inset: 0; z-index: 4000;
@@ -13316,6 +13321,17 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       <button onclick="changeSharePhoto()" type="button">Cambiar foto</button>
       <button onclick="downloadComposed()" type="button">Descargar</button>
     </div>
+  </div>
+</div>
+
+<!-- Momento "Entreno completado" — liviano + compartible (NO es medalla de colección) -->
+<div class="alim-edit-overlay" id="entreno-done-overlay" onclick="closeEntrenoDone(event)" role="dialog" aria-modal="true" aria-label="Entreno completado">
+  <div class="alim-edit-card entreno-done-card" onclick="event.stopPropagation()">
+    <img class="entreno-done-medal" src="medals/entreno_completado.webp" alt="" draggable="false">
+    <div class="entreno-done-title">¡Entreno completado! 💪</div>
+    <div class="entreno-done-sub" id="entreno-done-sub">—</div>
+    <button class="logro-celebr-btn" onclick="shareEntrenoFromMoment()" type="button">📤 Compartir</button>
+    <button class="logro-celebr-btn ghost" onclick="closeEntrenoDone()" type="button">Listo</button>
   </div>
 </div>
 
@@ -22660,7 +22676,7 @@ function drawShareCanvas(ctx, W, H, photo, medal, t){
   const cx=mx+mw/2, cy=my+mh/2; const rg=ctx.createRadialGradient(cx,cy,mw*0.12,cx,cy,mw*0.62);
   rg.addColorStop(0,'rgba(0,0,0,.30)'); rg.addColorStop(1,'rgba(0,0,0,0)');
   ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(cx,cy,mw*0.62,0,Math.PI*2); ctx.fill();
-  if(medal && medal.width){ ctx.save(); ctx.shadowColor='rgba(0,0,0,.5)'; ctx.shadowBlur=W*0.018; ctx.shadowOffsetY=W*0.01; ctx.drawImage(medal,mx,my,mw,mh); ctx.restore(); }
+  if(medal && medal.width){ const mr=medal.width/medal.height; let dmw=mw,dmh=mh; if(mr>1) dmh=Math.round(mw/mr); else dmw=Math.round(mh*mr); const dmx=mx+Math.round((mw-dmw)/2), dmy=my+Math.round((mh-dmh)/2); ctx.save(); ctx.shadowColor='rgba(0,0,0,.5)'; ctx.shadowBlur=W*0.018; ctx.shadowOffsetY=W*0.01; ctx.drawImage(medal,dmx,dmy,dmw,dmh); ctx.restore(); }
   ctx.textBaseline='alphabetic'; ctx.textAlign='left';
   const by=Math.round(H*0.072); ctx.fillStyle='#fff'; ctx.font="800 "+Math.round(W*0.038)+"px 'DM Sans',sans-serif"; _shLS(ctx,W*0.008);
   ctx.fillText('COACHAI', M, by); const cw=ctx.measureText('COACHAI').width; _shLS(ctx,0);
@@ -22683,7 +22699,7 @@ function drawShareCanvas(ctx, W, H, photo, medal, t){
   for(let i=titleLines.length-1;i>=0;i--){ ctx.fillText(titleLines[i], tx, yy); yy-=titleLH; }
   yy-=Math.round(W*0.012);
   ctx.fillStyle='#FF8AA6'; ctx.font="800 "+Math.round(W*0.030)+"px 'DM Sans',sans-serif"; _shLS(ctx,W*0.005);
-  ctx.fillText('★ LOGRO DESBLOQUEADO', tx, yy); _shLS(ctx,0);
+  ctx.fillText((t.eyebrow!=null ? t.eyebrow : '★ LOGRO DESBLOQUEADO'), tx, yy); _shLS(ctx,0);
   ctx.restore();
 }
 
@@ -22707,7 +22723,7 @@ async function onSharePhotoPicked(inp){
     try{ await document.fonts.ready; }catch(e){}
     const cv = document.createElement('canvas'); cv.width=1080; cv.height=1920;
     const tpl = (typeof logroTemplateForKey==='function' && logroTemplateForKey(_shareLogro.key)) || _shareLogro;
-    drawShareCanvas(cv.getContext('2d'), 1080, 1920, photo, medal, { title:_shTitle(tpl), sub:(tpl.desc||tpl.descripcion||''), handle:'coachaipro.ai' });
+    drawShareCanvas(cv.getContext('2d'), 1080, 1920, photo, medal, { title:_shTitle(tpl), sub:(tpl.desc||tpl.descripcion||''), eyebrow: tpl.eyebrow, handle:'coachaipro.ai' });
     _shareCanvas = cv;
     const img = document.getElementById('share-prev-img'); if(img) img.src = cv.toDataURL('image/jpeg', 0.92);
   }catch(e){ console.warn('[share] compose:', e); }
@@ -22738,6 +22754,26 @@ function closeSharePreview(event){
   if(event && event.target && event.target.id !== 'share-prev-overlay' && !event.target.classList.contains('share-prev-x')) return;
   const ov=document.getElementById('share-prev-overlay'); if(ov) ov.classList.remove('open'); _shareCanvas=null;
 }
+
+// ── MOMENTO "ENTRENO COMPLETADO" ──────────────────────────────────────────────
+// NO es una medalla de colección: es un momento liviano y compartible cada vez que
+// la persona marca un entreno como hecho. Reusa el motor de compartir con una medalla
+// dedicada (entreno_completado.webp) y un subtítulo con gancho de progreso.
+let _entrenoShareLogro = null;
+async function getEntrenoShareSubtitle(){
+  try{ if(typeof computeStreaks==='function' && typeof recentDiario!=='undefined'){ const c=computeStreaks(recentDiario||[],1).current; if(c>=2) return 'Día '+c+' de racha 🔥'; } }catch(e){}
+  try{ if(sbClient && currentUser){ const { count } = await sbClient.from('dias_entrenados').select('fecha',{count:'exact',head:true}).eq('usuario_id', currentUser.id); if(count) return 'Entreno #'+count; } }catch(e){}
+  return '¡Otro día menos! 💪';
+}
+async function showEntrenoCompletadoMoment(){
+  const sub = await getEntrenoShareSubtitle();
+  let fecha = ''; try { fecha = new Date().toLocaleDateString(lang==='en'?'en-US':'es-AR', { day:'numeric', month:'long' }).toUpperCase(); } catch(e){}
+  _entrenoShareLogro = { key:'entreno_completado', titulo:'Entreno completado', desc: sub, eyebrow: fecha ? ('★ '+fecha) : '★ ENTRENO DEL DÍA' };
+  const subEl=document.getElementById('entreno-done-sub'); if(subEl) subEl.textContent = sub;
+  const ov=document.getElementById('entreno-done-overlay'); if(ov) ov.classList.add('open');
+}
+function shareEntrenoFromMoment(){ if(_entrenoShareLogro) startShareLogro(_entrenoShareLogro); }
+function closeEntrenoDone(event){ if(event && event.target && event.target.id!=='entreno-done-overlay' && !event.target.classList.contains('logro-celebr-btn')) return; const ov=document.getElementById('entreno-done-overlay'); if(ov) ov.classList.remove('open'); }
 
 // "Mi información" card — populates the discreet collapsed header
 // (avatar + name + email) AND the editable form fields revealed on expand.
@@ -24562,6 +24598,10 @@ function toggleEntrenoDone(i) {
 
   // Re-render the today-only view to reflect the new done state (hero check + summary count)
   renderMiEntreno();
+
+  // Momento "entreno completado" (compartible) — solo al COMPLETAR un día de entreno
+  // de verdad (no descanso, y no al destildar). Liviano: no toca la colección ni el push.
+  if (!wasDone && isDone && !isRestDay) { try { showEntrenoCompletadoMoment(); } catch (e) {} }
 }
 
 let _entrenoWeightTimers = {};
