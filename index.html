@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260623-2122-mi-entreno--separar-dato--chip--de-tecnica--nota-suave--en-ejercicios">
+<meta name="app-version" content="20260624-1505-compartir-logros--foto---medalla----imagen-story-para-compartir">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11252,6 +11252,21 @@ body.theme-king .cai-perfil-transform-badge {
   color: #fff; font-size: 15px; font-weight: 700; font-family: 'DM Sans', sans-serif;
 }
 .logro-celebr-btn:active { transform: scale(0.98); }
+.logro-celebr-btn.ghost { background: none; color: var(--muted); font-weight: 600; margin-top: 8px; }
+/* ── Preview de compartir logro (foto + medalla → story 9:16) ── */
+.share-prev-overlay { position: fixed; inset: 0; z-index: 4200; background: rgba(10,10,16,.8); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 18px; }
+.share-prev-overlay.open { display: flex; }
+.share-prev-x { position: absolute; top: 14px; right: 16px; width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(255,255,255,.14); color: #fff; font-size: 22px; line-height: 1; cursor: pointer; }
+.share-prev-stage { position: relative; display: flex; justify-content: center; }
+.share-prev-img { width: auto; max-width: 100%; max-height: 64vh; border-radius: 16px; box-shadow: 0 20px 50px -18px rgba(0,0,0,.7); display: block; }
+.share-prev-spin { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; }
+.share-prev-spin .sp { width: 34px; height: 34px; border: 3px solid rgba(255,255,255,.25); border-top-color: #fff; border-radius: 50%; animation: sharespin .8s linear infinite; }
+@keyframes sharespin { to { transform: rotate(360deg); } }
+.share-prev-actions { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 340px; margin-top: 18px; }
+.share-prev-btn { width: 100%; padding: 15px; border: none; border-radius: 14px; cursor: pointer; font-size: 15px; font-weight: 700; font-family: 'DM Sans', sans-serif; color: #fff; background: linear-gradient(135deg, var(--accent-bright), var(--accent), var(--accent3)); }
+.share-prev-btn:active { transform: scale(.98); }
+.share-prev-sub { display: flex; gap: 20px; justify-content: center; }
+.share-prev-sub button { background: none; border: none; color: rgba(255,255,255,.8); font-size: 13.5px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
 /* ── Overlay de cierre obligatorio (bloquea Home/Chat/Perfil; tapa el nav z-index:90) ── */
 .cierre-gate-overlay {
   position: fixed; inset: 0; z-index: 4000;
@@ -13282,7 +13297,25 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     <div class="logro-celebr-medal" id="logro-disc-big"></div>
     <div class="logro-celebr-title" id="logro-celebr-title">—</div>
     <div class="logro-celebr-desc" id="logro-celebr-desc">—</div>
-    <button class="logro-celebr-btn" onclick="closeLogro()" type="button">¡Genial! 🎉</button>
+    <button class="logro-celebr-btn" onclick="shareLogroFromCele()" type="button">📤 Compartir mi logro</button>
+    <button class="logro-celebr-btn ghost" onclick="closeLogro()" type="button">Listo</button>
+  </div>
+</div>
+
+<!-- Compartir logro: input de foto (cámara/galería) + preview de la imagen compuesta -->
+<input type="file" id="share-photo-input" accept="image/*" style="display:none" onchange="onSharePhotoPicked(this)">
+<div class="share-prev-overlay" id="share-prev-overlay" onclick="closeSharePreview(event)" role="dialog" aria-modal="true" aria-label="Compartir logro">
+  <button class="share-prev-x" onclick="closeSharePreview()" aria-label="Cerrar">×</button>
+  <div class="share-prev-stage">
+    <img class="share-prev-img" id="share-prev-img" alt="Tu logro">
+    <div class="share-prev-spin" id="share-prev-spin"><div class="sp"></div></div>
+  </div>
+  <div class="share-prev-actions">
+    <button class="share-prev-btn" onclick="shareComposed()" type="button">📤 Compartir</button>
+    <div class="share-prev-sub">
+      <button onclick="changeSharePhoto()" type="button">Cambiar foto</button>
+      <button onclick="downloadComposed()" type="button">Descargar</button>
+    </div>
   </div>
 </div>
 
@@ -22578,6 +22611,7 @@ function _drainCele() {
 function showLogroCelebration(logro) {
   const ov = document.getElementById('logro-overlay');
   if (!ov || !logro) return;
+  _celebratingLogro = logro;
   const box = document.getElementById('logro-disc-big');
   if (box) box.innerHTML = medalHtml(logro, true, { size: 'xl', label: false, mult: logro._mult || 0 });
   const t = document.getElementById('logro-celebr-title'); if (t) t.textContent = logro.titulo;
@@ -22594,6 +22628,115 @@ function closeLogro(event) {
   // (pequeño delay para que termine la animación de salida antes de la siguiente).
   _celeShowing = false;
   setTimeout(() => { try { _drainCele(); } catch (e) {} }, 380);
+}
+
+// ============================================================================
+// COMPARTIR LOGRO — compone una imagen story 9:16 (foto del usuario + medalla +
+// branding) en un canvas y la comparte por el menú nativo del celu. El diseño:
+// foto protagonista, medalla como sello a la derecha-centro, texto del logro abajo.
+// ============================================================================
+let _celebratingLogro = null;   // el logro mostrado en la celebración (para compartir)
+let _shareLogro = null;         // el logro que se está compartiendo
+let _shareCanvas = null;        // el canvas compuesto (para exportar/compartir)
+
+function _shRRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function _shLS(ctx,px){ try{ ctx.letterSpacing = px+'px'; }catch(e){} }
+function _shWrap(ctx,text,maxW){ const words=(text||'').split(' '); const lines=[]; let line=''; for(const w of words){ const t=line?line+' '+w:w; if(ctx.measureText(t).width>maxW && line){ lines.push(line); line=w; } else line=t; } if(line) lines.push(line); return lines; }
+
+// Motor PURO de dibujo (mismo que validamos en el preview). 1080x1920.
+function drawShareCanvas(ctx, W, H, photo, medal, t){
+  ctx.clearRect(0,0,W,H);
+  if(photo && photo.width){
+    const ir=photo.width/photo.height, cr=W/H; let dw,dh,dx,dy;
+    if(ir>cr){ dh=H; dw=H*ir; dx=(W-dw)/2; dy=0; } else { dw=W; dh=W/ir; dx=0; dy=(H-dh)/2; }
+    ctx.drawImage(photo,dx,dy,dw,dh);
+  } else { ctx.fillStyle='#2c343d'; ctx.fillRect(0,0,W,H); }
+  let gt=ctx.createLinearGradient(0,0,0,H*0.22); gt.addColorStop(0,'rgba(0,0,0,.32)'); gt.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=gt; ctx.fillRect(0,0,W,H*0.22);
+  let gb=ctx.createLinearGradient(0,H*0.58,0,H); gb.addColorStop(0,'rgba(0,0,0,0)'); gb.addColorStop(1,'rgba(0,0,0,.62)');
+  ctx.fillStyle=gb; ctx.fillRect(0,H*0.58,W,H*0.42);
+  const M=Math.round(W*0.065);
+  const mw=Math.round(W*0.40), mh=mw, mx=W-Math.round(W*0.045)-mw, my=Math.round((H-mh)/2);
+  const cx=mx+mw/2, cy=my+mh/2; const rg=ctx.createRadialGradient(cx,cy,mw*0.12,cx,cy,mw*0.62);
+  rg.addColorStop(0,'rgba(0,0,0,.30)'); rg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(cx,cy,mw*0.62,0,Math.PI*2); ctx.fill();
+  if(medal && medal.width){ ctx.save(); ctx.shadowColor='rgba(0,0,0,.5)'; ctx.shadowBlur=W*0.018; ctx.shadowOffsetY=W*0.01; ctx.drawImage(medal,mx,my,mw,mh); ctx.restore(); }
+  ctx.textBaseline='alphabetic'; ctx.textAlign='left';
+  const by=Math.round(H*0.072); ctx.fillStyle='#fff'; ctx.font="800 "+Math.round(W*0.038)+"px 'DM Sans',sans-serif"; _shLS(ctx,W*0.008);
+  ctx.fillText('COACHAI', M, by); const cw=ctx.measureText('COACHAI').width; _shLS(ctx,0);
+  const chh=Math.round(W*0.026); ctx.fillStyle='rgba(255,255,255,.24)'; _shRRect(ctx, M+cw+Math.round(W*0.022), by-chh, Math.round(W*0.062), chh+Math.round(W*0.012), 100); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.font="800 "+Math.round(W*0.02)+"px 'DM Sans',sans-serif"; ctx.textBaseline='middle';
+  ctx.fillText('PRO', M+cw+Math.round(W*0.034), by-chh+Math.round((chh+W*0.012)/2)+1); ctx.textBaseline='alphabetic';
+  const tx=M, maxW=W-2*M;
+  ctx.textAlign='right'; ctx.fillStyle='rgba(255,255,255,.6)'; ctx.font="700 "+Math.round(W*0.026)+"px 'DM Sans',sans-serif"; _shLS(ctx,W*0.004);
+  ctx.fillText(t.handle||'coachaipro.ai', W-M, Math.round(H*0.955)); _shLS(ctx,0);
+  ctx.textAlign='left';
+  const subLines=_shWrap(ctx, t.sub||'', W-2*M);
+  let tfs=Math.round(W*0.092), titleLines;
+  do{ ctx.font="800 "+tfs+"px 'DM Sans',sans-serif"; titleLines=_shWrap(ctx, t.title||'', maxW); if(titleLines.length<=2) break; tfs-=Math.round(W*0.006); } while(tfs>Math.round(W*0.06));
+  const subLH=Math.round(W*0.052), titleLH=Math.round(tfs*1.06);
+  ctx.save(); ctx.shadowColor='rgba(0,0,0,.4)'; ctx.shadowBlur=W*0.012;
+  let yy=Math.round(H*0.935); ctx.fillStyle='rgba(255,255,255,.92)'; ctx.font="500 "+Math.round(W*0.040)+"px 'DM Sans',sans-serif";
+  for(let i=subLines.length-1;i>=0;i--){ ctx.fillText(subLines[i], tx, yy); yy-=subLH; }
+  yy-=Math.round(W*0.005);
+  ctx.fillStyle='#fff'; ctx.font="800 "+tfs+"px 'DM Sans',sans-serif";
+  for(let i=titleLines.length-1;i>=0;i--){ ctx.fillText(titleLines[i], tx, yy); yy-=titleLH; }
+  yy-=Math.round(W*0.012);
+  ctx.fillStyle='#FF8AA6'; ctx.font="800 "+Math.round(W*0.030)+"px 'DM Sans',sans-serif"; _shLS(ctx,W*0.005);
+  ctx.fillText('★ LOGRO DESBLOQUEADO', tx, yy); _shLS(ctx,0);
+  ctx.restore();
+}
+
+function _shTitle(tpl){ const t=((tpl.titulo||'')+'').trim(); return /^[¡!]/.test(t)? t : ('¡'+t+'!'); }
+function _shLoadFile(file){ return new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=URL.createObjectURL(file); }); }
+function _shLoadMedal(logro){ return new Promise((res)=>{ const key=((typeof logroTemplateForKey==='function'&&logroTemplateForKey(logro.key))||logro).key; const im=new Image(); im.onload=()=>res(im); im.onerror=()=>res(null); im.src='medals/'+key+'.webp'; }); }
+
+// Arranca el flujo: guarda el logro y abre el selector de foto (cámara o galería).
+function startShareLogro(logro){ if(!logro) return; _shareLogro = logro; const inp=document.getElementById('share-photo-input'); if(inp){ inp.value=''; inp.click(); } }
+function shareLogroFromCele(){ if(_celebratingLogro) startShareLogro(_celebratingLogro); }
+function changeSharePhoto(){ const inp=document.getElementById('share-photo-input'); if(inp){ inp.value=''; inp.click(); } }
+
+// Foto elegida → componer en canvas → mostrar el preview.
+async function onSharePhotoPicked(inp){
+  const file = inp && inp.files && inp.files[0]; if(!file || !_shareLogro) return;
+  const ov = document.getElementById('share-prev-overlay'); if(ov) ov.classList.add('open');
+  const spin = document.getElementById('share-prev-spin'); if(spin) spin.style.display='flex';
+  try{
+    const photo = await _shLoadFile(file);
+    const medal = await _shLoadMedal(_shareLogro);
+    try{ await document.fonts.ready; }catch(e){}
+    const cv = document.createElement('canvas'); cv.width=1080; cv.height=1920;
+    const tpl = (typeof logroTemplateForKey==='function' && logroTemplateForKey(_shareLogro.key)) || _shareLogro;
+    drawShareCanvas(cv.getContext('2d'), 1080, 1920, photo, medal, { title:_shTitle(tpl), sub:(tpl.desc||tpl.descripcion||''), handle:'coachaipro.ai' });
+    _shareCanvas = cv;
+    const img = document.getElementById('share-prev-img'); if(img) img.src = cv.toDataURL('image/jpeg', 0.92);
+  }catch(e){ console.warn('[share] compose:', e); }
+  if(spin) spin.style.display='none';
+}
+
+function _shDownload(blob){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='coachai-logro.jpg'; document.body.appendChild(a); a.click(); setTimeout(()=>{ try{ URL.revokeObjectURL(a.href); a.remove(); }catch(e){} }, 1000); }
+
+// Compartir por el menú nativo (Web Share con archivo); si no se puede, descarga.
+async function shareComposed(){
+  if(!_shareCanvas) return;
+  _shareCanvas.toBlob(async (blob)=>{
+    if(!blob) return;
+    try{
+      const file = new File([blob], 'coachai-logro.jpg', { type:'image/jpeg' });
+      if(navigator.canShare && navigator.canShare({ files:[file] })){
+        await navigator.share({ files:[file], title:'Mi logro en CoachAI' });
+        try{ if(typeof trackEvent==='function') trackEvent('logro_shared', { key:_shareLogro&&_shareLogro.key, method:'native' }); }catch(e){}
+        return;
+      }
+    }catch(e){ if(e && e.name==='AbortError') return; }
+    _shDownload(blob);
+    try{ if(typeof trackEvent==='function') trackEvent('logro_shared', { key:_shareLogro&&_shareLogro.key, method:'download' }); }catch(e){}
+  }, 'image/jpeg', 0.92);
+}
+function downloadComposed(){ if(!_shareCanvas) return; _shareCanvas.toBlob((b)=>{ if(b) _shDownload(b); }, 'image/jpeg', 0.92); }
+function closeSharePreview(event){
+  if(event && event.target && event.target.id !== 'share-prev-overlay' && !event.target.classList.contains('share-prev-x')) return;
+  const ov=document.getElementById('share-prev-overlay'); if(ov) ov.classList.remove('open'); _shareCanvas=null;
 }
 
 // "Mi información" card — populates the discreet collapsed header
