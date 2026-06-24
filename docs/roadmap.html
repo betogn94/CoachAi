@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>CoachAI · Roadmap a las Stores</title>
+<style>
+  :root{
+    --coral:#FF4F7B; --coral-deep:#C42960; --coral-soft:rgba(255,79,123,.08);
+    --violet:#7c6aff; --violet-soft:rgba(124,106,255,.08);
+    --green:#2ecfb5; --green-soft:rgba(46,207,181,.10);
+    --ink:#15151f; --muted:#6b6b7d; --muted2:#9a9aa8;
+    --bg:#FAFAFB; --card:#fff; --border:#ECECF1;
+    --shadow:0 1px 2px rgba(17,17,26,.04), 0 12px 32px -18px rgba(17,17,26,.18);
+    --radius:18px;
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+    line-height:1.5; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{ max-width:960px; margin:0 auto; padding:0 20px; }
+  .mono{ font-family:'JetBrains Mono',ui-monospace,'SF Mono',monospace; }
+
+  /* HERO */
+  .hero{
+    position:relative; overflow:hidden;
+    background:linear-gradient(135deg,#FF6F94 0%,#FF4F7B 46%,#C42960 100%);
+    color:#fff; padding:64px 0 72px; text-align:center;
+  }
+  .hero::after{ content:''; position:absolute; inset:0;
+    background:radial-gradient(circle at 78% -10%, rgba(255,255,255,.28), transparent 42%); pointer-events:none; }
+  .logo{ font-weight:800; letter-spacing:.22em; font-size:15px; opacity:.95; display:inline-flex; align-items:center; gap:8px; }
+  .logo .pro{ font-size:9px; letter-spacing:.12em; background:rgba(255,255,255,.22); padding:2px 7px; border-radius:100px; }
+  .hero h1{ font-size:clamp(30px,7vw,52px); margin:22px 0 10px; font-weight:800; letter-spacing:-.02em; line-height:1.05; }
+  .hero p{ font-size:clamp(15px,3.4vw,19px); margin:0 auto; max-width:560px; opacity:.95; }
+  .hero .badge{ display:inline-block; margin-top:24px; background:rgba(255,255,255,.16);
+    border:1px solid rgba(255,255,255,.32); border-radius:100px; padding:8px 18px; font-size:13px; font-weight:600;
+    backdrop-filter:blur(6px); }
+
+  /* SECTION */
+  section{ padding:54px 0; }
+  .eyebrow{ font-size:11px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:var(--coral); margin-bottom:10px; }
+  h2{ font-size:clamp(23px,4.6vw,32px); margin:0 0 6px; font-weight:800; letter-spacing:-.01em; }
+  .lead{ color:var(--muted); font-size:16px; margin:0 0 26px; max-width:680px; }
+
+  /* PROGRESS RING */
+  .prog-wrap{ display:flex; align-items:center; gap:36px; flex-wrap:wrap; justify-content:center;
+    background:var(--card); border:1px solid var(--border); border-radius:24px; padding:34px 32px; box-shadow:var(--shadow); }
+  .ring{ position:relative; width:196px; height:196px; flex:0 0 auto; }
+  .ring svg{ width:100%; height:100%; transform:rotate(-90deg); }
+  .ring .track{ fill:none; stroke:#EFEFF3; stroke-width:13; }
+  .ring .fill{ fill:none; stroke:url(#pg); stroke-width:13; stroke-linecap:round;
+    stroke-dasharray:402; stroke-dashoffset:121; animation:ringfill 1.5s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes ringfill{ from{ stroke-dashoffset:402; } }
+  .ring .center{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .ring .pct{ font-size:48px; font-weight:800; letter-spacing:-.02em; line-height:1;
+    background:linear-gradient(135deg,var(--coral),var(--coral-deep)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .ring .lbl{ font-size:11px; font-weight:700; color:var(--muted); letter-spacing:.1em; margin-top:6px; }
+  .prog-legend{ flex:1; min-width:248px; }
+  .prog-legend h3{ margin:0 0 3px; font-size:19px; }
+  .prog-legend .sub{ color:var(--muted); font-size:13.5px; margin:0 0 14px; }
+  .mile{ display:flex; align-items:center; gap:12px; padding:8px 0; font-size:14px; border-bottom:1px dashed var(--border); }
+  .mile:last-child{ border-bottom:0; }
+  .mile .st{ width:21px; height:21px; border-radius:50%; flex:0 0 auto; display:grid; place-items:center; font-size:11px; color:#fff; font-weight:800; }
+  .mile .st.done{ background:var(--green); } .mile .st.next{ background:var(--coral); } .mile .st.todo{ background:#DCDCE4; }
+  .mile .nm{ font-weight:600; } .mile.todo .nm{ color:var(--muted); font-weight:500; }
+  .prog-foot{ font-size:12px; color:var(--muted2); margin-top:13px; line-height:1.5; }
+
+  /* DONE GRID */
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+  .done{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px 16px; box-shadow:var(--shadow); }
+  .done .t{ font-weight:700; font-size:14px; display:flex; align-items:center; gap:8px; }
+  .done .t .ck{ color:var(--green); flex:0 0 auto; }
+  .done .d{ color:var(--muted); font-size:12.5px; margin-top:5px; }
+
+  /* TRACKS */
+  .tracks{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .track{ border-radius:var(--radius); padding:20px 22px; border:1px solid var(--border); background:var(--card); box-shadow:var(--shadow); }
+  .track h3{ margin:0 0 4px; font-size:17px; display:flex; align-items:center; gap:9px; }
+  .track .dot{ width:11px; height:11px; border-radius:50%; flex:0 0 auto; }
+  .track.crit .dot{ background:var(--coral); } .track.del .dot{ background:var(--violet); }
+  .track p{ margin:0; color:var(--muted); font-size:13.5px; }
+  .track .flow{ margin-top:12px; font-size:12px; color:var(--ink); display:flex; flex-wrap:wrap; gap:6px; }
+  .track .flow span{ background:var(--coral-soft); border:1px solid rgba(255,79,123,.2); color:var(--coral-deep); padding:3px 9px; border-radius:100px; font-weight:600; }
+  .track.del .flow span{ background:var(--violet-soft); border-color:rgba(124,106,255,.2); color:#5b4fd0; }
+
+  /* PHASES */
+  .phases{ position:relative; margin-top:8px; }
+  .phase{ position:relative; background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:20px 22px 20px 24px; box-shadow:var(--shadow); margin-bottom:14px; border-left:5px solid var(--coral); }
+  .phase.delight{ border-left-color:var(--violet); }
+  .phase .ph-top{ display:flex; align-items:flex-start; gap:14px; }
+  .phase .num{ flex:0 0 auto; width:38px; height:38px; border-radius:12px; display:grid; place-items:center;
+    font-weight:800; font-size:17px; color:#fff; background:linear-gradient(135deg,#FF6F94,#C42960); }
+  .phase.delight .num{ background:linear-gradient(135deg,#9b8cff,#5b4fd0); }
+  .phase .ph-body{ flex:1; min-width:0; }
+  .phase h3{ margin:0; font-size:18px; font-weight:800; }
+  .phase .why{ color:var(--muted); font-size:14px; margin:6px 0 0; }
+  .phase .meta{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .chip{ font-size:11.5px; font-weight:700; padding:4px 11px; border-radius:100px; letter-spacing:.02em; }
+  .chip.t-crit{ background:var(--coral-soft); color:var(--coral-deep); border:1px solid rgba(255,79,123,.25); }
+  .chip.t-del{ background:var(--violet-soft); color:#5b4fd0; border:1px solid rgba(124,106,255,.25); }
+  .chip.time{ background:#f2f2f5; color:var(--muted); border:1px solid var(--border); }
+
+  /* MONEY */
+  .money{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .mcard{ border-radius:var(--radius); padding:22px; box-shadow:var(--shadow); border:1px solid var(--border); background:var(--card); }
+  .mcard .tag{ display:inline-block; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; padding:4px 10px; border-radius:100px; margin-bottom:12px; }
+  .mcard.reader .tag{ background:var(--green-soft); color:#138a76; }
+  .mcard.guest .tag{ background:var(--coral-soft); color:var(--coral-deep); }
+  .mcard h3{ margin:0 0 10px; font-size:18px; }
+  .mflow{ display:flex; flex-direction:column; gap:7px; margin:0 0 14px; }
+  .mflow .step{ display:flex; align-items:center; gap:9px; font-size:13.5px; }
+  .mflow .step .i{ width:24px; height:24px; border-radius:8px; background:#f2f2f5; display:grid; place-items:center; flex:0 0 auto; font-size:13px; }
+  .verdict{ font-size:13.5px; font-weight:700; padding:10px 12px; border-radius:12px; }
+  .verdict.ok{ background:var(--green-soft); color:#0f7a68; }
+  .verdict.fee{ background:var(--coral-soft); color:var(--coral-deep); }
+  .note{ background:#FFF8E6; border:1px solid #F5E2A8; border-radius:12px; padding:12px 14px; font-size:13px; color:#8a6d1a; margin-top:14px; }
+  .note b{ color:#6b520f; }
+
+  /* CHECKLIST */
+  .checks{ display:grid; grid-template-columns:1fr 1fr; gap:10px 22px; margin-top:6px; }
+  .check{ display:flex; align-items:flex-start; gap:10px; font-size:14px; }
+  .check .b{ width:18px; height:18px; border-radius:6px; border:1.5px solid var(--coral); flex:0 0 auto; margin-top:1px; }
+  .store2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:8px; }
+  .store{ border-radius:var(--radius); padding:20px; border:1px solid var(--border); box-shadow:var(--shadow); background:var(--card); }
+  .store h3{ margin:0 0 4px; font-size:18px; display:flex; align-items:center; gap:8px; }
+  .store .pace{ font-size:12px; font-weight:700; padding:3px 9px; border-radius:100px; }
+  .store.and .pace{ background:var(--green-soft); color:#0f7a68; }
+  .store.ios .pace{ background:#FFF1F4; color:var(--coral-deep); }
+  .store p{ color:var(--muted); font-size:13.5px; margin:8px 0 0; }
+
+  /* TIMELINE BAR */
+  .tl{ background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:22px; box-shadow:var(--shadow); }
+  .tl .row{ display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px dashed var(--border); font-size:14px; }
+  .tl .row:last-child{ border-bottom:0; }
+  .tl .row .est{ font-weight:800; color:var(--coral-deep); }
+  .tl .total{ margin-top:14px; padding:14px 16px; background:linear-gradient(135deg,var(--coral-soft),var(--violet-soft)); border-radius:12px; font-weight:700; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; }
+
+  /* FINAL */
+  .final{ background:linear-gradient(135deg,#15151f,#241a2e); color:#fff; border-radius:24px; padding:42px 30px; text-align:center; box-shadow:var(--shadow); }
+  .final h2{ color:#fff; font-size:clamp(22px,4.5vw,30px); }
+  .final p{ color:#cfcfe0; max-width:560px; margin:10px auto 0; font-size:15.5px; }
+  .pillars{ display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:22px; }
+  .pillars span{ background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16); border-radius:100px; padding:8px 16px; font-size:13px; font-weight:600; }
+
+  footer{ text-align:center; color:var(--muted2); font-size:12.5px; padding:34px 0 50px; }
+  footer .heart{ color:var(--coral); }
+
+  @media (max-width:680px){
+    .tracks,.money,.checks,.store2{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="logo">COACHAI <span class="pro">PRO</span></div>
+    <h1>Roadmap a las<br>App Stores</h1>
+    <p>De donde estamos hoy a estar en Apple &amp; Google — bien hechos, compliant y trabajando tranquilos.</p>
+    <div class="badge">📍 Estado: más cerca que lejos · meta ~julio</div>
+  </div>
+</header>
+
+<!-- PROGRESO -->
+<section style="background:#fff; border-bottom:1px solid var(--border);">
+  <div class="wrap">
+    <div class="eyebrow">¿Cuánto falta?</div>
+    <h2>Progreso hacia las stores</h2>
+    <p class="lead">La parte más pesada —el producto— ya está hecha y probada. Lo que falta es la "capa de stores". Estimación honesta: variable, pero real.</p>
+    <div class="prog-wrap">
+      <div class="ring">
+        <svg viewBox="0 0 160 160" aria-label="70 por ciento">
+          <defs><linearGradient id="pg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF6F94"/><stop offset="1" stop-color="#C42960"/></linearGradient></defs>
+          <circle class="track" cx="80" cy="80" r="64"/>
+          <circle class="fill" cx="80" cy="80" r="64"/>
+        </svg>
+        <div class="center"><div class="pct">70%</div><div class="lbl">HACIA LAS STORES</div></div>
+      </div>
+      <div class="prog-legend">
+        <h3>De dónde venimos a dónde vamos</h3>
+        <p class="sub">Los hitos del camino, en orden:</p>
+        <div class="mile"><span class="st done">✓</span><span class="nm">Núcleo del producto — listo y probado</span></div>
+        <div class="mile"><span class="st next">▶</span><span class="nm">Compartir logros — lo próximo</span></div>
+        <div class="mile todo"><span class="st todo"></span><span class="nm">Auth real + seguridad</span></div>
+        <div class="mile todo"><span class="st todo"></span><span class="nm">Busca tu coach + compliance</span></div>
+        <div class="mile todo"><span class="st todo"></span><span class="nm">Wrappers + envío a las stores</span></div>
+        <p class="prog-foot">El 70% refleja que el producto (la parte más grande) ya está; falta la capa de stores, que es ~25-30% del esfuerzo total restante.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DÓNDE ESTAMOS -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Punto de partida</div>
+    <h2>Dónde estamos hoy</h2>
+    <p class="lead">El núcleo del producto está sólido y probado. Esto ya está live y funcionando:</p>
+    <div class="grid">
+      <div class="done"><div class="t"><span class="ck">✓</span> Capa de calidad de IA</div><div class="d">Few-shot estilo Jesús + plantillas de respaldo (mujer y varón) con ruteo por sexo. Nunca cae un plan flojo.</div></div>
+      <div class="done"><div class="t"><span class="ck">✓</span> Gamificación premium</div><div class="d">Logros + medallas estilo Apple Fitness, rachas, celebración diferida a la 2da entrada.</div></div>
+      <div class="done"><div class="t"><span class="ck">✓</span> Onboarding optimizado</div><div class="d">Recortado con datos (fuera lo que la IA ignora), más liviano para gente que le cuesta la tecnología.</div></div>
+      <div class="done"><div class="t"><span class="ck">✓</span> Multi-tenant + Studio</div><div class="d">Panel del coach, branding por tenant, aislamiento entre coaches.</div></div>
+      <div class="done"><div class="t"><span class="ck">✓</span> Ciclo completo</div><div class="d">Onboarding → planes → registro diario → cierre + análisis semanal → reinicio.</div></div>
+      <div class="done"><div class="t"><span class="ck">✓</span> Acceso por suscripción</div><div class="d">Gate de acceso + control por tenant. Push notifications (Fase 0) probadas en iPhone.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- DOS CARRILES -->
+<section style="background:#fff; border-top:1px solid var(--border); border-bottom:1px solid var(--border);">
+  <div class="wrap">
+    <div class="eyebrow">Cómo nos ordenamos</div>
+    <h2>Dos carriles, intercalados</h2>
+    <p class="lead">No hacer todo el laburo pesado de un tirón (agota) ni todo lo lindo primero (no avanzás). Se intercalan: después de cada bloque crítico, un premio del carril delight.</p>
+    <div class="tracks">
+      <div class="track crit">
+        <h3><span class="dot"></span> Carril crítico</h3>
+        <p>Lo que de verdad lleva a las stores. Va en orden, por dependencias.</p>
+        <div class="flow"><span>pago</span><span>auth</span><span>busca coach</span><span>compliance</span><span>wrappers</span></div>
+      </div>
+      <div class="track del">
+        <h3><span class="dot"></span> Carril delight</h3>
+        <p>No bloquea nada. Suma producto, marketing y "app real" para el review. Wins visibles.</p>
+        <div class="flow"><span>compartir logros</span><span>perfil con progreso</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP FASES -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">El plan, paso a paso</div>
+    <h2>Roadmap ordenado</h2>
+    <p class="lead">Por dependencias + riesgo + envión. Método: una cosa por sesión, probada y live antes de la siguiente.</p>
+
+    <div class="phases">
+      <div class="phase">
+        <div class="ph-top"><div class="num">0</div><div class="ph-body">
+          <h3>Confirmar el modelo de pago</h3>
+          <p class="why">Antes de construir alrededor: validar contra las guidelines actuales que Apple acepta el modelo "reader" (pago externo, la app solo da acceso). Es research, no código. Si esto fuera "no", cambia toda la estrategia → por eso va primero. Cuesta horas, ahorra semanas.</p>
+          <div class="meta"><span class="chip t-crit">Crítico · de-risk</span><span class="chip time">⏱ horas · en paralelo</span></div>
+        </div></div>
+      </div>
+
+      <div class="phase delight">
+        <div class="ph-top"><div class="num">1</div><div class="ph-body">
+          <h3>Compartir logros 🏅</h3>
+          <p class="why">El win rápido para arrancar con envión. Cargar/sacar foto → la app le pone la medalla encima (PNG que ya tenemos) + branding → exportar y compartir. Es marketing gratis: cada medalla compartida lleva tu marca a las redes. Y hace la app más "real" para Apple.</p>
+          <div class="meta"><span class="chip t-del">Delight</span><span class="chip time">⏱ ~1-2 días</span></div>
+        </div></div>
+      </div>
+
+      <div class="phase">
+        <div class="ph-top"><div class="num">2</div><div class="ph-body">
+          <h3>Auth real (OTP) + seguridad por usuario 🔑</h3>
+          <p class="why">El cimiento de todo. Login real con código por email + permisos por usuario. Desbloquea el "busca tu coach", el acceso gateado y el requisito de cuentas de Apple — y de paso cierra el agujero de seguridad. Es lo más delicado: no se apura.</p>
+          <div class="meta"><span class="chip t-crit">Crítico · cimiento</span><span class="chip time">⏱ ~3-5 días</span></div>
+        </div></div>
+      </div>
+
+      <div class="phase delight">
+        <div class="ph-top"><div class="num">3</div><div class="ph-body">
+          <h3>Perfil con progreso 📊</h3>
+          <p class="why">El segundo premio, intercalado. Convertir el Perfil en un tablero de progreso lindo: peso, medidas, adherencia, fotos antes/después, racha, medallas. La data ya la tenemos; falta visualizarla. Necesita diseño → lo bocetamos en paralelo. Suma retención y "valor percibido".</p>
+          <div class="meta"><span class="chip t-del">Delight · flexible</span><span class="chip time">⏱ ~2-4 días</span></div>
+        </div></div>
+      </div>
+
+      <div class="phase">
+        <div class="ph-top"><div class="num">4</div><div class="ph-body">
+          <h3>Busca tu coach + acceso gateado</h3>
+          <p class="why">Necesita el auth ya hecho. La pantalla de "buscá tu coach" → te lleva al tenant correcto → entrás solo si tenés acceso otorgado. Acá también: borrado de cuenta in-app + política de privacidad (los pide Apple).</p>
+          <div class="meta"><span class="chip t-crit">Crítico</span><span class="chip time">⏱ ~3-4 días</span></div>
+        </div></div>
+      </div>
+
+      <div class="phase">
+        <div class="ph-top"><div class="num">5</div><div class="ph-body">
+          <h3>Android: wrapper + enviar 🤖</h3>
+          <p class="why">Primero Android porque es el más fácil y rápido (wrapper TWA + assets + subir). Te da el win real de "estoy en una store" mientras iOS sigue su proceso. Revisión de Google: días.</p>
+          <div class="meta"><span class="chip t-crit">Crítico</span><span class="chip time">⏱ ~2-3 días + review corta</span></div>
+        </div></div>
+      </div>
+
+      <div class="phase">
+        <div class="ph-top"><div class="num">6</div><div class="ph-body">
+          <h3>iOS: wrapper + compliance + enviar 🍎</h3>
+          <p class="why">El último, el comodín. Wrapper con Capacitor + cumplir todo (no-steering, IAP del guest, borrado de cuenta, privacidad, assets). Para entonces la app ya está rica (medallas, compartir, perfil) → ayuda a que Apple la vea como app de verdad.</p>
+          <div class="meta"><span class="chip t-crit">Crítico · comodín</span><span class="chip time">⏱ ~3-4 días + review incógnita</span></div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MONETIZACIÓN -->
+<section style="background:#fff; border-top:1px solid var(--border); border-bottom:1px solid var(--border);">
+  <div class="wrap">
+    <div class="eyebrow">El modelo de negocio</div>
+    <h2>Monetización compliant</h2>
+    <p class="lead">No es "escapar" comisiones — es estructurar para que cada comisión caiga donde corresponde. Lo legítimo es durable: nadie te puede patear el tablero.</p>
+    <div class="money">
+      <div class="mcard reader">
+        <span class="tag">Tenants · sin comisión</span>
+        <h3>Modelo "reader"</h3>
+        <div class="mflow">
+          <div class="step"><span class="i">💳</span> Jesús cobra a su clienta por Stripe (su web)</div>
+          <div class="step"><span class="i">🏢</span> Parte de eso (~$20) = facturación B2B a CoachAI</div>
+          <div class="step"><span class="i">🔑</span> La clienta no compra la app: compra ACCESO</div>
+          <div class="step"><span class="i">📋</span> Entra con auth → te queda el registro de quién tiene acceso</div>
+        </div>
+        <div class="verdict ok">✓ Apple/Google no cobran: es B2B + acceso externo. Permitido (como Netflix/Spotify).</div>
+      </div>
+      <div class="mcard guest">
+        <span class="tag">Guest · con comisión</span>
+        <h3>CoachAI directo (IAP)</h3>
+        <div class="mflow">
+          <div class="step"><span class="i">👤</span> "Entrar como guest" → app fitness IA, sin coach humano</div>
+          <div class="step"><span class="i">🎁</span> 14 días gratis → luego paga IN-APP</div>
+          <div class="step"><span class="i">✅</span> Hace la app funcionar sola → pasa el filtro "no es solo un buscador"</div>
+          <div class="step"><span class="i">😊</span> Le da a Apple su IAP → de-riska el review</div>
+        </div>
+        <div class="verdict fee">$ Acá sí va comisión de la store — y está bien: es una compra de consumidor de verdad.</div>
+      </div>
+    </div>
+    <div class="note"><b>La línea fina a respetar:</b> en el login, si la clienta no tiene acceso, el mensaje es <b>neutro</b> ("hablá con tu coach") — nunca un link/botón a pagar afuera. Ese "steering" es lo que Apple rechaza. Lo demás, todo legítimo.</div>
+  </div>
+</section>
+
+<!-- STORES -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">El último paso</div>
+    <h2>Las stores</h2>
+    <p class="lead">Android es el camino fácil; iOS es el comodín (Apple es más exigente y su revisión es impredecible).</p>
+    <div class="store2">
+      <div class="store and">
+        <h3>🤖 Google Play <span class="pace">Fácil · rápido</span></h3>
+        <p>Wrapper TWA (PWABuilder). Más permisivo con el modelo. Revisión en días. Lo lanzamos primero para tener el win real.</p>
+      </div>
+      <div class="store ios">
+        <h3>🍎 App Store <span class="pace">El comodín</span></h3>
+        <p>Wrapper Capacitor. Exigente con wrappers "finos" (por eso medallas/perfil/compartir ayudan) y con el modelo de pago. Revisión impredecible: puede llevar varias rondas.</p>
+      </div>
+    </div>
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:20px 22px; box-shadow:var(--shadow); margin-top:4px;">
+      <div style="font-weight:800; margin-bottom:12px;">Checklist de requisitos</div>
+      <div class="checks">
+        <div class="check"><span class="b"></span> Wrapper nativo (TWA / Capacitor)</div>
+        <div class="check"><span class="b"></span> Auth real + login</div>
+        <div class="check"><span class="b"></span> Borrado de cuenta in-app</div>
+        <div class="check"><span class="b"></span> Política de privacidad + etiquetas</div>
+        <div class="check"><span class="b"></span> IAP nativo (solo guest tier)</div>
+        <div class="check"><span class="b"></span> Login neutro (sin link de pago externo)</div>
+        <div class="check"><span class="b"></span> Iconos, screenshots, descripciones</div>
+        <div class="check"><span class="b"></span> Cuentas de developer (Apple $99/año · Google $25)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TIEMPOS -->
+<section style="background:#fff; border-top:1px solid var(--border);">
+  <div class="wrap">
+    <div class="eyebrow">Cuánto falta</div>
+    <h2>Tiempos estimados</h2>
+    <p class="lead">A nuestro ritmo (rápido, pero probando todo). Son estimaciones honestas, no promesas.</p>
+    <div class="tl">
+      <div class="row"><span>1 · Compartir logros</span><span class="est">~1-2 días</span></div>
+      <div class="row"><span>2 · Auth real + seguridad</span><span class="est">~3-5 días</span></div>
+      <div class="row"><span>3 · Perfil con progreso</span><span class="est">~2-4 días</span></div>
+      <div class="row"><span>4 · Busca tu coach + gating + compliance</span><span class="est">~3-4 días</span></div>
+      <div class="row"><span>5 · Android: wrapper + enviar</span><span class="est">~2-3 días</span></div>
+      <div class="row"><span>6 · iOS: wrapper + compliance + enviar</span><span class="est">~3-4 días</span></div>
+      <div class="total"><span>🛠 Ingeniería total</span><span>~2.5 a 3.5 semanas</span></div>
+      <div class="total" style="background:#FFF8E6; border:1px solid #F5E2A8; color:#8a6d1a;"><span>📅 Revisión</span><span>Android ~3-4 sem · iOS = el incógnito</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- RESULTADO FINAL -->
+<section>
+  <div class="wrap">
+    <div class="final">
+      <h2>El resultado final</h2>
+      <p>CoachAI en Apple &amp; Google, con un modelo de negocio sólido donde cada uno está parado sobre algo legítimo. Vos trabajás tranquilo, las stores cobran lo suyo donde corresponde, y nadie te puede cambiar las reglas de abajo.</p>
+      <div class="pillars">
+        <span>🟢 Tenants — reader, sin comisión</span>
+        <span>🟢 Guest — IAP, con su comisión</span>
+        <span>🟢 Vos — sobre reglas que duran</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Hecho codo a codo <span class="heart">♥</span> · CoachAI Pro · Roadmap interno
+</footer>
+
+</body>
+</html>
