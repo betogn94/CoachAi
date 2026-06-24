@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260624-1557-compartir--recorte-de-foto--pan-zoom----descargar-solo-en-escritorio">
+<meta name="app-version" content="20260624-2008-compartir--medalla-mas-chica-y-mas-abajo--sin-coachai-pro-arriba--tips-de-juli-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -22684,22 +22684,15 @@ function drawShareCanvas(ctx, W, H, photo, medal, t){
     if(ir>cr){ dh=H; dw=H*ir; dx=(W-dw)/2; dy=0; } else { dw=W; dh=W/ir; dx=0; dy=(H-dh)/2; }
     ctx.drawImage(photo,dx,dy,dw,dh);
   } else { ctx.fillStyle='#2c343d'; ctx.fillRect(0,0,W,H); }
-  let gt=ctx.createLinearGradient(0,0,0,H*0.22); gt.addColorStop(0,'rgba(0,0,0,.32)'); gt.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=gt; ctx.fillRect(0,0,W,H*0.22);
   let gb=ctx.createLinearGradient(0,H*0.58,0,H); gb.addColorStop(0,'rgba(0,0,0,0)'); gb.addColorStop(1,'rgba(0,0,0,.62)');
   ctx.fillStyle=gb; ctx.fillRect(0,H*0.58,W,H*0.42);
   const M=Math.round(W*0.065);
-  const mw=Math.round(W*0.40), mh=mw, mx=W-Math.round(W*0.045)-mw, my=Math.round((H-mh)/2);
+  const mw=Math.round(W*0.355), mh=mw, mx=W-Math.round(W*0.05)-mw, my=Math.round(H*0.555-mh/2);
   const cx=mx+mw/2, cy=my+mh/2; const rg=ctx.createRadialGradient(cx,cy,mw*0.12,cx,cy,mw*0.62);
   rg.addColorStop(0,'rgba(0,0,0,.30)'); rg.addColorStop(1,'rgba(0,0,0,0)');
   ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(cx,cy,mw*0.62,0,Math.PI*2); ctx.fill();
   if(medal && medal.width){ const mr=medal.width/medal.height; let dmw=mw,dmh=mh; if(mr>1) dmh=Math.round(mw/mr); else dmw=Math.round(mh*mr); const dmx=mx+Math.round((mw-dmw)/2), dmy=my+Math.round((mh-dmh)/2); ctx.save(); ctx.shadowColor='rgba(0,0,0,.5)'; ctx.shadowBlur=W*0.018; ctx.shadowOffsetY=W*0.01; ctx.drawImage(medal,dmx,dmy,dmw,dmh); ctx.restore(); }
-  ctx.textBaseline='alphabetic'; ctx.textAlign='left';
-  const by=Math.round(H*0.072); ctx.fillStyle='#fff'; ctx.font="800 "+Math.round(W*0.038)+"px 'DM Sans',sans-serif"; _shLS(ctx,W*0.008);
-  ctx.fillText('COACHAI', M, by); const cw=ctx.measureText('COACHAI').width; _shLS(ctx,0);
-  const chh=Math.round(W*0.026); ctx.fillStyle='rgba(255,255,255,.24)'; _shRRect(ctx, M+cw+Math.round(W*0.022), by-chh, Math.round(W*0.062), chh+Math.round(W*0.012), 100); ctx.fill();
-  ctx.fillStyle='#fff'; ctx.font="800 "+Math.round(W*0.02)+"px 'DM Sans',sans-serif"; ctx.textBaseline='middle';
-  ctx.fillText('PRO', M+cw+Math.round(W*0.034), by-chh+Math.round((chh+W*0.012)/2)+1); ctx.textBaseline='alphabetic';
+  ctx.textBaseline='alphabetic';
   const tx=M, maxW=W-2*M;
   ctx.textAlign='right'; ctx.fillStyle='rgba(255,255,255,.6)'; ctx.font="700 "+Math.round(W*0.026)+"px 'DM Sans',sans-serif"; _shLS(ctx,W*0.004);
   ctx.fillText(t.handle||'coachaipro.ai', W-M, Math.round(H*0.955)); _shLS(ctx,0);
