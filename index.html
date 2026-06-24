@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260624-2008-compartir--medalla-mas-chica-y-mas-abajo--sin-coachai-pro-arriba--tips-de-juli-">
+<meta name="app-version" content="20260624-2251-auth-fase-b--login-con-codigo-otp--gated--authotp-1-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -13377,13 +13377,121 @@ let sbClient;
 // Init Supabase after SDK loads
 function initSupabase() {
   if (window.supabase) {
-    sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // persistSession/autoRefreshToken: needed so the Supabase Auth session (JWT)
+    // survives reloads and the client sends it on every request (Fase B+ OTP).
+    // detectSessionInUrl:false — we use 6-digit codes, not magic-link URL hashes,
+    // so there's nothing to parse out of the URL. All additive: with no session
+    // (today's anon-only world) behaviour is identical to before.
+    sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+    });
   }
 }
 
 let currentUser = null;
 
-async function loginOrRegister(email, nombre) {
+// ============================
+// AUTH OTP (Fase B) — gated. Prod stays on the legacy email-only login until
+// cutover (Fase D). Enable the new code-based flow by adding ?authotp=1 to the
+// URL (query-param only, NOT persisted, so no browser ever gets trapped in it).
+// ============================
+const AUTH_OTP_ENABLED = (() => {
+  try { return new URLSearchParams(window.location.search).get('authotp') === '1'; }
+  catch { return false; }
+})();
+let _otpPending = null;          // { email, nombre } awaiting code verification
+let _otpCooldownTimer = null;
+
+// Ask Supabase Auth to email a 6-digit code. shouldCreateUser:true so existing
+// clientas (who have no auth.users yet) get one created on their first login —
+// that's the "migrate on first login" path. The real access gate still runs
+// later in loginOrRegister (allowlist + cross-tenant), now authenticated.
+async function sendOtpCode(email) {
+  if (!sbClient) initSupabase();
+  const { error } = await sbClient.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+  if (error) throw error;
+}
+
+// Verify the typed code. On success returns the auth.users id (auth.uid()).
+async function verifyOtpCode(email, code) {
+  if (!sbClient) initSupabase();
+  const { data, error } = await sbClient.auth.verifyOtp({ email, token: code, type: 'email' });
+  if (error) throw error;
+  return data?.user?.id || null;
+}
+
+function _otpReadCode() {
+  const el = document.getElementById('otp-code');
+  return el ? el.value.replace(/\D/g, '').slice(0, 6) : '';
+}
+
+function showOtpScreen(email) {
+  const ov = document.getElementById('otp-overlay');
+  if (!ov) return;
+  const lbl = document.getElementById('otp-email-label'); if (lbl) lbl.textContent = email;
+  const code = document.getElementById('otp-code'); if (code) code.value = '';
+  const err = document.getElementById('otp-error'); if (err) err.textContent = '';
+  const ld = document.getElementById('otp-loading'); if (ld) ld.style.display = 'none';
+  const vb = document.getElementById('otp-verify-btn'); if (vb) vb.disabled = false;
+  ov.style.display = 'flex';
+  setTimeout(() => { try { document.getElementById('otp-code').focus(); } catch (e) {} }, 120);
+  _otpResendCooldown(document.getElementById('otp-resend'));   // we just sent → start 60s cooldown
+}
+
+function hideOtpScreen() {
+  const ov = document.getElementById('otp-overlay');
+  if (ov) ov.style.display = 'none';
+}
+
+// 60s cooldown to match Supabase's "minimum interval per user" SMTP setting.
+function _otpResendCooldown(btn) {
+  if (!btn) return;
+  let s = 60;
+  const base = 'Reenviar código';
+  btn.disabled = true;
+  btn.textContent = base + ' (' + s + ')';
+  if (_otpCooldownTimer) clearInterval(_otpCooldownTimer);
+  _otpCooldownTimer = setInterval(() => {
+    s--;
+    if (s <= 0) { clearInterval(_otpCooldownTimer); _otpCooldownTimer = null; btn.disabled = false; btn.textContent = base; }
+    else btn.textContent = base + ' (' + s + ')';
+  }, 1000);
+}
+
+async function submitOtpCode() {
+  const code = _otpReadCode();
+  const err = document.getElementById('otp-error');
+  if (!code || code.length < 6) { if (err) err.textContent = 'Ingresá los 6 dígitos'; return; }
+  const vb = document.getElementById('otp-verify-btn');
+  const ld = document.getElementById('otp-loading');
+  if (vb) vb.disabled = true; if (err) err.textContent = ''; if (ld) ld.style.display = 'block';
+  try {
+    const authUid = await verifyOtpCode(_otpPending.email, code);
+    // Identity confirmed → run the real login, now authenticated.
+    await proceedAfterAuth(_otpPending.email, _otpPending.nombre, authUid);
+  } catch (e) {
+    console.error('[otp verify]', e);
+    if (err) err.textContent = 'Código incorrecto o vencido. Revisá e intentá de nuevo.';
+    if (ld) ld.style.display = 'none';
+    if (vb) vb.disabled = false;
+  }
+}
+
+async function resendOtp() {
+  if (!_otpPending) return;
+  const r = document.getElementById('otp-resend');
+  const err = document.getElementById('otp-error');
+  if (err) err.textContent = '';
+  try {
+    await sendOtpCode(_otpPending.email);
+    _otpResendCooldown(r);
+  } catch (e) {
+    console.error('[otp resend]', e);
+    if (err) err.textContent = 'No se pudo reenviar todavía. Esperá unos segundos.';
+  }
+}
+
+async function loginOrRegister(email, nombre, authUid = null) {
   if (!sbClient) initSupabase();
   // `.maybeSingle()` returns `{data:null, error:null}` when 0 rows match;
   // `.single()` would throw PGRST116 and we'd silently fall through to INSERT,
@@ -13468,6 +13576,15 @@ async function loginOrRegister(email, nombre) {
       // worst case is a slightly off-brand experience until next visit.
       console.warn('[loginOrRegister] cross-tenant check failed:', e);
     }
+    // Link the Supabase Auth identity to this clienta on her first OTP login
+    // (migration of existing users). Only set when not already linked — never
+    // overwrite, so an auth_id can't be hijacked by a second account.
+    if (authUid && !existing.auth_id) {
+      try {
+        await sbClient.from('usuarios').update({ auth_id: authUid }).eq('id', existing.id);
+        existing.auth_id = authUid;
+      } catch (e) { console.warn('[loginOrRegister] auth_id link failed:', e); }
+    }
     currentUser = existing; return { isNew: false, user: existing };
   }
 
@@ -13516,6 +13633,7 @@ async function loginOrRegister(email, nombre) {
   }
 
   const insertRow = { email, nombre };
+  if (authUid) insertRow.auth_id = authUid;
   if (inviteTenantId) insertRow.tenant_id = inviteTenantId;
   // Hereda el vencimiento de acceso desde la invitación (control de suscripción).
   // Si la invitación no tiene fecha (amigos/parientes en default), queda NULL = permanente.
@@ -13543,6 +13661,20 @@ function loadSession() {
 // user never re-types credentials. If they were wiped/un-invited/beta-full,
 // handleEmailLogin shows the proper message and we clear the stale session.
 async function tryAutoLogin() {
+  // OTP mode (?authotp=1): resume from the persisted Supabase Auth session — no
+  // re-typing and no re-sending a code. If there's no valid session, fall through
+  // to the login form (we must NOT auto-email a code on every boot).
+  if (AUTH_OTP_ENABLED) {
+    try {
+      if (!sbClient) initSupabase();
+      const { data: { session } } = await sbClient.auth.getSession();
+      if (session && session.user) {
+        const saved = loadSession();
+        await proceedAfterAuth(session.user.email, (saved && saved.nombre) || '', session.user.id);
+      }
+    } catch (e) { console.warn('[autologin otp]', e); }
+    return;
+  }
   const s = loadSession();
   if (!s || !s.email) return;
   const elN = document.getElementById('el-nombre');
@@ -15017,6 +15149,37 @@ async function handleEmailLogin() {
   if (!nombre) { error.textContent = 'Por favor ingresá tu nombre'; return; }
   if (!email || !email.includes('@')) { error.textContent = 'Por favor ingresá un email válido'; return; }
 
+  // ── Fase B (OTP), gated by ?authotp=1 ── When enabled, we email a 6-digit code
+  // and show the verification screen; the real login (proceedAfterAuth) runs only
+  // AFTER the code is verified, so the DB round-trip happens authenticated. When
+  // the flag is OFF (prod) we skip straight to proceedAfterAuth — identical to before.
+  if (AUTH_OTP_ENABLED) {
+    btn.disabled = true; loading.style.display = 'block'; error.textContent = '';
+    try {
+      if (!sbClient) initSupabase();
+      await sendOtpCode(email);
+      _otpPending = { email, nombre };
+      showOtpScreen(email);
+    } catch (err) {
+      error.textContent = 'No pudimos enviar el código. Revisá el email e intentá de nuevo.';
+      console.error('[otp send]', err);
+    }
+    btn.disabled = false; loading.style.display = 'none';
+    return;
+  }
+
+  await proceedAfterAuth(email, nombre, null);
+}
+
+// Runs the real login once identity is established: legacy path passes authUid=null
+// (no Supabase Auth yet); OTP path passes the auth.users id from verifyOtp. This is
+// the original handleEmailLogin body — unchanged except for threading authUid into
+// loginOrRegister and closing the OTP overlay once the lookup resolves.
+async function proceedAfterAuth(email, nombre, authUid) {
+  const btn = document.getElementById('el-btn');
+  const loading = document.getElementById('el-loading');
+  const error = document.getElementById('el-error');
+
   // iOS fix: lock the body BEFORE keyboard starts dismissing so it can't scroll the page.
   // position:fixed + top:0 freezes the scroll position at 0 regardless of keyboard movement.
   document.body.style.position = 'fixed';
@@ -15032,7 +15195,11 @@ async function handleEmailLogin() {
     // Wipe any state from a previous session BEFORE the new user's data lands.
     // Prevents User-A's chat/plans/diario from leaking into User-B's view.
     resetAppState();
-    const result = await loginOrRegister(email, nombre);
+    const result = await loginOrRegister(email, nombre, authUid);
+    // Lookup resolved (verified or legacy) — the OTP overlay (if shown) comes down
+    // now: on success we proceed into the app; on a rejection the landing card
+    // underneath becomes visible again to show the message.
+    hideOtpScreen();
     // Release iOS body-lock now that the auth round-trip is done
     document.body.style.position = '';
     document.body.style.top = '';
@@ -27822,6 +27989,38 @@ async function forceAppUpdate() {
     <button class="btn-email-login" id="el-btn" onclick="handleEmailLogin()">INGRESAR →</button>
     <div class="email-login-loading" id="el-loading">Conectando...</div>
   </div>
+
+  <!-- ── Fase B (OTP) — pantalla del código. Overlay full-screen sobre el landing;
+       solo se muestra con ?authotp=1. Usa las CSS vars del tema (King = claro). ── -->
+  <style>
+    .otp-overlay { position:fixed; inset:0; z-index:6000; display:none; align-items:center; justify-content:center; padding:26px; background:var(--bg,#0f0f15); }
+    .otp-card { width:100%; max-width:360px; text-align:center; }
+    .otp-icon { font-size:42px; line-height:1; margin-bottom:12px; }
+    .otp-title { font-size:23px; font-weight:800; margin:0 0 8px; color:var(--text,#fff); }
+    .otp-sub { font-size:14px; line-height:1.55; color:var(--muted,#9a9aa8); margin:0 0 22px; }
+    .otp-input { width:100%; text-align:center; font-size:30px; font-weight:700; letter-spacing:.42em; text-indent:.42em; padding:16px 12px; border-radius:14px; border:1.5px solid rgba(128,128,140,.32); background:rgba(128,128,140,.08); color:var(--text,#fff); outline:none; font-family:inherit; box-sizing:border-box; }
+    .otp-input:focus { border-color:var(--accent,#FF4F7B); }
+    .otp-error { color:#ff6b6b; font-size:13px; min-height:18px; margin:11px 0 6px; line-height:1.45; }
+    #otp-loading.email-login-loading { margin-top:10px; }
+    .otp-resend, .otp-back { background:none; border:none; font-size:13px; font-weight:600; cursor:pointer; padding:9px; margin-top:4px; display:block; width:100%; font-family:inherit; }
+    .otp-resend { color:var(--accent,#FF4F7B); }
+    .otp-resend:disabled { opacity:.5; cursor:default; }
+    .otp-back { color:var(--muted,#9a9aa8); }
+  </style>
+  <div class="otp-overlay" id="otp-overlay">
+    <div class="otp-card">
+      <div class="otp-icon">✉️</div>
+      <div class="otp-title">Revisá tu email</div>
+      <div class="otp-sub">Te enviamos un código de 6 dígitos a<br><strong id="otp-email-label">tu@email.com</strong></div>
+      <input type="text" class="otp-input" id="otp-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="------" onkeydown="if(event.key==='Enter') submitOtpCode()">
+      <div class="otp-error" id="otp-error"></div>
+      <button class="btn-email-login" id="otp-verify-btn" onclick="submitOtpCode()">VERIFICAR →</button>
+      <div class="email-login-loading" id="otp-loading">Verificando...</div>
+      <button class="otp-resend" id="otp-resend" onclick="resendOtp()">Reenviar código</button>
+      <button class="otp-back" onclick="hideOtpScreen()">← Cambiar email</button>
+    </div>
+  </div>
+
   <!-- Legacy admin entry point removed: coaches now log in with their normal
        email (role='admin' surfaces the "MODO COACH / ABRIR STUDIO" card in
        Perfil). The admin panel code itself is still reachable programmatically
