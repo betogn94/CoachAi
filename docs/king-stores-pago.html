@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="es"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>KING · Modelo de pago en las stores</title>
+<style>
+  :root{
+    --bg:#FAFAFB; --card:#FFFFFF; --text:#1A1A26; --muted:#6B6B80; --muted2:#A9A9B8;
+    --accent:#FF4F7B; --accent-deep:#E03A6F; --border:#ECECF1; --surface2:#FFF0F4;
+    --green:#1d9e75; --green-bg:#e1f5ee; --amber:#9a6a00; --amber-bg:#FFF6E6;
+    --red:#c0392b; --red-bg:#fdecea;
+    --shadow:0 1px 2px rgba(17,17,26,.04), 0 10px 30px -16px rgba(17,17,26,.16);
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; line-height:1.55;
+    padding:34px 16px 70px; }
+  .wrap{ max-width:740px; margin:0 auto; }
+  .eyebrow{ font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--accent); font-weight:800; }
+  h1{ font-size:26px; margin:8px 0 6px; letter-spacing:-.01em; }
+  .sub{ color:var(--muted); font-size:15px; margin:0 0 26px; max-width:600px; }
+
+  .verdict{ background:var(--card); border:1px solid var(--border); border-left:4px solid var(--accent);
+    border-radius:0 16px 16px 0; box-shadow:var(--shadow); padding:18px 22px; margin-bottom:30px; }
+  .verdict h3{ margin:0 0 6px; font-size:16px; color:var(--accent-deep); }
+  .verdict p{ margin:0; font-size:14.5px; color:var(--text); }
+
+  section{ margin-bottom:24px; }
+  h2{ font-size:18px; margin:0 0 12px; display:flex; align-items:center; gap:9px; }
+  .dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .card{ background:var(--card); border:1px solid var(--border); border-radius:15px; box-shadow:var(--shadow);
+    padding:16px 18px; font-size:14.5px; }
+  .card p{ margin:0 0 9px; } .card p:last-child{ margin-bottom:0; }
+  .card b{ font-weight:700; }
+  .tag{ display:inline-block; font-size:11px; font-weight:800; letter-spacing:.3px; padding:2px 9px; border-radius:100px; vertical-align:1px; }
+  .t-bad{ background:var(--red-bg); color:var(--red); }
+  .t-warn{ background:var(--amber-bg); color:var(--amber); }
+  .t-good{ background:var(--green-bg); color:var(--green); }
+  .note{ background:var(--surface2); border-radius:10px; padding:10px 13px; font-size:13px; color:#7a2440; margin-top:10px; }
+
+  ol.rec{ counter-reset:r; list-style:none; padding:0; margin:0; }
+  ol.rec li{ position:relative; padding:11px 0 11px 40px; border-bottom:1px solid var(--border); font-size:14.5px; }
+  ol.rec li:last-child{ border-bottom:none; }
+  ol.rec li::before{ counter-increment:r; content:counter(r); position:absolute; left:0; top:9px;
+    width:26px; height:26px; border-radius:50%; background:var(--surface2); color:var(--accent-deep);
+    font-weight:800; font-size:13px; display:flex; align-items:center; justify-content:center; }
+
+  .must{ display:flex; gap:12px; }
+  .must > div{ flex:1; background:var(--red-bg); border:1px solid #f3c0bb; border-radius:13px; padding:13px 15px; font-size:13.5px; color:var(--red); }
+  .must b{ display:block; color:#8c2a1f; margin-bottom:3px; }
+
+  .src{ font-size:12px; color:var(--muted2); margin-top:30px; line-height:1.8; }
+  .src a{ color:var(--muted); }
+  .foot{ text-align:center; color:var(--muted2); font-size:12px; margin-top:24px; }
+  @media(max-width:540px){ .must{ flex-direction:column; } }
+</style></head>
+<body><div class="wrap">
+
+  <div class="eyebrow">KING · camino a las stores</div>
+  <h1>Modelo de pago en Apple y Google</h1>
+  <p class="sub">Validación del modelo de cobro contra las reglas vigentes de las tiendas (junio 2026). El objetivo: entrar a las stores sin que rechacen la app y cobrando por afuera donde se pueda.</p>
+
+  <div class="verdict">
+    <h3>El veredicto</h3>
+    <p>El modelo <b>puede funcionar</b>, pero hay que cambiar dos cosas de cómo lo encarábamos. La buena: existe una excepción de Apple hecha para entrenamiento personal. La clave: el pago dentro de la app (IAP) deja de ser opcional — es el pasaporte para que aprueben la app.</p>
+  </div>
+
+  <section>
+    <h2><span class="dot" style="background:var(--red)"></span> Lo que NO va (correcciones)</h2>
+    <div class="card">
+      <p><span class="tag t-bad">CORREGIR</span> &nbsp;<b>CoachAI no es una "reader app".</b> Apple reserva ese permiso solo para revistas, diarios, libros, música y video. Una app de coaching con IA no entra en esa categoría — no nos podemos amparar ahí.</p>
+      <p><span class="tag t-bad">CORREGIR</span> &nbsp;<b>El argumento "B2B" no cubre a la clienta.</b> La excepción para empresas aplica solo cuando le vendés a una <b>organización</b> (una empresa o escuela para sus empleados/alumnos), no a una persona individual. Las clientas son consumidoras sueltas → no califica.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="dot" style="background:var(--green)"></span> La excepción a favor (la buena noticia)</h2>
+    <div class="card">
+      <p><span class="tag t-good">A FAVOR</span> &nbsp;Apple permite <b>cobrar por afuera</b> (sin su comisión) en <b>experiencias persona-a-persona en tiempo real</b> — y menciona <b>"entrenamiento físico" como ejemplo explícito.</b></p>
+      <div class="note"><b>La letra chica:</b> tiene que ser un servicio <b>uno-a-uno y en tiempo real entre dos personas.</b> Como en CoachAI el día a día lo entrega sobre todo la IA (Jesús supervisa por detrás), esto queda <b>en zona gris</b>. Para que juegue a favor, conviene que la app y la venta dejen claro que es <b>coaching personal con Jesús</b> (un humano), apoyado por la app — no "una app de IA".</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="dot" style="background:var(--accent)"></span> El camino seguro para que aprueben</h2>
+    <div class="card">
+      <p><span class="tag t-good">CLAVE</span> &nbsp;<b>Ofrecer pago dentro de la app (IAP) deja de ser opcional.</b> Es lo que le da a Apple su parte y hace que la app "funcione sola" — eso de-riesga muchísimo la aprobación.</p>
+      <p>Con el IAP puesto, Apple <b>igual te deja</b> que las clientas que ya pagaron por afuera <b>solo inicien sesión</b>: la del coach entra con su cuenta, la nueva del público puede comprar dentro de la app.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="dot" style="background:var(--amber)"></span> Estados Unidos vs el resto del mundo</h2>
+    <div class="card">
+      <p><span class="tag t-warn">OJO</span> &nbsp;Desde 2025 (fallo Epic), en <b>EE.UU.</b> ya se puede poner un <b>link a pagar por afuera</b> dentro de la app (Apple podría cobrar una comisión chica — el monto todavía se está definiendo en la justicia).</p>
+      <p><b>Fuera de EE.UU.:</b> sigue prohibido "empujar" a pagar afuera → si una clienta no tiene acceso, la pantalla debe decir algo <b>neutro</b> ("hablá con tu coach"), nunca un botón a pagar por fuera.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="dot" style="background:var(--green)"></span> Google es mucho más fácil</h2>
+    <div class="card"><p>Google ya permite usar <b>tu propio sistema de cobro</b> (con comisión reducida) en EE.UU., Reino Unido y Europa, sumando más países hacia fin de 2026. Google no es el problema — el cuidado está en Apple.</p></div>
+  </section>
+
+  <section>
+    <h2><span class="dot" style="background:var(--red)"></span> Obligatorio sí o sí (las dos stores lo piden)</h2>
+    <div class="must">
+      <div><b>Borrar la cuenta desde la app</b>Apple lo exige para toda app con login: la usuaria tiene que poder eliminar su cuenta y sus datos (incluidas las fotos) desde adentro.</div>
+      <div><b>Política de privacidad</b>Una página pública con cómo se usan los datos. Requisito de ambas tiendas.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="dot" style="background:var(--accent)"></span> Recomendación</h2>
+    <ol class="rec">
+      <li><b>Reforzar el encuadre "coaching humano con Jesús"</b> en la app y en la venta → habilita la excepción de entrenamiento personal.</li>
+      <li><b>Tratar el pago dentro de la app (IAP) como obligatorio</b>, no opcional — es el pasaporte a la aprobación.</li>
+      <li><b>Estructura:</b> IAP dentro de la app + dejar entrar a las que ya pagaron por afuera (solo inician sesión).</li>
+      <li><b>EE.UU.:</b> link a pago externo permitido (con posible comisión). <b>Resto:</b> mensaje neutro, sin empujar a pagar afuera.</li>
+      <li><b>Construir sí o sí:</b> borrar cuenta desde la app + política de privacidad.</li>
+      <li>Es un tema <b>en movimiento</b> (el caso Apple-Epic sigue en la justicia) → diseñar flexible, sin casarse con un solo mecanismo.</li>
+    </ol>
+  </section>
+
+  <div class="src">
+    <b>Fuentes:</b><br>
+    · App Review Guidelines (Apple) — developer.apple.com/app-store/review/guidelines<br>
+    · Fallo de la cámara de apelaciones sobre comisión en links externos (dic. 2025)<br>
+    · Requisito de borrado de cuenta (Apple, guía 5.1.1)<br>
+    · Política de facturación con opción de usuario (Google Play)
+  </div>
+  <div class="foot">KING · CoachAI · análisis a junio 2026 — terreno en evolución</div>
+</div></body></html>
