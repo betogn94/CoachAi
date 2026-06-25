@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260625-0131-link-a-politica-de-privacidad-en-login---perfil">
+<meta name="app-version" content="20260625-0208-perfil--hero-card--nombre---objetivo---semana---peso-con-cambio-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12663,18 +12663,45 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     </div>
   </div>
 
-  <!-- Page header: avatar icon + brand title + name/goal/weight subtitle + back -->
-  <div class="cai-alim-header">
-    <div>
-      <div class="cai-alim-header-title">
-        <div class="cai-alim-header-ico">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-        </div>
-        <h2 class="cai-alim-header-h2">PERFIL</h2>
+  <!-- HERO del Perfil: junta nombre + objetivo + semana + peso (con el cambio desde
+       el inicio). Reemplaza el header suelto. La métrica es intercambiable por tenant
+       (King usará el Índice de Armonía vía flag). #perfil-header-sub queda oculto por
+       back-compat (renderPerfilHeaderSub escribe ahí sin romper). -->
+  <style>
+    .cai-perfil-hero { margin:8px 18px 16px; padding:18px; background:var(--surface,rgba(20,20,32,0.55)); border:1px solid var(--border,rgba(255,255,255,0.08)); border-radius:18px; box-shadow:var(--card-shadow, 0 16px 50px rgba(0,0,0,0.30)); }
+    .cph-top { display:flex; align-items:center; gap:14px; }
+    .cph-avatar { width:48px; height:48px; border-radius:14px; background:var(--accent,#7c6aff); color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; flex-shrink:0; }
+    .cph-id { flex:1; min-width:0; }
+    .cph-name { font-size:18px; font-weight:800; color:var(--text,#eee); line-height:1.15; }
+    .cph-goal { font-size:13px; color:var(--muted,#9a9aa8); margin-top:3px; }
+    .cph-weeks-badge { font-size:11px; font-weight:700; color:var(--accent,#b4a7ff); background:var(--surface2,rgba(124,106,255,.14)); padding:5px 11px; border-radius:100px; white-space:nowrap; }
+    .cph-stats { display:flex; gap:12px; margin-top:16px; }
+    .cph-stat { flex:1; background:var(--surface2,rgba(255,255,255,.05)); border-radius:12px; padding:12px 14px; }
+    .cph-stat-num { font-size:21px; font-weight:800; color:var(--text,#eee); line-height:1.1; }
+    .cph-stat-num.cph-delta-good { color:#1d9e75; }
+    .cph-stat-label { font-size:10.5px; color:var(--muted,#9a9aa8); margin-top:3px; text-transform:uppercase; letter-spacing:.5px; }
+  </style>
+  <div class="cai-perfil-hero" id="perfil-hero">
+    <div class="cph-top">
+      <div class="cph-avatar" id="cph-avatar">—</div>
+      <div class="cph-id">
+        <div class="cph-name" id="cph-name">—</div>
+        <div class="cph-goal" id="cph-goal">—</div>
       </div>
-      <div class="cai-alim-header-sub" id="perfil-header-sub">—</div>
+      <div class="cph-weeks-badge" id="cph-weeks">—</div>
+    </div>
+    <div class="cph-stats">
+      <div class="cph-stat">
+        <div class="cph-stat-num" id="cph-weight">—</div>
+        <div class="cph-stat-label" data-es="peso actual" data-en="current weight">peso actual</div>
+      </div>
+      <div class="cph-stat">
+        <div class="cph-stat-num" id="cph-delta">—</div>
+        <div class="cph-stat-label" data-es="desde el inicio" data-en="since start">desde el inicio</div>
+      </div>
     </div>
   </div>
+  <div class="cai-alim-header-sub" id="perfil-header-sub" style="display:none">—</div>
 
   <!-- MI PLAN DE LA SEMANA — collapsible rutina + dieta cards -->
   <div class="cai-perfil-section">
@@ -22595,7 +22622,64 @@ function renderPerfilHeaderSub() {
 }
 
 // Legacy back-compat shim (old renderPerfilHero name still referenced inside saveMiInfo).
-function renderPerfilHero() { renderPerfilHeaderSub(); }
+function renderPerfilHero() { renderPerfilHeaderSub(); renderPerfilHeroCard().catch(() => {}); }
+
+// HERO del Perfil: nombre + avatar + objetivo + semana del proceso + peso con el
+// cambio desde el inicio (el cambio motiva más que el número absoluto). El peso
+// inicial/actual sale de progreso_peso (primera vs última pesada); si no hay
+// pesadas, cae a currentUser.peso (delta neutro).
+async function renderPerfilHeroCard() {
+  if (!currentUser) return;
+  const isEs = lang === 'es';
+  const nombre = (currentUser.nombre || '').trim() || (isEs ? 'Tu perfil' : 'Your profile');
+  const av = document.getElementById('cph-avatar'); if (av) av.textContent = (nombre[0] || '—').toUpperCase();
+  const nameEl = document.getElementById('cph-name'); if (nameEl) nameEl.textContent = nombre;
+
+  const objLabel = {
+    definir: isEs?'🔥 Definir':'🔥 Cut', ganar_musculo: isEs?'💪 Ganar músculo':'💪 Build muscle',
+    volumen: isEs?'💪 Volumen':'💪 Bulk', mantener: isEs?'⚖️ Mantener':'⚖️ Maintain',
+    mantenimiento: isEs?'⚖️ Mantenimiento':'⚖️ Maintain',
+  };
+  const objKey = currentUser.objetivo || (typeof selections !== 'undefined' && selections.objetivo);
+  const goalEl = document.getElementById('cph-goal');
+  if (goalEl) goalEl.textContent = objKey ? (objLabel[objKey] || objKey) : (isEs ? 'Tu transformación' : 'Your transformation');
+
+  const weeks = getWeeksActiveSince(currentUser.created_at);
+  const weeksEl = document.getElementById('cph-weeks');
+  if (weeksEl) weeksEl.textContent = isEs ? ('Semana ' + weeks) : ('Week ' + weeks);
+
+  let actual = currentUser.peso ? parseFloat(currentUser.peso) : null;
+  let inicial = actual;
+  try {
+    const { data } = await sbClient.from('progreso_peso').select('peso,fecha')
+      .eq('usuario_id', currentUser.id).order('fecha', { ascending: true });
+    if (Array.isArray(data) && data.length) {
+      inicial = parseFloat(data[0].peso);
+      actual = parseFloat(data[data.length - 1].peso);
+    }
+  } catch (e) {}
+
+  const wEl = document.getElementById('cph-weight');
+  if (wEl) wEl.textContent = (actual != null && !isNaN(actual)) ? (actual + ' kg') : '—';
+
+  const dEl = document.getElementById('cph-delta');
+  if (dEl) {
+    dEl.classList.remove('cph-delta-good');
+    if (actual == null || inicial == null || isNaN(actual) || isNaN(inicial)) {
+      dEl.textContent = '—';
+    } else {
+      const diff = +(actual - inicial).toFixed(1);
+      if (diff === 0) {
+        dEl.textContent = isEs ? 'estable' : 'stable';
+      } else {
+        dEl.textContent = (diff < 0 ? '▼ ' : '▲ ') + Math.abs(diff) + ' kg';
+        // Dirección hacia el objetivo: ganar/volumen → subir es bueno; resto → bajar.
+        const wantsUp = (objKey === 'ganar_musculo' || objKey === 'volumen');
+        if (wantsUp ? diff > 0 : diff < 0) dEl.classList.add('cph-delta-good');
+      }
+    }
+  }
+}
 
 function renderPerfilTransform(fotos, cierres) {
   const empty = document.getElementById('perfil-transform-empty');
@@ -22744,6 +22828,7 @@ async function renderPerfil() {
   if (!currentUser) return;
   // Render the header subtitle immediately from currentUser (no network needed)
   renderPerfilHeaderSub();
+  renderPerfilHeroCard().catch(() => {});   // hero card (nombre + objetivo + semana + peso)
   // Studio entry point — only admins (role='admin' in usuarios) see this card.
   // Studio itself enforces the same check on its side; this is just UX.
   const studioCard = document.getElementById('perfil-studio-card');
