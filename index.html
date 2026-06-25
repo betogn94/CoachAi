@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260625-2055-fix--reconciliar-kcal-per-comida-de-la-dieta--deterministico--al-guardar">
+<meta name="app-version" content="20260625-2147-vallas--atr-s-cierra-sheets---cancelar-edici-n---guard-doble-env-o">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11830,6 +11830,9 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
      existing nextPanel/prevPanel JS that toggles .active/.done classes
      continues to work without changes. The icon+label children are styled
      hidden (display:none) by the new CSS. -->
+<!-- Botón Cancelar — SOLO al entrar vía "Editar perfil" (no en el onboarding real).
+     Escape claro para volver a Perfil sin re-hacer todo el onboarding. -->
+<button id="edit-profile-cancel" type="button" onclick="cancelEditProfile()" style="display:none; position:fixed; top:calc(12px + env(safe-area-inset-top,0px)); left:14px; z-index:250; background:rgba(128,128,140,.16); border:none; border-radius:100px; padding:8px 15px; font-size:13px; font-weight:600; color:var(--text,#888); cursor:pointer; font-family:inherit;" data-es="← Cancelar" data-en="← Cancel">← Cancelar</button>
 <div class="progress-bar-container">
   <!-- Saltar link removed (2026-05-27): caused users to skip onboarding and
        land in the coach without profile data, breaking IMC + AI personalization.
@@ -12783,7 +12786,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     <div class="pl-sheet">
       <div class="pl-title" data-es="Tu peso de hoy" data-en="Today's weight">Tu peso de hoy</div>
       <div class="pl-input-row">
-        <input type="number" inputmode="decimal" id="peso-log-input" step="0.1" min="30" max="250" placeholder="74.5" onkeydown="if(event.key==='Enter') savePesoLog()">
+        <input type="number" inputmode="decimal" id="peso-log-input" step="0.1" min="30" max="300" placeholder="74.5" onkeydown="if(event.key==='Enter') savePesoLog()">
         <span class="pl-unit">kg</span>
       </div>
       <div class="pl-error" id="peso-log-error"></div>
@@ -14689,7 +14692,11 @@ async function autoAdjustDiet(semanaIso) {
     const analisis = cierres && cierres[0] && cierres[0].analisis;
     if (!analisis) return;  // sin análisis no hay base para ajustar → queda la copia
     const adjusted = await adjustDietViaAI(plan.contenido, analisis, currentUser.objetivo);
-    if (!adjusted || adjusted.trim() === plan.contenido.trim()) return; // sin cambios
+    if (!adjusted) {   // la IA no devolvió nada → FALLO de ajuste (visible en telemetría)
+      if (typeof trackEvent === 'function') trackEvent('diet_adjust_failed', { semana: semanaIso });
+      return;
+    }
+    if (adjusted.trim() === plan.contenido.trim()) return; // sin cambios (regla de oro: por default igual)
     const { error } = await sbClient.from('planes_semanales')
       .update({ contenido: adjusted, updated_at: new Date().toISOString() })
       .eq('usuario_id', currentUser.id).eq('tipo', 'dieta').eq('semana_iso', semanaIso);
@@ -14706,6 +14713,7 @@ async function autoAdjustDiet(semanaIso) {
     } catch (e) {}
   } catch (e) {
     console.error('[CoachAI] autoAdjustDiet:', e);
+    if (typeof trackEvent === 'function') trackEvent('diet_adjust_failed', { semana: semanaIso, err: e && e.message });
   }
 }
 
@@ -18354,6 +18362,7 @@ async function sendToAI(userMessage, isFirst = false) {
   sendBtn.disabled = false;
 }
 
+let _sendInFlight = false;   // valla anti doble-envío por texto libre (Enter rápido)
 async function sendMessage() {
   const input = document.getElementById('chat-input');
   const text = input.value.trim();
@@ -18362,10 +18371,13 @@ async function sendMessage() {
   // sendToAI concurrentes que corromperían la alternancia de conversationHistory.
   // El texto queda en el input para que pueda reenviarlo al toque.
   if (_autoGenInFlight) return;
+  if (_sendInFlight) return;   // ya hay un envío en vuelo → no encolar otro
   addMessage(text, 'user');
   input.value = '';
   input.style.height = 'auto';
-  await sendToAI(text);
+  _sendInFlight = true;
+  try { await sendToAI(text); }
+  finally { _sendInFlight = false; }
 }
 
 // Renders the weekly action buttons. Once a plan is delivered for the current
@@ -22596,6 +22608,11 @@ const _BACK_OVERLAYS = [
   { id: 'feedback-overlay', close: () => closeFeedback() },
   { id: 'cierre-overlay',   close: () => closeCierrePanel() },
   { id: 'nav-overlay',      close: () => closeNav() },
+  // Sheets del Perfil (relocadas a <body>) — que "atrás" las cierre en vez de navegar.
+  { id: 'peso-log-overlay',     close: () => closePesoLog() },
+  { id: 'peso-prompt-overlay',  close: () => dismissPesoPrompt() },
+  { id: 'perfil-datos-overlay', close: () => closePerfilDatos() },
+  { id: 'delete-account-overlay', close: () => closeDeleteAccount() },
 ];
 function _overlayVisible(el) {
   if (!el) return false;
@@ -22636,6 +22653,10 @@ window.addEventListener('popstate', (e) => {
 });
 
 function hideAllSections() {
+  // El botón Cancelar de "editar perfil" se oculta en cualquier navegación;
+  // openEditProfileForm lo vuelve a mostrar DESPUÉS de llamar a hideAllSections.
+  const _epc = document.getElementById('edit-profile-cancel');
+  if (_epc) _epc.style.display = 'none';
   document.getElementById('chat-wrapper').style.display = 'none';
   // dashboard-wrapper was removed in the Progreso-merge refactor — defensive
   // lookup so legacy paths don't break (some callers still call hideAllSections
@@ -22684,6 +22705,16 @@ function openEditProfileForm() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
   // Sync the Morph track with the freshly opened form
   requestAnimationFrame(() => initOnboardingPanels());
+  // Mostrar el escape (Cancelar) — solo en modo edición, no en el onboarding real.
+  const _epc = document.getElementById('edit-profile-cancel');
+  if (_epc) _epc.style.display = 'block';
+}
+
+// Cancelar la edición de perfil → volver a Perfil sin re-hacer el onboarding.
+function cancelEditProfile() {
+  const fw = document.querySelector('.form-wrapper'); if (fw) fw.style.display = 'none';
+  const pbc = document.querySelector('.progress-bar-container'); if (pbc) pbc.style.display = 'none';
+  showPerfil();   // hideAllSections oculta el botón + restaura el chrome + Perfil activo
 }
 
 function getWeeksActiveSince(createdAtIso) {
