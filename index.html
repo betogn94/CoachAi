@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260625-0208-perfil--hero-card--nombre---objetivo---semana---peso-con-cambio-">
+<meta name="app-version" content="20260625-0215-perfil--hero-calmo--menos-coral----reorden-secciones">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12674,9 +12674,9 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     .cph-id { flex:1; min-width:0; }
     .cph-name { font-size:18px; font-weight:800; color:var(--text,#eee); line-height:1.15; }
     .cph-goal { font-size:13px; color:var(--muted,#9a9aa8); margin-top:3px; }
-    .cph-weeks-badge { font-size:11px; font-weight:700; color:var(--accent,#b4a7ff); background:var(--surface2,rgba(124,106,255,.14)); padding:5px 11px; border-radius:100px; white-space:nowrap; }
+    .cph-weeks-badge { font-size:11px; font-weight:700; color:var(--muted,#9a9aa8); background:rgba(128,128,140,.12); padding:5px 11px; border-radius:100px; white-space:nowrap; }
     .cph-stats { display:flex; gap:12px; margin-top:16px; }
-    .cph-stat { flex:1; background:var(--surface2,rgba(255,255,255,.05)); border-radius:12px; padding:12px 14px; }
+    .cph-stat { flex:1; background:rgba(128,128,140,.08); border-radius:12px; padding:12px 14px; }
     .cph-stat-num { font-size:21px; font-weight:800; color:var(--text,#eee); line-height:1.1; }
     .cph-stat-num.cph-delta-good { color:#1d9e75; }
     .cph-stat-label { font-size:10.5px; color:var(--muted,#9a9aa8); margin-top:3px; text-transform:uppercase; letter-spacing:.5px; }
@@ -22829,6 +22829,17 @@ async function renderPerfil() {
   // Render the header subtitle immediately from currentUser (no network needed)
   renderPerfilHeaderSub();
   renderPerfilHeroCard().catch(() => {});   // hero card (nombre + objetivo + semana + peso)
+  // Orden emocional-primero: bajar "Mi plan de la semana" al fondo (después de
+  // Último análisis, antes de la zona de ajustes). Idempotente — se puede correr
+  // en cada render. El resto del orden ya viene del markup (hero → transformación
+  // → logros → análisis → plan → ajustes).
+  try {
+    const planSec = document.getElementById('perfil-plan-list')?.closest('.cai-perfil-section');
+    const notifSec = document.getElementById('perfil-notif-section');
+    if (planSec && notifSec && planSec.nextElementSibling !== notifSec) {
+      notifSec.parentNode.insertBefore(planSec, notifSec);
+    }
+  } catch (e) {}
   // Studio entry point — only admins (role='admin' in usuarios) see this card.
   // Studio itself enforces the same check on its side; this is just UX.
   const studioCard = document.getElementById('perfil-studio-card');
