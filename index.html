@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260625-1950-perfil--grafico-de-peso-semanal---empujon-post-cierre">
+<meta name="app-version" content="20260625-2055-fix--reconciliar-kcal-per-comida-de-la-dieta--deterministico--al-guardar">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -14468,8 +14468,22 @@ async function selfHealPlans() {
   }
 }
 
+// Reconciliación determinística de la dieta: reemplaza el kcal anunciado de cada
+// comida (y de los "Total:") por el derivado de sus macros (4·P + 4·C + 9·G).
+// Haiku declara kcal inconsistentes con sus propios macros (off ~+30-60 kcal por
+// línea); acá la aritmética la hace JS, no el modelo → cada comida cierra siempre.
+// NO toca el header "Target:" (usa "|" como separador, no "·"). Idempotente.
+function reconcileDietKcal(text) {
+  if (!text || typeof text !== 'string') return text;
+  return text.replace(
+    /(\d+)(\s*(?:kcal|cal))(\s*·\s*P:?\s*)(\d+)(\s*g\s*C:?\s*)(\d+)(\s*g\s*G:?\s*)(\d+)/gi,
+    (m, kcal, unit, s1, P, s2, C, s3, G) => Math.round(4 * (+P) + 4 * (+C) + 9 * (+G)) + unit + s1 + P + s2 + C + s3 + G
+  );
+}
+
 async function saveWeeklyPlan(tipo, contenido) {
   if (!sbClient || !currentUser) return null;
+  if (tipo === 'dieta') contenido = reconcileDietKcal(contenido);   // kcal per-comida = sus macros
   const semana = getISOWeekKey();
   const fecha = getTodayKey();
   const { data, error } = await sbClient.from('planes_semanales').upsert({
