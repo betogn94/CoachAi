@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260625-1419-perfil--avatar-suavizado--coral-tintado-">
+<meta name="app-version" content="20260625-1429-perfil--avatar-clickeable----sheet-de-datos--gana-espacio-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12670,7 +12670,16 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   <style>
     .cai-perfil-hero { margin:8px 18px 16px; padding:18px; background:var(--surface,rgba(20,20,32,0.55)); border:1px solid var(--border,rgba(255,255,255,0.08)); border-radius:18px; box-shadow:var(--card-shadow, 0 16px 50px rgba(0,0,0,0.30)); }
     .cph-top { display:flex; align-items:center; gap:14px; }
-    .cph-avatar { width:48px; height:48px; border-radius:14px; background:rgba(128,128,140,.10); background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; flex-shrink:0; }
+    .cph-avatar { position:relative; width:48px; height:48px; border-radius:14px; background:rgba(128,128,140,.10); background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; flex-shrink:0; cursor:pointer; border:none; padding:0; font-family:inherit; }
+    .cph-avatar:active { transform:scale(.96); }
+    .cph-avatar-edit { position:absolute; right:-3px; bottom:-3px; width:17px; height:17px; border-radius:50%; background:var(--surface,#1b1b27); display:flex; align-items:center; justify-content:center; }
+    .cph-avatar-edit svg { width:10px; height:10px; stroke:var(--muted,#9a9aa8); stroke-width:2.2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+    .perfil-datos-overlay { position:fixed; inset:0; z-index:6400; display:none; align-items:flex-end; justify-content:center; background:rgba(0,0,0,.5); }
+    .pd-sheet { width:100%; max-width:480px; background:var(--surface,#1b1b27); border-radius:22px 22px 0 0; padding:8px 4px 22px; box-shadow:0 -12px 40px -10px rgba(0,0,0,.5); max-height:88vh; overflow-y:auto; }
+    .pd-head { display:flex; align-items:center; justify-content:space-between; padding:10px 18px 4px; }
+    .pd-title { font-size:16px; font-weight:800; color:var(--text,#eee); }
+    .pd-close { background:none; border:none; color:var(--muted,#9a9aa8); font-size:20px; line-height:1; cursor:pointer; padding:4px 8px; font-family:inherit; }
+    @media(min-width:520px){ .perfil-datos-overlay{ align-items:center; } .pd-sheet{ border-radius:22px; } }
     .cph-id { flex:1; min-width:0; }
     .cph-name { font-size:18px; font-weight:800; color:var(--text,#eee); line-height:1.15; }
     .cph-goal { font-size:13px; color:var(--muted,#9a9aa8); margin-top:3px; }
@@ -12683,7 +12692,10 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   </style>
   <div class="cai-perfil-hero" id="perfil-hero">
     <div class="cph-top">
-      <div class="cph-avatar" id="cph-avatar">—</div>
+      <button class="cph-avatar" type="button" onclick="openPerfilDatos()" aria-label="Ver y editar tus datos">
+        <span id="cph-initial">—</span>
+        <span class="cph-avatar-edit" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>
+      </button>
       <div class="cph-id">
         <div class="cph-name" id="cph-name">—</div>
         <div class="cph-goal" id="cph-goal">—</div>
@@ -12702,6 +12714,19 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     </div>
   </div>
   <div class="cai-alim-header-sub" id="perfil-header-sub" style="display:none">—</div>
+
+  <!-- Sheet de datos personales — la abre el avatar del hero. La card "Mi
+       Información" (con su lógica de editar/guardar) se reubica acá vía JS en
+       renderPerfil, ganando espacio en el cuerpo del Perfil. -->
+  <div class="perfil-datos-overlay" id="perfil-datos-overlay" onclick="if(event.target===this) closePerfilDatos()">
+    <div class="pd-sheet">
+      <div class="pd-head">
+        <div class="pd-title" data-es="Tus datos" data-en="Your details">Tus datos</div>
+        <button class="pd-close" type="button" onclick="closePerfilDatos()" aria-label="Cerrar">✕</button>
+      </div>
+      <div id="perfil-datos-slot"></div>
+    </div>
+  </div>
 
   <!-- MI PLAN DE LA SEMANA — collapsible rutina + dieta cards -->
   <div class="cai-perfil-section">
@@ -22632,7 +22657,7 @@ async function renderPerfilHeroCard() {
   if (!currentUser) return;
   const isEs = lang === 'es';
   const nombre = (currentUser.nombre || '').trim() || (isEs ? 'Tu perfil' : 'Your profile');
-  const av = document.getElementById('cph-avatar'); if (av) av.textContent = (nombre[0] || '—').toUpperCase();
+  const av = document.getElementById('cph-initial'); if (av) av.textContent = (nombre[0] || '—').toUpperCase();
   const nameEl = document.getElementById('cph-name'); if (nameEl) nameEl.textContent = nombre;
 
   const objLabel = {
@@ -22824,6 +22849,19 @@ function goToWeekAnalisis(weekNum) {
   }, 300);
 }
 
+// Sheet de datos personales (la abre el avatar del hero). renderMiInfo() rellena
+// los campos (que viven en la card reubicada dentro de la sheet) + saveMiInfo()
+// guarda — todo reusado, sin duplicar lógica.
+function openPerfilDatos() {
+  try { if (typeof renderMiInfo === 'function') renderMiInfo(); } catch (e) {}
+  const ov = document.getElementById('perfil-datos-overlay');
+  if (ov) ov.style.display = 'flex';
+}
+function closePerfilDatos() {
+  const ov = document.getElementById('perfil-datos-overlay');
+  if (ov) ov.style.display = 'none';
+}
+
 async function renderPerfil() {
   if (!currentUser) return;
   // Render the header subtitle immediately from currentUser (no network needed)
@@ -22838,6 +22876,20 @@ async function renderPerfil() {
     const notifSec = document.getElementById('perfil-notif-section');
     if (planSec && notifSec && planSec.nextElementSibling !== notifSec) {
       notifSec.parentNode.insertBefore(planSec, notifSec);
+    }
+  } catch (e) {}
+  // Reubicar "Mi Información" dentro de la sheet de datos (la abre el avatar del
+  // hero) → gana espacio en el cuerpo del Perfil. Idempotente.
+  try {
+    const infoCard = document.getElementById('perfil-info-card');
+    const slot = document.getElementById('perfil-datos-slot');
+    if (infoCard && slot && infoCard.parentElement !== slot) {
+      const origSection = infoCard.closest('.cai-perfil-section');
+      infoCard.classList.add('open');                  // siempre expandido dentro de la sheet
+      const head = infoCard.querySelector('.cai-perfil-info-head');
+      if (head) head.style.display = 'none';            // la sheet ya tiene su título "Tus datos"
+      slot.appendChild(infoCard);
+      if (origSection && origSection.children.length === 0) origSection.style.display = 'none';
     }
   } catch (e) {}
   // Studio entry point — only admins (role='admin' in usuarios) see this card.
