@@ -19,3 +19,4 @@ node_modules
 
 # Corpus real de planes para test:parsers (datos de usuarios — no commitear)
 scripts/plan-corpus.local.json
+tmp-generation-dump.json
