@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260625-1541-fix--sheets-del-perfil-por-encima-del-nav--a-nivel-body----safe-area">
+<meta name="app-version" content="20260625-1950-perfil--grafico-de-peso-semanal---empujon-post-cierre">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12746,6 +12746,13 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     .pl-save { width:100%; margin-top:6px; padding:13px; border:none; border-radius:13px; background:var(--accent,#7c6aff); color:#fff; font-weight:800; font-size:14px; cursor:pointer; font-family:inherit; box-shadow:var(--accent-shadow); }
     .pl-cancel { width:100%; margin-top:8px; background:none; border:none; color:var(--muted,#9a9aa8); font-size:13.5px; font-weight:600; padding:9px; cursor:pointer; font-family:inherit; }
     @media(min-width:520px){ .peso-log-overlay{ align-items:center; } .pl-sheet{ border-radius:22px; } }
+    .peso-prompt-overlay { position:fixed; inset:0; z-index:6450; display:none; align-items:center; justify-content:center; padding:26px; background:rgba(0,0,0,.5); }
+    .ppr-card { width:100%; max-width:340px; background:var(--surface,#1b1b27); border-radius:22px; padding:26px 22px; text-align:center; box-shadow:0 24px 60px -22px rgba(0,0,0,.6); }
+    .ppr-ico { font-size:38px; line-height:1; }
+    .ppr-title { font-size:19px; font-weight:800; color:var(--text,#eee); margin-top:10px; }
+    .ppr-sub { font-size:13.5px; color:var(--muted,#9a9aa8); line-height:1.55; margin:7px 0 18px; }
+    .ppr-go { width:100%; padding:13px; border:none; border-radius:13px; background:var(--accent,#7c6aff); color:#fff; font-weight:800; font-size:14px; cursor:pointer; font-family:inherit; box-shadow:var(--accent-shadow); }
+    .ppr-skip { width:100%; margin-top:8px; background:none; border:none; color:var(--muted,#9a9aa8); font-size:13.5px; font-weight:600; padding:9px; cursor:pointer; font-family:inherit; }
   </style>
   <div class="cai-perfil-section" id="perfil-progreso-section">
     <div class="cai-perfil-section-title" data-es="EVOLUCIÓN DEL PESO" data-en="WEIGHT EVOLUTION">EVOLUCIÓN DEL PESO</div>
@@ -12782,6 +12789,18 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       <div class="pl-error" id="peso-log-error"></div>
       <button class="pl-save" id="peso-log-save" type="button" onclick="savePesoLog()" data-es="Guardar" data-en="Save">Guardar</button>
       <button class="pl-cancel" type="button" onclick="closePesoLog()" data-es="Cancelar" data-en="Cancel">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- Empujón semanal: tras un cierre, la próxima entrada al Perfil invita a
+       registrar el peso (si no se pesó esta semana). Descartable 1/semana. -->
+  <div class="peso-prompt-overlay" id="peso-prompt-overlay" onclick="if(event.target===this) dismissPesoPrompt()">
+    <div class="ppr-card">
+      <div class="ppr-ico">🎉</div>
+      <div class="ppr-title" data-es="¡Cerraste tu semana!" data-en="You closed your week!">¡Cerraste tu semana!</div>
+      <div class="ppr-sub" data-es="Registrá tu peso de hoy y mirá cómo avanza tu curva." data-en="Log today's weight and watch your curve move forward.">Registrá tu peso de hoy y mirá cómo avanza tu curva.</div>
+      <button class="ppr-go" type="button" onclick="pesoPromptRegister()" data-es="Registrar mi peso" data-en="Log my weight">Registrar mi peso</button>
+      <button class="ppr-skip" type="button" onclick="dismissPesoPrompt()" data-es="Ahora no" data-en="Not now">Ahora no</button>
     </div>
   </div>
 
@@ -22946,9 +22965,15 @@ async function renderPerfilProgreso() {
       .map(r => ({ fecha: r.fecha, peso: parseFloat(r.peso) })).filter(r => !isNaN(r.peso)) : [];
   } catch (e) { console.warn('[progreso] load:', e?.message); }
 
+  // Resolución SEMANAL: una pesada por semana ISO = la última de esa semana. El
+  // peso corporal es ruidoso día a día; la curva semanal muestra la tendencia real.
+  const byWeek = new Map();
+  rows.forEach(r => { byWeek.set(getISOWeekKey(new Date(r.fecha + 'T12:00:00')), r); });
+  const weekly = Array.from(byWeek.values());   // orden ascendente, última por semana
+
   const wrap = document.getElementById('prg-chart-wrap');
   const empty = document.getElementById('prg-empty');
-  if (!rows.length) {
+  if (!weekly.length) {
     if (wrap) wrap.style.display = 'none';
     if (empty) empty.style.display = 'block';
     return;
@@ -22956,7 +22981,7 @@ async function renderPerfilProgreso() {
   if (wrap) wrap.style.display = 'block';
   if (empty) empty.style.display = 'none';
 
-  const inicio = rows[0].peso, hoy = rows[rows.length - 1].peso;
+  const inicio = weekly[0].peso, hoy = weekly[weekly.length - 1].peso;
   const iEl = document.getElementById('prg-inicio'); if (iEl) iEl.textContent = inicio.toFixed(1) + ' kg';
   const hEl = document.getElementById('prg-hoy');    if (hEl) hEl.textContent = hoy.toFixed(1) + ' kg';
 
@@ -22964,7 +22989,7 @@ async function renderPerfilProgreso() {
   if (dEl) {
     const diff = +(hoy - inicio).toFixed(1);
     dEl.classList.remove('up');
-    if (diff === 0 || rows.length < 2) {
+    if (diff === 0 || weekly.length < 2) {
       dEl.style.display = 'none';
     } else {
       dEl.style.display = 'inline-block';
@@ -22973,7 +22998,7 @@ async function renderPerfilProgreso() {
       if (!(wantsUp ? diff > 0 : diff < 0)) dEl.classList.add('up');
     }
   }
-  drawPesoChart(rows);
+  drawPesoChart(weekly);
 }
 
 // Dibuja la curva de peso. Resuelve los colores del tema en JS (los atributos SVG
@@ -23058,12 +23083,43 @@ async function savePesoLog() {
   }
 }
 
+// Empujón semanal al peso: tras un cierre, en la entrada al Perfil invita a
+// registrar el peso de la semana. Solo usuarios activos (≥1 cierre) que aún no se
+// pesaron esta semana, descartable 1×semana (flag por semana en localStorage).
+async function maybeShowPesoPrompt() {
+  if (!currentUser || !sbClient) return;
+  if (typeof _getImpersonateUid === 'function' && _getImpersonateUid()) return; // no en modo coach
+  const wk = getISOWeekKey();
+  try { if (localStorage.getItem('peso_prompt_skip_' + wk) === '1') return; } catch (e) {}
+  try {
+    const [pesoRes, cierreRes] = await Promise.all([
+      sbClient.from('progreso_peso').select('fecha').eq('usuario_id', currentUser.id).order('fecha', { ascending: false }).limit(1),
+      sbClient.from('cierres_semanales').select('id', { count: 'exact', head: true }).eq('usuario_id', currentUser.id),
+    ]);
+    const last = pesoRes && pesoRes.data && pesoRes.data[0];
+    const weighedThisWeek = last && getISOWeekKey(new Date(last.fecha + 'T12:00:00')) === wk;
+    const cierres = (cierreRes && cierreRes.count) || 0;
+    if (cierres < 1 || weighedThisWeek) return;   // solo activos que aún no se pesaron esta semana
+  } catch (e) { return; }
+  const ov = document.getElementById('peso-prompt-overlay');
+  if (ov) ov.style.display = 'flex';
+}
+function dismissPesoPrompt() {
+  try { localStorage.setItem('peso_prompt_skip_' + getISOWeekKey(), '1'); } catch (e) {}
+  const ov = document.getElementById('peso-prompt-overlay'); if (ov) ov.style.display = 'none';
+}
+function pesoPromptRegister() {
+  const ov = document.getElementById('peso-prompt-overlay'); if (ov) ov.style.display = 'none';
+  openPesoLog();
+}
+
 async function renderPerfil() {
   if (!currentUser) return;
   // Render the header subtitle immediately from currentUser (no network needed)
   renderPerfilHeaderSub();
   renderPerfilHeroCard().catch(() => {});   // hero card (nombre + objetivo + semana + peso)
   renderPerfilProgreso().catch(() => {});   // sección de progreso (curva de peso + registro)
+  maybeShowPesoPrompt().catch(() => {});    // empujón semanal al peso (post-cierre)
   // Orden emocional-primero: bajar "Mi plan de la semana" al fondo (después de
   // Último análisis, antes de la zona de ajustes). Idempotente — se puede correr
   // en cada render. El resto del orden ya viene del markup (hero → transformación
@@ -23094,7 +23150,7 @@ async function renderPerfil() {
   // position:fixed → el bottom-nav (a nivel root) les ganaba y tapaba los botones.
   // Moviéndolos a body, su z-index compite a nivel root y quedan por encima de todo.
   try {
-    ['peso-log-overlay', 'perfil-datos-overlay', 'delete-account-overlay'].forEach(function (id) {
+    ['peso-log-overlay', 'peso-prompt-overlay', 'perfil-datos-overlay', 'delete-account-overlay'].forEach(function (id) {
       const el = document.getElementById(id);
       if (el && el.parentElement !== document.body) document.body.appendChild(el);
     });
