@@ -1,0 +1,50 @@
+Plan nutricional — {NOMBRE} | {TARGET}
+
+LUNES
+Comida 1: 4 huevos enteros + 80g de avena / 4 rebanadas de pan lactal / 6 galletas de arroz + 30g de palta + 20g de mantequilla de frutos secos (preferentemente almendra) / 20 almendras o nueces + 1 banana o 120g de fruta + café o té
+Comida 2: 220g de pechuga de pollo / atún / tilapia / cerdo / carne roja magra + 180g de arroz / 180g de quinoa / 250g de papas o batatas + 60g de vegetales verdes + 30g de palta / 12g de aceite de oliva / 30g de queso
+Comida 3: 250g de yogur griego / 1 scoop y medio de whey + 60g de avena / 2 rebanadas de pan + 1 banana o 120g de fruta + 20g de nueces / pasta de maní
+Comida 4: 220g de salmón / atún / carne roja magra / pescado blanco + 180g de arroz / 180g de quinoa / 250g de papas o batatas + 60g de vegetales verdes + 10g de aceite de oliva
+Comida 5: 1 scoop y medio de whey / 250g de yogur griego + 40g de avena / 2 galletas de arroz + 100g de fruta + 20g de mantequilla de maní o almendras
+
+MARTES
+Comida 1: 4 huevos enteros + 80g de avena / 4 rebanadas de pan lactal / 6 galletas de arroz + 30g de palta + 20g de mantequilla de frutos secos (preferentemente almendra) / 20 almendras o nueces + 1 banana o 120g de fruta + café o té
+Comida 2: 220g de pechuga de pollo / atún / tilapia / cerdo / carne roja magra + 180g de arroz / 180g de quinoa / 250g de papas o batatas + 60g de vegetales verdes + 30g de palta / 12g de aceite de oliva / 30g de queso
+Comida 3: 250g de yogur griego / 1 scoop y medio de whey + 60g de avena / 2 rebanadas de pan + 1 banana o 120g de fruta + 20g de nueces / pasta de maní
+Comida 4: 220g de salmón / atún / carne roja magra / pescado blanco + 180g de arroz / 180g de quinoa / 250g de papas o batatas + 60g de vegetales verdes + 10g de aceite de oliva
+Comida 5: 1 scoop y medio de whey / 250g de yogur griego + 40g de avena / 2 galletas de arroz + 100g de fruta + 20g de mantequilla de maní o almendras
+
+MIERCOLES
+Comida 1: 4 huevos enteros + 80g de avena / 4 rebanadas de pan lactal / 6 galletas de arroz + 30g de palta + 20g de mantequilla de frutos secos (preferentemente almendra) / 20 almendras o nueces + 1 banana o 120g de fruta + café o té
+Comida 2: 220g de pechuga de pollo / atún / tilapia / cerdo / carne roja magra + 180g de arroz / 180g de quinoa / 250g de papas o batatas + 60g de vegetales verdes + 30g de palta / 12g de aceite de oliva / 30g de queso
+Comida 3: 250g de yogur griego / 1 scoop y medio de whey + 60g de avena / 2 rebanadas de pan + 1 banana o 120g de fruta + 20g de nueces / pasta de maní
+Comida 4: 220g de salmón / atún / carne roja magra / pescado blanco + 180g de arroz / 180g de quinoa / 250g de papas o batatas + 60g de vegetales verdes + 10g de aceite de oliva
+Comida 5: 1 scoop y medio de whey / 250g de yogur griego + 40g de avena / 2 galletas de arroz + 100g de fruta + 20g de mantequilla de maní o almendras
+
+JUEVES
+Comida 1: 4 huevos enteros + 80g de avena / 4 rebanadas de pan lactal / 6 galletas de arroz + 30g de palta + 20g de mantequilla de frutos secos (preferentemente almendra) / 20 almendras o nueces + 1 banana o 120g de fruta + café o té
+Comida 2: 220g de pechuga de pollo / atún / tilapia / cerdo / carne roja magra + 180g de arroz / 180g de quinoa / 250g de papas o batatas + 60g de vegetales verdes + 30g de palta / 12g de aceite de oliva / 30g de queso
+Comida 3: 250g de yogur griego / 1 scoop y medio de whey + 60g de avena / 2 rebanadas de pan + 1 banana o 120g de fruta + 20g de nueces / pasta de maní
+Comida 4: 220g de salmón / atún / carne roja magra / pescado blanco + 180g de arroz / 180g de quinoa / 250g de papas o batatas + 60g de vegetales verdes + 10g de aceite de oliva
+Comida 5: 1 scoop y medio de whey / 250g de yogur griego + 40g de avena / 2 galletas de arroz + 100g de fruta + 20g de mantequilla de maní o almendras
+
+VIERNES
+Comida 1: 4 huevos enteros + 80g de avena / 4 rebanadas de pan lactal / 6 galletas de arroz + 30g de palta + 20g de mantequilla de frutos secos (preferentemente almendra) / 20 almendras o nueces + 1 banana o 120g de fruta + café o té
+Comida 2: 220g de pechuga de pollo / atún / tilapia / cerdo / carne roja magra + 180g de arroz / 180g de quinoa / 250g de papas o batatas + 60g de vegetales verdes + 30g de palta / 12g de aceite de oliva / 30g de queso
+Comida 3: 250g de yogur griego / 1 scoop y medio de whey + 60g de avena / 2 rebanadas de pan + 1 banana o 120g de fruta + 20g de nueces / pasta de maní
+Comida 4: 220g de salmón / atún / carne roja magra / pescado blanco + 180g de arroz / 180g de quinoa / 250g de papas o batatas + 60g de vegetales verdes + 10g de aceite de oliva
+Comida 5: 1 scoop y medio de whey / 250g de yogur griego + 40g de avena / 2 galletas de arroz + 100g de fruta + 20g de mantequilla de maní o almendras
+
+SABADO
+Comida 1: 4 huevos enteros + 80g de avena / 4 rebanadas de pan lactal / 6 galletas de arroz + 30g de palta + 20g de mantequilla de frutos secos (preferentemente almendra) / 20 almendras o nueces + 1 banana o 120g de fruta + café o té
+Comida 2: 220g de pechuga de pollo / atún / tilapia / cerdo / carne roja magra + 180g de arroz / 180g de quinoa / 250g de papas o batatas + 60g de vegetales verdes + 30g de palta / 12g de aceite de oliva / 30g de queso
+Comida 3: 250g de yogur griego / 1 scoop y medio de whey + 60g de avena / 2 rebanadas de pan + 1 banana o 120g de fruta + 20g de nueces / pasta de maní
+Comida 4: 220g de salmón / atún / carne roja magra / pescado blanco + 180g de arroz / 180g de quinoa / 250g de papas o batatas + 60g de vegetales verdes + 10g de aceite de oliva
+Comida 5: 1 scoop y medio de whey / 250g de yogur griego + 40g de avena / 2 galletas de arroz + 100g de fruta + 20g de mantequilla de maní o almendras
+
+DOMINGO
+Comida 1: 4 huevos enteros + 80g de avena / 4 rebanadas de pan lactal / 6 galletas de arroz + 30g de palta + 20g de mantequilla de frutos secos (preferentemente almendra) / 20 almendras o nueces + 1 banana o 120g de fruta + café o té
+Comida 2: 220g de pechuga de pollo / atún / tilapia / cerdo / carne roja magra + 180g de arroz / 180g de quinoa / 250g de papas o batatas + 60g de vegetales verdes + 30g de palta / 12g de aceite de oliva / 30g de queso
+Comida 3: 250g de yogur griego / 1 scoop y medio de whey + 60g de avena / 2 rebanadas de pan + 1 banana o 120g de fruta + 20g de nueces / pasta de maní
+Comida 4: 220g de salmón / atún / carne roja magra / pescado blanco + 180g de arroz / 180g de quinoa / 250g de papas o batatas + 60g de vegetales verdes + 10g de aceite de oliva
+Comida 5: 1 scoop y medio de whey / 250g de yogur griego + 40g de avena / 2 galletas de arroz + 100g de fruta + 20g de mantequilla de maní o almendras

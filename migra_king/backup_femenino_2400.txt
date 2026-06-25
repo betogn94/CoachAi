@@ -1,0 +1,43 @@
+Plan nutricional — {NOMBRE} | {TARGET}
+
+LUNES
+Desayuno: 4 claras de huevo + 2 huevos enteros + 80g de avena / 80g crema de arroz / 5 galletas de arroz + 1 banana o 120g de fruta + 15g de pasta de maní o almendras / 15 almendras o nueces + infusión a gusto (con endulzante, sin azúcar)
+Almuerzo: 180g de pechuga de pollo o pescado blanco / 2 latas de atún al natural / 1 scoop de proteína + 130g de pechuga + 180g de arroz / 180g de quinoa / 250g de papa o boniato + 30g de aguacate + 10g de aceite de oliva + 70g de verduras verdes
+Merienda: 200g de yogurt griego sin azúcar / 1 scoop y medio de proteína + 50g de avena / 3 galletas de arroz + 100g de arándanos o fresas + 16g de mantequilla de almendras o frutos secos
+Cena: 180g de carne roja magra / pechuga de pollo / merluza / mariscos / 140g de salmón + 180g de arroz / 180g de quinoa / 250g de papa o boniato + 70g de mix de ensalada verde + 10g de aceite de oliva
+
+MARTES
+Desayuno: 4 claras de huevo + 2 huevos enteros + 80g de avena / 80g crema de arroz / 5 galletas de arroz + 1 banana o 120g de fruta + 15g de pasta de maní o almendras / 15 almendras o nueces + infusión a gusto (con endulzante, sin azúcar)
+Almuerzo: 180g de pechuga de pollo o pescado blanco / 2 latas de atún al natural / 1 scoop de proteína + 130g de pechuga + 180g de arroz / 180g de quinoa / 250g de papa o boniato + 30g de aguacate + 10g de aceite de oliva + 70g de verduras verdes
+Merienda: 200g de yogurt griego sin azúcar / 1 scoop y medio de proteína + 50g de avena / 3 galletas de arroz + 100g de arándanos o fresas + 16g de mantequilla de almendras o frutos secos
+Cena: 180g de carne roja magra / pechuga de pollo / merluza / mariscos / 140g de salmón + 180g de arroz / 180g de quinoa / 250g de papa o boniato + 70g de mix de ensalada verde + 10g de aceite de oliva
+
+MIERCOLES
+Desayuno: 4 claras de huevo + 2 huevos enteros + 80g de avena / 80g crema de arroz / 5 galletas de arroz + 1 banana o 120g de fruta + 15g de pasta de maní o almendras / 15 almendras o nueces + infusión a gusto (con endulzante, sin azúcar)
+Almuerzo: 180g de pechuga de pollo o pescado blanco / 2 latas de atún al natural / 1 scoop de proteína + 130g de pechuga + 180g de arroz / 180g de quinoa / 250g de papa o boniato + 30g de aguacate + 10g de aceite de oliva + 70g de verduras verdes
+Merienda: 200g de yogurt griego sin azúcar / 1 scoop y medio de proteína + 50g de avena / 3 galletas de arroz + 100g de arándanos o fresas + 16g de mantequilla de almendras o frutos secos
+Cena: 180g de carne roja magra / pechuga de pollo / merluza / mariscos / 140g de salmón + 180g de arroz / 180g de quinoa / 250g de papa o boniato + 70g de mix de ensalada verde + 10g de aceite de oliva
+
+JUEVES
+Desayuno: 4 claras de huevo + 2 huevos enteros + 80g de avena / 80g crema de arroz / 5 galletas de arroz + 1 banana o 120g de fruta + 15g de pasta de maní o almendras / 15 almendras o nueces + infusión a gusto (con endulzante, sin azúcar)
+Almuerzo: 180g de pechuga de pollo o pescado blanco / 2 latas de atún al natural / 1 scoop de proteína + 130g de pechuga + 180g de arroz / 180g de quinoa / 250g de papa o boniato + 30g de aguacate + 10g de aceite de oliva + 70g de verduras verdes
+Merienda: 200g de yogurt griego sin azúcar / 1 scoop y medio de proteína + 50g de avena / 3 galletas de arroz + 100g de arándanos o fresas + 16g de mantequilla de almendras o frutos secos
+Cena: 180g de carne roja magra / pechuga de pollo / merluza / mariscos / 140g de salmón + 180g de arroz / 180g de quinoa / 250g de papa o boniato + 70g de mix de ensalada verde + 10g de aceite de oliva
+
+VIERNES
+Desayuno: 4 claras de huevo + 2 huevos enteros + 80g de avena / 80g crema de arroz / 5 galletas de arroz + 1 banana o 120g de fruta + 15g de pasta de maní o almendras / 15 almendras o nueces + infusión a gusto (con endulzante, sin azúcar)
+Almuerzo: 180g de pechuga de pollo o pescado blanco / 2 latas de atún al natural / 1 scoop de proteína + 130g de pechuga + 180g de arroz / 180g de quinoa / 250g de papa o boniato + 30g de aguacate + 10g de aceite de oliva + 70g de verduras verdes
+Merienda: 200g de yogurt griego sin azúcar / 1 scoop y medio de proteína + 50g de avena / 3 galletas de arroz + 100g de arándanos o fresas + 16g de mantequilla de almendras o frutos secos
+Cena: 180g de carne roja magra / pechuga de pollo / merluza / mariscos / 140g de salmón + 180g de arroz / 180g de quinoa / 250g de papa o boniato + 70g de mix de ensalada verde + 10g de aceite de oliva
+
+SABADO
+Desayuno: 4 claras de huevo + 2 huevos enteros + 80g de avena / 80g crema de arroz / 5 galletas de arroz + 1 banana o 120g de fruta + 15g de pasta de maní o almendras / 15 almendras o nueces + infusión a gusto (con endulzante, sin azúcar)
+Almuerzo: 180g de pechuga de pollo o pescado blanco / 2 latas de atún al natural / 1 scoop de proteína + 130g de pechuga + 180g de arroz / 180g de quinoa / 250g de papa o boniato + 30g de aguacate + 10g de aceite de oliva + 70g de verduras verdes
+Merienda: 200g de yogurt griego sin azúcar / 1 scoop y medio de proteína + 50g de avena / 3 galletas de arroz + 100g de arándanos o fresas + 16g de mantequilla de almendras o frutos secos
+Cena: 180g de carne roja magra / pechuga de pollo / merluza / mariscos / 140g de salmón + 180g de arroz / 180g de quinoa / 250g de papa o boniato + 70g de mix de ensalada verde + 10g de aceite de oliva
+
+DOMINGO
+Desayuno: 4 claras de huevo + 2 huevos enteros + 80g de avena / 80g crema de arroz / 5 galletas de arroz + 1 banana o 120g de fruta + 15g de pasta de maní o almendras / 15 almendras o nueces + infusión a gusto (con endulzante, sin azúcar)
+Almuerzo: 180g de pechuga de pollo o pescado blanco / 2 latas de atún al natural / 1 scoop de proteína + 130g de pechuga + 180g de arroz / 180g de quinoa / 250g de papa o boniato + 30g de aguacate + 10g de aceite de oliva + 70g de verduras verdes
+Merienda: 200g de yogurt griego sin azúcar / 1 scoop y medio de proteína + 50g de avena / 3 galletas de arroz + 100g de arándanos o fresas + 16g de mantequilla de almendras o frutos secos
+Cena: 180g de carne roja magra / pechuga de pollo / merluza / mariscos / 140g de salmón + 180g de arroz / 180g de quinoa / 250g de papa o boniato + 70g de mix de ensalada verde + 10g de aceite de oliva
