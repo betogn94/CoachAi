@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260624-2251-auth-fase-b--login-con-codigo-otp--gated--authotp-1-">
+<meta name="app-version" content="20260625-0002-king--indice-de-armonia--mapa-estetico-vivo--gated--indice-1">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11882,6 +11882,102 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     <span class="hpb-text" data-es="Preparando tu plan personalizado… en unos segundos lo tenés 💪" data-en="Preparing your personalized plan… ready in a few seconds 💪">Preparando tu plan personalizado… en unos segundos lo tenés 💪</span>
   </div>
 
+  <!-- ── KING · ÍNDICE DE ARMONÍA (Mapa Estético vivo) — King-only + ?indice=1 ── -->
+  <style>
+    .king-indice-card { display:none; margin:12px 18px; padding:20px 18px 18px; background:#fff; border:1px solid var(--border); border-radius:18px; box-shadow:var(--card-shadow); }
+    .king-ind-eyebrow { font-size:11px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); font-weight:700; margin-bottom:14px; }
+    .king-ind-top { display:flex; align-items:center; gap:18px; }
+    .king-ind-ring { position:relative; width:104px; height:104px; flex-shrink:0; }
+    .king-ind-ring svg { width:100%; height:100%; transform:rotate(-90deg); }
+    .king-ind-ring-track { fill:none; stroke:var(--border); stroke-width:8.5; }
+    .king-ind-ring-fill { fill:none; stroke:var(--accent); stroke-width:8.5; stroke-linecap:round; transition:stroke-dashoffset .7s cubic-bezier(.32,.72,0,1); }
+    .king-ind-ring-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+    .king-ind-num { font-size:33px; font-weight:800; color:var(--text); line-height:1; }
+    .king-ind-num-cap { font-size:9.5px; letter-spacing:.6px; text-transform:uppercase; color:var(--muted); margin-top:3px; }
+    .king-ind-info { flex:1; min-width:0; }
+    .king-ind-title { font-size:16px; font-weight:800; color:var(--text); letter-spacing:.2px; }
+    .king-ind-gap { font-size:12.5px; color:var(--accent); margin-top:4px; font-weight:600; }
+    .king-ind-meters { margin-top:18px; display:flex; flex-direction:column; gap:12px; }
+    .king-ind-meter-top { display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:6px; }
+    .king-ind-meter-val { font-weight:700; color:var(--text); }
+    .king-ind-bar { height:7px; border-radius:4px; background:var(--border); overflow:hidden; }
+    .king-ind-bar-fill { height:100%; background:var(--accent); border-radius:4px; transition:width .7s cubic-bezier(.32,.72,0,1); }
+    .king-ind-cta { margin-top:18px; width:100%; padding:12px; border:none; border-radius:13px; background:var(--accent); color:#fff; font-weight:700; font-size:13.5px; letter-spacing:.3px; box-shadow:var(--accent-shadow); cursor:pointer; font-family:inherit; }
+    .king-ind-cta:active { transform:scale(.985); }
+    #king-ind-empty { text-align:center; padding:6px 4px 2px; }
+    .king-ind-empty-ico { font-size:30px; }
+    .king-ind-empty-title { font-size:16px; font-weight:800; color:var(--text); margin-top:8px; }
+    .king-ind-empty-sub { font-size:13px; color:var(--muted); margin-top:5px; line-height:1.5; }
+    .king-medida-overlay { position:fixed; inset:0; z-index:6200; display:none; align-items:center; justify-content:center; padding:24px; background:rgba(17,17,26,.32); }
+    .king-medida-card { width:100%; max-width:360px; background:#fff; border-radius:20px; padding:22px 20px; box-shadow:0 24px 60px -22px rgba(0,0,0,.45); }
+    .km-title { font-size:19px; font-weight:800; color:var(--text); }
+    .km-sub { font-size:12.5px; color:var(--muted); line-height:1.5; margin:6px 0 16px; }
+    .km-field { margin-bottom:12px; }
+    .km-field label { display:block; font-size:11.5px; letter-spacing:.4px; text-transform:uppercase; color:var(--muted); font-weight:700; margin-bottom:6px; }
+    .km-field input { width:100%; box-sizing:border-box; padding:12px 14px; border:1.5px solid var(--border); border-radius:12px; font-size:16px; color:var(--text); background:#fff; outline:none; font-family:inherit; }
+    .km-field input:focus { border-color:var(--accent); }
+    .km-error { color:#e24b4a; font-size:12.5px; min-height:16px; margin:2px 0 6px; }
+    .km-cancel { width:100%; margin-top:8px; background:none; border:none; color:var(--muted); font-size:13px; font-weight:600; padding:8px; cursor:pointer; font-family:inherit; }
+  </style>
+  <div class="king-indice-card" id="king-indice-card">
+    <div class="king-ind-eyebrow">tu mapa estético</div>
+
+    <div id="king-ind-body">
+      <div class="king-ind-top">
+        <div class="king-ind-ring">
+          <svg viewBox="0 0 110 110">
+            <circle class="king-ind-ring-track" cx="55" cy="55" r="48"/>
+            <circle class="king-ind-ring-fill" id="king-ind-ring-fill" cx="55" cy="55" r="48" stroke-dasharray="301.6" stroke-dashoffset="301.6"/>
+          </svg>
+          <div class="king-ind-ring-center">
+            <div class="king-ind-num" id="king-ind-num">0</div>
+            <div class="king-ind-num-cap">índice</div>
+          </div>
+        </div>
+        <div class="king-ind-info">
+          <div class="king-ind-title">Índice de Armonía</div>
+          <div class="king-ind-gap" id="king-ind-gap">—</div>
+        </div>
+      </div>
+
+      <div class="king-ind-meters">
+        <div>
+          <div class="king-ind-meter-top"><span>curva inferior</span><span class="king-ind-meter-val" id="king-m1-v">0</span></div>
+          <div class="king-ind-bar"><div class="king-ind-bar-fill" id="king-m1-bar" style="width:0%"></div></div>
+        </div>
+        <div>
+          <div class="king-ind-meter-top"><span>curva superior</span><span class="king-ind-meter-val" id="king-m2-v">0</span></div>
+          <div class="king-ind-bar"><div class="king-ind-bar-fill" id="king-m2-bar" style="width:0%"></div></div>
+        </div>
+        <div>
+          <div class="king-ind-meter-top"><span>simetría</span><span class="king-ind-meter-val" id="king-m3-v">0</span></div>
+          <div class="king-ind-bar"><div class="king-ind-bar-fill" id="king-m3-bar" style="width:0%"></div></div>
+        </div>
+      </div>
+      <button class="king-ind-cta" onclick="openMedidaCapture()">Actualizar mis medidas</button>
+    </div>
+
+    <div id="king-ind-empty" style="display:none">
+      <div class="king-ind-empty-ico">📐</div>
+      <div class="king-ind-empty-title">Armá tu Mapa Estético</div>
+      <div class="king-ind-empty-sub">Cargá tus medidas y descubrí tu Índice de Armonía hacia el Hourglass.</div>
+      <button class="king-ind-cta" onclick="openMedidaCapture()">Empezar</button>
+    </div>
+  </div>
+
+  <div class="king-medida-overlay" id="king-medida-overlay">
+    <div class="king-medida-card">
+      <div class="km-title">Tus medidas</div>
+      <div class="km-sub">En centímetros, con cinta métrica. Medite siempre en la misma posición y momento para que tu Índice sea fiel semana a semana.</div>
+      <div class="km-field"><label>cintura (cm)</label><input id="km-cintura" type="number" inputmode="decimal" placeholder="ej: 74" onkeydown="if(event.key==='Enter') document.getElementById('km-cadera').focus()"></div>
+      <div class="km-field"><label>cadera (cm)</label><input id="km-cadera" type="number" inputmode="decimal" placeholder="ej: 98" onkeydown="if(event.key==='Enter') document.getElementById('km-hombros').focus()"></div>
+      <div class="km-field"><label>hombros (cm)</label><input id="km-hombros" type="number" inputmode="decimal" placeholder="ej: 100" onkeydown="if(event.key==='Enter') saveMedida()"></div>
+      <div class="km-error" id="km-error"></div>
+      <button class="king-ind-cta" id="km-save-btn" onclick="saveMedida()">Guardar y ver mi Índice</button>
+      <button class="km-cancel" onclick="closeMedidaCapture()">Cancelar</button>
+    </div>
+  </div>
+
   <!-- HERO: ENTRENOS DE LA SEMANA — ring widget (informational only, NOT a shortcut) -->
   <div class="cai-home-hero" id="home-hero-entrenos">
     <div class="cai-home-hero-ring">
@@ -21353,6 +21449,124 @@ function playHomeCascade(wrapper) {
   w.classList.add('home-cascade');
 }
 
+// ============================
+// KING — ÍNDICE DE ARMONÍA (Mapa Estético vivo). King-only + gated por ?indice=1
+// mientras se construye (no mostrar a clientas vivas una card a medio hacer).
+// Mide cuán cerca está la proporción de la clienta del Hourglass:
+//   curva inferior (cintura/cadera, meta 0.70), curva superior (hombros/cintura,
+//   meta 1.45), simetría (hombros/cadera, meta 1.00). Pesos 40/35/25.
+//   Fórmula validada con Daniel (2026-06-24).
+// ============================
+const KING_INDICE_FLAG = (() => {
+  try { return new URLSearchParams(window.location.search).get('indice') === '1'; }
+  catch { return false; }
+})();
+
+function computeIndiceArmonia(cintura, cadera, hombros) {
+  const c = +cintura, h = +cadera, s = +hombros;
+  if (!(c > 0 && h > 0 && s > 0)) return null;
+  const T1 = 0.70, T2 = 1.45, T3 = 1.00;
+  const TOL1 = 0.25, TOL2 = 0.60, TOL3 = 0.35;
+  const W1 = 0.40, W2 = 0.35, W3 = 0.25;
+  const r1 = c / h, r2 = s / c, r3 = s / h;
+  const clamp = x => Math.max(0, Math.min(100, x));
+  const sc1 = clamp(100 * (1 - Math.max(0, r1 - T1) / TOL1));   // curva inferior (cintura vs cadera)
+  const sc2 = clamp(100 * (1 - Math.max(0, T2 - r2) / TOL2));   // curva superior (hombros vs cintura)
+  const sc3 = clamp(100 * (1 - Math.abs(r3 - T3) / TOL3));      // simetría (hombros vs cadera)
+  const indice = Math.round(W1 * sc1 + W2 * sc2 + W3 * sc3);
+  return {
+    indice,
+    ratios: { r1, r2, r3 },
+    sub: { inferior: Math.round(sc1), superior: Math.round(sc2), simetria: Math.round(sc3) },
+  };
+}
+
+async function loadLatestMedida() {
+  if (!sbClient || !currentUser) return null;
+  const { data, error } = await sbClient
+    .from('king_medidas').select('*')
+    .eq('usuario_id', currentUser.id)
+    .order('fecha', { ascending: false }).order('created_at', { ascending: false })
+    .limit(1).maybeSingle();
+  if (error) { console.warn('[king_medidas] load:', error.message); return null; }
+  return data;
+}
+
+function paintIndiceCard(r) {
+  const CIRC = 2 * Math.PI * 48;
+  const fill = document.getElementById('king-ind-ring-fill');
+  if (fill) fill.style.strokeDashoffset = (CIRC * (1 - r.indice / 100)).toFixed(1);
+  const numEl = document.getElementById('king-ind-num'); if (numEl) numEl.textContent = r.indice;
+  const gapEl = document.getElementById('king-ind-gap');
+  if (gapEl) {
+    const falta = 100 - r.indice;
+    gapEl.textContent = falta <= 0 ? '¡llegaste a tu Hourglass!' : 'estás a ' + falta + ' puntos de tu Hourglass';
+  }
+  const sb = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  const bar = (id, v) => { const e = document.getElementById(id); if (e) e.style.width = v + '%'; };
+  sb('king-m1-v', r.sub.inferior); bar('king-m1-bar', r.sub.inferior);
+  sb('king-m2-v', r.sub.superior); bar('king-m2-bar', r.sub.superior);
+  sb('king-m3-v', r.sub.simetria); bar('king-m3-bar', r.sub.simetria);
+}
+
+async function renderKingIndice() {
+  const card = document.getElementById('king-indice-card');
+  if (!card) return;
+  const isKing = document.body.classList.contains('theme-king');
+  if (!isKing || !KING_INDICE_FLAG) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  const body = document.getElementById('king-ind-body');
+  const empty = document.getElementById('king-ind-empty');
+  let m = null;
+  try { m = await loadLatestMedida(); } catch (e) {}
+  if (!m) {
+    if (body) body.style.display = 'none';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  if (body) body.style.display = 'block';
+  const r = computeIndiceArmonia(m.cintura, m.cadera, m.hombros);
+  if (r) paintIndiceCard(r);
+}
+
+function openMedidaCapture() {
+  const ov = document.getElementById('king-medida-overlay');
+  if (!ov) return;
+  ['km-cintura', 'km-cadera', 'km-hombros'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+  const err = document.getElementById('km-error'); if (err) err.textContent = '';
+  const btn = document.getElementById('km-save-btn'); if (btn) btn.disabled = false;
+  ov.style.display = 'flex';
+  setTimeout(() => { try { document.getElementById('km-cintura').focus(); } catch (e) {} }, 120);
+}
+function closeMedidaCapture() {
+  const ov = document.getElementById('king-medida-overlay');
+  if (ov) ov.style.display = 'none';
+}
+async function saveMedida() {
+  const c = parseFloat(document.getElementById('km-cintura').value);
+  const h = parseFloat(document.getElementById('km-cadera').value);
+  const s = parseFloat(document.getElementById('km-hombros').value);
+  const err = document.getElementById('km-error');
+  const valid = v => Number.isFinite(v) && v >= 40 && v <= 200;
+  if (!valid(c) || !valid(h) || !valid(s)) { if (err) err.textContent = 'Ingresá las 3 medidas en cm (40–200).'; return; }
+  if (!sbClient || !currentUser) { if (err) err.textContent = 'Sesión no lista, reintentá.'; return; }
+  const btn = document.getElementById('km-save-btn'); if (btn) btn.disabled = true;
+  const r = computeIndiceArmonia(c, h, s);
+  try {
+    await sbClient.from('king_medidas').insert([{
+      usuario_id: currentUser.id, cintura: c, cadera: h, hombros: s, indice: r ? r.indice : null,
+    }]);
+    closeMedidaCapture();
+    await renderKingIndice();
+    if (typeof trackEvent === 'function') trackEvent('king_medida_saved', { indice: r ? r.indice : null });
+  } catch (e) {
+    console.error('[king_medidas] save:', e);
+    if (err) err.textContent = 'No se pudo guardar. Reintentá.';
+  }
+  if (btn) btn.disabled = false;
+}
+
 function showHome() {
   // JS fallback for the CSS :has() guard at the top of the file. On Safari <15.4
   // and similar older browsers without :has(), the rule that disables the logo
@@ -21367,6 +21581,7 @@ function showHome() {
   wrapper.style.display = 'block';
   playHomeCascade(wrapper); // cards en cascada (salvo que venga del swipe)
   renderHome();
+  renderKingIndice();       // Mapa Estético vivo (King-only + ?indice=1)
   updateCardSVGAspect();
   setActiveNav('nav-inicio');
   scrollToTop();
