@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="es"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>KING · Plan para vender el ecosistema</title>
+<style>
+  :root{
+    --bg:#FAFAFB; --card:#FFFFFF; --text:#1A1A26; --muted:#6B6B80; --muted2:#A9A9B8;
+    --accent:#FF4F7B; --accent-deep:#E03A6F; --border:#ECECF1; --surface2:#FFF0F4;
+    --green:#1d9e75; --green-bg:#e1f5ee;
+    --shadow:0 1px 2px rgba(17,17,26,.04), 0 10px 30px -16px rgba(17,17,26,.16);
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; line-height:1.5;
+    padding:34px 16px 70px; }
+  .wrap{ max-width:760px; margin:0 auto; }
+  .eyebrow{ font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--accent); font-weight:800; }
+  h1{ font-size:27px; margin:8px 0 6px; letter-spacing:-.01em; }
+  .sub{ color:var(--muted); font-size:15px; margin:0 0 24px; max-width:560px; }
+
+  .progress-card{ background:var(--card); border:1px solid var(--border); border-radius:18px;
+    box-shadow:var(--shadow); padding:20px 22px; margin-bottom:14px; display:flex; align-items:center; gap:20px; }
+  .ring{ position:relative; width:84px; height:84px; flex-shrink:0; }
+  .ring svg{ width:100%; height:100%; transform:rotate(-90deg); }
+  .ring .tr{ fill:none; stroke:var(--border); stroke-width:8; }
+  .ring .fl{ fill:none; stroke:var(--accent); stroke-width:8; stroke-linecap:round; transition:stroke-dashoffset .5s ease; }
+  .ring .ctr{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800; }
+  .progress-txt h3{ margin:0 0 3px; font-size:16px; }
+  .progress-txt p{ margin:0; color:var(--muted); font-size:13.5px; }
+
+  .legend{ display:flex; flex-wrap:wrap; gap:8px 16px; margin-bottom:26px; font-size:12.5px; color:var(--muted); }
+  .legend b{ color:var(--text); font-weight:700; }
+  .pill{ display:inline-flex; align-items:center; gap:5px; padding:1px 9px; border-radius:100px; font-size:11px; font-weight:800; letter-spacing:.3px; }
+  .p-code{ background:var(--surface2); color:var(--accent-deep); }
+  .p-you{ background:#FFF6E6; color:#9a6a00; }
+  .p-s{ background:#eef0f3; color:#5f5e6a; } .p-m{ background:#e8eefc; color:#2a5bb5; } .p-l{ background:#fbe7ee; color:#b0214f; }
+
+  section{ margin-bottom:22px; }
+  .sec-h{ display:flex; align-items:baseline; gap:10px; margin:0 0 12px; }
+  .sec-n{ font-size:12px; font-weight:800; color:var(--accent); background:var(--surface2); border-radius:8px; padding:3px 9px; }
+  .sec-h h2{ font-size:17px; margin:0; }
+
+  .item{ background:var(--card); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow);
+    padding:13px 15px; margin-bottom:9px; display:flex; align-items:flex-start; gap:12px; cursor:pointer;
+    transition:border-color .15s ease, background .15s ease; }
+  .item:hover{ border-color:#dcdce4; }
+  .box{ width:22px; height:22px; border:2px solid var(--border); border-radius:7px; flex-shrink:0; margin-top:1px;
+    display:flex; align-items:center; justify-content:center; transition:all .15s ease; }
+  .box svg{ width:13px; height:13px; stroke:#fff; stroke-width:3.4; fill:none; opacity:0; transition:opacity .15s ease; }
+  .item.done .box{ background:var(--accent); border-color:var(--accent); }
+  .item.done .box svg{ opacity:1; }
+  .item.done .label{ color:var(--muted2); text-decoration:line-through; }
+  .it-body{ flex:1; min-width:0; }
+  .label{ font-size:14.5px; font-weight:600; }
+  .tags{ margin-top:5px; display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .desc{ font-size:12.5px; color:var(--muted); margin-top:4px; }
+
+  .done-strip{ background:var(--green-bg); border:1px solid #b9e6d6; border-radius:14px; padding:13px 16px; margin-bottom:26px; }
+  .done-strip h4{ margin:0 0 7px; font-size:13px; color:var(--green); letter-spacing:.3px; text-transform:uppercase; }
+  .done-strip li{ font-size:13.5px; color:#0f6e56; margin:3px 0; }
+  .done-strip ul{ margin:0; padding-left:20px; }
+
+  .crit{ background:var(--surface2); border:1px solid #ffd0dd; border-radius:14px; padding:15px 17px; margin-top:8px; }
+  .crit h4{ margin:0 0 6px; font-size:14px; color:var(--accent-deep); }
+  .crit p{ margin:0; font-size:13.5px; color:#7a2440; }
+  .foot{ text-align:center; color:var(--muted2); font-size:12px; margin-top:34px; }
+</style></head>
+<body><div class="wrap">
+
+  <div class="eyebrow">KING · ecosistema</div>
+  <h1>Plan para vender de esta forma</h1>
+  <p class="sub">Todo lo que falta para que el proceso quede funcionando punta a punta: quiz → Mapa → Foundation → app con Índice de Armonía por foto → cierre semanal → suscripción. Tildá a medida que avanzan; queda guardado en este navegador.</p>
+
+  <div class="progress-card">
+    <div class="ring">
+      <svg viewBox="0 0 100 100"><circle class="tr" cx="50" cy="50" r="42"/><circle class="fl" id="pring" cx="50" cy="50" r="42" stroke-dasharray="263.9" stroke-dashoffset="263.9"/></svg>
+      <div class="ctr" id="ppct">0%</div>
+    </div>
+    <div class="progress-txt">
+      <h3 id="pcount">0 de 0 completadas</h3>
+      <p>Sin contar lo ya hecho ni lo que corre en paralelo.</p>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><span class="pill p-code">CÓDIGO</span> lo hago yo con Beto</span>
+    <span><span class="pill p-you">USTEDES</span> Lovable / Stripe / método</span>
+    <span><b>S/M/L</b> tamaño del trabajo</span>
+  </div>
+
+  <div class="done-strip">
+    <h4>✓ Ya hecho</h4>
+    <ul>
+      <li>Login con código (OTP) — listo, gated</li>
+      <li>Puente de datos quiz→app (endpoint + tabla)</li>
+      <li>Card del Índice de Armonía en el Home</li>
+      <li>Webhook: al pagar da de alta + habilita acceso + manda la invitación</li>
+    </ul>
+  </div>
+
+  <section>
+    <div class="sec-h"><span class="sec-n">1</span><h2>Cobro y acceso (Stripe)</h2></div>
+    <div class="item" data-id="1a"><div class="box"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div><div class="it-body"><div class="label">Producto Foundation US$297 (pago único) con metadata tenant_slug = jesus</div><div class="tags"><span class="pill p-you">USTEDES</span><span class="pill p-s">S</span></div></div></div>
+    <div class="item" data-id="1b"><div class="box"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div><div class="it-body"><div class="label">Producto suscripción mensual (mes 2+) con la misma metadata</div><div class="tags"><span class="pill p-you">USTEDES</span><span class="pill p-s">S</span></div></div></div>
+    <div class="item" data-id="1c"><div class="box"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div><div class="it-body"><div class="label">Arreglo del webhook: registrar el ingreso del pago único $297</div><div class="tags"><span class="pill p-code">CÓDIGO</span><span class="pill p-s">S</span></div></div></div>
+    <div class="item" data-id="1d"><div class="box"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div><div class="it-body"><div class="label">RENEW_URL → checkout de la suscripción (para el día 30)</div><div class="tags"><span class="pill p-code">CÓDIGO</span><span class="pill p-s">S</span></div></div></div>
+  </section>
+
+  <section>
+    <div class="sec-h"><span class="sec-n">2</span><h2>Conexión del quiz (Lovable)</h2></div>
+    <div class="item" data-id="2a"><div class="box"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div><div class="it-body"><div class="label">Crear KING_INTAKE_SECRET y cargarlo en Vercel + Lovable</div><div class="tags"><span class="pill p-you">USTEDES</span><span class="pill p-s">S</span></div></div></div>
+    <div class="item" data-id="2b"><div class="box"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div><div class="it-body"><div class="label">POST del quiz a /api/king-intake al terminar</div><div class="tags"><span class="pill p-you">USTEDES</span><span class="pill p-s">S</span></div></div></div>
+    <div class="item" data-id="2c"><div class="box"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div><div class="it-body"><div class="label">Mismo email en quiz + Stripe + app (la llave que une todo)</div><div class="tags"><span class="pill p-you">USTEDES</span><span class="pill p-s">S</span></div></div></div>
+    <div class="item" data-id="2d"><div class="box"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div><div class="it-body"><div class="label">Pasarme las preguntas del quiz + definir los arquetipos</div><div class="desc">Alimenta el "esto sos" del Reveal — no el puntaje (ese sale de las fotos).</div><div class="tags"><span class="pill p-you">USTEDES</span><span class="pill p-s">S</span></div></div></div>
+  </section>
+
+  <section>
+    <div class="sec-h"><span class="sec-n">3</span><h2>Motor del Índice por foto · el corazón</h2></div>
+    <div class="item" data-id="3a"><div class="box"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div><div class="it-body"><div class="label">Escaneo guiado (pose + checklist de parámetros)</div><div class="tags"><span class="pill p-code">CÓDIGO</span><span class="pill p-m">M</span></div></div></div>
+    <div class="item" data-id="3b"><div class="box"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div><div class="it-body"><div class="label">Paso de IA: leer las proporciones de la foto → 3 puntajes</div><div class="desc">El motor del número. Se apoya en el análisis de fotos que el cierre ya hace.</div><div class="tags"><span class="pill p-code">CÓDIGO</span><span class="pill p-l">L</span></div></div></div>
+    <div class="item" data-id="3c"><div class="box"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div><div class="it-body"><div class="label">Fotos del onboarding → Índice de partida</div><div class="tags"><span class="pill p-code">CÓDIGO</span><span class="pill p-m">M</span></div></div></div>
+    <div class="item" data-id="3d"><div class="box"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div><div class="it-body"><div class="label">Fotos del cierre → mueven el Índice semana a semana</div><div class="tags"><span class="pill p-code">CÓDIGO</span><span class="pill p-m">M</span></div></div></div>
+    <div class="item" data-id="3e"><div class="box"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div><div class="it-body"><div class="label">Suavizado/tendencia + framing que nunca la hace sentir mal</div><div class="tags"><span class="pill p-code">CÓDIGO</span><span class="pill p-s">S</span></div></div></div>
+    <div class="item" data-id="3f"><div class="box"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div><div class="it-body"><div class="label">Validar la lectura de la IA con el ojo de Daniel</div><div class="tags"><span class="pill p-you">USTEDES</span><span class="pill p-m">M</span></div></div></div>
+  </section>
+
+  <section>
+    <div class="sec-h"><span class="sec-n">4</span><h2>El Reveal · primera entrada King</h2></div>
+    <div class="item" data-id="4a"><div class="box"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div><div class="it-body"><div class="label">Los 6 momentos (reconoce → arquetipo → nace el Índice con fotos → compromiso → primera acción)</div><div class="tags"><span class="pill p-code">CÓDIGO</span><span class="pill p-l">L</span></div></div></div>
+    <div class="item" data-id="4b"><div class="box"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div><div class="it-body"><div class="label">Recortar el onboarding King (que no re-pregunte lo del quiz)</div><div class="tags"><span class="pill p-code">CÓDIGO</span><span class="pill p-m">M</span></div></div></div>
+    <div class="item" data-id="4c"><div class="box"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div><div class="it-body"><div class="label">Fallback si entra sin datos del quiz</div><div class="tags"><span class="pill p-code">CÓDIGO</span><span class="pill p-s">S</span></div></div></div>
+  </section>
+
+  <section>
+    <div class="sec-h"><span class="sec-n">5</span><h2>El día 30 · conversión a suscripción</h2></div>
+    <div class="item" data-id="5a"><div class="box"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div><div class="it-body"><div class="label">Pantalla "primera reestructuración" (re-escaneo + salto del Índice + CTA suscribirse)</div><div class="tags"><span class="pill p-code">CÓDIGO</span><span class="pill p-m">M</span></div></div></div>
+  </section>
+
+  <section>
+    <div class="sec-h"><span class="sec-n">6</span><h2>Cierre antes de vender</h2></div>
+    <div class="item" data-id="6a"><div class="box"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div><div class="it-body"><div class="label">Copy y método: arquetipos, textos del Reveal, página de venta de Foundation</div><div class="tags"><span class="pill p-you">USTEDES</span><span class="pill p-m">M</span></div></div></div>
+    <div class="item" data-id="6b"><div class="box"><svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg></div><div class="it-body"><div class="label">QA end-to-end: compra de prueba → mail → login → Reveal → foto → Índice → cierre → día 30</div><div class="tags"><span class="pill p-code">CÓDIGO</span><span class="pill p-m">M</span></div></div></div>
+  </section>
+
+  <div class="crit">
+    <h4>⟶ El camino crítico</h4>
+    <p>El keystone es el <b>#3 (motor del Índice por foto)</b> — el Reveal hace nacer el Índice con fotos y el cierre lo mueve. Orden sugerido: <b>#3 → #4 → #5</b>. En paralelo, ustedes cierran #1, #2 y me pasan las preguntas del quiz. Aparte (no bloquea vender, importa antes de escalar): seguridad Auth Fase C/D (RLS) + cutover del OTP.</p>
+  </div>
+
+  <div class="foot">KING · CoachAI · plan vivo — actualizado a medida que avanzamos</div>
+</div>
+
+<script>
+  (function(){
+    var KEY='king_plan_v1';
+    var state={};
+    try{ state=JSON.parse(localStorage.getItem(KEY)||'{}')||{}; }catch(e){ state={}; }
+    var items=[].slice.call(document.querySelectorAll('.item'));
+    var CIRC=2*Math.PI*42;
+    function render(){
+      var done=0;
+      items.forEach(function(it){
+        var id=it.getAttribute('data-id');
+        if(state[id]){ it.classList.add('done'); done++; } else { it.classList.remove('done'); }
+      });
+      var total=items.length;
+      var pct=total?Math.round(done/total*100):0;
+      document.getElementById('ppct').textContent=pct+'%';
+      document.getElementById('pcount').textContent=done+' de '+total+' completadas';
+      document.getElementById('pring').setAttribute('stroke-dashoffset',(CIRC*(1-done/total)).toFixed(1));
+    }
+    items.forEach(function(it){
+      it.addEventListener('click',function(){
+        var id=it.getAttribute('data-id');
+        state[id]=!state[id];
+        try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){}
+        render();
+      });
+    });
+    render();
+  })();
+</script>
+</body></html>
