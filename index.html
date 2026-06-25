@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260625-0002-king--indice-de-armonia--mapa-estetico-vivo--gated--indice-1">
+<meta name="app-version" content="20260625-0114-borrar-cuenta-in-app--apple-5-1-1v----endpoint-server-side">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12826,6 +12826,46 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     </button>
   </div>
 
+  <!-- ── Eliminar cuenta (requisito Apple 5.1.1v / Google). Discreto pero findable;
+       oculto en modo coach (impersonate) vía el :has() de abajo. ── -->
+  <style>
+    .cai-perfil-danger { margin:20px 18px 6px; text-align:center; }
+    .cai-delete-account-btn { background:none; border:none; color:#e35d6a; font-size:13px; font-weight:600; padding:8px 12px; cursor:pointer; opacity:.85; font-family:inherit; }
+    .cai-delete-account-btn:hover { opacity:1; text-decoration:underline; }
+    body:has(#impersonate-banner) .cai-perfil-danger { display:none; }
+    .delete-account-overlay { position:fixed; inset:0; z-index:6300; display:none; align-items:center; justify-content:center; padding:24px; background:rgba(0,0,0,.55); }
+    .da-card { width:100%; max-width:362px; background:var(--surface,#1b1b27); border:1px solid var(--border,rgba(255,255,255,.12)); border-radius:20px; padding:24px 22px; text-align:center; box-shadow:0 24px 60px -22px rgba(0,0,0,.65); }
+    .da-icon { font-size:34px; line-height:1; }
+    .da-title { font-size:19px; font-weight:800; color:var(--text,#fff); margin-top:10px; }
+    .da-sub { font-size:13px; line-height:1.55; color:var(--muted,#9a9aa8); margin:8px 0 18px; }
+    .da-label { display:block; font-size:11px; letter-spacing:.5px; text-transform:uppercase; color:var(--muted,#9a9aa8); font-weight:700; margin-bottom:7px; text-align:left; }
+    .da-input { width:100%; box-sizing:border-box; padding:12px 14px; border:1.5px solid var(--border,rgba(255,255,255,.16)); border-radius:12px; font-size:16px; color:var(--text,#fff); background:var(--surface2,rgba(255,255,255,.05)); outline:none; font-family:inherit; text-align:center; letter-spacing:1px; }
+    .da-input:focus { border-color:#e35d6a; }
+    .da-error { color:#ff6b6b; font-size:12.5px; min-height:16px; margin:9px 0 4px; }
+    .da-confirm { width:100%; margin-top:6px; padding:13px; border:none; border-radius:13px; background:#e24b4a; color:#fff; font-weight:800; font-size:14px; letter-spacing:.3px; cursor:pointer; font-family:inherit; }
+    .da-confirm:disabled { opacity:.45; cursor:default; }
+    .da-cancel { width:100%; margin-top:8px; background:none; border:none; color:var(--muted,#9a9aa8); font-size:13.5px; font-weight:600; padding:9px; cursor:pointer; font-family:inherit; }
+  </style>
+  <div class="cai-perfil-danger">
+    <button class="cai-delete-account-btn" onclick="openDeleteAccount()" type="button"
+      data-es="Eliminar mi cuenta" data-en="Delete my account">Eliminar mi cuenta</button>
+  </div>
+
+  <div class="delete-account-overlay" id="delete-account-overlay">
+    <div class="da-card">
+      <div class="da-icon">⚠️</div>
+      <div class="da-title" data-es="Eliminar tu cuenta" data-en="Delete your account">Eliminar tu cuenta</div>
+      <div class="da-sub" data-es="Esto es permanente. Se borran tu cuenta y TODOS tus datos: registros, planes, fotos, medallas y tu acceso. No se puede deshacer." data-en="This is permanent. Your account and ALL your data — logs, plans, photos, achievements and access — will be permanently deleted. This cannot be undone.">Esto es permanente. Se borran tu cuenta y TODOS tus datos: registros, planes, fotos, medallas y tu acceso. No se puede deshacer.</div>
+      <label class="da-label" for="da-confirm-input" data-es="Escribí ELIMINAR para confirmar" data-en="Type DELETE to confirm">Escribí ELIMINAR para confirmar</label>
+      <input class="da-input" id="da-confirm-input" type="text" autocomplete="off" autocapitalize="characters" oninput="_daCheckInput()" onkeydown="if(event.key==='Enter'&&!document.getElementById('da-confirm-btn').disabled) confirmDeleteAccount()">
+      <div class="da-error" id="da-error"></div>
+      <button class="da-confirm" id="da-confirm-btn" onclick="confirmDeleteAccount()" disabled
+        data-es="Eliminar definitivamente" data-en="Delete permanently">Eliminar definitivamente</button>
+      <button class="da-cancel" onclick="closeDeleteAccount()" type="button"
+        data-es="Cancelar" data-en="Cancel">Cancelar</button>
+    </div>
+  </div>
+
   <!-- Legacy ids kept hidden so any other code path that still references them doesn't crash -->
   <div id="perfil-plan-grid" style="display:none"></div>
   <div id="perfil-name" style="display:none"></div>
@@ -21565,6 +21605,62 @@ async function saveMedida() {
     if (err) err.textContent = 'No se pudo guardar. Reintentá.';
   }
   if (btn) btn.disabled = false;
+}
+
+// ============================
+// BORRAR CUENTA (requisito Apple 5.1.1v / Google). Disponible para toda clienta;
+// oculto cuando el coach impersona (no borrar la cuenta de un cliente desde su vista).
+// ============================
+function openDeleteAccount() {
+  if (typeof _getImpersonateUid === 'function' && _getImpersonateUid()) {
+    alert('No disponible en modo coach (estás viendo la cuenta de un cliente).');
+    return;
+  }
+  const ov = document.getElementById('delete-account-overlay');
+  if (!ov) return;
+  const inp = document.getElementById('da-confirm-input'); if (inp) inp.value = '';
+  const btn = document.getElementById('da-confirm-btn'); if (btn) btn.disabled = true;
+  const err = document.getElementById('da-error'); if (err) err.textContent = '';
+  ov.style.display = 'flex';
+  setTimeout(() => { try { inp.focus(); } catch (e) {} }, 120);
+}
+function closeDeleteAccount() {
+  const ov = document.getElementById('delete-account-overlay');
+  if (ov) ov.style.display = 'none';
+}
+function _daCheckInput() {
+  const inp = document.getElementById('da-confirm-input');
+  const btn = document.getElementById('da-confirm-btn');
+  const v = (inp && inp.value || '').trim().toUpperCase();
+  if (btn) btn.disabled = !(v === 'ELIMINAR' || v === 'DELETE');
+}
+async function confirmDeleteAccount() {
+  if (!currentUser || !currentUser.id) return;
+  const btn = document.getElementById('da-confirm-btn');
+  const err = document.getElementById('da-error');
+  const original = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = lang === 'en' ? 'Deleting…' : 'Eliminando…'; }
+  if (err) err.textContent = '';
+  try {
+    const r = await fetch('/api/delete-account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario_id: currentUser.id, email: (currentUser.email || '').toLowerCase() }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || !data.ok) throw new Error(data.error || ('http_' + r.status));
+    // Limpieza local + cierre de sesión → vuelve al login limpio.
+    try { clearSession(); } catch (e) {}
+    try { if (sbClient && sbClient.auth) await sbClient.auth.signOut(); } catch (e) {}
+    try { localStorage.removeItem(TOUR_DONE_KEY); } catch (e) {}
+    window.location.href = '/';
+  } catch (e) {
+    console.error('[delete-account]', e);
+    if (err) err.textContent = lang === 'en'
+      ? 'Could not delete. Try again or contact support.'
+      : 'No se pudo eliminar. Reintentá o escribinos a soporte.';
+    if (btn) { btn.disabled = false; btn.textContent = original; }
+  }
 }
 
 function showHome() {
