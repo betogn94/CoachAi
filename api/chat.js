@@ -43,6 +43,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'First message must have role: user' });
     }
 
+    // Tope de tamaño — el endpoint es público y caro. Frena el prompt-stuffing y
+    // la amplificación de costo por payloads gigantes (un atacante con Origin
+    // spoofeado mandando MBs de texto). Límites holgados: el uso legítimo
+    // (system ~40k chars + historial largo) entra cómodo; lo absurdo se corta.
+    const systemText = system || '';
+    if (messages.length > 100 || systemText.length > 100000 || JSON.stringify(messages).length > 200000) {
+      return res.status(413).json({ error: 'payload_too_large' });
+    }
+
     const modelId = MODELS[model] || MODELS.haiku;
 
     // Prompt caching: el "instructivo" (system prompt) de generar planes / chatear
@@ -51,7 +60,6 @@ export default async function handler(req, res) {
     // 5 min de Anthropic). Solo cuando supera el mínimo cacheable (~1k tokens ≈
     // 4000 chars); los prompts chicos (estimar macros, formatear) van como
     // string normal — cachearlos no aporta y la API los rechazaría.
-    const systemText = system || '';
     const systemParam = systemText.length > 4000
       ? [{ type: 'text', text: systemText, cache_control: { type: 'ephemeral' } }]
       : systemText;

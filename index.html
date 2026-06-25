@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260625-2147-vallas--atr-s-cierra-sheets---cancelar-edici-n---guard-doble-env-o">
+<meta name="app-version" content="20260625-2203-seguridad--tope-de-tama-o-en-chat--anti-prompt-stuffing-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12633,7 +12633,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     <div class="chat-messages" id="chat-messages"></div>
     <div class="quick-btns" id="quick-btns"></div>
     <div class="chat-input-row">
-      <textarea class="chat-textarea" id="chat-input" rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <textarea class="chat-textarea" id="chat-input" rows="1" maxlength="2000" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
       <button class="send-btn" id="send-btn" onclick="sendMessage()">
         <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
       </button>
