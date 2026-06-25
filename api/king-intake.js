@@ -9,6 +9,15 @@
 // conoce una URL + un secreto. La escritura corre server-side con el service role.
 
 import { sb } from './tower/_db.js';
+import crypto from 'node:crypto';
+
+// Comparación de secreto en tiempo constante (evita timing attacks). Guarda de
+// longitud primero porque timingSafeEqual exige buffers del mismo tamaño.
+function safeEqual(a, b) {
+  const ab = Buffer.from(String(a)), bb = Buffer.from(String(b));
+  if (ab.length === 0 || ab.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ab, bb);
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -20,13 +29,18 @@ export default async function handler(req, res) {
   // (fail-closed) — el endpoint queda inerte hasta que se setee KING_INTAKE_SECRET.
   const provided = req.headers['x-intake-key'] || '';
   const expected = process.env.KING_INTAKE_SECRET || '';
-  if (!expected || provided !== expected) {
+  if (!expected || !safeEqual(provided, expected)) {
     return res.status(401).json({ ok: false, error: 'unauthorized' });
   }
 
   let body = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
   body = body || {};
+
+  // Tope de tamaño — es un quiz, no debería pesar casi nada. Frena el inflado de DB.
+  if (JSON.stringify(body).length > 50000) {
+    return res.status(413).json({ ok: false, error: 'payload_too_large' });
+  }
 
   const email = String(body.email || '').trim().toLowerCase();
   if (!email || !email.includes('@')) {
