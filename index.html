@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260626-1446-funnel-stores--guest-protagonista---buscador-colapsable---cards-compactas">
+<meta name="app-version" content="20260626-1506-stores--redise-o-entrada-neutral-estilo-ios--sin-emojis--iconos-svg-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15676,6 +15676,7 @@ async function initStoresFunnel() {
   const sess = loadSession();
   if (sess && sess.email) return;  // usuaria que vuelve → tryAutoLogin entra sola
   sec.style.display = 'block';
+  document.body.classList.add('stores-entry');  // entrada NEUTRAL (ignora el tema del tenant)
   if (loginCard) loginCard.style.display = 'none';
   // Ocultar el botón de instalar PWA cuando el funnel está activo (en la app de
   // stores es redundante + ensucia la pantalla de entrada).
@@ -15692,7 +15693,7 @@ async function initStoresFunnel() {
 // Despliega la lista de coaches al tocar el buscador (colapsada por defecto).
 function openStoresList() {
   const grid = document.getElementById('stores-coach-grid');
-  if (grid) grid.style.display = '';
+  if (grid) grid.style.display = 'flex';
 }
 
 function renderStoresCoaches(list) {
@@ -15706,18 +15707,18 @@ function renderStoresCoaches(list) {
     const d = t.directory || {};
     const nombre = d.nombre || t.name || 'Coach';
     const ini = (String(nombre).trim()[0] || 'C').toUpperCase();
-    const ver = d.verified ? '<span class="sc-verif" title="Coach verificado">✓</span>' : '';
-    const prem = t.premium ? '<span class="sc-premium-tag">Premium</span>' : '';
+    const ver = d.verified ? '<span class="sc-verif"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M7.5 12.4l3 3 6-6.6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>' : '';
+    const prem = t.premium ? '<span class="sc-premium-tag">PREMIUM</span>' : '';
     const foto = d.foto_url ? `<img src="${_escAttr(d.foto_url)}" alt="">` : `<span>${_esc(ini)}</span>`;
     const users = Number(t.user_count) || 0;
-    return `<button class="stores-coach-card${t.premium ? ' is-premium' : ''}" onclick="pickStoresTenant('${_escAttr(t.slug)}')">
+    return `<button class="stores-coach-card" onclick="pickStoresTenant('${_escAttr(t.slug)}')">
       <div class="sc-avatar">${foto}</div>
       <div class="sc-id">
         <div class="sc-name">${_esc(nombre)} ${ver}</div>
         <div class="sc-esp">${_esc(d.especialidad || '')}</div>
         <div class="sc-users">${prem}<span>${users} usuario${users === 1 ? '' : 's'}</span></div>
       </div>
-      <span class="sc-chev">→</span>
+      <span class="sc-chev"><svg width="8" height="13" viewBox="0 0 9 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5l6 6-6 6"/></svg></span>
     </button>`;
   }).join('');
 }
@@ -15737,25 +15738,29 @@ function filterStoresCoaches(q) {
 // alta al coach (eso pasa AFUERA de la app — la app solo lo conecta).
 function pickStoresTenant(slug) {
   clearStoresTrial();
+  document.body.classList.remove('stores-entry');  // el login del tenant SÍ lleva su branding
   try { if (typeof window.applySyncTenantTheme === 'function') window.applySyncTenantTheme(slug); } catch {}
   const t = _storesCoaches.find(x => x.slug === slug) || {};
   const d = t.directory || {};
   const nombre = d.nombre || t.name || slug;
   const social = t.social_links || {};
   const url = social.instagram || social.web || social.whatsapp || null;
+  const extIco = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"/></svg>';
   _showStoresLogin(`Entrás a <strong>${_esc(nombre)}</strong>`,
-    url ? `<a class="stores-socials-btn" href="${_escAttr(url)}" target="_blank" rel="noopener">📲 Ver redes / Contactar</a>` : '');
+    url ? `<a class="stores-socials-btn" href="${_escAttr(url)}" target="_blank" rel="noopener">${extIco} Ver redes</a>` : '');
 }
 
 // Camino TRIAL (coach IA): tenant coachaipro + 14 días, sin tarjeta.
 function startStoresTrial() {
   setStoresTrial();
-  try { if (typeof window.applySyncTenantTheme === 'function') window.applySyncTenantTheme(STORES_TRIAL_TENANT); } catch {}
+  // El trial es el producto propio (coach IA) → se mantiene la entrada NEUTRAL
+  // (no aplicamos tema de tenant). El usuario se crea igual en coachaipro.
+  const chk = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6"/></svg>';
   const info = `<div class="sti-info">
-    <div class="sti-h">🎁 14 días gratis · sin tarjeta</div>
-    <div class="sti-row">✓ Plan de dieta y rutina a tu medida</div>
-    <div class="sti-row">✓ Chat con tu coach IA, las 24 horas</div>
-    <div class="sti-row">✓ Seguimiento de peso y progreso</div>
+    <div class="sti-h">14 días gratis · sin tarjeta</div>
+    <div class="sti-row">${chk} Plan de dieta y rutina a tu medida</div>
+    <div class="sti-row">${chk} Chat con tu coach IA, las 24 horas</div>
+    <div class="sti-row">${chk} Seguimiento de peso y progreso</div>
   </div>`;
   _showStoresLogin('Empezá tu prueba gratis', info);
 }
@@ -15775,6 +15780,7 @@ function _showStoresLogin(headlineHtml, extraHtml) {
 
 function backToStoresBuscador() {
   clearStoresTrial();
+  document.body.classList.add('stores-entry');  // volver a la entrada NEUTRAL
   const sec = document.getElementById('stores-buscador');
   const loginCard = document.querySelector('.landing-login-card');
   const ctx = document.getElementById('stores-login-ctx');
@@ -28931,71 +28937,65 @@ async function forceAppUpdate() {
 
   <!-- ── Funnel de stores (vidriera curada de coaches). Solo visible con ?stores=1. ── -->
   <style>
-    #stores-buscador { width:100%; max-width:380px; margin:0 auto 6px; display:none; }
-    .stores-title { font-size:22px; font-weight:800; color:var(--text,#1A1A26); text-align:center; margin:0 0 4px; }
-    .stores-sub { font-size:14px; color:var(--muted,#6B6B80); text-align:center; margin:0 0 18px; }
-    .stores-coach-grid { display:flex; flex-direction:column; gap:8px; margin-top:6px; }
-    .stores-coach-card { width:100%; display:flex; align-items:center; gap:12px; text-align:left; background:var(--surface,#fff); border:1px solid var(--border,#ECECF1); border-radius:14px; padding:11px 13px; cursor:pointer; font-family:inherit; transition:transform .12s; }
-    .stores-coach-card.is-premium { border-color:var(--accent,#FF4F7B); }
-    .stores-coach-card:active { transform:scale(.985); }
-    .sc-id { flex:1; min-width:0; }
-    .sc-chev { color:var(--muted,#9a9aa8); font-weight:700; font-size:16px; flex:0 0 auto; }
-    .sc-avatar { width:44px; height:44px; border-radius:50%; background:var(--surface2,#FFF0F4); color:var(--accent,#FF4F7B); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:17px; overflow:hidden; flex:0 0 auto; }
+    /* ── Entrada de stores: NEUTRAL estilo iOS. Paleta FIJA (no usa el tema del
+         tenant) → la entrada se ve igual de neutra en cualquier subdominio. El
+         login del tenant (después de elegir) sí lleva su branding. ── */
+    body.stores-entry .landing-wrapper { background:#F2F2F7; }
+    body.stores-entry .landing-logo { background:none; color:#1C1C1E; -webkit-text-fill-color:#1C1C1E; }
+    body.stores-entry .landing-tagline { color:#8E8E93; }
+    body.stores-entry .landing-login-card { background:#fff; border:0.5px solid #E5E5EA; box-shadow:none; }
+    body.stores-entry .email-login-input { background:#F2F2F7; border:0.5px solid #E5E5EA; color:#1C1C1E; }
+    body.stores-entry .btn-email-login { background:#1C1C1E; color:#fff; }
+
+    #stores-buscador { width:100%; max-width:400px; margin:0 auto; display:none; }
+    .stores-guest-btn { width:100%; display:flex; align-items:center; gap:12px; background:#1C1C1E; border:none; border-radius:16px; padding:16px; cursor:pointer; font-family:inherit; text-align:left; margin-bottom:28px; }
+    .stores-guest-btn:active { opacity:.88; }
+    .sg-txt { flex:1; display:flex; flex-direction:column; color:#fff; min-width:0; }
+    .sg-txt strong { font-size:16px; font-weight:600; letter-spacing:-.01em; }
+    .sg-txt small { font-size:13px; color:rgba(255,255,255,.66); margin-top:2px; font-weight:400; }
+    .sg-arrow { color:rgba(255,255,255,.55); flex:0 0 auto; display:flex; }
+    .stores-section-label { font-size:13px; color:#8E8E93; margin:0 4px 8px; }
+    .stores-search-wrap { display:flex; align-items:center; gap:8px; background:#E3E3E8; border-radius:11px; padding:0 11px; height:42px; margin-bottom:12px; }
+    .stores-search-wrap > svg { color:#8E8E93; flex:0 0 auto; }
+    .stores-search { flex:1; border:none; background:none; outline:none; font-size:16px; font-family:inherit; color:#1C1C1E; height:100%; padding:0; }
+    .stores-search::placeholder { color:#8E8E93; }
+    .stores-coach-grid { display:flex; flex-direction:column; background:#fff; border-radius:13px; overflow:hidden; }
+    .stores-coach-card { width:100%; display:flex; align-items:center; gap:12px; text-align:left; background:none; border:none; border-bottom:0.5px solid #E5E5EA; padding:10px 14px; cursor:pointer; font-family:inherit; }
+    .stores-coach-card:last-child { border-bottom:none; }
+    .stores-coach-card:active { background:#F2F2F7; }
+    .sc-avatar { width:42px; height:42px; border-radius:50%; background:#E3E3E8; color:#8E8E93; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:17px; overflow:hidden; flex:0 0 auto; }
     .sc-avatar img { width:100%; height:100%; object-fit:cover; }
-    .sc-name { font-size:16px; font-weight:700; color:var(--text,#1A1A26); display:flex; align-items:center; gap:6px; }
-    .sc-verif { display:inline-flex; align-items:center; justify-content:center; width:17px; height:17px; border-radius:50%; background:var(--accent,#FF4F7B); color:#fff; font-size:11px; font-weight:800; }
-    .sc-esp { font-size:13px; color:var(--muted,#6B6B80); margin-top:1px; }
-    .sc-head { font-size:13.5px; color:var(--text,#1A1A26); opacity:.85; line-height:1.45; margin:11px 0; }
-    .sc-cta { text-align:center; font-size:14px; font-weight:700; color:#fff; background:var(--accent,#FF4F7B); padding:10px; border-radius:12px; margin-top:4px; }
-    .stores-empty { text-align:center; color:var(--muted,#6B6B80); font-size:14px; padding:24px; }
-    .stores-login-ctx { width:100%; max-width:360px; margin:0 auto 12px; text-align:center; }
-    .stores-back { background:none; border:none; color:var(--muted,#6B6B80); font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; padding:4px; }
-    .stores-ctx-line { font-size:14px; color:var(--text,#1A1A26); margin-top:6px; }
-    .stores-trial-pill { display:inline-block; background:var(--surface2,#FFF0F4); color:var(--accent,#FF4F7B); font-weight:700; padding:3px 10px; border-radius:100px; font-size:12.5px; }
-    .stores-search-wrap { position:relative; margin-bottom:14px; }
-    .stores-search-ico { position:absolute; left:16px; top:50%; transform:translateY(-50%); font-size:14px; opacity:.6; pointer-events:none; }
-    .stores-search { width:100%; box-sizing:border-box; padding:13px 14px 13px 46px; border-radius:14px; border:1.5px solid var(--border,#ECECF1); background:var(--surface,#fff); color:var(--text,#1A1A26); font-size:15px; font-family:inherit; outline:none; }
-    .stores-search:focus { border-color:var(--accent,#FF4F7B); }
-    .sc-users { font-size:12px; color:var(--muted,#6B6B80); margin-top:3px; display:flex; align-items:center; gap:7px; }
-    .sc-premium-tag { font-size:9.5px; font-weight:800; letter-spacing:.5px; color:var(--accent,#FF4F7B); background:var(--surface2,#FFF0F4); padding:2px 7px; border-radius:100px; text-transform:uppercase; }
-    .sc-go { display:flex; align-items:center; justify-content:space-between; margin-top:12px; font-size:13.5px; font-weight:700; color:var(--accent,#FF4F7B); }
-    .stores-empty-search { text-align:center; color:var(--muted,#6B6B80); font-size:13.5px; padding:18px; }
-    .stores-trial-divider { display:flex; align-items:center; gap:10px; color:var(--muted,#6B6B80); font-size:12px; margin:18px 2px 14px; }
-    .stores-trial-divider::before, .stores-trial-divider::after { content:''; flex:1; height:1px; background:var(--border,#ECECF1); }
-    .stores-trial-btn { width:100%; display:flex; align-items:center; gap:12px; background:var(--surface,#fff); border:1.5px dashed var(--accent,#FF4F7B); border-radius:16px; padding:14px; cursor:pointer; font-family:inherit; text-align:left; }
-    .stores-trial-btn:active { transform:scale(.99); }
-    .st-emoji { font-size:22px; }
-    .st-txt { flex:1; display:flex; flex-direction:column; }
-    .st-txt strong { font-size:14.5px; color:var(--text,#1A1A26); }
-    .st-txt small { font-size:12px; color:var(--muted,#6B6B80); margin-top:1px; }
-    .st-arrow { color:var(--accent,#FF4F7B); font-weight:800; }
-    .stores-socials-btn { display:inline-flex; align-items:center; gap:7px; margin-top:12px; background:var(--surface2,#FFF0F4); color:var(--accent,#FF4F7B); border:none; border-radius:100px; padding:9px 18px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; text-decoration:none; }
-    .stores-guest-btn { width:100%; display:flex; align-items:center; gap:13px; background:var(--accent,#FF4F7B); border:none; border-radius:18px; padding:16px; cursor:pointer; font-family:inherit; text-align:left; box-shadow:var(--accent-shadow,0 6px 18px -8px rgba(255,79,123,.4)); margin-bottom:22px; }
-    .stores-guest-btn:active { transform:scale(.99); }
-    .sg-emoji { font-size:23px; flex:0 0 auto; }
-    .sg-txt { flex:1; display:flex; flex-direction:column; color:#fff; }
-    .sg-txt strong { font-size:16px; font-weight:800; }
-    .sg-txt small { font-size:12.5px; opacity:.92; margin-top:2px; }
-    .sg-arrow { color:#fff; font-weight:800; font-size:18px; flex:0 0 auto; }
-    .stores-coach-q { font-size:13px; color:var(--muted,#6B6B80); text-align:center; margin-bottom:10px; }
-    .sti-info { text-align:left; background:var(--surface2,#FFF0F4); border-radius:14px; padding:13px 15px; margin-top:10px; }
-    .sti-info .sti-h { font-size:14px; font-weight:800; color:var(--accent,#FF4F7B); margin-bottom:8px; }
-    .sti-info .sti-row { font-size:13px; color:var(--text,#1A1A26); margin:5px 0; }
+    .sc-id { flex:1; min-width:0; }
+    .sc-name { font-size:16px; font-weight:600; color:#1C1C1E; display:flex; align-items:center; gap:5px; letter-spacing:-.01em; }
+    .sc-verif { color:#007AFF; display:inline-flex; flex:0 0 auto; }
+    .sc-esp { font-size:13px; color:#8E8E93; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sc-users { font-size:12px; color:#8E8E93; margin-top:3px; display:flex; align-items:center; gap:7px; }
+    .sc-premium-tag { font-size:10px; font-weight:600; letter-spacing:.2px; color:#1C1C1E; background:#E3E3E8; padding:1px 7px; border-radius:5px; }
+    .sc-chev { color:#C4C4C8; flex:0 0 auto; display:flex; }
+    .stores-empty-search { text-align:center; color:#8E8E93; font-size:14px; padding:20px; background:#fff; border-radius:13px; }
+    .stores-login-ctx { width:100%; max-width:360px; margin:0 auto 14px; text-align:center; }
+    .stores-back { background:none; border:none; color:#8E8E93; font-size:14px; cursor:pointer; font-family:inherit; padding:4px; }
+    .stores-ctx-line { font-size:15px; color:#1C1C1E; margin-top:8px; font-weight:600; }
+    .stores-trial-pill { display:inline-block; background:#E3E3E8; color:#1C1C1E; font-weight:600; padding:2px 9px; border-radius:100px; font-size:12.5px; }
+    .stores-socials-btn { display:inline-flex; align-items:center; gap:6px; margin-top:12px; background:#E3E3E8; color:#1C1C1E; border:none; border-radius:10px; padding:9px 16px; font-size:14px; font-weight:500; cursor:pointer; font-family:inherit; text-decoration:none; }
+    .sti-info { text-align:left; background:#fff; border-radius:13px; padding:14px 16px; margin-top:12px; }
+    .sti-info .sti-h { font-size:14px; font-weight:600; color:#1C1C1E; margin-bottom:10px; }
+    .sti-info .sti-row { font-size:14px; color:#3C3C43; margin:7px 0; display:flex; align-items:center; gap:9px; }
+    .sti-info .sti-row > svg { color:#34C759; flex:0 0 auto; }
   </style>
   <div id="stores-buscador">
     <!-- Primario: ingreso como invitado (demo coach IA, 14 días) -->
     <button class="stores-guest-btn" onclick="startStoresTrial()">
-      <span class="sg-emoji">🎁</span>
       <span class="sg-txt">
         <strong>Ingresar como invitado</strong>
         <small>Probá la app 14 días gratis · sin tarjeta</small>
       </span>
-      <span class="sg-arrow">→</span>
+      <span class="sg-arrow"><svg width="9" height="15" viewBox="0 0 9 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5l6 6-6 6"/></svg></span>
     </button>
     <!-- Secundario: ya tenés coach → buscador colapsable (la lista aparece al tocar) -->
-    <div class="stores-coach-q">¿Ya tenés un coach o gym?</div>
+    <div class="stores-section-label">¿Ya tenés un coach o gym?</div>
     <div class="stores-search-wrap">
-      <span class="stores-search-ico">🔍</span>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       <input id="stores-search" class="stores-search" type="text" placeholder="Buscá por nombre (ej: KING)" onfocus="openStoresList()" oninput="filterStoresCoaches(this.value)" autocomplete="off">
     </div>
     <div id="stores-coach-grid" class="stores-coach-grid" style="display:none"></div>
