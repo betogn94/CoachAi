@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260626-1506-stores--redise-o-entrada-neutral-estilo-ios--sin-emojis--iconos-svg-">
+<meta name="app-version" content="20260626-1541-stores--redise-o-entrada-estilo-referencia--marca--search-flotante--coaches--badges--dorado-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15707,16 +15707,20 @@ function renderStoresCoaches(list) {
     const d = t.directory || {};
     const nombre = d.nombre || t.name || 'Coach';
     const ini = (String(nombre).trim()[0] || 'C').toUpperCase();
-    const ver = d.verified ? '<span class="sc-verif"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M7.5 12.4l3 3 6-6.6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>' : '';
-    const prem = t.premium ? '<span class="sc-premium-tag">PREMIUM</span>' : '';
-    const foto = d.foto_url ? `<img src="${_escAttr(d.foto_url)}" alt="">` : `<span>${_esc(ini)}</span>`;
+    const foto = (d.logo_url || d.foto_url) ? `<img src="${_escAttr(d.logo_url || d.foto_url)}" alt="">` : `<span>${_esc(ini)}</span>`;
     const users = Number(t.user_count) || 0;
+    const usrIco = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c0-3 2.5-5.2 5.5-5.2S14.5 16 14.5 19"/><path d="M16 5.2a3 3 0 0 1 0 5.6"/><path d="M18.5 19c0-2.2-1.2-3.8-3-4.6"/></svg>';
+    const rating = (d.rating != null && !isNaN(Number(d.rating))) ? Number(d.rating).toFixed(1) : null;
+    const starIco = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>';
+    const starHtml = rating ? `<span class="sc-meta-item sc-star">${starIco}${rating}</span>` : '';
+    const usersHtml = users > 0 ? `<span class="sc-meta-item">${usrIco}${users} usuario${users === 1 ? '' : 's'}</span>` : '';
+    const metaHtml = (usersHtml || starHtml) ? `<div class="sc-meta">${usersHtml}${starHtml}</div>` : '';
     return `<button class="stores-coach-card" onclick="pickStoresTenant('${_escAttr(t.slug)}')">
       <div class="sc-avatar">${foto}</div>
       <div class="sc-id">
-        <div class="sc-name">${_esc(nombre)} ${ver}</div>
+        <div class="sc-name">${_esc(nombre)}</div>
         <div class="sc-esp">${_esc(d.especialidad || '')}</div>
-        <div class="sc-users">${prem}<span>${users} usuario${users === 1 ? '' : 's'}</span></div>
+        ${metaHtml}
       </div>
       <span class="sc-chev"><svg width="8" height="13" viewBox="0 0 9 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5l6 6-6 6"/></svg></span>
     </button>`;
@@ -28937,68 +28941,114 @@ async function forceAppUpdate() {
 
   <!-- ── Funnel de stores (vidriera curada de coaches). Solo visible con ?stores=1. ── -->
   <style>
-    /* ── Entrada de stores: NEUTRAL estilo iOS. Paleta FIJA (no usa el tema del
-         tenant) → la entrada se ve igual de neutra en cualquier subdominio. El
-         login del tenant (después de elegir) sí lleva su branding. ── */
-    body.stores-entry .landing-wrapper { background:#F2F2F7; }
-    body.stores-entry .landing-logo { background:none; color:#1C1C1E; -webkit-text-fill-color:#1C1C1E; }
-    body.stores-entry .landing-tagline { color:#8E8E93; }
-    body.stores-entry .landing-login-card { background:#fff; border:0.5px solid #E5E5EA; box-shadow:none; }
-    body.stores-entry .email-login-input { background:#F2F2F7; border:0.5px solid #E5E5EA; color:#1C1C1E; }
-    body.stores-entry .btn-email-login { background:#1C1C1E; color:#fff; }
+    /* ── Entrada de stores: neutral + cálida con acento dorado (referencia
+         aprobada por Beto). Paleta FIJA → igual en cualquier subdominio; el
+         login del tenant (al elegir) sí lleva su branding. ── */
+    body.stores-entry .landing-wrapper { background:#F6F5F3; padding-top:14px; }
+    body.stores-entry .landing-logo, body.stores-entry .landing-tagline { display:none; }
+    body.stores-entry .landing-login-card { background:#fff; border:0.5px solid #ECEBE8; box-shadow:0 6px 22px -12px rgba(26,26,28,.14); }
+    body.stores-entry .email-login-input { background:#F6F5F3; border:0.5px solid #ECEBE8; color:#1A1A1C; }
+    body.stores-entry .btn-email-login { background:#1A1A1C; color:#fff; }
 
-    #stores-buscador { width:100%; max-width:400px; margin:0 auto; display:none; }
-    .stores-guest-btn { width:100%; display:flex; align-items:center; gap:12px; background:#1C1C1E; border:none; border-radius:16px; padding:16px; cursor:pointer; font-family:inherit; text-align:left; margin-bottom:28px; }
-    .stores-guest-btn:active { opacity:.88; }
-    .sg-txt { flex:1; display:flex; flex-direction:column; color:#fff; min-width:0; }
-    .sg-txt strong { font-size:16px; font-weight:600; letter-spacing:-.01em; }
-    .sg-txt small { font-size:13px; color:rgba(255,255,255,.66); margin-top:2px; font-weight:400; }
-    .sg-arrow { color:rgba(255,255,255,.55); flex:0 0 auto; display:flex; }
-    .stores-section-label { font-size:13px; color:#8E8E93; margin:0 4px 8px; }
-    .stores-search-wrap { display:flex; align-items:center; gap:8px; background:#E3E3E8; border-radius:11px; padding:0 11px; height:42px; margin-bottom:12px; }
-    .stores-search-wrap > svg { color:#8E8E93; flex:0 0 auto; }
-    .stores-search { flex:1; border:none; background:none; outline:none; font-size:16px; font-family:inherit; color:#1C1C1E; height:100%; padding:0; }
-    .stores-search::placeholder { color:#8E8E93; }
-    .stores-coach-grid { display:flex; flex-direction:column; background:#fff; border-radius:13px; overflow:hidden; }
-    .stores-coach-card { width:100%; display:flex; align-items:center; gap:12px; text-align:left; background:none; border:none; border-bottom:0.5px solid #E5E5EA; padding:10px 14px; cursor:pointer; font-family:inherit; }
-    .stores-coach-card:last-child { border-bottom:none; }
-    .stores-coach-card:active { background:#F2F2F7; }
-    .sc-avatar { width:42px; height:42px; border-radius:50%; background:#E3E3E8; color:#8E8E93; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:17px; overflow:hidden; flex:0 0 auto; }
+    #stores-buscador { --gold:#A8854E; --ink:#1A1A1C; --sec:#8A8A8E; --line:#ECEBE8; width:100%; max-width:430px; margin:0 auto; display:none; position:relative; }
+    .stores-hero-glow { position:absolute; top:-26px; right:-46px; width:280px; height:280px; background:radial-gradient(circle at 68% 32%, rgba(168,133,78,.20), rgba(168,133,78,0) 62%); pointer-events:none; z-index:0; }
+    #stores-buscador > *:not(.stores-hero-glow) { position:relative; z-index:1; }
+    .stores-brand { display:flex; align-items:center; gap:11px; margin-bottom:26px; }
+    .stores-brand-mark { width:34px; height:34px; flex:0 0 auto; }
+    .stores-brand-txt { display:flex; flex-direction:column; line-height:1; }
+    .stores-brand-txt b { font-size:16px; font-weight:600; letter-spacing:.16em; color:var(--ink); }
+    .stores-brand-txt span { font-size:10px; font-weight:600; letter-spacing:.24em; color:var(--gold); margin-top:4px; }
+    .stores-h1 { font-size:29px; line-height:1.14; font-weight:700; letter-spacing:-.02em; color:var(--ink); margin:0 0 12px; max-width:290px; }
+    .stores-h1 em { color:var(--gold); font-style:normal; }
+    .stores-h2 { font-size:15px; line-height:1.5; color:var(--sec); margin:0 0 22px; max-width:330px; font-weight:400; }
+    .stores-search-wrap { display:flex; align-items:center; gap:11px; background:#fff; border-radius:15px; padding:0 16px; height:54px; margin-bottom:28px; box-shadow:0 8px 24px -12px rgba(26,26,28,.16); }
+    .stores-search-wrap > svg { color:#A8A8AC; flex:0 0 auto; }
+    .stores-search { flex:1; border:none; background:none; outline:none; font-size:16px; font-family:inherit; color:var(--ink); height:100%; padding:0; }
+    .stores-search::placeholder { color:#A8A8AC; }
+    .stores-sec-head { display:flex; align-items:center; justify-content:space-between; margin:0 2px 13px; }
+    .stores-sec-head b { font-size:17px; font-weight:600; color:var(--ink); letter-spacing:-.01em; }
+    .stores-sec-head a { font-size:14px; font-weight:500; color:var(--gold); text-decoration:none; display:inline-flex; align-items:center; gap:3px; cursor:pointer; }
+    .stores-coach-grid { display:flex; flex-direction:column; gap:11px; margin-bottom:24px; }
+    .stores-coach-card { width:100%; display:flex; align-items:center; gap:13px; text-align:left; background:#fff; border:none; border-radius:17px; padding:13px 15px; cursor:pointer; font-family:inherit; box-shadow:0 6px 20px -14px rgba(26,26,28,.18); }
+    .stores-coach-card:active { transform:scale(.99); }
+    .sc-avatar { width:52px; height:52px; border-radius:14px; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:19px; overflow:hidden; flex:0 0 auto; }
     .sc-avatar img { width:100%; height:100%; object-fit:cover; }
     .sc-id { flex:1; min-width:0; }
-    .sc-name { font-size:16px; font-weight:600; color:#1C1C1E; display:flex; align-items:center; gap:5px; letter-spacing:-.01em; }
-    .sc-verif { color:#007AFF; display:inline-flex; flex:0 0 auto; }
-    .sc-esp { font-size:13px; color:#8E8E93; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .sc-users { font-size:12px; color:#8E8E93; margin-top:3px; display:flex; align-items:center; gap:7px; }
-    .sc-premium-tag { font-size:10px; font-weight:600; letter-spacing:.2px; color:#1C1C1E; background:#E3E3E8; padding:1px 7px; border-radius:5px; }
-    .sc-chev { color:#C4C4C8; flex:0 0 auto; display:flex; }
-    .stores-empty-search { text-align:center; color:#8E8E93; font-size:14px; padding:20px; background:#fff; border-radius:13px; }
+    .sc-name { font-size:17px; font-weight:600; color:var(--ink); letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sc-esp { font-size:13.5px; color:var(--sec); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sc-meta { display:flex; align-items:center; gap:15px; margin-top:8px; }
+    .sc-meta-item { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--sec); font-weight:500; }
+    .sc-meta-item > svg { color:#BCBCC0; }
+    .sc-star > svg { color:var(--gold); }
+    .sc-chev { color:#C8C8CC; flex:0 0 auto; display:flex; }
+    .stores-empty-search { text-align:center; color:var(--sec); font-size:14px; padding:22px; background:#fff; border-radius:15px; }
+    .stores-guest-btn { width:100%; display:flex; align-items:center; gap:15px; background:var(--ink); border:none; border-radius:18px; padding:16px 18px; cursor:pointer; font-family:inherit; text-align:left; margin-bottom:28px; }
+    .stores-guest-btn:active { opacity:.9; }
+    .sg-circle { width:46px; height:46px; border-radius:50%; border:1.5px solid rgba(255,255,255,.3); display:flex; align-items:center; justify-content:center; flex:0 0 auto; color:#fff; }
+    .sg-txt { flex:1; display:flex; flex-direction:column; color:#fff; min-width:0; }
+    .sg-txt strong { font-size:17px; font-weight:600; letter-spacing:-.01em; }
+    .sg-txt small { font-size:13px; color:rgba(255,255,255,.6); margin-top:3px; font-weight:400; }
+    .sg-arrow { color:rgba(255,255,255,.5); flex:0 0 auto; display:flex; }
+    .stores-badges { display:flex; align-items:flex-start; border-top:1px solid var(--line); padding-top:20px; margin-bottom:18px; }
+    .stores-badge { flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; padding:0 8px; gap:8px; }
+    .stores-badge + .stores-badge { border-left:1px solid var(--line); }
+    .stores-badge > svg { color:var(--gold); }
+    .stores-badge b { font-size:12.5px; font-weight:600; color:var(--ink); }
+    .stores-badge span { font-size:11px; color:var(--sec); line-height:1.35; }
+    .stores-privacy { display:flex; align-items:center; justify-content:center; gap:6px; font-size:12px; color:var(--sec); padding-bottom:6px; }
+    .stores-privacy > svg { color:var(--sec); flex:0 0 auto; }
+    .stores-privacy a { color:var(--gold); text-decoration:none; }
     .stores-login-ctx { width:100%; max-width:360px; margin:0 auto 14px; text-align:center; }
-    .stores-back { background:none; border:none; color:#8E8E93; font-size:14px; cursor:pointer; font-family:inherit; padding:4px; }
-    .stores-ctx-line { font-size:15px; color:#1C1C1E; margin-top:8px; font-weight:600; }
-    .stores-trial-pill { display:inline-block; background:#E3E3E8; color:#1C1C1E; font-weight:600; padding:2px 9px; border-radius:100px; font-size:12.5px; }
-    .stores-socials-btn { display:inline-flex; align-items:center; gap:6px; margin-top:12px; background:#E3E3E8; color:#1C1C1E; border:none; border-radius:10px; padding:9px 16px; font-size:14px; font-weight:500; cursor:pointer; font-family:inherit; text-decoration:none; }
-    .sti-info { text-align:left; background:#fff; border-radius:13px; padding:14px 16px; margin-top:12px; }
-    .sti-info .sti-h { font-size:14px; font-weight:600; color:#1C1C1E; margin-bottom:10px; }
-    .sti-info .sti-row { font-size:14px; color:#3C3C43; margin:7px 0; display:flex; align-items:center; gap:9px; }
-    .sti-info .sti-row > svg { color:#34C759; flex:0 0 auto; }
+    .stores-back { background:none; border:none; color:#8A8A8E; font-size:14px; cursor:pointer; font-family:inherit; padding:4px; }
+    .stores-ctx-line { font-size:15px; color:#1A1A1C; margin-top:8px; font-weight:600; }
+    .stores-trial-pill { display:inline-block; background:#EFEDE9; color:#A8854E; font-weight:600; padding:2px 9px; border-radius:100px; font-size:12.5px; }
+    .stores-socials-btn { display:inline-flex; align-items:center; gap:6px; margin-top:12px; background:#EFEDE9; color:#1A1A1C; border:none; border-radius:10px; padding:9px 16px; font-size:14px; font-weight:500; cursor:pointer; font-family:inherit; text-decoration:none; }
+    .sti-info { text-align:left; background:#fff; border-radius:15px; padding:15px 17px; margin-top:12px; box-shadow:0 6px 20px -14px rgba(26,26,28,.18); }
+    .sti-info .sti-h { font-size:14px; font-weight:600; color:#1A1A1C; margin-bottom:10px; }
+    .sti-info .sti-row { font-size:14px; color:#3C3C43; margin:8px 0; display:flex; align-items:center; gap:9px; }
+    .sti-info .sti-row > svg { color:#A8854E; flex:0 0 auto; }
   </style>
   <div id="stores-buscador">
-    <!-- Primario: ingreso como invitado (demo coach IA, 14 días) -->
+    <div class="stores-hero-glow"></div>
+    <div class="stores-brand">
+      <svg class="stores-brand-mark" viewBox="0 0 40 40" fill="none"><path d="M20 4l16 32h-9.4L20 22.6 12.4 36H4z" fill="#1A1A1C"/></svg>
+      <div class="stores-brand-txt"><b>COACHAI</b><span>PRO</span></div>
+    </div>
+    <div class="stores-h1">Encontrá a tu <em>coach</em> y transformá tu vida.</div>
+    <div class="stores-h2">Buscá por nombre y conectate con tu coach para empezar tu mejor versión.</div>
+    <div class="stores-search-wrap">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="stores-search" class="stores-search" type="text" placeholder="Buscá por nombre de coach o gym" oninput="filterStoresCoaches(this.value)" autocomplete="off">
+    </div>
+    <div class="stores-sec-head">
+      <b>Coaches populares</b>
+      <a onclick="filterStoresCoaches('')">Ver todos <svg width="7" height="11" viewBox="0 0 9 15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5l6 6-6 6"/></svg></a>
+    </div>
+    <div id="stores-coach-grid" class="stores-coach-grid"></div>
+    <!-- Ingreso como invitado (demo coach IA, 14 días) -->
     <button class="stores-guest-btn" onclick="startStoresTrial()">
-      <span class="sg-txt">
-        <strong>Ingresar como invitado</strong>
-        <small>Probá la app 14 días gratis · sin tarjeta</small>
-      </span>
+      <span class="sg-circle"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg></span>
+      <span class="sg-txt"><strong>Ingresar como invitado</strong><small>Probá CoachAI Pro 14 días gratis</small></span>
       <span class="sg-arrow"><svg width="9" height="15" viewBox="0 0 9 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5l6 6-6 6"/></svg></span>
     </button>
-    <!-- Secundario: ya tenés coach → buscador colapsable (la lista aparece al tocar) -->
-    <div class="stores-section-label">¿Ya tenés un coach o gym?</div>
-    <div class="stores-search-wrap">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input id="stores-search" class="stores-search" type="text" placeholder="Buscá por nombre (ej: KING)" onfocus="openStoresList()" oninput="filterStoresCoaches(this.value)" autocomplete="off">
+    <div class="stores-badges">
+      <div class="stores-badge">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
+        <b>Seguro y privado</b><span>Tus datos, protegidos</span>
+      </div>
+      <div class="stores-badge">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M4 12h16M4 17h7"/></svg>
+        <b>Planes a tu medida</b><span>Dieta y rutina propias</span>
+      </div>
+      <div class="stores-badge">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18l5-5 3 3 6-7"/><path d="M16 9h3v3"/></svg>
+        <b>Seguimiento con IA</b><span>Te acompaña cada día</span>
+      </div>
     </div>
-    <div id="stores-coach-grid" class="stores-coach-grid" style="display:none"></div>
+    <div class="stores-privacy">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      Tus datos están protegidos. <a href="/privacidad.html" target="_blank" rel="noopener">Ver política</a>
+    </div>
   </div>
   <div id="stores-login-ctx" class="stores-login-ctx" style="display:none"></div>
 
