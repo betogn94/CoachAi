@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260626-1423-funnel-stores--buscador-de-coaches---demo-ia-14-dias--flag--stores-1-">
+<meta name="app-version" content="20260626-1446-funnel-stores--guest-protagonista---buscador-colapsable---cards-compactas">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15677,12 +15677,22 @@ async function initStoresFunnel() {
   if (sess && sess.email) return;  // usuaria que vuelve → tryAutoLogin entra sola
   sec.style.display = 'block';
   if (loginCard) loginCard.style.display = 'none';
+  // Ocultar el botón de instalar PWA cuando el funnel está activo (en la app de
+  // stores es redundante + ensucia la pantalla de entrada).
+  const installBtn = document.getElementById('pwa-install-btn');
+  if (installBtn) installBtn.style.display = 'none';
   try {
     if (!sbClient) initSupabase();
     const { data } = await sbClient.rpc('stores_coach_directory');
     _storesCoaches = Array.isArray(data) ? data : [];
   } catch (e) { console.warn('[stores] load directory', e); _storesCoaches = []; }
-  renderStoresCoaches(_storesCoaches);
+  renderStoresCoaches(_storesCoaches);   // puebla la lista (queda colapsada hasta tocar)
+}
+
+// Despliega la lista de coaches al tocar el buscador (colapsada por defecto).
+function openStoresList() {
+  const grid = document.getElementById('stores-coach-grid');
+  if (grid) grid.style.display = '';
 }
 
 function renderStoresCoaches(list) {
@@ -15700,17 +15710,14 @@ function renderStoresCoaches(list) {
     const prem = t.premium ? '<span class="sc-premium-tag">Premium</span>' : '';
     const foto = d.foto_url ? `<img src="${_escAttr(d.foto_url)}" alt="">` : `<span>${_esc(ini)}</span>`;
     const users = Number(t.user_count) || 0;
-    return `<button class="stores-coach-card" onclick="pickStoresTenant('${_escAttr(t.slug)}')">
-      <div class="sc-top">
-        <div class="sc-avatar">${foto}</div>
-        <div class="sc-id">
-          <div class="sc-name">${_esc(nombre)} ${ver}</div>
-          <div class="sc-esp">${_esc(d.especialidad || '')}</div>
-          <div class="sc-users">${prem}<span>${users} usuario${users === 1 ? '' : 's'}</span></div>
-        </div>
+    return `<button class="stores-coach-card${t.premium ? ' is-premium' : ''}" onclick="pickStoresTenant('${_escAttr(t.slug)}')">
+      <div class="sc-avatar">${foto}</div>
+      <div class="sc-id">
+        <div class="sc-name">${_esc(nombre)} ${ver}</div>
+        <div class="sc-esp">${_esc(d.especialidad || '')}</div>
+        <div class="sc-users">${prem}<span>${users} usuario${users === 1 ? '' : 's'}</span></div>
       </div>
-      ${d.headline ? `<div class="sc-head">${_esc(d.headline)}</div>` : ''}
-      <div class="sc-go"><span>Entrar a su app</span><span>→</span></div>
+      <span class="sc-chev">→</span>
     </button>`;
   }).join('');
 }
@@ -15744,7 +15751,13 @@ function pickStoresTenant(slug) {
 function startStoresTrial() {
   setStoresTrial();
   try { if (typeof window.applySyncTenantTheme === 'function') window.applySyncTenantTheme(STORES_TRIAL_TENANT); } catch {}
-  _showStoresLogin('Probás <strong>CoachAI</strong> · <span class="stores-trial-pill">🎁 14 días gratis</span>', '');
+  const info = `<div class="sti-info">
+    <div class="sti-h">🎁 14 días gratis · sin tarjeta</div>
+    <div class="sti-row">✓ Plan de dieta y rutina a tu medida</div>
+    <div class="sti-row">✓ Chat con tu coach IA, las 24 horas</div>
+    <div class="sti-row">✓ Seguimiento de peso y progreso</div>
+  </div>`;
+  _showStoresLogin('Empezá tu prueba gratis', info);
 }
 
 function _showStoresLogin(headlineHtml, extraHtml) {
@@ -28921,11 +28934,13 @@ async function forceAppUpdate() {
     #stores-buscador { width:100%; max-width:380px; margin:0 auto 6px; display:none; }
     .stores-title { font-size:22px; font-weight:800; color:var(--text,#1A1A26); text-align:center; margin:0 0 4px; }
     .stores-sub { font-size:14px; color:var(--muted,#6B6B80); text-align:center; margin:0 0 18px; }
-    .stores-coach-grid { display:flex; flex-direction:column; gap:12px; }
-    .stores-coach-card { width:100%; text-align:left; background:var(--surface,#fff); border:1.5px solid var(--accent,#FF4F7B); border-radius:18px; padding:15px; cursor:pointer; font-family:inherit; box-shadow:var(--card-shadow,0 8px 24px -14px rgba(17,17,26,.12)); transition:transform .12s; }
+    .stores-coach-grid { display:flex; flex-direction:column; gap:8px; margin-top:6px; }
+    .stores-coach-card { width:100%; display:flex; align-items:center; gap:12px; text-align:left; background:var(--surface,#fff); border:1px solid var(--border,#ECECF1); border-radius:14px; padding:11px 13px; cursor:pointer; font-family:inherit; transition:transform .12s; }
+    .stores-coach-card.is-premium { border-color:var(--accent,#FF4F7B); }
     .stores-coach-card:active { transform:scale(.985); }
-    .sc-top { display:flex; align-items:center; gap:12px; }
-    .sc-avatar { width:48px; height:48px; border-radius:50%; background:var(--surface2,#FFF0F4); color:var(--accent,#FF4F7B); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px; overflow:hidden; flex:0 0 auto; }
+    .sc-id { flex:1; min-width:0; }
+    .sc-chev { color:var(--muted,#9a9aa8); font-weight:700; font-size:16px; flex:0 0 auto; }
+    .sc-avatar { width:44px; height:44px; border-radius:50%; background:var(--surface2,#FFF0F4); color:var(--accent,#FF4F7B); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:17px; overflow:hidden; flex:0 0 auto; }
     .sc-avatar img { width:100%; height:100%; object-fit:cover; }
     .sc-name { font-size:16px; font-weight:700; color:var(--text,#1A1A26); display:flex; align-items:center; gap:6px; }
     .sc-verif { display:inline-flex; align-items:center; justify-content:center; width:17px; height:17px; border-radius:50%; background:var(--accent,#FF4F7B); color:#fff; font-size:11px; font-weight:800; }
@@ -28938,8 +28953,8 @@ async function forceAppUpdate() {
     .stores-ctx-line { font-size:14px; color:var(--text,#1A1A26); margin-top:6px; }
     .stores-trial-pill { display:inline-block; background:var(--surface2,#FFF0F4); color:var(--accent,#FF4F7B); font-weight:700; padding:3px 10px; border-radius:100px; font-size:12.5px; }
     .stores-search-wrap { position:relative; margin-bottom:14px; }
-    .stores-search-ico { position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:15px; opacity:.7; }
-    .stores-search { width:100%; box-sizing:border-box; padding:13px 14px 13px 40px; border-radius:14px; border:1.5px solid var(--border,#ECECF1); background:var(--surface,#fff); color:var(--text,#1A1A26); font-size:15px; font-family:inherit; outline:none; }
+    .stores-search-ico { position:absolute; left:16px; top:50%; transform:translateY(-50%); font-size:14px; opacity:.6; pointer-events:none; }
+    .stores-search { width:100%; box-sizing:border-box; padding:13px 14px 13px 46px; border-radius:14px; border:1.5px solid var(--border,#ECECF1); background:var(--surface,#fff); color:var(--text,#1A1A26); font-size:15px; font-family:inherit; outline:none; }
     .stores-search:focus { border-color:var(--accent,#FF4F7B); }
     .sc-users { font-size:12px; color:var(--muted,#6B6B80); margin-top:3px; display:flex; align-items:center; gap:7px; }
     .sc-premium-tag { font-size:9.5px; font-weight:800; letter-spacing:.5px; color:var(--accent,#FF4F7B); background:var(--surface2,#FFF0F4); padding:2px 7px; border-radius:100px; text-transform:uppercase; }
@@ -28955,21 +28970,35 @@ async function forceAppUpdate() {
     .st-txt small { font-size:12px; color:var(--muted,#6B6B80); margin-top:1px; }
     .st-arrow { color:var(--accent,#FF4F7B); font-weight:800; }
     .stores-socials-btn { display:inline-flex; align-items:center; gap:7px; margin-top:12px; background:var(--surface2,#FFF0F4); color:var(--accent,#FF4F7B); border:none; border-radius:100px; padding:9px 18px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; text-decoration:none; }
+    .stores-guest-btn { width:100%; display:flex; align-items:center; gap:13px; background:var(--accent,#FF4F7B); border:none; border-radius:18px; padding:16px; cursor:pointer; font-family:inherit; text-align:left; box-shadow:var(--accent-shadow,0 6px 18px -8px rgba(255,79,123,.4)); margin-bottom:22px; }
+    .stores-guest-btn:active { transform:scale(.99); }
+    .sg-emoji { font-size:23px; flex:0 0 auto; }
+    .sg-txt { flex:1; display:flex; flex-direction:column; color:#fff; }
+    .sg-txt strong { font-size:16px; font-weight:800; }
+    .sg-txt small { font-size:12.5px; opacity:.92; margin-top:2px; }
+    .sg-arrow { color:#fff; font-weight:800; font-size:18px; flex:0 0 auto; }
+    .stores-coach-q { font-size:13px; color:var(--muted,#6B6B80); text-align:center; margin-bottom:10px; }
+    .sti-info { text-align:left; background:var(--surface2,#FFF0F4); border-radius:14px; padding:13px 15px; margin-top:10px; }
+    .sti-info .sti-h { font-size:14px; font-weight:800; color:var(--accent,#FF4F7B); margin-bottom:8px; }
+    .sti-info .sti-row { font-size:13px; color:var(--text,#1A1A26); margin:5px 0; }
   </style>
   <div id="stores-buscador">
-    <div class="stores-title">Encontrá tu coach</div>
-    <div class="stores-sub">Buscá tu coach o gym para entrar a su app</div>
+    <!-- Primario: ingreso como invitado (demo coach IA, 14 días) -->
+    <button class="stores-guest-btn" onclick="startStoresTrial()">
+      <span class="sg-emoji">🎁</span>
+      <span class="sg-txt">
+        <strong>Ingresar como invitado</strong>
+        <small>Probá la app 14 días gratis · sin tarjeta</small>
+      </span>
+      <span class="sg-arrow">→</span>
+    </button>
+    <!-- Secundario: ya tenés coach → buscador colapsable (la lista aparece al tocar) -->
+    <div class="stores-coach-q">¿Ya tenés un coach o gym?</div>
     <div class="stores-search-wrap">
       <span class="stores-search-ico">🔍</span>
-      <input id="stores-search" class="stores-search" type="text" placeholder="Buscá por nombre (ej: KING)" oninput="filterStoresCoaches(this.value)" autocomplete="off">
+      <input id="stores-search" class="stores-search" type="text" placeholder="Buscá por nombre (ej: KING)" onfocus="openStoresList()" oninput="filterStoresCoaches(this.value)" autocomplete="off">
     </div>
-    <div id="stores-coach-grid" class="stores-coach-grid"></div>
-    <div class="stores-trial-divider"><span>o</span></div>
-    <button class="stores-trial-btn" onclick="startStoresTrial()">
-      <span class="st-emoji">🎁</span>
-      <span class="st-txt"><strong>Probá la app gratis 14 días</strong><small>Entrená con tu coach IA · sin tarjeta</small></span>
-      <span class="st-arrow">→</span>
-    </button>
+    <div id="stores-coach-grid" class="stores-coach-grid" style="display:none"></div>
   </div>
   <div id="stores-login-ctx" class="stores-login-ctx" style="display:none"></div>
 
