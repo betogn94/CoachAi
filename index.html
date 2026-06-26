@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260625-2213-seguridad--system-prompt-anti-jailbreak----esc-completo">
+<meta name="app-version" content="20260626-1423-funnel-stores--buscador-de-coaches---demo-ia-14-dias--flag--stores-1-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -13684,6 +13684,29 @@ const AUTH_OTP_ENABLED = (() => {
 let _otpPending = null;          // { email, nombre } awaiting code verification
 let _otpCooldownTimer = null;
 
+// ============================
+// STORES FUNNEL — vidriera curada de coaches + demo gratis de 14 días.
+// Gated por ?stores=1 (persistido en localStorage para testear; ?stores=0 apaga).
+// Sin el flag, prod queda IDÉNTICO: el landing muestra el login de siempre y el
+// alta sigue siendo beta cerrada (allowlist). Con el flag, un guest elige coach
+// en la vidriera y entra con 14 días de trial.
+// ============================
+const STORES_FUNNEL_ENABLED = (() => {
+  try {
+    const v = new URLSearchParams(window.location.search).get('stores');
+    if (v === '1') { try { localStorage.setItem('coachai_stores_funnel', '1'); } catch {} return true; }
+    if (v === '0') { try { localStorage.removeItem('coachai_stores_funnel'); } catch {} return false; }
+    return localStorage.getItem('coachai_stores_funnel') === '1';
+  } catch { return false; }
+})();
+// Marca el camino de TRIAL (guest → coach IA en el tenant 'coachaipro', 14 días).
+// El camino de coach HUMANO no usa esto: entra por el login de su tenant con su
+// cuenta ya validada (allowlist del coach), igual que hoy.
+const STORES_TRIAL_TENANT = 'coachaipro';
+function isStoresTrial() { try { return localStorage.getItem('coachai_stores_trial') === '1'; } catch { return false; } }
+function setStoresTrial() { try { localStorage.setItem('coachai_stores_trial', '1'); } catch {} }
+function clearStoresTrial() { try { localStorage.removeItem('coachai_stores_trial'); } catch {} }
+
 // Ask Supabase Auth to email a 6-digit code. shouldCreateUser:true so existing
 // clientas (who have no auth.users yet) get one created on their first login —
 // that's the "migrate on first login" path. The real access gate still runs
@@ -13870,41 +13893,39 @@ async function loginOrRegister(email, nombre, authUid = null) {
     currentUser = existing; return { isNew: false, user: existing };
   }
 
-  // Invite-allowlist gate (heredado de la fase beta, mantenido en GA): un
-  // email nuevo SOLO puede convertirse en usuario si su email está en
-  // beta_invitados. Pull tenant_slug también para que el insert herede el
-  // tenant correcto (un whitelabel client aterriza en su tenant desde el
-  // primer login).
+  // Gate de alta para un email NUEVO. Dos caminos:
+  //   (a) Beta cerrada: el email debe estar en beta_invitados (allowlist).
+  //   (b) Funnel de stores (?stores=1): el guest eligió un coach en la vidriera
+  //       → entra con trial de 14 días aunque NO esté invitado.
   const { data: invite } = await sbClient
     .from('beta_invitados').select('email,tenant_slug,acceso_hasta,renew_url').eq('email', email).maybeSingle();
-  if (!invite) {
+
+  // Trial de stores: el guest tocó "Probá gratis 14 días" → entra al tenant IA
+  // (coachaipro) con 14 días, sin estar invitado. El coach HUMANO no pasa por
+  // acá: sus clientas entran con su cuenta ya validada (allowlist del coach).
+  const isTrial = (typeof STORES_FUNNEL_ENABLED !== 'undefined' && STORES_FUNNEL_ENABLED && !invite && isStoresTrial());
+
+  if (!invite && !isTrial) {
     return { notInvited: true };
   }
 
-  // Resolve el invite.tenant_slug → tenants.id ANTES del cap check porque
-  // el cap ahora es por-tenant (no global). Si el slug es missing o no
-  // resuelve, dejamos que el DB default (default_tenant_id() → coachai-
-  // default) tome la rienda — failure acá es non-fatal.
+  // Slug del tenant efectivo: del invite (beta) o el tenant IA (trial de stores).
+  const effectiveSlug = invite ? invite.tenant_slug : STORES_TRIAL_TENANT;
+
+  // Resolve el slug → tenants.id ANTES del cap check porque el cap ahora es
+  // por-tenant (no global). Si el slug es missing o no resuelve, dejamos que el
+  // DB default (default_tenant_id() → coachai-default) tome la rienda — non-fatal.
   let inviteTenantId = null;
-  if (invite.tenant_slug && invite.tenant_slug !== 'coachai-default') {
+  if (effectiveSlug && effectiveSlug !== 'coachai-default') {
     const { data: tnt } = await sbClient
-      .from('tenants').select('id').eq('slug', invite.tenant_slug).maybeSingle();
+      .from('tenants').select('id').eq('slug', effectiveSlug).maybeSingle();
     if (tnt && tnt.id) inviteTenantId = tnt.id;
   }
 
-  // Capacity cap (cambió post-beta):
-  //   - Tenants FOUNDER (coachai-default + jesus): SIN TOPE. Son cuentas
-  //     que nosotros controlamos directamente. Cualquier cap acá sería un
-  //     auto-bloqueo innecesario.
-  //   - Tenants no-founder (futuros whitelabel coaches): cap POR TENANT
-  //     usando BETA_MAX_USERS, como protección anti-abuse hasta que onboardemos
-  //     ese tenant formalmente y le subamos el límite (o lo configuremos
-  //     por DB en el futuro). Originalmente el cap era GLOBAL — eso
-  //     significaba que jesus + default + cualquier whitelabel competían
-  //     por los mismos 20 slots, lo cual te bloqueaba a vos mismo al
-  //     onboardear un coach nuevo.
-  const FOUNDER_TENANT_SLUGS = new Set(['coachai-default', 'jesus']);
-  const isFounderTenant = invite.tenant_slug && FOUNDER_TENANT_SLUGS.has(invite.tenant_slug);
+  // Capacity cap por-tenant. Founders (coachai-default + jesus) SIN TOPE — son
+  // cuentas que controlamos directo. No-founder = cap BETA_MAX_USERS anti-abuse.
+  const FOUNDER_TENANT_SLUGS = new Set(['coachai-default', 'jesus', 'coachaipro']);
+  const isFounderTenant = effectiveSlug && FOUNDER_TENANT_SLUGS.has(effectiveSlug);
   if (!isFounderTenant) {
     let cntQuery = sbClient.from('usuarios').select('id', { count: 'exact', head: true });
     if (inviteTenantId) cntQuery = cntQuery.eq('tenant_id', inviteTenantId);
@@ -13917,16 +13938,23 @@ async function loginOrRegister(email, nombre, authUid = null) {
   const insertRow = { email, nombre };
   if (authUid) insertRow.auth_id = authUid;
   if (inviteTenantId) insertRow.tenant_id = inviteTenantId;
-  // Hereda el vencimiento de acceso desde la invitación (control de suscripción).
-  // Si la invitación no tiene fecha (amigos/parientes en default), queda NULL = permanente.
-  if (invite.acceso_hasta) insertRow.acceso_hasta = invite.acceso_hasta;
-  // Link de renovación per-user ($9.99 migrados vs $19.99). Null = usa el RENEW_URL global.
-  if (invite.renew_url) insertRow.renew_url = invite.renew_url;
+  if (isTrial) {
+    // Demo del funnel de stores: 14 días de acceso completo, sin tarjeta.
+    // Al día 14 cae en isAccessBlocked → showRenewScreen (ya existe).
+    const trialEnd = new Date(); trialEnd.setDate(trialEnd.getDate() + 14);
+    insertRow.acceso_hasta = trialEnd.toISOString();
+  } else if (invite.acceso_hasta) {
+    // Hereda el vencimiento desde la invitación (NULL = permanente, amigos/parientes).
+    insertRow.acceso_hasta = invite.acceso_hasta;
+  }
+  // Link de renovación per-user ($9.99 migrados vs $19.99). Null = RENEW_URL global.
+  if (invite && invite.renew_url) insertRow.renew_url = invite.renew_url;
 
   const { data: newUser, error } = await sbClient.from('usuarios').insert([insertRow]).select().single();
   if (error) throw error;
   currentUser = newUser;
-  return { isNew: true, user: newUser };
+  if (isTrial) clearStoresTrial();  // consumida tras crear la cuenta
+  return { isNew: true, user: newUser, trial: !!isTrial };
 }
 
 // ---- Persistent login helpers ----
@@ -15630,6 +15658,116 @@ async function proceedAfterAuth(email, nombre, authUid) {
 
   btn.disabled = false;
   loading.style.display = 'none';
+}
+
+
+// ============================
+// STORES FUNNEL — buscador de coaches + demo IA (corre en el landing, pre-login).
+// ============================
+let _storesCoaches = [];   // cache del directorio para filtrar sin re-consultar
+
+// Boot: si el flag está on y no hay sesión, muestra el buscador y carga el
+// directorio (RPC público, rankeado premium → # usuarios).
+async function initStoresFunnel() {
+  if (!STORES_FUNNEL_ENABLED) return;
+  const sec = document.getElementById('stores-buscador');
+  const loginCard = document.querySelector('.landing-login-card');
+  if (!sec) return;
+  const sess = loadSession();
+  if (sess && sess.email) return;  // usuaria que vuelve → tryAutoLogin entra sola
+  sec.style.display = 'block';
+  if (loginCard) loginCard.style.display = 'none';
+  try {
+    if (!sbClient) initSupabase();
+    const { data } = await sbClient.rpc('stores_coach_directory');
+    _storesCoaches = Array.isArray(data) ? data : [];
+  } catch (e) { console.warn('[stores] load directory', e); _storesCoaches = []; }
+  renderStoresCoaches(_storesCoaches);
+}
+
+function renderStoresCoaches(list) {
+  const grid = document.getElementById('stores-coach-grid');
+  if (!grid) return;
+  if (!list.length) {
+    grid.innerHTML = '<div class="stores-empty-search">No encontramos coaches con ese nombre.</div>';
+    return;
+  }
+  grid.innerHTML = list.map(t => {
+    const d = t.directory || {};
+    const nombre = d.nombre || t.name || 'Coach';
+    const ini = (String(nombre).trim()[0] || 'C').toUpperCase();
+    const ver = d.verified ? '<span class="sc-verif" title="Coach verificado">✓</span>' : '';
+    const prem = t.premium ? '<span class="sc-premium-tag">Premium</span>' : '';
+    const foto = d.foto_url ? `<img src="${_escAttr(d.foto_url)}" alt="">` : `<span>${_esc(ini)}</span>`;
+    const users = Number(t.user_count) || 0;
+    return `<button class="stores-coach-card" onclick="pickStoresTenant('${_escAttr(t.slug)}')">
+      <div class="sc-top">
+        <div class="sc-avatar">${foto}</div>
+        <div class="sc-id">
+          <div class="sc-name">${_esc(nombre)} ${ver}</div>
+          <div class="sc-esp">${_esc(d.especialidad || '')}</div>
+          <div class="sc-users">${prem}<span>${users} usuario${users === 1 ? '' : 's'}</span></div>
+        </div>
+      </div>
+      ${d.headline ? `<div class="sc-head">${_esc(d.headline)}</div>` : ''}
+      <div class="sc-go"><span>Entrar a su app</span><span>→</span></div>
+    </button>`;
+  }).join('');
+}
+
+function filterStoresCoaches(q) {
+  const term = (q || '').trim().toLowerCase();
+  if (!term) return renderStoresCoaches(_storesCoaches);
+  const filt = _storesCoaches.filter(t => {
+    const d = t.directory || {};
+    return (String(d.nombre || '') + ' ' + String(d.marca || '') + ' ' + String(t.name || '')).toLowerCase().includes(term);
+  });
+  renderStoresCoaches(filt);
+}
+
+// Camino COACH HUMANO: el usuario toca un tenant → su login branded. Si su cuenta
+// pertenece a ese tenant entra; si no, ve "Ver redes / Contactar" para pedirle el
+// alta al coach (eso pasa AFUERA de la app — la app solo lo conecta).
+function pickStoresTenant(slug) {
+  clearStoresTrial();
+  try { if (typeof window.applySyncTenantTheme === 'function') window.applySyncTenantTheme(slug); } catch {}
+  const t = _storesCoaches.find(x => x.slug === slug) || {};
+  const d = t.directory || {};
+  const nombre = d.nombre || t.name || slug;
+  const social = t.social_links || {};
+  const url = social.instagram || social.web || social.whatsapp || null;
+  _showStoresLogin(`Entrás a <strong>${_esc(nombre)}</strong>`,
+    url ? `<a class="stores-socials-btn" href="${_escAttr(url)}" target="_blank" rel="noopener">📲 Ver redes / Contactar</a>` : '');
+}
+
+// Camino TRIAL (coach IA): tenant coachaipro + 14 días, sin tarjeta.
+function startStoresTrial() {
+  setStoresTrial();
+  try { if (typeof window.applySyncTenantTheme === 'function') window.applySyncTenantTheme(STORES_TRIAL_TENANT); } catch {}
+  _showStoresLogin('Probás <strong>CoachAI</strong> · <span class="stores-trial-pill">🎁 14 días gratis</span>', '');
+}
+
+function _showStoresLogin(headlineHtml, extraHtml) {
+  const sec = document.getElementById('stores-buscador');
+  const loginCard = document.querySelector('.landing-login-card');
+  const ctx = document.getElementById('stores-login-ctx');
+  if (sec) sec.style.display = 'none';
+  if (loginCard) loginCard.style.display = '';
+  if (ctx) {
+    ctx.innerHTML = `<button class="stores-back" onclick="backToStoresBuscador()">← Volver al buscador</button>
+      <div class="stores-ctx-line">${headlineHtml}</div>${extraHtml || ''}`;
+    ctx.style.display = 'block';
+  }
+}
+
+function backToStoresBuscador() {
+  clearStoresTrial();
+  const sec = document.getElementById('stores-buscador');
+  const loginCard = document.querySelector('.landing-login-card');
+  const ctx = document.getElementById('stores-login-ctx');
+  if (ctx) ctx.style.display = 'none';
+  if (loginCard) loginCard.style.display = 'none';
+  if (sec) sec.style.display = 'block';
 }
 
 
@@ -28209,6 +28347,11 @@ window.addEventListener('DOMContentLoaded', async () => {
   // (Skipped in onboarding-preview mode so the form stays on screen.)
   if (!_previewOnboarding) tryAutoLogin().catch(console.error);
 
+  // Funnel de stores: si ?stores=1, muestra la vidriera de coaches en el landing
+  // (no-op sin el flag). Va después de tryAutoLogin para que una usuaria con
+  // sesión entre directo y no vea la vidriera.
+  if (typeof initStoresFunnel === 'function') initStoresFunnel().catch(console.error);
+
   // ===== PWA install =====
   // Register the service worker so the app can be installed + show a branded
   // offline page when the user has no connection. Silent on failure.
@@ -28772,6 +28915,63 @@ async function forceAppUpdate() {
 <div class="landing-wrapper" id="landing-wrapper">
   <div class="landing-logo" id="landing-logo-text">COACHAI</div>
   <div class="landing-tagline" id="landing-tagline-text">Tu entrenador personal con inteligencia artificial</div>
+
+  <!-- ── Funnel de stores (vidriera curada de coaches). Solo visible con ?stores=1. ── -->
+  <style>
+    #stores-buscador { width:100%; max-width:380px; margin:0 auto 6px; display:none; }
+    .stores-title { font-size:22px; font-weight:800; color:var(--text,#1A1A26); text-align:center; margin:0 0 4px; }
+    .stores-sub { font-size:14px; color:var(--muted,#6B6B80); text-align:center; margin:0 0 18px; }
+    .stores-coach-grid { display:flex; flex-direction:column; gap:12px; }
+    .stores-coach-card { width:100%; text-align:left; background:var(--surface,#fff); border:1.5px solid var(--accent,#FF4F7B); border-radius:18px; padding:15px; cursor:pointer; font-family:inherit; box-shadow:var(--card-shadow,0 8px 24px -14px rgba(17,17,26,.12)); transition:transform .12s; }
+    .stores-coach-card:active { transform:scale(.985); }
+    .sc-top { display:flex; align-items:center; gap:12px; }
+    .sc-avatar { width:48px; height:48px; border-radius:50%; background:var(--surface2,#FFF0F4); color:var(--accent,#FF4F7B); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px; overflow:hidden; flex:0 0 auto; }
+    .sc-avatar img { width:100%; height:100%; object-fit:cover; }
+    .sc-name { font-size:16px; font-weight:700; color:var(--text,#1A1A26); display:flex; align-items:center; gap:6px; }
+    .sc-verif { display:inline-flex; align-items:center; justify-content:center; width:17px; height:17px; border-radius:50%; background:var(--accent,#FF4F7B); color:#fff; font-size:11px; font-weight:800; }
+    .sc-esp { font-size:13px; color:var(--muted,#6B6B80); margin-top:1px; }
+    .sc-head { font-size:13.5px; color:var(--text,#1A1A26); opacity:.85; line-height:1.45; margin:11px 0; }
+    .sc-cta { text-align:center; font-size:14px; font-weight:700; color:#fff; background:var(--accent,#FF4F7B); padding:10px; border-radius:12px; margin-top:4px; }
+    .stores-empty { text-align:center; color:var(--muted,#6B6B80); font-size:14px; padding:24px; }
+    .stores-login-ctx { width:100%; max-width:360px; margin:0 auto 12px; text-align:center; }
+    .stores-back { background:none; border:none; color:var(--muted,#6B6B80); font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; padding:4px; }
+    .stores-ctx-line { font-size:14px; color:var(--text,#1A1A26); margin-top:6px; }
+    .stores-trial-pill { display:inline-block; background:var(--surface2,#FFF0F4); color:var(--accent,#FF4F7B); font-weight:700; padding:3px 10px; border-radius:100px; font-size:12.5px; }
+    .stores-search-wrap { position:relative; margin-bottom:14px; }
+    .stores-search-ico { position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:15px; opacity:.7; }
+    .stores-search { width:100%; box-sizing:border-box; padding:13px 14px 13px 40px; border-radius:14px; border:1.5px solid var(--border,#ECECF1); background:var(--surface,#fff); color:var(--text,#1A1A26); font-size:15px; font-family:inherit; outline:none; }
+    .stores-search:focus { border-color:var(--accent,#FF4F7B); }
+    .sc-users { font-size:12px; color:var(--muted,#6B6B80); margin-top:3px; display:flex; align-items:center; gap:7px; }
+    .sc-premium-tag { font-size:9.5px; font-weight:800; letter-spacing:.5px; color:var(--accent,#FF4F7B); background:var(--surface2,#FFF0F4); padding:2px 7px; border-radius:100px; text-transform:uppercase; }
+    .sc-go { display:flex; align-items:center; justify-content:space-between; margin-top:12px; font-size:13.5px; font-weight:700; color:var(--accent,#FF4F7B); }
+    .stores-empty-search { text-align:center; color:var(--muted,#6B6B80); font-size:13.5px; padding:18px; }
+    .stores-trial-divider { display:flex; align-items:center; gap:10px; color:var(--muted,#6B6B80); font-size:12px; margin:18px 2px 14px; }
+    .stores-trial-divider::before, .stores-trial-divider::after { content:''; flex:1; height:1px; background:var(--border,#ECECF1); }
+    .stores-trial-btn { width:100%; display:flex; align-items:center; gap:12px; background:var(--surface,#fff); border:1.5px dashed var(--accent,#FF4F7B); border-radius:16px; padding:14px; cursor:pointer; font-family:inherit; text-align:left; }
+    .stores-trial-btn:active { transform:scale(.99); }
+    .st-emoji { font-size:22px; }
+    .st-txt { flex:1; display:flex; flex-direction:column; }
+    .st-txt strong { font-size:14.5px; color:var(--text,#1A1A26); }
+    .st-txt small { font-size:12px; color:var(--muted,#6B6B80); margin-top:1px; }
+    .st-arrow { color:var(--accent,#FF4F7B); font-weight:800; }
+    .stores-socials-btn { display:inline-flex; align-items:center; gap:7px; margin-top:12px; background:var(--surface2,#FFF0F4); color:var(--accent,#FF4F7B); border:none; border-radius:100px; padding:9px 18px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; text-decoration:none; }
+  </style>
+  <div id="stores-buscador">
+    <div class="stores-title">Encontrá tu coach</div>
+    <div class="stores-sub">Buscá tu coach o gym para entrar a su app</div>
+    <div class="stores-search-wrap">
+      <span class="stores-search-ico">🔍</span>
+      <input id="stores-search" class="stores-search" type="text" placeholder="Buscá por nombre (ej: KING)" oninput="filterStoresCoaches(this.value)" autocomplete="off">
+    </div>
+    <div id="stores-coach-grid" class="stores-coach-grid"></div>
+    <div class="stores-trial-divider"><span>o</span></div>
+    <button class="stores-trial-btn" onclick="startStoresTrial()">
+      <span class="st-emoji">🎁</span>
+      <span class="st-txt"><strong>Probá la app gratis 14 días</strong><small>Entrená con tu coach IA · sin tarjeta</small></span>
+      <span class="st-arrow">→</span>
+    </button>
+  </div>
+  <div id="stores-login-ctx" class="stores-login-ctx" style="display:none"></div>
 
   <div class="landing-login-card coach-card">
     <div class="landing-login-icon">
