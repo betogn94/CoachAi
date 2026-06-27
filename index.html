@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260626-1601-stores--fix-scroll-lateral---search-transparente---compacto-single-page">
+<meta name="app-version" content="20260627-0057-stores--redise-o-app-style-minimalista--logo-real--violeta-coachai--centrado-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15713,7 +15713,7 @@ function renderStoresCoaches(list) {
     const rating = (d.rating != null && !isNaN(Number(d.rating))) ? Number(d.rating).toFixed(1) : null;
     const starIco = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>';
     const starHtml = rating ? `<span class="sc-meta-item sc-star">${starIco}${rating}</span>` : '';
-    const usersHtml = users > 0 ? `<span class="sc-meta-item">${usrIco}${users} usuario${users === 1 ? '' : 's'}</span>` : '';
+    const usersHtml = users > 0 ? `<span class="sc-meta-item">${usrIco}${users} alumno${users === 1 ? '' : 's'}</span>` : '';
     const metaHtml = (usersHtml || starHtml) ? `<div class="sc-meta">${usersHtml}${starHtml}</div>` : '';
     return `<button class="stores-coach-card" onclick="pickStoresTenant('${_escAttr(t.slug)}')">
       <div class="sc-avatar">${foto}</div>
@@ -28941,114 +28941,88 @@ async function forceAppUpdate() {
 
   <!-- ── Funnel de stores (vidriera curada de coaches). Solo visible con ?stores=1. ── -->
   <style>
-    /* ── Entrada de stores: neutral + cálida con acento dorado (referencia
-         aprobada por Beto). Paleta FIJA → igual en cualquier subdominio; el
-         login del tenant (al elegir) sí lleva su branding. ── */
+    /* ── Entrada de stores: APP-style minimalista (referencia final de Beto).
+         Centrado, logo real, violeta CoachAI, mucho blanco. Paleta FIJA → igual
+         en cualquier subdominio; el login del tenant (al elegir) lleva su brand. ── */
     body.stores-entry { overflow-x:hidden; }
-    body.stores-entry .landing-wrapper { background:#F6F5F3; padding-top:8px; overflow-x:hidden; max-width:100%; }
+    body.stores-entry .landing-wrapper { background:#F5F5F7; padding-top:18px; overflow-x:hidden; max-width:100%; }
     body.stores-entry .landing-logo, body.stores-entry .landing-tagline, body.stores-entry #landing-footer-text, body.stores-entry #landing-footer-text + a { display:none; }
-    body.stores-entry .landing-login-card { background:#fff; border:0.5px solid #ECEBE8; box-shadow:0 6px 22px -12px rgba(26,26,28,.14); }
-    body.stores-entry .email-login-input { background:#F6F5F3; border:0.5px solid #ECEBE8; color:#1A1A1C; }
-    body.stores-entry .btn-email-login { background:#1A1A1C; color:#fff; }
+    body.stores-entry .landing-login-card { background:#fff; border:0.5px solid #ECECF0; box-shadow:0 6px 22px -12px rgba(26,26,28,.12); }
+    body.stores-entry .email-login-input { background:#F5F5F7; border:0.5px solid #ECECF0; color:#16161A; }
+    body.stores-entry .btn-email-login { background:#7c6aff; color:#fff; }
 
-    #stores-buscador { --gold:#A8854E; --ink:#1A1A1C; --sec:#8A8A8E; --line:#ECEBE8; width:100%; max-width:430px; margin:0 auto; display:none; position:relative; }
-    .stores-hero-glow { position:absolute; top:-20px; right:-10px; width:230px; height:230px; background:radial-gradient(circle at 72% 28%, rgba(168,133,78,.18), rgba(168,133,78,0) 62%); pointer-events:none; z-index:0; }
-    #stores-buscador > *:not(.stores-hero-glow) { position:relative; z-index:1; }
-    .stores-brand { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
-    .stores-brand-mark { width:30px; height:30px; flex:0 0 auto; }
-    .stores-brand-txt { display:flex; flex-direction:column; line-height:1; }
-    .stores-brand-txt b { font-size:15px; font-weight:600; letter-spacing:.16em; color:var(--ink); }
-    .stores-brand-txt span { font-size:9.5px; font-weight:600; letter-spacing:.24em; color:var(--gold); margin-top:3px; }
-    .stores-h1 { font-size:25px; line-height:1.13; font-weight:700; letter-spacing:-.02em; color:var(--ink); margin:0 0 8px; max-width:280px; }
-    .stores-h1 em { color:var(--gold); font-style:normal; }
-    .stores-h2 { font-size:14px; line-height:1.45; color:var(--sec); margin:0 0 16px; max-width:320px; font-weight:400; }
-    .stores-search-wrap { display:flex; align-items:center; gap:10px; background:#fff; border-radius:13px; padding:0 15px; height:48px; margin-bottom:20px; box-shadow:0 6px 20px -12px rgba(26,26,28,.16); }
-    .stores-search-wrap > svg { color:#A8A8AC; flex:0 0 auto; }
+    #stores-buscador { --accent:#7c6aff; --ink:#16161A; --sec:#8A8A90; --line:#ECECF0; width:100%; max-width:420px; margin:0 auto; display:none; }
+    .stores-logo { display:block; width:62px; height:62px; margin:6px auto 14px; object-fit:contain; }
+    .stores-wordmark { text-align:center; line-height:1; margin-bottom:26px; }
+    .stores-wordmark b { display:block; font-size:21px; font-weight:700; letter-spacing:.2em; color:var(--ink); padding-left:.2em; }
+    .stores-wordmark span { display:block; font-size:11px; font-weight:600; letter-spacing:.42em; color:var(--accent); margin-top:6px; padding-left:.42em; }
+    .stores-h1 { font-size:27px; line-height:1.15; font-weight:700; letter-spacing:-.02em; color:var(--ink); margin:0 0 7px; text-align:center; }
+    .stores-h2 { font-size:14.5px; line-height:1.45; color:var(--sec); margin:0 auto 22px; text-align:center; max-width:300px; font-weight:400; }
+    .stores-search-wrap { display:flex; align-items:center; gap:11px; background:#fff; border-radius:16px; padding:0 17px; height:56px; margin-bottom:28px; box-shadow:0 8px 26px -14px rgba(26,26,28,.18); }
+    .stores-search-wrap > svg { color:#AEAEB4; flex:0 0 auto; }
     #stores-buscador .stores-search { flex:1; border:none !important; background:transparent !important; -webkit-appearance:none; appearance:none; outline:none; box-shadow:none !important; font-size:16px; font-family:inherit; color:var(--ink) !important; height:100%; padding:0; border-radius:0; }
-    #stores-buscador .stores-search::placeholder { color:#A8A8AC; }
-    .stores-sec-head { display:flex; align-items:center; justify-content:space-between; margin:0 2px 10px; }
-    .stores-sec-head b { font-size:16px; font-weight:600; color:var(--ink); letter-spacing:-.01em; }
-    .stores-sec-head a { font-size:13.5px; font-weight:500; color:var(--gold); text-decoration:none; display:inline-flex; align-items:center; gap:3px; cursor:pointer; }
-    .stores-coach-grid { display:flex; flex-direction:column; gap:9px; margin-bottom:16px; }
-    .stores-coach-card { width:100%; display:flex; align-items:center; gap:12px; text-align:left; background:#fff; border:none; border-radius:15px; padding:10px 13px; cursor:pointer; font-family:inherit; box-shadow:0 5px 16px -13px rgba(26,26,28,.2); }
+    #stores-buscador .stores-search::placeholder { color:#AEAEB4; }
+    .stores-sec-head { display:flex; align-items:center; justify-content:space-between; margin:0 4px 12px; }
+    .stores-sec-head b { font-size:17px; font-weight:600; color:var(--ink); letter-spacing:-.01em; }
+    .stores-sec-head a { font-size:14px; font-weight:500; color:var(--accent); text-decoration:none; display:inline-flex; align-items:center; gap:3px; cursor:pointer; }
+    .stores-coach-grid { display:flex; flex-direction:column; gap:11px; margin-bottom:22px; }
+    .stores-coach-card { width:100%; display:flex; align-items:center; gap:13px; text-align:left; background:#fff; border:none; border-radius:16px; padding:12px 14px; cursor:pointer; font-family:inherit; box-shadow:0 6px 18px -14px rgba(26,26,28,.16); }
     .stores-coach-card:active { transform:scale(.99); }
-    .sc-avatar { width:46px; height:46px; border-radius:12px; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:17px; overflow:hidden; flex:0 0 auto; }
+    .sc-avatar { width:50px; height:50px; border-radius:13px; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:18px; overflow:hidden; flex:0 0 auto; }
     .sc-avatar img { width:100%; height:100%; object-fit:cover; }
     .sc-id { flex:1; min-width:0; }
-    .sc-name { font-size:16px; font-weight:600; color:var(--ink); letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sc-name { font-size:16.5px; font-weight:600; color:var(--ink); letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .sc-esp { font-size:13px; color:var(--sec); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .sc-meta { display:flex; align-items:center; gap:14px; margin-top:6px; }
-    .sc-meta-item { display:inline-flex; align-items:center; gap:5px; font-size:12px; color:var(--sec); font-weight:500; }
-    .sc-meta-item > svg { color:#BCBCC0; }
-    .sc-star > svg { color:var(--gold); }
-    .sc-chev { color:#C8C8CC; flex:0 0 auto; display:flex; }
-    .stores-empty-search { text-align:center; color:var(--sec); font-size:14px; padding:20px; background:#fff; border-radius:14px; }
-    .stores-guest-btn { width:100%; display:flex; align-items:center; gap:14px; background:var(--ink); border:none; border-radius:16px; padding:13px 16px; cursor:pointer; font-family:inherit; text-align:left; margin-bottom:18px; }
-    .stores-guest-btn:active { opacity:.9; }
-    .sg-circle { width:42px; height:42px; border-radius:50%; border:1.5px solid rgba(255,255,255,.3); display:flex; align-items:center; justify-content:center; flex:0 0 auto; color:#fff; }
-    .sg-txt { flex:1; display:flex; flex-direction:column; color:#fff; min-width:0; }
-    .sg-txt strong { font-size:16px; font-weight:600; letter-spacing:-.01em; }
-    .sg-txt small { font-size:12.5px; color:rgba(255,255,255,.6); margin-top:2px; font-weight:400; }
-    .sg-arrow { color:rgba(255,255,255,.5); flex:0 0 auto; display:flex; }
-    .stores-badges { display:flex; align-items:flex-start; border-top:1px solid var(--line); padding-top:16px; margin-bottom:12px; }
-    .stores-badge { flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; padding:0 8px; gap:7px; }
-    .stores-badge + .stores-badge { border-left:1px solid var(--line); }
-    .stores-badge > svg { color:var(--gold); }
-    .stores-badge b { font-size:12.5px; font-weight:600; color:var(--ink); }
-    .stores-badge span { font-size:11px; color:var(--sec); line-height:1.35; }
-    .stores-privacy { display:flex; align-items:center; justify-content:center; gap:6px; font-size:12px; color:var(--sec); padding-bottom:6px; }
+    .sc-meta { display:flex; align-items:center; margin-top:6px; }
+    .sc-meta-item { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--sec); font-weight:500; }
+    .sc-meta-item + .sc-meta-item { margin-left:11px; padding-left:11px; border-left:1px solid var(--line); }
+    .sc-meta-item > svg { color:#B6B6BC; }
+    .sc-star > svg { color:var(--accent); }
+    .sc-chev { color:#C8C8CE; flex:0 0 auto; display:flex; }
+    .stores-empty-search { text-align:center; color:var(--sec); font-size:14px; padding:22px; background:#fff; border-radius:16px; }
+    .stores-guest-btn { width:100%; display:flex; align-items:center; gap:14px; background:#fff; border:1px solid var(--line); border-radius:16px; padding:13px 15px; cursor:pointer; font-family:inherit; text-align:left; margin-bottom:22px; box-shadow:0 6px 18px -15px rgba(26,26,28,.14); }
+    .stores-guest-btn:active { transform:scale(.99); }
+    .sg-circle { width:44px; height:44px; border-radius:50%; background:rgba(124,106,255,.1); display:flex; align-items:center; justify-content:center; flex:0 0 auto; color:var(--accent); }
+    .sg-txt { flex:1; display:flex; flex-direction:column; min-width:0; }
+    .sg-txt strong { font-size:16px; font-weight:600; letter-spacing:-.01em; color:var(--ink); }
+    .sg-txt small { font-size:12.5px; color:var(--sec); margin-top:2px; font-weight:400; }
+    .sg-arrow { color:#C8C8CE; flex:0 0 auto; display:flex; }
+    .stores-privacy { display:flex; align-items:center; justify-content:center; gap:6px; font-size:12.5px; color:var(--sec); padding-bottom:8px; }
     .stores-privacy > svg { color:var(--sec); flex:0 0 auto; }
-    .stores-privacy a { color:var(--gold); text-decoration:none; }
+    .stores-privacy a { color:var(--accent); text-decoration:none; }
     .stores-login-ctx { width:100%; max-width:360px; margin:0 auto 14px; text-align:center; }
-    .stores-back { background:none; border:none; color:#8A8A8E; font-size:14px; cursor:pointer; font-family:inherit; padding:4px; }
-    .stores-ctx-line { font-size:15px; color:#1A1A1C; margin-top:8px; font-weight:600; }
-    .stores-trial-pill { display:inline-block; background:#EFEDE9; color:#A8854E; font-weight:600; padding:2px 9px; border-radius:100px; font-size:12.5px; }
-    .stores-socials-btn { display:inline-flex; align-items:center; gap:6px; margin-top:12px; background:#EFEDE9; color:#1A1A1C; border:none; border-radius:10px; padding:9px 16px; font-size:14px; font-weight:500; cursor:pointer; font-family:inherit; text-decoration:none; }
-    .sti-info { text-align:left; background:#fff; border-radius:15px; padding:15px 17px; margin-top:12px; box-shadow:0 6px 20px -14px rgba(26,26,28,.18); }
-    .sti-info .sti-h { font-size:14px; font-weight:600; color:#1A1A1C; margin-bottom:10px; }
+    .stores-back { background:none; border:none; color:var(--sec); font-size:14px; cursor:pointer; font-family:inherit; padding:4px; }
+    .stores-ctx-line { font-size:15px; color:var(--ink); margin-top:8px; font-weight:600; }
+    .stores-trial-pill { display:inline-block; background:rgba(124,106,255,.1); color:#7c6aff; font-weight:600; padding:2px 9px; border-radius:100px; font-size:12.5px; }
+    .stores-socials-btn { display:inline-flex; align-items:center; gap:6px; margin-top:12px; background:rgba(124,106,255,.1); color:#7c6aff; border:none; border-radius:10px; padding:9px 16px; font-size:14px; font-weight:500; cursor:pointer; font-family:inherit; text-decoration:none; }
+    .sti-info { text-align:left; background:#fff; border-radius:16px; padding:15px 17px; margin-top:12px; box-shadow:0 6px 20px -14px rgba(26,26,28,.16); }
+    .sti-info .sti-h { font-size:14px; font-weight:600; color:var(--ink); margin-bottom:10px; }
     .sti-info .sti-row { font-size:14px; color:#3C3C43; margin:8px 0; display:flex; align-items:center; gap:9px; }
-    .sti-info .sti-row > svg { color:#A8854E; flex:0 0 auto; }
+    .sti-info .sti-row > svg { color:#7c6aff; flex:0 0 auto; }
   </style>
   <div id="stores-buscador">
-    <div class="stores-hero-glow"></div>
-    <div class="stores-brand">
-      <svg class="stores-brand-mark" viewBox="0 0 40 40" fill="none"><path d="M20 4l16 32h-9.4L20 22.6 12.4 36H4z" fill="#1A1A1C"/></svg>
-      <div class="stores-brand-txt"><b>COACHAI</b><span>PRO</span></div>
-    </div>
-    <div class="stores-h1">Encontrá a tu <em>coach</em> y transformá tu vida.</div>
-    <div class="stores-h2">Buscá por nombre y conectate con tu coach para empezar tu mejor versión.</div>
+    <img class="stores-logo" src="logo-icon.png" alt="CoachAI">
+    <div class="stores-wordmark"><b>COACHAI</b><span>PRO</span></div>
+    <div class="stores-h1">¿Con quién entrenás?</div>
+    <div class="stores-h2">Buscá tu coach o gimnasio para comenzar</div>
     <div class="stores-search-wrap">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input id="stores-search" class="stores-search" type="text" placeholder="Buscá por nombre de coach o gym" oninput="filterStoresCoaches(this.value)" autocomplete="off">
+      <input id="stores-search" class="stores-search" type="text" placeholder="Buscar coach o gimnasio..." oninput="filterStoresCoaches(this.value)" autocomplete="off">
     </div>
     <div class="stores-sec-head">
       <b>Coaches populares</b>
       <a onclick="filterStoresCoaches('')">Ver todos <svg width="7" height="11" viewBox="0 0 9 15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5l6 6-6 6"/></svg></a>
     </div>
     <div id="stores-coach-grid" class="stores-coach-grid"></div>
-    <!-- Ingreso como invitado (demo coach IA, 14 días) -->
+    <!-- Ingreso como invitado (demo coach IA, 14 días) — sutil/secundario -->
     <button class="stores-guest-btn" onclick="startStoresTrial()">
       <span class="sg-circle"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg></span>
       <span class="sg-txt"><strong>Ingresar como invitado</strong><small>Probá CoachAI Pro 14 días gratis</small></span>
       <span class="sg-arrow"><svg width="9" height="15" viewBox="0 0 9 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5l6 6-6 6"/></svg></span>
     </button>
-    <div class="stores-badges">
-      <div class="stores-badge">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
-        <b>Seguro y privado</b><span>Tus datos, protegidos</span>
-      </div>
-      <div class="stores-badge">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M4 12h16M4 17h7"/></svg>
-        <b>Planes a tu medida</b><span>Dieta y rutina propias</span>
-      </div>
-      <div class="stores-badge">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18l5-5 3 3 6-7"/><path d="M16 9h3v3"/></svg>
-        <b>Seguimiento con IA</b><span>Te acompaña cada día</span>
-      </div>
-    </div>
     <div class="stores-privacy">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-      Tus datos están protegidos. <a href="/privacidad.html" target="_blank" rel="noopener">Ver política</a>
+      Tus datos están protegidos. <a href="/privacidad.html" target="_blank" rel="noopener">Ver política de privacidad</a>
     </div>
   </div>
   <div id="stores-login-ctx" class="stores-login-ctx" style="display:none"></div>
