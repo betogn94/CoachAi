@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260627-0155-stores--bloque-centrado--safe-center----aire-balanceado--sin-espacio-muerto">
+<meta name="app-version" content="20260627-1352-trial--clientas-de-stores--coachaipro--pueden-volver-a-entrar-por-la-entrada-neutral">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -13865,15 +13865,25 @@ async function loginOrRegister(email, nombre, authUid = null) {
         const { data: theirTenant } = await sbClient
           .from('tenants').select('slug, name, domain')
           .eq('id', existing.tenant_id).maybeSingle();
-        return {
-          wrongTenant: true,
-          expected: { slug: expectedSlug, name: expectedTenant.name },
-          theirs: {
-            slug: theirTenant?.slug || 'coachai-default',
-            name: theirTenant?.name || 'CoachAI Pro',
-            domain: theirTenant?.domain || null,
-          },
-        };
+        // Excepción: los tenants "de la casa" (coachai-default + coachaipro, el
+        // de los nativos del trial de stores) son intercambiables en la entrada
+        // neutral — NO son el subdominio de un coach humano. Si ambos lados son
+        // de la casa, no es un cross-tenant real (sino una clienta del trial
+        // quedaba bloqueada al volver a entrar por coachaipro.ai).
+        const HOUSE_TENANTS = ['coachai-default', 'coachaipro'];
+        const bothHouse = HOUSE_TENANTS.includes(expectedSlug)
+          && theirTenant && HOUSE_TENANTS.includes(theirTenant.slug);
+        if (!bothHouse) {
+          return {
+            wrongTenant: true,
+            expected: { slug: expectedSlug, name: expectedTenant.name },
+            theirs: {
+              slug: theirTenant?.slug || 'coachai-default',
+              name: theirTenant?.name || 'CoachAI Pro',
+              domain: theirTenant?.domain || null,
+            },
+          };
+        }
       }
     } catch (e) {
       // If the tenant lookup fails (transient DB issue), don't block login.
