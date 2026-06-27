@@ -3294,11 +3294,12 @@
       if (!nombre) { msg.textContent = 'Poné un nombre a mostrar.'; msg.className = 'form-msg err'; return; }
       btn.disabled = true; btn.textContent = 'Guardando…';
       try {
-        // Merge: no pisar premium/verified/orden (los maneja el admin de CoachAI).
-        const { data: cur } = await sb.from('tenants').select('directory').eq('id', currentTenant.id).maybeSingle();
-        const merged = Object.assign({}, (cur && cur.directory) || {}, { nombre, especialidad, headline, foto_url: pendingFoto || null });
-        const { error } = await sb.from('tenants').update({ directory: merged }).eq('id', currentTenant.id);
+        // RPC SECURITY DEFINER: valida admin + hace el merge en el server (preserva
+        // premium/verified/orden). El UPDATE directo lo bloquea la RLS de tenants.
+        const patch = { nombre, especialidad, headline, foto_url: pendingFoto || null };
+        const { data: res, error } = await sb.rpc('studio_update_directory', { p_admin_email: currentUser.email, p_directory: patch });
         if (error) throw error;
+        if (!res || !res.ok) throw new Error((res && res.reason) || 'sin_permiso');
         msg.textContent = '✓ Guardado. Ya se ve en el buscador de la app.'; msg.className = 'form-msg ok';
       } catch (e) {
         msg.textContent = 'No se pudo guardar. Probá de nuevo.'; msg.className = 'form-msg err';
