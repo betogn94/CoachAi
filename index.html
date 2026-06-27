@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260627-0057-stores--redise-o-app-style-minimalista--logo-real--violeta-coachai--centrado-">
+<meta name="app-version" content="20260627-0106-stores--single-page-fija--no-scroll----logo-sin-recorte---borde-violeta-guest">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15675,7 +15675,7 @@ async function initStoresFunnel() {
   if (!sec) return;
   const sess = loadSession();
   if (sess && sess.email) return;  // usuaria que vuelve → tryAutoLogin entra sola
-  sec.style.display = 'block';
+  sec.style.display = 'flex';
   document.body.classList.add('stores-entry');  // entrada NEUTRAL (ignora el tema del tenant)
   if (loginCard) loginCard.style.display = 'none';
   // Ocultar el botón de instalar PWA cuando el funnel está activo (en la app de
@@ -15790,7 +15790,7 @@ function backToStoresBuscador() {
   const ctx = document.getElementById('stores-login-ctx');
   if (ctx) ctx.style.display = 'none';
   if (loginCard) loginCard.style.display = 'none';
-  if (sec) sec.style.display = 'block';
+  if (sec) sec.style.display = 'flex';
 }
 
 
@@ -28945,27 +28945,28 @@ async function forceAppUpdate() {
          Centrado, logo real, violeta CoachAI, mucho blanco. Paleta FIJA → igual
          en cualquier subdominio; el login del tenant (al elegir) lleva su brand. ── */
     body.stores-entry { overflow-x:hidden; }
-    body.stores-entry .landing-wrapper { background:#F5F5F7; padding-top:18px; overflow-x:hidden; max-width:100%; }
+    body.stores-entry .landing-wrapper { background:#F5F5F7; height:100vh; height:100dvh; max-height:100dvh; overflow:hidden; display:flex; flex-direction:column; align-items:center; padding:16px 20px 14px; box-sizing:border-box; max-width:100%; }
     body.stores-entry .landing-logo, body.stores-entry .landing-tagline, body.stores-entry #landing-footer-text, body.stores-entry #landing-footer-text + a { display:none; }
     body.stores-entry .landing-login-card { background:#fff; border:0.5px solid #ECECF0; box-shadow:0 6px 22px -12px rgba(26,26,28,.12); }
     body.stores-entry .email-login-input { background:#F5F5F7; border:0.5px solid #ECECF0; color:#16161A; }
     body.stores-entry .btn-email-login { background:#7c6aff; color:#fff; }
 
-    #stores-buscador { --accent:#7c6aff; --ink:#16161A; --sec:#8A8A90; --line:#ECECF0; width:100%; max-width:420px; margin:0 auto; display:none; }
-    .stores-logo { display:block; width:62px; height:62px; margin:6px auto 14px; object-fit:contain; }
-    .stores-wordmark { text-align:center; line-height:1; margin-bottom:26px; }
+    #stores-buscador { --accent:#7c6aff; --ink:#16161A; --sec:#8A8A90; --line:#ECECF0; width:100%; max-width:420px; margin:0; display:none; flex-direction:column; flex:1; min-height:0; }
+    .stores-logo { display:block; width:56px; height:56px; margin:2px auto 12px; object-fit:contain; flex:0 0 auto; }
+    .stores-wordmark { text-align:center; line-height:1; margin-bottom:20px; flex:0 0 auto; }
     .stores-wordmark b { display:block; font-size:21px; font-weight:700; letter-spacing:.2em; color:var(--ink); padding-left:.2em; }
     .stores-wordmark span { display:block; font-size:11px; font-weight:600; letter-spacing:.42em; color:var(--accent); margin-top:6px; padding-left:.42em; }
     .stores-h1 { font-size:27px; line-height:1.15; font-weight:700; letter-spacing:-.02em; color:var(--ink); margin:0 0 7px; text-align:center; }
-    .stores-h2 { font-size:14.5px; line-height:1.45; color:var(--sec); margin:0 auto 22px; text-align:center; max-width:300px; font-weight:400; }
-    .stores-search-wrap { display:flex; align-items:center; gap:11px; background:#fff; border-radius:16px; padding:0 17px; height:56px; margin-bottom:28px; box-shadow:0 8px 26px -14px rgba(26,26,28,.18); }
+    .stores-h2 { font-size:14.5px; line-height:1.45; color:var(--sec); margin:0 auto 16px; text-align:center; max-width:300px; font-weight:400; }
+    .stores-search-wrap { display:flex; align-items:center; gap:11px; background:#fff; border-radius:16px; padding:0 17px; height:54px; margin-bottom:18px; box-shadow:0 8px 26px -14px rgba(26,26,28,.18); flex:0 0 auto; }
     .stores-search-wrap > svg { color:#AEAEB4; flex:0 0 auto; }
     #stores-buscador .stores-search { flex:1; border:none !important; background:transparent !important; -webkit-appearance:none; appearance:none; outline:none; box-shadow:none !important; font-size:16px; font-family:inherit; color:var(--ink) !important; height:100%; padding:0; border-radius:0; }
     #stores-buscador .stores-search::placeholder { color:#AEAEB4; }
     .stores-sec-head { display:flex; align-items:center; justify-content:space-between; margin:0 4px 12px; }
     .stores-sec-head b { font-size:17px; font-weight:600; color:var(--ink); letter-spacing:-.01em; }
     .stores-sec-head a { font-size:14px; font-weight:500; color:var(--accent); text-decoration:none; display:inline-flex; align-items:center; gap:3px; cursor:pointer; }
-    .stores-coach-grid { display:flex; flex-direction:column; gap:11px; margin-bottom:22px; }
+    .stores-sec-head { flex:0 0 auto; }
+    .stores-coach-grid { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; flex:0 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; }
     .stores-coach-card { width:100%; display:flex; align-items:center; gap:13px; text-align:left; background:#fff; border:none; border-radius:16px; padding:12px 14px; cursor:pointer; font-family:inherit; box-shadow:0 6px 18px -14px rgba(26,26,28,.16); }
     .stores-coach-card:active { transform:scale(.99); }
     .sc-avatar { width:50px; height:50px; border-radius:13px; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:18px; overflow:hidden; flex:0 0 auto; }
@@ -28980,14 +28981,14 @@ async function forceAppUpdate() {
     .sc-star > svg { color:var(--accent); }
     .sc-chev { color:#C8C8CE; flex:0 0 auto; display:flex; }
     .stores-empty-search { text-align:center; color:var(--sec); font-size:14px; padding:22px; background:#fff; border-radius:16px; }
-    .stores-guest-btn { width:100%; display:flex; align-items:center; gap:14px; background:#fff; border:1px solid var(--line); border-radius:16px; padding:13px 15px; cursor:pointer; font-family:inherit; text-align:left; margin-bottom:22px; box-shadow:0 6px 18px -15px rgba(26,26,28,.14); }
+    .stores-guest-btn { width:100%; display:flex; align-items:center; gap:14px; background:#fff; border:1.5px solid rgba(124,106,255,.35); border-radius:16px; padding:13px 15px; cursor:pointer; font-family:inherit; text-align:left; margin-bottom:14px; box-shadow:0 6px 20px -14px rgba(124,106,255,.22); flex:0 0 auto; }
     .stores-guest-btn:active { transform:scale(.99); }
     .sg-circle { width:44px; height:44px; border-radius:50%; background:rgba(124,106,255,.1); display:flex; align-items:center; justify-content:center; flex:0 0 auto; color:var(--accent); }
     .sg-txt { flex:1; display:flex; flex-direction:column; min-width:0; }
     .sg-txt strong { font-size:16px; font-weight:600; letter-spacing:-.01em; color:var(--ink); }
     .sg-txt small { font-size:12.5px; color:var(--sec); margin-top:2px; font-weight:400; }
     .sg-arrow { color:#C8C8CE; flex:0 0 auto; display:flex; }
-    .stores-privacy { display:flex; align-items:center; justify-content:center; gap:6px; font-size:12.5px; color:var(--sec); padding-bottom:8px; }
+    .stores-privacy { display:flex; align-items:center; justify-content:center; gap:6px; font-size:12.5px; color:var(--sec); padding-bottom:4px; flex:0 0 auto; }
     .stores-privacy > svg { color:var(--sec); flex:0 0 auto; }
     .stores-privacy a { color:var(--accent); text-decoration:none; }
     .stores-login-ctx { width:100%; max-width:360px; margin:0 auto 14px; text-align:center; }
