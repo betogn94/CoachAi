@@ -1370,6 +1370,16 @@
     .form-msg.ok  { color: var(--success); }
     .form-msg.err { color: var(--danger); }
 
+    /* ---------- PERFIL DEL COACH (foto + form) ---------- */
+    .pc-avatar-row { display:flex; align-items:center; gap:16px; margin-bottom:22px; }
+    .pc-avatar { width:72px; height:72px; border-radius:18px; overflow:hidden; background:var(--accent-soft); color:var(--accent); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:28px; flex:0 0 auto; }
+    .pc-avatar img { width:100%; height:100%; object-fit:cover; }
+    .pc-avatar-actions { display:flex; flex-direction:column; gap:6px; }
+    .btn-secondary { background:var(--bg-elev-2); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; align-self:flex-start; }
+    .btn-secondary:hover { border-color:var(--accent); }
+    .form-hint.ok  { color: var(--success); }
+    .form-hint.err { color: var(--danger); }
+
     /* ---------- BADGES ---------- */
     .badge {
       display: inline-block;
@@ -1816,6 +1826,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
         Capacidad
       </div>
+      <div class="nav-item" data-route="perfil">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"></path></svg>
+        Perfil
+      </div>
 
       <div class="sidebar-foot">
         <div id="userAvatar" class="avatar">?</div>
@@ -2041,6 +2055,7 @@
     invitar:    { label: 'Invitar',    render: renderInvitar, navItem: 'invitar' },
     feedback:   { label: 'Feedback',   render: () => placeholder('Feedback', 'Bugs y feedback reportados por tus clientes. Próximamente.'), navItem: 'feedback' },
     capacidad:  { label: 'Capacidad',  render: () => placeholder('Capacidad', 'Detalle del cupo de alumnas de tu paquete. Próximamente.'), navItem: 'capacidad' },
+    perfil:     { label: 'Perfil',     render: renderPerfilCoach, navItem: 'perfil' },
   };
   function route(name, arg) {
     const r = ROUTES[name] || ROUTES.dashboard;
@@ -3202,6 +3217,97 @@
   // admin panel's beta_invitados insert + /api/send-invite POST, but the
   // tenant_slug is implicit (= currentTenant.slug) — an admin can only
   // invite into their own tenant, never another coach's.
+  // ---- Perfil público del coach (lo que muestra la card del buscador de la app) ----
+  async function renderPerfilCoach(el) {
+    el.innerHTML = `
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Perfil público</h1>
+          <p class="page-sub">Así te ve la gente en el buscador de la app cuando busca un coach o gimnasio.</p>
+        </div>
+      </div>
+      <form id="pc-form" class="form-card" autocomplete="off" novalidate>
+        <div class="form-msg" id="pc-loading">Cargando…</div>
+      </form>`;
+    let d = {};
+    try {
+      const { data } = await sb.from('tenants').select('directory').eq('id', currentTenant.id).maybeSingle();
+      d = (data && data.directory) || {};
+    } catch (e) { console.error('[studio perfil] load', e); }
+    let pendingFoto = d.foto_url || d.logo_url || '';
+    const ini = String(d.nombre || currentTenant.name || 'C').trim().charAt(0).toUpperCase();
+    const form = document.getElementById('pc-form');
+    if (!form) return;
+    form.innerHTML = `
+      <div class="pc-avatar-row">
+        <div class="pc-avatar" id="pc-avatar">${pendingFoto ? `<img src="${esc(pendingFoto)}" alt="">` : esc(ini)}</div>
+        <div class="pc-avatar-actions">
+          <input type="file" id="pc-foto-input" accept="image/png,image/jpeg,image/webp" hidden>
+          <button type="button" class="btn-secondary" id="pc-foto-btn">Cambiar foto</button>
+          <div class="form-hint" id="pc-foto-status">PNG, JPG o WEBP · cuadrada se ve mejor.</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label" for="pc-nombre">Nombre a mostrar <span class="req">*</span></label>
+        <input class="form-input" type="text" id="pc-nombre" maxlength="40" value="${esc(d.nombre || '')}" placeholder="Ej: Jesús, KING, Phoenix Gym">
+      </div>
+      <div class="form-row">
+        <label class="form-label" for="pc-especialidad">Especialidad <span class="optional">(opcional)</span></label>
+        <input class="form-input" type="text" id="pc-especialidad" maxlength="80" value="${esc(d.especialidad || '')}" placeholder="Ej: Recomposición corporal · Nutrición">
+      </div>
+      <div class="form-row">
+        <label class="form-label" for="pc-headline">Descripción corta <span class="optional">(opcional)</span></label>
+        <textarea class="form-textarea" id="pc-headline" maxlength="120" placeholder="Ej: Dieta y rutina a tu medida, con seguimiento todos los días.">${esc(d.headline || '')}</textarea>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-primary" id="pc-save">Guardar cambios</button>
+        <span class="form-msg" id="pc-msg"></span>
+      </div>`;
+    document.getElementById('pc-foto-btn').addEventListener('click', () => document.getElementById('pc-foto-input').click());
+    document.getElementById('pc-foto-input').addEventListener('change', async (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      const status = document.getElementById('pc-foto-status');
+      if (file.size > 5 * 1024 * 1024) { status.textContent = 'La imagen es muy pesada (máx 5MB).'; status.className = 'form-hint err'; return; }
+      status.textContent = 'Subiendo…'; status.className = 'form-hint';
+      try {
+        const ext = ((file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '')) || 'jpg';
+        const path = `${currentTenant.slug}/perfil-${Date.now()}.${ext}`;
+        const { error: upErr } = await sb.storage.from('tenant-assets').upload(path, file, { upsert: true, cacheControl: '3600', contentType: file.type });
+        if (upErr) throw upErr;
+        const { data: pub } = sb.storage.from('tenant-assets').getPublicUrl(path);
+        pendingFoto = pub.publicUrl;
+        document.getElementById('pc-avatar').innerHTML = `<img src="${esc(pendingFoto)}" alt="">`;
+        status.textContent = '✓ Foto cargada. Tocá Guardar para aplicarla.'; status.className = 'form-hint ok';
+      } catch (e) {
+        status.textContent = 'No se pudo subir la imagen. Probá de nuevo.'; status.className = 'form-hint err';
+        console.error('[studio perfil] upload', e);
+      }
+    });
+    document.getElementById('pc-save').addEventListener('click', async () => {
+      const btn = document.getElementById('pc-save');
+      const msg = document.getElementById('pc-msg');
+      const nombre = (document.getElementById('pc-nombre').value || '').trim();
+      const especialidad = (document.getElementById('pc-especialidad').value || '').trim();
+      const headline = (document.getElementById('pc-headline').value || '').trim();
+      msg.textContent = ''; msg.className = 'form-msg';
+      if (!nombre) { msg.textContent = 'Poné un nombre a mostrar.'; msg.className = 'form-msg err'; return; }
+      btn.disabled = true; btn.textContent = 'Guardando…';
+      try {
+        // Merge: no pisar premium/verified/orden (los maneja el admin de CoachAI).
+        const { data: cur } = await sb.from('tenants').select('directory').eq('id', currentTenant.id).maybeSingle();
+        const merged = Object.assign({}, (cur && cur.directory) || {}, { nombre, especialidad, headline, foto_url: pendingFoto || null });
+        const { error } = await sb.from('tenants').update({ directory: merged }).eq('id', currentTenant.id);
+        if (error) throw error;
+        msg.textContent = '✓ Guardado. Ya se ve en el buscador de la app.'; msg.className = 'form-msg ok';
+      } catch (e) {
+        msg.textContent = 'No se pudo guardar. Probá de nuevo.'; msg.className = 'form-msg err';
+        console.error('[studio perfil] save', e);
+      }
+      btn.disabled = false; btn.textContent = 'Guardar cambios';
+    });
+  }
+
   function renderInvitar(el) {
     el.innerHTML = `
       <div class="page-header">
