@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260627-1415-stores--guard---buscador-solo-en-entrada-neutral--no-en-subdominios-de-coach-">
+<meta name="app-version" content="20260627-1512-stores--badge-de-coach-verificado-en-la-card-del-buscador">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15746,10 +15746,11 @@ function renderStoresCoaches(list) {
     const starHtml = rating ? `<span class="sc-meta-item sc-star">${starIco}${rating}</span>` : '';
     const usersHtml = users > 0 ? `<span class="sc-meta-item">${usrIco}${users} alumno${users === 1 ? '' : 's'}</span>` : '';
     const metaHtml = (usersHtml || starHtml) ? `<div class="sc-meta">${usersHtml}${starHtml}</div>` : '';
+    const verHtml = d.verified ? '<span class="sc-verif" title="Coach verificado"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M8 12.5l2.5 2.5L16 9.5" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>' : '';
     return `<button class="stores-coach-card" onclick="pickStoresTenant('${_escAttr(t.slug)}')">
       <div class="sc-avatar">${foto}</div>
       <div class="sc-id">
-        <div class="sc-name">${_esc(nombre)}</div>
+        <div class="sc-name"><span class="sc-name-txt">${_esc(nombre)}</span>${verHtml}</div>
         <div class="sc-esp">${_esc(d.especialidad || '')}</div>
         ${metaHtml}
       </div>
@@ -29003,7 +29004,9 @@ async function forceAppUpdate() {
     .sc-avatar { width:44px; height:44px; border-radius:11px; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; overflow:hidden; flex:0 0 auto; }
     .sc-avatar img { width:100%; height:100%; object-fit:cover; }
     .sc-id { flex:1; min-width:0; }
-    .sc-name { font-size:15px; font-weight:600; color:var(--ink); letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sc-name { font-size:15px; font-weight:600; color:var(--ink); letter-spacing:-.01em; display:flex; align-items:center; gap:5px; min-width:0; }
+    .sc-name-txt { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sc-verif { flex:0 0 auto; display:inline-flex; color:var(--accent); }
     .sc-esp { font-size:12.5px; color:var(--sec); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .sc-meta { display:flex; align-items:center; margin-top:4px; }
     .sc-meta-item { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--sec); font-weight:500; }
