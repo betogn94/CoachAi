@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260627-1352-trial--clientas-de-stores--coachaipro--pueden-volver-a-entrar-por-la-entrada-neutral">
+<meta name="app-version" content="20260627-1415-stores--guard---buscador-solo-en-entrada-neutral--no-en-subdominios-de-coach-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15676,10 +15676,31 @@ async function proceedAfterAuth(email, nombre, authUid) {
 // ============================
 let _storesCoaches = [];   // cache del directorio para filtrar sin re-consultar
 
+// El buscador (directorio) es la entrada NEUTRAL de la app de stores. En el
+// subdominio de un coach (<coach>.coachaipro.ai, o ?tenant=/#tenant=/path a un
+// coach) es su PUERTA DIRECTA → su login branded, sin directorio. Los tenants
+// "de la casa" (coachai-default + coachaipro) sí son neutrales.
+function _storesIsNeutralEntry() {
+  try {
+    const host = (location.hostname || '').toLowerCase();
+    const sub = host.match(/^([a-z0-9-]+)\.coachaipro\.(ai|com)$/);
+    if (sub && sub[1] !== 'www') return false;  // subdominio de coach
+    const HOUSE = ['coachai-default', 'coachaipro'];
+    const params = new URLSearchParams(location.search);
+    let slug = params.get('tenant');
+    if (!slug) { const h = (location.hash || '').match(/[#&]tenant=([^&]+)/); if (h) slug = decodeURIComponent(h[1]); }
+    if (!slug) { const p = (location.pathname || '').toLowerCase().replace(/^\/+|\/+$/g, ''); if (p === 'jesus' || p === 'king') slug = 'jesus'; }
+    if (slug && !HOUSE.includes(slug)) return false;
+    return true;
+  } catch { return true; }
+}
+
 // Boot: si el flag está on y no hay sesión, muestra el buscador y carga el
 // directorio (RPC público, rankeado premium → # usuarios).
 async function initStoresFunnel() {
   if (!STORES_FUNNEL_ENABLED) return;
+  // Guard: en el subdominio de un coach es su puerta directa → no mostramos el directorio.
+  if (!_storesIsNeutralEntry()) return;
   const sec = document.getElementById('stores-buscador');
   const loginCard = document.querySelector('.landing-login-card');
   if (!sec) return;
