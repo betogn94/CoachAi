@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260627-1512-stores--badge-de-coach-verificado-en-la-card-del-buscador">
+<meta name="app-version" content="20260628-2357-studio--cupo-por-paquete--capacidad----bloqueo-de-invitar-al-tope">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -13926,21 +13926,28 @@ async function loginOrRegister(email, nombre, authUid = null) {
   // por-tenant (no global). Si el slug es missing o no resuelve, dejamos que el
   // DB default (default_tenant_id() → coachai-default) tome la rienda — non-fatal.
   let inviteTenantId = null;
+  let tenantCap = null;   // cupo de alumnos del paquete del coach (tenant.limits.users_cap)
   if (effectiveSlug && effectiveSlug !== 'coachai-default') {
     const { data: tnt } = await sbClient
-      .from('tenants').select('id').eq('slug', effectiveSlug).maybeSingle();
-    if (tnt && tnt.id) inviteTenantId = tnt.id;
+      .from('tenants').select('id, limits').eq('slug', effectiveSlug).maybeSingle();
+    if (tnt && tnt.id) {
+      inviteTenantId = tnt.id;
+      const uc = tnt.limits && tnt.limits.users_cap;
+      if (uc != null && !isNaN(Number(uc))) tenantCap = Number(uc);
+    }
   }
 
-  // Capacity cap por-tenant. Founders (coachai-default + jesus) SIN TOPE — son
-  // cuentas que controlamos directo. No-founder = cap BETA_MAX_USERS anti-abuse.
+  // Capacity cap por-tenant. Founders (coachai-default/jesus/coachaipro) SIN TOPE.
+  // No-founder = su PAQUETE (tenant.limits.users_cap); si no está configurado,
+  // BETA_MAX_USERS como red de seguridad anti-abuse hasta setearlo.
   const FOUNDER_TENANT_SLUGS = new Set(['coachai-default', 'jesus', 'coachaipro']);
   const isFounderTenant = effectiveSlug && FOUNDER_TENANT_SLUGS.has(effectiveSlug);
   if (!isFounderTenant) {
+    const cap = (tenantCap != null) ? tenantCap : BETA_MAX_USERS;
     let cntQuery = sbClient.from('usuarios').select('id', { count: 'exact', head: true });
     if (inviteTenantId) cntQuery = cntQuery.eq('tenant_id', inviteTenantId);
     const { count, error: cntErr } = await cntQuery;
-    if (!cntErr && typeof count === 'number' && count >= BETA_MAX_USERS) {
+    if (!cntErr && typeof count === 'number' && count >= cap) {
       return { betaFull: true };
     }
   }

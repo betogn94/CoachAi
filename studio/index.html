@@ -1315,6 +1315,18 @@
       color: var(--text-dim);
       margin-top: 5px;
     }
+    .cap-banner { display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text); background:var(--bg-elev); border:1px solid var(--border); border-radius:10px; padding:11px 14px; margin-bottom:16px; }
+    .cap-banner.full { border-color:var(--accent); }
+    .cap-banner strong { font-weight:700; }
+    .cap-dot { width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
+    .cap-dot.ok { background:#22c55e; }
+    .cap-dot.full { background:var(--accent); }
+    .cap-bar { height:8px; background:var(--input-bg); border-radius:100px; overflow:hidden; margin:2px 0 18px; }
+    .cap-bar-fill { height:100%; background:var(--accent); border-radius:100px; transition:width .3s; }
+    .cap-stats { display:flex; gap:12px; }
+    .cap-stat { flex:1; text-align:center; background:var(--input-bg); border-radius:10px; padding:14px 8px; }
+    .cap-stat-num { font-size:24px; font-weight:700; color:var(--text); }
+    .cap-stat-lbl { font-size:11px; color:var(--text-muted); margin-top:3px; }
     .form-toggle {
       display: flex;
       align-items: center;
@@ -2054,7 +2066,7 @@
     clienta:    { label: 'Cliente',    render: renderClienta,   navItem: 'clientas' }, // detail view
     invitar:    { label: 'Invitar',    render: renderInvitar, navItem: 'invitar' },
     feedback:   { label: 'Feedback',   render: () => placeholder('Feedback', 'Bugs y feedback reportados por tus clientes. Próximamente.'), navItem: 'feedback' },
-    capacidad:  { label: 'Capacidad',  render: () => placeholder('Capacidad', 'Detalle del cupo de alumnas de tu paquete. Próximamente.'), navItem: 'capacidad' },
+    capacidad:  { label: 'Capacidad',  render: renderCapacidad, navItem: 'capacidad' },
     perfil:     { label: 'Perfil',     render: renderPerfilCoach, navItem: 'perfil' },
   };
   function route(name, arg) {
@@ -3309,7 +3321,60 @@
     });
   }
 
-  function renderInvitar(el) {
+  // Cupo de alumnos del paquete del coach. Cap = tenant.limits.users_cap (null =
+  // ilimitado, para founders/cofounder). Cuenta alumnos reales (role='user').
+  async function getCapacidad() {
+    const raw = currentTenant && currentTenant.limits && currentTenant.limits.users_cap;
+    const limit = (raw == null || isNaN(Number(raw))) ? null : Number(raw);
+    let used = 0;
+    try {
+      const { count } = await sb.from('usuarios').select('id', { count: 'exact', head: true })
+        .eq('tenant_id', currentTenant.id).eq('role', 'user');
+      used = count || 0;
+    } catch (e) { console.error('[studio] capacidad count', e); }
+    return { used, limit, isUnlimited: limit == null, full: (limit != null && used >= limit),
+             libres: (limit == null ? null : Math.max(0, limit - used)) };
+  }
+  function _ampliarMailto() {
+    return 'mailto:support.coachaipro@gmail.com?subject=' + encodeURIComponent('Ampliar paquete — ' + (currentTenant.name || currentTenant.slug));
+  }
+  function _capBanner(cap) {
+    if (cap.isUnlimited) return `<div class="cap-banner"><span class="cap-dot ok"></span><strong>${cap.used}</strong> alumnos · cupo ilimitado</div>`;
+    const libresTxt = cap.full ? 'cupo completo' : `${cap.libres} lugar${cap.libres === 1 ? '' : 'es'} libre${cap.libres === 1 ? '' : 's'}`;
+    return `<div class="cap-banner${cap.full ? ' full' : ''}"><span class="cap-dot ${cap.full ? 'full' : 'ok'}"></span><strong>${cap.used}/${cap.limit}</strong> alumnos · ${libresTxt}</div>`;
+  }
+
+  async function renderCapacidad(el) {
+    el.innerHTML = `<div class="page-header"><div><h1 class="page-title">Capacidad</h1><p class="page-sub">Cargando…</p></div></div>`;
+    const cap = await getCapacidad();
+    const barPct = cap.isUnlimited ? 0 : Math.min(100, Math.round(cap.used / cap.limit * 100));
+    el.innerHTML = `
+      <div class="page-header"><div><h1 class="page-title">Capacidad</h1><p class="page-sub">El cupo de alumnos de tu paquete en CoachAI.</p></div></div>
+      <div class="form-card">
+        ${_capBanner(cap)}
+        ${cap.isUnlimited ? '' : `<div class="cap-bar"><div class="cap-bar-fill${cap.full ? ' full' : ''}" style="width:${barPct}%"></div></div>`}
+        <div class="cap-stats">
+          <div class="cap-stat"><div class="cap-stat-num">${cap.used}</div><div class="cap-stat-lbl">Alumnos activos</div></div>
+          <div class="cap-stat"><div class="cap-stat-num">${cap.isUnlimited ? '∞' : cap.limit}</div><div class="cap-stat-lbl">Cupo del paquete</div></div>
+          <div class="cap-stat"><div class="cap-stat-num">${cap.isUnlimited ? '∞' : cap.libres}</div><div class="cap-stat-lbl">Lugares libres</div></div>
+        </div>
+        ${cap.isUnlimited ? '<p class="form-hint" style="margin-top:14px">Tu cuenta es de CoachAI (cupo ilimitado).</p>' : `<div class="form-actions" style="margin-top:14px"><a class="btn-primary" href="${_ampliarMailto()}" style="text-decoration:none; display:inline-block">Ampliar mi paquete</a></div>`}
+      </div>`;
+  }
+
+  async function renderInvitar(el) {
+    el.innerHTML = `<div class="page-header"><div><h1 class="page-title">Invitar cliente</h1><p class="page-sub">Cargando cupo…</p></div></div>`;
+    const cap = await getCapacidad();
+    if (cap.full) {
+      el.innerHTML = `
+        <div class="page-header"><div><h1 class="page-title">Invitar cliente</h1><p class="page-sub">Llegaste al tope de tu paquete.</p></div></div>
+        ${_capBanner(cap)}
+        <div class="form-card" style="text-align:center; padding:30px 24px">
+          <p style="margin:0 0 16px; line-height:1.6">Tu paquete es de <strong>${cap.limit} alumnos</strong> y ya está completo. Para sumar más, ampliá tu capacidad con el equipo de CoachAI.</p>
+          <a class="btn-primary" href="${_ampliarMailto()}" style="text-decoration:none; display:inline-block">Ampliar mi paquete</a>
+        </div>`;
+      return;
+    }
     el.innerHTML = `
       <div class="page-header">
         <div>
@@ -3317,6 +3382,7 @@
           <p class="page-sub">Sumá un cliente nuevo a <strong>${esc(currentTenant.name)}</strong>. Le llega un mail con el link para entrar.</p>
         </div>
       </div>
+      ${_capBanner(cap)}
       <form id="inviteForm" class="form-card" autocomplete="off" novalidate>
         <div class="form-row">
           <label class="form-label" for="inv-email">Email <span class="req">*</span></label>
@@ -3377,6 +3443,14 @@
 
     if (!email || !email.includes('@') || email.length < 4) {
       msg.textContent = 'Ingresá un email válido.';
+      msg.className = 'form-msg err';
+      return;
+    }
+
+    // Re-chequeo de cupo (backstop — la UI ya bloquea, pero por si acaso).
+    const cap = await getCapacidad();
+    if (cap.full) {
+      msg.textContent = `Cupo completo (${cap.limit} alumnos). Ampliá tu paquete para sumar más.`;
       msg.className = 'form-msg err';
       return;
     }
