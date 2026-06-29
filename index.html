@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-1802-sec--validar-avatar-url--solo-storage-de-supabase--antes-de-pintarlo">
+<meta name="app-version" content="20260629-1857-auth--cutover---otp-login-real-permanente">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -13802,8 +13802,12 @@ let currentUser = null;
 // URL (query-param only, NOT persisted, so no browser ever gets trapped in it).
 // ============================
 const AUTH_OTP_ENABLED = (() => {
-  try { return new URLSearchParams(window.location.search).get('authotp') === '1'; }
-  catch { return false; }
+  // CUTOVER 2026-06-29: OTP/Auth real es el login PERMANENTE para todas. El candado
+  // RLS por-usuario ya está activo en prod → el login con código es obligatorio
+  // (la sesión legacy sin JWT no puede leer datos). `?authotp=0` = escape de
+  // emergencia para forzar el path legacy (solo útil si se revierte el RLS).
+  try { return new URLSearchParams(window.location.search).get('authotp') !== '0'; }
+  catch { return true; }
 })();
 let _otpPending = null;          // { email, nombre } awaiting code verification
 let _otpCooldownTimer = null;

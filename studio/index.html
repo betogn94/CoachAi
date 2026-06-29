@@ -1927,9 +1927,10 @@
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
   });
-  // Modo OTP (gated, igual que la app): cuando está, Studio autentica con la sesión
-  // real (RLS por-usuario) en vez de leer coachai_session_v1 con la anon key.
-  const AUTH_OTP_ENABLED = new URLSearchParams(location.search).get('authotp') === '1';
+  // CUTOVER 2026-06-29: OTP/Auth real es PERMANENTE (igual que la app). Studio autentica
+  // con la sesión real (RLS por-usuario) en vez de leer coachai_session_v1 con la anon key.
+  // `?authotp=0` = escape de emergencia para forzar el path legacy (si se revierte el RLS).
+  const AUTH_OTP_ENABLED = new URLSearchParams(location.search).get('authotp') !== '0';
 
   // ---- Tenant resolution from hostname ----
   // king.coachaipro.ai → 'jesus', coachaipro.ai (and localhost) → 'coachai-default'.
