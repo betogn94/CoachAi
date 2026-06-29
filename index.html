@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-0051-feat--mensajeria-coach-cliente-bidireccional---2-">
+<meta name="app-version" content="20260629-0100-feat--kill-switch-del-tenant---3-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -18033,6 +18033,33 @@ function showRenewScreen(user) {
   });
 }
 
+// ---- Kill-switch del tenant (#3) ----
+// Si el tenant entero está 'suspended' (el coach dejó de pagar a CoachAI), TODOS
+// sus usuarios ven una pantalla de pausa. Es distinto del gate de suscripción:
+// ese es por-cliente (acceso_hasta); este es la capa coach↔CoachAI, por-tenant.
+// Los tenants de la casa (coachai-default/coachaipro) nunca se suspenden.
+function isTenantSuspended(tenant) {
+  return !!(tenant && String(tenant.status || '').toLowerCase() === 'suspended');
+}
+function showTenantSuspendedScreen() {
+  if (document.getElementById('tenant-suspended-overlay')) return;
+  const ov = document.createElement('div');
+  ov.id = 'tenant-suspended-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0a0a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;font-family:inherit;gap:18px';
+  ov.innerHTML =
+    `<div style="font-size:46px">⏸️</div>` +
+    `<div style="font-size:22px;font-weight:800;letter-spacing:.01em">Acceso en pausa</div>` +
+    `<div style="opacity:.75;font-size:14.5px;line-height:1.6;max-width:360px">El acceso de tu coach está temporalmente pausado. Escribile a tu coach para reactivarlo — tu plan, tu chat y tu progreso quedan intactos.</div>` +
+    `<button id="suspended-logout" type="button" style="background:transparent;color:#888;border:0;margin-top:8px;cursor:pointer;font-family:inherit;font-size:13px;text-decoration:underline">Cerrar sesión</button>`;
+  document.body.appendChild(ov);
+  const lo = document.getElementById('suspended-logout');
+  if (lo) lo.addEventListener('click', async () => {
+    await clearSession();
+    try { localStorage.removeItem(LS_SESSION); } catch (e) {}
+    window.location.reload();
+  });
+}
+
 async function launchCoach() {
   // Gate de suscripción: si el acceso del cliente venció, mostramos la pantalla
   // de renovación en vez de la app. Excluye el preview ?as= del coach (impersonate)
@@ -18164,7 +18191,13 @@ async function launchCoach() {
   // with hardcoded defaults.
   if (currentUser?.tenant_id) {
     loadTenantForUser(currentUser.tenant_id)
-      .then(tenant => { currentTenant = tenant; applyTenantBranding(tenant); })
+      .then(tenant => {
+        currentTenant = tenant;
+        applyTenantBranding(tenant);
+        // Kill-switch: si el tenant está suspendido, tapar la app con la pantalla
+        // de pausa (idempotente; cubre incluso el preview ?as= del coach).
+        if (isTenantSuspended(tenant)) showTenantSuspendedScreen();
+      })
       .catch(e => console.warn('[tenant] apply failed:', e));
   }
 

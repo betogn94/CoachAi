@@ -25,7 +25,7 @@ export default withAuth(async (req, res) => {
     return res.status(400).json({ ok: false, error: 'missing_tenant' });
   }
 
-  const tenantRows = await sb(`/tenants?select=id,slug,name&slug=eq.${encodeURIComponent(slug)}&limit=1`);
+  const tenantRows = await sb(`/tenants?select=id,slug,name,status&slug=eq.${encodeURIComponent(slug)}&limit=1`);
   const tenant = tenantRows[0];
   if (!tenant) {
     return res.status(404).json({ ok: false, error: 'tenant_not_found' });
@@ -109,7 +109,7 @@ export default withAuth(async (req, res) => {
 
   return res.status(200).json({
     ok: true,
-    tenant: { id: tenant.id, slug: tenant.slug, name: tenant.name },
+    tenant: { id: tenant.id, slug: tenant.slug, name: tenant.name, status: tenant.status || 'active' },
     users: enriched,
     generated_at: new Date().toISOString(),
   });

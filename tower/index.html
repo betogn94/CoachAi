@@ -1789,10 +1789,12 @@
       }
       const tenant = data.tenant;
       const users = data.users;
+      const isSuspended = String(tenant.status || 'active').toLowerCase() === 'suspended';
+      const isProtected = ['coachai-default', 'coachaipro'].includes(String(tenant.slug || '').toLowerCase());
 
       contentEl.innerHTML = `
         <button class="btn-back" id="backBtn">← Volver a Tenants</button>
-        <div class="drill-header">
+        <div class="drill-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
           <div>
             <div class="drill-title">
               <h1 class="page-title">${escapeHtml(tenant.name)}</h1>
@@ -1800,8 +1802,10 @@
             <div class="meta-row">
               <span><strong>${escapeHtml(tenant.slug)}</strong></span>
               <span>${fmtInt(users.length)} usuarios</span>
+              <span class="badge ${isSuspended ? 'badge-danger' : ''}" style="${isSuspended ? '' : 'background:rgba(34,197,94,.12);color:#16a34a;'}">${isSuspended ? '⏸️ Suspendido' : '✅ Activo'}</span>
             </div>
           </div>
+          ${isProtected ? '' : `<button id="toggleSuspendBtn" type="button" style="flex:none;border:0;border-radius:8px;padding:9px 16px;font-weight:700;font-size:12.5px;cursor:pointer;color:#fff;background:${isSuspended ? '#16a34a' : '#dc2626'};">${isSuspended ? '▶ Reactivar acceso' : '⏸ Suspender acceso'}</button>`}
         </div>
         <div class="table-wrap">
           ${users.length === 0 ? '<div class="placeholder">Sin usuarios todavía.</div>' : `
@@ -1838,6 +1842,26 @@
         ${renderBugsBlock(users)}
       `;
       document.getElementById('backBtn').addEventListener('click', () => { currentTenantSlug = null; route('tenants'); });
+      const suspendBtn = document.getElementById('toggleSuspendBtn');
+      if (suspendBtn) suspendBtn.addEventListener('click', async () => {
+        const suspending = !isSuspended;
+        const verb = suspending ? 'SUSPENDER' : 'reactivar';
+        const warn = suspending
+          ? 'TODAS sus clientas van a quedar BLOQUEADAS en la app hasta que lo reactives.'
+          : 'Sus clientas vuelven a entrar normalmente.';
+        if (!confirm(`¿Seguro que querés ${verb} el acceso de "${tenant.name}"?\n\n${warn}`)) return;
+        suspendBtn.disabled = true; suspendBtn.textContent = '⏳…';
+        const { ok, data: resp } = await api('/api/tower/tenant_status', {
+          method: 'POST',
+          body: JSON.stringify({ slug: tenant.slug, status: suspending ? 'suspended' : 'active' }),
+        });
+        if (ok && resp && resp.ok) { openTenantDrill(slug); }
+        else {
+          suspendBtn.disabled = false;
+          suspendBtn.textContent = suspending ? '⏸ Suspender acceso' : '▶ Reactivar acceso';
+          alert('No se pudo cambiar el estado: ' + ((resp && resp.error) || 'error'));
+        }
+      });
     }
 
     function renderBugsBlock(users) {
