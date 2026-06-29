@@ -60,7 +60,9 @@ GRANT  UPDATE (email, nombre, edad, sexo, peso, altura, cuello, cintura, cadera,
                objetivo, nivel, actividad, dias_entreno, duracion_sesion,
                lugar_entreno, lesiones, restricciones_dieta, alergias, comidas_dia,
                no_le_gusta, telefono, timezone, logro_destacado, updated_at,
-               last_active, session_count)
+               last_active, session_count,
+               -- agregadas 2026-06-29 (la app las escribe del lado del cliente):
+               avatar_url, peso_inicial)
   ON public.usuarios TO authenticated;
 
 -- ---------------------------------------------------------------------
@@ -138,6 +140,12 @@ END $$;
 --   WITH CHECK (bucket_id='progress-photos'
 --          AND (storage.foldername(name))[1] = app_current_uid()::text);
 -- (La rama coach para fotos se agrega si Studio necesita ver fotos de sus clientas.)
+--    OJO AVATAR (agregado 2026-06-29): la foto de perfil vive en el MISMO bucket
+--    `progress-photos` (path `${usuario_id}/avatar_<ts>.jpg`) y la app la muestra con
+--    getPublicUrl → si el bucket pasa a privado, el avatar deja de cargar. Al cutover:
+--    o se migra el avatar a createSignedUrl como las fotos de progreso, o el avatar va
+--    a un bucket público aparte (es una foto de perfil, no dato sensible). El path
+--    `${usuario_id}/...` ya queda cubierto por la policy pp_owner_rw de arriba.
 
 -- ---------------------------------------------------------------------
 -- 7) studio_delete_client — al cutover, validar identidad REAL del que llama
