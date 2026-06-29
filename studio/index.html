@@ -2139,9 +2139,9 @@
     if (c._isInvited) return { color: 'gray', reason: 'Pendiente — no entró aún' };
     if (!c.last_active) return { color: 'gray', reason: 'Nunca abrió la app' };
     const days = Math.floor((Date.now() - new Date(c.last_active).getTime()) / 86400000);
-    if (c._openBugs > 0 && days > 7)  return { color: 'red',    reason: `${c._openBugs} bug · ${days}d sin actividad` };
+    if (c._openBugs > 0 && days > 7)  return { color: 'red',    reason: `${c._openBugs} mensaje${c._openBugs === 1 ? '' : 's'} · ${days}d sin actividad` };
     if (days > 14)                    return { color: 'red',    reason: `Inactiva hace ${days}d` };
-    if (c._openBugs > 0)              return { color: 'yellow', reason: `${c._openBugs} bug abierto` };
+    if (c._openBugs > 0)              return { color: 'yellow', reason: `${c._openBugs} mensaje${c._openBugs === 1 ? '' : 's'} sin responder` };
     if (days > 7)                     return { color: 'yellow', reason: `Sin actividad hace ${days}d` };
     return { color: 'green', reason: `Activa hace ${days}d` };
   }
@@ -2159,7 +2159,7 @@
         ${statCardSkeleton('Clientes activos')}
         ${statCardSkeleton('Pendientes de onboarding')}
         ${statCardSkeleton('Activos últimos 7d')}
-        ${statCardSkeleton('Bugs abiertos')}
+        ${statCardSkeleton('Mensajes')}
       </div>
       <div id="dashTl" class="cards-grid"></div>
     `;
@@ -2178,7 +2178,7 @@
       ${statCard('Clientes activos', fmtInt(activos.length), `${invitados.length} pendientes de onboarding`)}
       ${statCard('Pendientes', fmtInt(invitados.length), 'Aún no completaron onboarding')}
       ${statCard('Activos últimos 7d', fmtInt(activeRecent), pct(activeRecent, activos.length) + ' del total')}
-      ${statCard('Bugs abiertos', fmtInt(openBugs), 'En todos tus clientes')}
+      ${statCard('Mensajes para vos', fmtInt(openBugs), 'Sin responder de tus clientes')}
     `;
     document.getElementById('dashTl').innerHTML = `
       <div class="stat-card">
