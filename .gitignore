@@ -20,3 +20,7 @@ node_modules
 # Corpus real de planes para test:parsers (datos de usuarios — no commitear)
 scripts/plan-corpus.local.json
 tmp-generation-dump.json
+
+# Exports de datos de clientas (no versionar — privacidad)
+dieta-*.md
+rutina-*.md
