@@ -3410,10 +3410,11 @@
       if (!nombre) { msg.textContent = 'Poné un nombre a mostrar.'; msg.className = 'form-msg err'; return; }
       btn.disabled = true; btn.textContent = 'Guardando…';
       try {
-        // RPC SECURITY DEFINER: valida admin + hace el merge en el server (preserva
-        // premium/verified/orden). El UPDATE directo lo bloquea la RLS de tenants.
+        // RPC SECURITY DEFINER: valida la identidad REAL (auth.uid() = admin/coach) y
+        // hace el merge en SU tenant (preserva premium/verified/orden). El UPDATE directo
+        // lo bloquea la RLS de tenants. (Antes pasaba p_admin_email, que era spoofeable.)
         const patch = { nombre, especialidad, headline, foto_url: pendingFoto || null };
-        const { data: res, error } = await sb.rpc('studio_update_directory', { p_admin_email: currentUser.email, p_directory: patch });
+        const { data: res, error } = await sb.rpc('studio_update_directory', { p_directory: patch });
         if (error) throw error;
         if (!res || !res.ok) throw new Error((res && res.reason) || 'sin_permiso');
         msg.textContent = '✓ Guardado. Ya se ve en el buscador de la app.'; msg.className = 'form-msg ok';
