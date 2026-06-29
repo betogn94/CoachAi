@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-0237-ux--splash-de-inicio--icono-centrado--en-reingresos--tapa-el-flash-del-login">
+<meta name="app-version" content="20260629-0249-fix--textos-legibles---boton-volver-visible-en-la-pantalla-de-invitado--stores-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -29284,7 +29284,7 @@ async function forceAppUpdate() {
     /* ── Entrada de stores: APP-style minimalista (referencia final de Beto).
          Centrado, logo real, violeta CoachAI, mucho blanco. Paleta FIJA → igual
          en cualquier subdominio; el login del tenant (al elegir) lleva su brand. ── */
-    body.stores-entry { overflow-x:hidden; }
+    body.stores-entry { overflow-x:hidden; --ink:#16161A; --sec:#8A8A90; --accent:#7c6aff; --line:#ECECF0; }
     body.stores-entry .landing-wrapper { background:#F5F5F7; height:100vh; height:100dvh; max-height:100dvh; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:safe center !important; padding:14px 20px 12px !important; box-sizing:border-box; max-width:100%; }
     body.stores-entry .landing-logo, body.stores-entry .landing-tagline, body.stores-entry #landing-footer-text, body.stores-entry #landing-footer-text + a { display:none !important; }
     body.stores-entry .landing-login-card { background:#fff; border:0.5px solid #ECECF0; box-shadow:0 6px 22px -12px rgba(26,26,28,.12); }
@@ -29334,7 +29334,7 @@ async function forceAppUpdate() {
     .stores-privacy > svg { color:var(--sec); flex:0 0 auto; }
     .stores-privacy a { color:var(--accent); text-decoration:none; }
     .stores-login-ctx { width:100%; max-width:360px; margin:0 auto 14px; text-align:center; }
-    .stores-back { background:none; border:none; color:var(--sec); font-size:14px; cursor:pointer; font-family:inherit; padding:4px; }
+    .stores-back { background:none; border:none; color:var(--ink); font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; padding:6px 4px; }
     .stores-ctx-line { font-size:15px; color:var(--ink); margin-top:8px; font-weight:600; }
     .stores-trial-pill { display:inline-block; background:rgba(124,106,255,.1); color:#7c6aff; font-weight:600; padding:2px 9px; border-radius:100px; font-size:12.5px; }
     .stores-socials-btn { display:inline-flex; align-items:center; gap:6px; margin-top:12px; background:rgba(124,106,255,.1); color:#7c6aff; border:none; border-radius:10px; padding:9px 16px; font-size:14px; font-weight:500; cursor:pointer; font-family:inherit; text-decoration:none; }
