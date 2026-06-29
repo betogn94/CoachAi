@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-1444-ux-perfil---avatar-del-hero-redondo--circulo--en-vez-de-cuadrado">
+<meta name="app-version" content="20260629-1634-auth--login-otp-usa-auth-resolve-session--fase-2--gated-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -13922,6 +13922,43 @@ async function resendOtp() {
 
 async function loginOrRegister(email, nombre, authUid = null) {
   if (!sbClient) initSupabase();
+
+  // ── Camino OTP/RLS (gated por ?authotp=1): resuelve el login en el SERVIDOR
+  // (RPC auth_resolve_session) en vez de los reads/writes directos que el RLS
+  // bloquearía. Mismo resultado, pero seguro: el server setea auth_id (de la
+  // sesión verificada) + acceso_hasta (del invite/trial, no del cliente). La rama
+  // legacy de abajo (anon, sin OTP) queda IDÉNTICA → prod sin tocar.
+  if (authUid && typeof AUTH_OTP_ENABLED !== 'undefined' && AUTH_OTP_ENABLED) {
+    let entrySlug = (currentTenant && currentTenant.slug) || null;
+    if (!entrySlug) { try { entrySlug = localStorage.getItem('coachai_preview_tenant_v1') || null; } catch (e) {} }
+    if (!entrySlug) {
+      try {
+        const host = (location.hostname || '').toLowerCase();
+        if (/^king\./.test(host)) { entrySlug = 'jesus'; }
+        else {
+          const params = new URLSearchParams(location.search);
+          entrySlug = params.get('tenant') || null;
+          if (!entrySlug && location.hash) { const m = location.hash.match(/[#&]tenant=([^&]+)/); if (m) entrySlug = decodeURIComponent(m[1]); }
+          if (!entrySlug) { const p = (location.pathname || '').toLowerCase().replace(/^\/+|\/+$/g, ''); if (p === 'jesus' || p === 'king') entrySlug = 'jesus'; }
+          if (!entrySlug) entrySlug = 'coachai-default';
+        }
+      } catch (e) { entrySlug = 'coachai-default'; }
+    }
+    const isTrial = (typeof STORES_FUNNEL_ENABLED !== 'undefined' && STORES_FUNNEL_ENABLED && typeof isStoresTrial === 'function' && isStoresTrial());
+    const { data, error } = await sbClient.rpc('auth_resolve_session', {
+      p_email: email, p_nombre: nombre, p_entry_tenant_slug: entrySlug, p_is_trial: isTrial,
+    });
+    if (error) throw error;
+    const r = data || {};
+    if (r.error) throw new Error('auth_resolve_session: ' + r.error);
+    if (r.wrongTenant) return { wrongTenant: true, expected: r.expected, theirs: r.theirs };
+    if (r.notInvited) return { notInvited: true };
+    if (r.betaFull) return { betaFull: true };
+    currentUser = r.user;
+    if (r.isNew && r.trial && typeof clearStoresTrial === 'function') clearStoresTrial();
+    return { isNew: !!r.isNew, user: r.user, trial: !!r.trial };
+  }
+
   // `.maybeSingle()` returns `{data:null, error:null}` when 0 rows match;
   // `.single()` would throw PGRST116 and we'd silently fall through to INSERT,
   // creating duplicate rows on real DB errors (RLS misconfig, transient 5xx).
