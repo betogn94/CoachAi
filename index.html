@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-0157-fix--peso-inicial-es-el-del-onboarding--no-la-primera-pesada-">
+<meta name="app-version" content="20260629-0210-fix--login-del-coach-desde-el-buscador-lleva-su-whitelabel--no-el-default-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15879,10 +15879,16 @@ function filterStoresCoaches(q) {
 // Camino COACH HUMANO: el usuario toca un tenant → su login branded. Si su cuenta
 // pertenece a ese tenant entra; si no, ve "Ver redes / Contactar" para pedirle el
 // alta al coach (eso pasa AFUERA de la app — la app solo lo conecta).
-function pickStoresTenant(slug) {
+async function pickStoresTenant(slug) {
   clearStoresTrial();
   document.body.classList.remove('stores-entry');  // el login del tenant SÍ lleva su branding
-  try { if (typeof window.applySyncTenantTheme === 'function') window.applySyncTenantTheme(slug); } catch {}
+  // Aplicar el branding REAL del whitelabel (theme-king + logo + colores). Antes
+  // llamaba a applySyncTenantTheme (función inexistente) → el guard fallaba y el
+  // login del coach quedaba con el tema DEFAULT en vez del suyo.
+  try {
+    const tenant = await loadTenantBySlug(slug);
+    if (tenant && typeof applyTenantBranding === 'function') applyTenantBranding(tenant);
+  } catch (e) { console.warn('[stores] branding del coach falló:', e); }
   const t = _storesCoaches.find(x => x.slug === slug) || {};
   const d = t.directory || {};
   const nombre = d.nombre || t.name || slug;
@@ -15923,6 +15929,10 @@ function _showStoresLogin(headlineHtml, extraHtml) {
 
 function backToStoresBuscador() {
   clearStoresTrial();
+  // Revertir el branding del coach (quita theme-king + vars + logos) ANTES de
+  // volver a la entrada NEUTRAL — sino el buscador quedaría teñido con el tema del
+  // último coach abierto. Pasar branding_config vacío dispara la rama de limpieza.
+  try { if (typeof applyTenantBranding === 'function') applyTenantBranding({ branding_config: {} }); } catch (e) {}
   document.body.classList.add('stores-entry');  // volver a la entrada NEUTRAL
   const sec = document.getElementById('stores-buscador');
   const loginCard = document.querySelector('.landing-login-card');
