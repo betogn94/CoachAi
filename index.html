@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-1424-feat--metricas-en-el-perfil--racha---adherencia--en-grilla-2x2">
+<meta name="app-version" content="20260629-1434-ux-perfil---fueguito-animado-en-racha---saco-el----de-definir">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12786,6 +12786,9 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     .cph-stat-num { font-size:21px; font-weight:800; color:var(--text,#eee); line-height:1.1; }
     .cph-stat-num.cph-delta-good { color:#1d9e75; }
     .cph-stat-label { font-size:10.5px; color:var(--muted,#9a9aa8); margin-top:3px; text-transform:uppercase; letter-spacing:.5px; }
+    .cph-racha-num { display:flex; align-items:center; gap:6px; }
+    .cph-racha-flame { width:22px; height:22px; flex-shrink:0; transform-origin:50% 92%; animation:hscFlameFlicker 0.85s ease-in-out infinite; filter:drop-shadow(0 1px 3px rgba(255,120,0,0.45)); }
+    @media (prefers-reduced-motion: reduce) { .cph-racha-flame { animation:none; } }
   </style>
   <div class="cai-perfil-hero" id="perfil-hero">
     <div class="cph-top">
@@ -12809,8 +12812,17 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
         <div class="cph-stat-label" data-es="desde el inicio" data-en="since start">desde el inicio</div>
       </div>
       <div class="cph-stat">
-        <div class="cph-stat-num" id="cph-racha">—</div>
-        <div class="cph-stat-label" data-es="racha 🔥" data-en="streak 🔥">racha 🔥</div>
+        <div class="cph-stat-num cph-racha-num">
+          <svg class="cph-racha-flame" viewBox="0 0 32 32" aria-hidden="true" style="display:none">
+            <defs><linearGradient id="rachaFlameGrad" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0%" stop-color="#FF3D00"/><stop offset="45%" stop-color="#FF8A00"/><stop offset="100%" stop-color="#FFD400"/>
+            </linearGradient></defs>
+            <path d="M16 2.5c2 5 7 7.2 7 13.2a7 7 0 0 1-14 0c0-2.2.9-3.9 2.1-5.3-.3 2.1.6 3.5 2 3.5 1.7 0 2.3-1.7 1-4.6C16.4 7 16 4.7 16 2.5z" fill="url(#rachaFlameGrad)"/>
+            <path d="M16 15.5c1.5 0 3.2 1.7 3.2 3.8A3.2 3.2 0 0 1 12.8 19.3c0-1.5 1.5-3.8 3.2-3.8z" fill="#FFE9A8"/>
+          </svg>
+          <span id="cph-racha">—</span>
+        </div>
+        <div class="cph-stat-label" data-es="racha" data-en="streak">racha</div>
       </div>
       <div class="cph-stat">
         <div class="cph-stat-num" id="cph-adherencia">—</div>
@@ -23324,7 +23336,7 @@ async function renderPerfilHeroCard() {
   const nameEl = document.getElementById('cph-name'); if (nameEl) nameEl.textContent = nombre;
 
   const objLabel = {
-    definir: isEs?'🔥 Definir':'🔥 Cut', ganar_musculo: isEs?'💪 Ganar músculo':'💪 Build muscle',
+    definir: isEs?'Definir':'Cut', ganar_musculo: isEs?'💪 Ganar músculo':'💪 Build muscle',
     volumen: isEs?'💪 Volumen':'💪 Bulk', mantener: isEs?'⚖️ Mantener':'⚖️ Maintain',
     mantenimiento: isEs?'⚖️ Mantenimiento':'⚖️ Maintain',
   };
@@ -23383,7 +23395,12 @@ async function renderPerfilHeroCard() {
     let cur = 0;
     try { cur = (computeStreaks(diario, 1).current) || 0; } catch (e) {}
     rEl.textContent = String(cur);
-    rEl.classList.toggle('cph-delta-good', cur >= 2);
+    // El verde va en el contenedor (.cph-racha-num = .cph-stat-num) para que matchee
+    // la regla .cph-stat-num.cph-delta-good. El fueguito animado se muestra cuando
+    // hay racha activa (≥1 día); en 0 se oculta y queda solo el número.
+    if (rEl.parentElement) rEl.parentElement.classList.toggle('cph-delta-good', cur >= 2);
+    const flame = document.querySelector('.cph-racha-flame');
+    if (flame) flame.style.display = cur >= 1 ? 'inline-block' : 'none';
   }
 
   // Adherencia: entrenos cumplidos vs planeados en las últimas 4 semanas, con
