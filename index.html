@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-0219-ux--overlay-de-transicion-al-entrar-a-un-coach--sin-pantallazo-negro-">
+<meta name="app-version" content="20260629-0224-ux--overlay-de-transicion-usa-spinner-post-onboarding--sin-logo-achatado-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -3799,12 +3799,11 @@ body.theme-king .home-plan-banner { background: #FFF0F4; border-color: rgba(255,
   display: none; align-items: center; justify-content: center;
   background: #F5F5F7;
 }
-#stores-transition-overlay .sto-card { display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
-#stores-transition-overlay .sto-logo { width: 54px; height: 54px; border-radius: 14px; }
+#stores-transition-overlay .sto-card { display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
 #stores-transition-overlay .sto-spinner {
-  width: 34px; height: 34px; border-radius: 50%;
-  border: 3px solid rgba(124,106,255,.18); border-top-color: #7c6aff;
-  animation: plo-spin 0.85s linear infinite;
+  width: 46px; height: 46px; border-radius: 50%;
+  border: 3px solid rgba(124,106,255,.16); border-top-color: #7c6aff;
+  animation: plo-spin 0.9s linear infinite;
 }
 #stores-transition-overlay .sto-text { font-size: 14px; font-weight: 600; color: #4a4a55; }
 
@@ -15902,7 +15901,6 @@ function showStoresTransition(coachName) {
   let ov = document.getElementById('stores-transition-overlay');
   if (!ov) { ov = document.createElement('div'); ov.id = 'stores-transition-overlay'; document.body.appendChild(ov); }
   ov.innerHTML = `<div class="sto-card">
-      <img class="sto-logo" src="/logo-icon.png" alt="">
       <div class="sto-spinner"></div>
       <div class="sto-text">Entrando a ${_esc(coachName || 'tu coach')}…</div>
     </div>`;
