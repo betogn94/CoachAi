@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-0210-fix--login-del-coach-desde-el-buscador-lleva-su-whitelabel--no-el-default-">
+<meta name="app-version" content="20260629-0219-ux--overlay-de-transicion-al-entrar-a-un-coach--sin-pantallazo-negro-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -3790,6 +3790,23 @@ body.theme-king .home-plan-banner { background: #FFF0F4; border-color: rgba(255,
 @keyframes plo-spin { to { transform: rotate(360deg); } }
 #plan-loading-overlay .plo-title { font-size: 19px; font-weight: 800; color: var(--text); }
 #plan-loading-overlay .plo-sub { font-size: 13.5px; color: var(--muted); line-height: 1.45; min-height: 2.6em; }
+
+/* Overlay de transición al entrar a un coach desde el buscador de stores. Fondo
+   claro FIJO (= la entrada neutral) → tapa el "pantallazo negro" mientras carga el
+   tenant y se aplica su whitelabel; al final hace fade y revela el login branded. */
+#stores-transition-overlay {
+  position: fixed; inset: 0; z-index: 100000;
+  display: none; align-items: center; justify-content: center;
+  background: #F5F5F7;
+}
+#stores-transition-overlay .sto-card { display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
+#stores-transition-overlay .sto-logo { width: 54px; height: 54px; border-radius: 14px; }
+#stores-transition-overlay .sto-spinner {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 3px solid rgba(124,106,255,.18); border-top-color: #7c6aff;
+  animation: plo-spin 0.85s linear infinite;
+}
+#stores-transition-overlay .sto-text { font-size: 14px; font-weight: 600; color: #4a4a55; }
 
 /* HERO ring card — ENTRENAMIENTOS X/N this week (informational only) */
 .cai-home-hero {
@@ -15879,14 +15896,43 @@ function filterStoresCoaches(q) {
 // Camino COACH HUMANO: el usuario toca un tenant → su login branded. Si su cuenta
 // pertenece a ese tenant entra; si no, ve "Ver redes / Contactar" para pedirle el
 // alta al coach (eso pasa AFUERA de la app — la app solo lo conecta).
+// Overlay de transición al entrar a un coach: tapa el "pantallazo negro" mientras
+// carga el tenant + se aplica su whitelabel, y al final hace fade revelando el login.
+function showStoresTransition(coachName) {
+  let ov = document.getElementById('stores-transition-overlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'stores-transition-overlay'; document.body.appendChild(ov); }
+  ov.innerHTML = `<div class="sto-card">
+      <img class="sto-logo" src="/logo-icon.png" alt="">
+      <div class="sto-spinner"></div>
+      <div class="sto-text">Entrando a ${_esc(coachName || 'tu coach')}…</div>
+    </div>`;
+  ov.style.transition = 'none';
+  ov.style.opacity = '1';
+  ov.style.display = 'flex';
+}
+function hideStoresTransition() {
+  const ov = document.getElementById('stores-transition-overlay');
+  if (!ov) return;
+  ov.style.transition = 'opacity .32s ease';
+  requestAnimationFrame(() => { ov.style.opacity = '0'; });
+  setTimeout(() => { try { ov.style.display = 'none'; } catch (e) {} }, 360);
+}
+
 async function pickStoresTenant(slug) {
   clearStoresTrial();
-  document.body.classList.remove('stores-entry');  // el login del tenant SÍ lleva su branding
+  const pre = _storesCoaches.find(x => x.slug === slug) || {};
+  const nombrePre = (pre.directory && pre.directory.nombre) || pre.name || slug;
+  showStoresTransition(nombrePre);                  // tapa la transición desde YA
+  document.body.classList.remove('stores-entry');   // el login del tenant SÍ lleva su branding
   // Aplicar el branding REAL del whitelabel (theme-king + logo + colores). Antes
   // llamaba a applySyncTenantTheme (función inexistente) → el guard fallaba y el
-  // login del coach quedaba con el tema DEFAULT en vez del suyo.
+  // login del coach quedaba con el tema DEFAULT en vez del suyo. La duración mínima
+  // (~420ms) hace que el overlay se sienta intencional y no un flicker.
   try {
-    const tenant = await loadTenantBySlug(slug);
+    const [tenant] = await Promise.all([
+      loadTenantBySlug(slug),
+      new Promise(r => setTimeout(r, 420)),
+    ]);
     if (tenant && typeof applyTenantBranding === 'function') applyTenantBranding(tenant);
   } catch (e) { console.warn('[stores] branding del coach falló:', e); }
   const t = _storesCoaches.find(x => x.slug === slug) || {};
@@ -15897,6 +15943,7 @@ async function pickStoresTenant(slug) {
   const extIco = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"/></svg>';
   _showStoresLogin(`Entrás a <strong>${_esc(nombre)}</strong>`,
     url ? `<a class="stores-socials-btn" href="${_escAttr(url)}" target="_blank" rel="noopener">${extIco} Ver redes</a>` : '');
+  hideStoresTransition();                            // revela el login ya con branding
 }
 
 // Camino TRIAL (coach IA): tenant coachaipro + 14 días, sin tarjeta.
