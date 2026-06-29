@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-0146-compliance--anti-steering-en-pantalla-de-renovacion--wrapper-nativo-">
+<meta name="app-version" content="20260629-0157-fix--peso-inicial-es-el-del-onboarding--no-la-primera-pesada-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -18131,6 +18131,14 @@ async function launchCoach() {
     // fallback) until the next full page reload because currentUser still
     // reflects the DB row as loaded at login time, before saveProfile.
     Object.assign(currentUser, profileData);
+    // Ancla del peso inicial (inmutable): la PRIMERA vez que conocemos el peso de
+    // la persona (onboarding) lo fijamos en peso_inicial. Los registros posteriores
+    // de "peso actual" actualizan usuarios.peso pero NUNCA peso_inicial → el gráfico
+    // de evolución conserva el punto de partida real.
+    if (currentUser.peso_inicial == null && profileData.peso != null) {
+      currentUser.peso_inicial = profileData.peso;
+      sbClient.from('usuarios').update({ peso_inicial: profileData.peso }).eq('id', currentUser.id).then(() => {}, () => {});
+    }
   }
   const migrationCoach = await migrateClientPreloadedPlans();
   window._migrationCoach = migrationCoach;   // read by the chat init below
@@ -23188,12 +23196,14 @@ async function renderPerfilHeroCard() {
   if (weeksEl) weeksEl.textContent = isEs ? ('Semana ' + weeks) : ('Week ' + weeks);
 
   let actual = currentUser.peso ? parseFloat(currentUser.peso) : null;
-  let inicial = actual;
+  // inicial = ancla inmutable del onboarding (peso_inicial). Cae a la primera
+  // pesada o al peso actual solo si no existiera el ancla.
+  let inicial = currentUser.peso_inicial != null ? parseFloat(currentUser.peso_inicial) : actual;
   try {
     const { data } = await sbClient.from('progreso_peso').select('peso,fecha')
       .eq('usuario_id', currentUser.id).order('fecha', { ascending: true });
     if (Array.isArray(data) && data.length) {
-      inicial = parseFloat(data[0].peso);
+      if (inicial == null || isNaN(inicial)) inicial = parseFloat(data[0].peso);
       actual = parseFloat(data[data.length - 1].peso);
     }
   } catch (e) {}
@@ -23394,7 +23404,7 @@ async function renderPerfilProgreso() {
   // peso corporal es ruidoso día a día; la curva semanal muestra la tendencia real.
   const byWeek = new Map();
   rows.forEach(r => { byWeek.set(getISOWeekKey(new Date(r.fecha + 'T12:00:00')), r); });
-  const weekly = Array.from(byWeek.values());   // orden ascendente, última por semana
+  let weekly = Array.from(byWeek.values());   // orden ascendente, última por semana
 
   const wrap = document.getElementById('prg-chart-wrap');
   const empty = document.getElementById('prg-empty');
@@ -23405,6 +23415,14 @@ async function renderPerfilProgreso() {
   }
   if (wrap) wrap.style.display = 'block';
   if (empty) empty.style.display = 'none';
+
+  // Ancla inicial: prepende el peso del onboarding (peso_inicial) como primer punto
+  // del gráfico, salvo que la pesada más vieja ya sea ese valor (usuarios
+  // backfilleados, donde peso_inicial = la primera pesada) → evita duplicar el punto.
+  const pesoIni = currentUser.peso_inicial != null ? parseFloat(currentUser.peso_inicial) : null;
+  if (pesoIni != null && !isNaN(pesoIni) && Math.abs(weekly[0].peso - pesoIni) >= 0.05) {
+    weekly = [{ fecha: currentUser.created_at || weekly[0].fecha, peso: pesoIni }, ...weekly];
+  }
 
   const inicio = weekly[0].peso, hoy = weekly[weekly.length - 1].peso;
   const iEl = document.getElementById('prg-inicio'); if (iEl) iEl.textContent = inicio.toFixed(1) + ' kg';
