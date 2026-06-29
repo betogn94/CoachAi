@@ -4081,10 +4081,11 @@ Agrupá por día (LUNES, MARTES, ... o "Día 1, Día 2" si así viene) y dentro 
     btn.disabled = true;
     btn.textContent = '⏳ Eliminando…';
     try {
-      const { data, error } = await sb.rpc('studio_delete_client', {
-        p_email:       _deletingClienta.email,
-        p_admin_email: currentUser.email,
-      });
+      // OTP: la versión de 1 arg valida la identidad real (auth.uid()) — no el
+      // email-param falseable. Legacy (anon): la de 2 args.
+      const { data, error } = AUTH_OTP_ENABLED
+        ? await sb.rpc('studio_delete_client', { p_email: _deletingClienta.email })
+        : await sb.rpc('studio_delete_client', { p_email: _deletingClienta.email, p_admin_email: currentUser.email });
       if (error) throw error;
       if (!data?.ok) {
         const reason = data?.reason || 'unknown';
