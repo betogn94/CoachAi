@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-0259-feat--foto-de-perfil-del-usuario--editable-desde-datos-personales-">
+<meta name="app-version" content="20260629-1424-feat--metricas-en-el-perfil--racha---adherencia--en-grilla-2x2">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12781,8 +12781,8 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     .cph-name { font-size:18px; font-weight:800; color:var(--text,#eee); line-height:1.15; }
     .cph-goal { font-size:13px; color:var(--muted,#9a9aa8); margin-top:3px; }
     .cph-weeks-badge { font-size:11px; font-weight:700; color:var(--muted,#9a9aa8); background:rgba(128,128,140,.12); padding:5px 11px; border-radius:100px; white-space:nowrap; }
-    .cph-stats { display:flex; gap:12px; margin-top:16px; }
-    .cph-stat { flex:1; background:rgba(128,128,140,.08); border-radius:12px; padding:12px 14px; }
+    .cph-stats { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
+    .cph-stat { background:rgba(128,128,140,.08); border-radius:12px; padding:12px 14px; }
     .cph-stat-num { font-size:21px; font-weight:800; color:var(--text,#eee); line-height:1.1; }
     .cph-stat-num.cph-delta-good { color:#1d9e75; }
     .cph-stat-label { font-size:10.5px; color:var(--muted,#9a9aa8); margin-top:3px; text-transform:uppercase; letter-spacing:.5px; }
@@ -12807,6 +12807,14 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       <div class="cph-stat">
         <div class="cph-stat-num" id="cph-delta">—</div>
         <div class="cph-stat-label" data-es="desde el inicio" data-en="since start">desde el inicio</div>
+      </div>
+      <div class="cph-stat">
+        <div class="cph-stat-num" id="cph-racha">—</div>
+        <div class="cph-stat-label" data-es="racha 🔥" data-en="streak 🔥">racha 🔥</div>
+      </div>
+      <div class="cph-stat">
+        <div class="cph-stat-num" id="cph-adherencia">—</div>
+        <div class="cph-stat-label" data-es="adherencia · 4 sem" data-en="adherence · 4 wk">adherencia · 4 sem</div>
       </div>
     </div>
   </div>
@@ -23360,6 +23368,49 @@ async function renderPerfilHeroCard() {
         if (wantsUp ? diff > 0 : diff < 0) dEl.classList.add('cph-delta-good');
       }
     }
+  }
+
+  // ── Racha 🔥 + Adherencia — reusan el registro diario que ya guardamos ──
+  let diario = (typeof recentDiario !== 'undefined' && Array.isArray(recentDiario) && recentDiario.length) ? recentDiario : null;
+  if (!diario && typeof loadRecentDiario === 'function') {
+    try { diario = await loadRecentDiario(); } catch (e) { diario = []; }
+  }
+  diario = diario || [];
+
+  // Racha: días seguidos registrando comidas (mismo motor que el chip de Home).
+  const rEl = document.getElementById('cph-racha');
+  if (rEl) {
+    let cur = 0;
+    try { cur = (computeStreaks(diario, 1).current) || 0; } catch (e) {}
+    rEl.textContent = String(cur);
+    rEl.classList.toggle('cph-delta-good', cur >= 2);
+  }
+
+  // Adherencia: entrenos cumplidos vs planeados en las últimas 4 semanas, con
+  // tendencia (▲/▼) contra las 4 previas. Verde si ≥75%. "—" si aún no hay datos.
+  const aEl = document.getElementById('cph-adherencia');
+  if (aEl) {
+    aEl.classList.remove('cph-delta-good');
+    try {
+      const target = ((typeof getWeeklyTrainingTarget === 'function' ? getWeeklyTrainingTarget() : 0) || 4);
+      const cut = n => { const d = new Date(); d.setDate(d.getDate() - n); return formatLocalDate(d); };
+      const c28 = cut(28), c56 = cut(56);
+      const trainedIn = (from, to) => diario.filter(r => r.entreno && r.fecha >= from && (to == null || r.fecha < to)).length;
+      const planned = target * 4;
+      const loggedRecent = diario.filter(r => r.fecha >= c28).length;
+      const adhNow = planned > 0 ? Math.min(100, Math.round(trainedIn(c28, null) / planned * 100)) : null;
+      if (adhNow == null || loggedRecent < 2) {
+        aEl.textContent = '—';
+      } else {
+        const adhPrev = Math.min(100, Math.round(trainedIn(c56, c28) / planned * 100));
+        const delta = adhNow - adhPrev;
+        let arrow = '';
+        if (delta >= 3) arrow = ' <span style="font-size:12px;color:#1d9e75">▲</span>';
+        else if (delta <= -3) arrow = ' <span style="font-size:12px;color:#d9534f">▼</span>';
+        aEl.innerHTML = adhNow + '%' + arrow;
+        if (adhNow >= 75) aEl.classList.add('cph-delta-good');
+      }
+    } catch (e) { aEl.textContent = '—'; }
   }
 }
 
