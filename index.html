@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-1645-fix--buscador-setea-el-contexto-de-tenant-al-elegir-coach--guard-cross-tenant-">
+<meta name="app-version" content="20260629-1659-fix--el-coach-elegido-en-el-buscador-persiste-en-localstorage--sobrevive-resetappstate-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -16066,11 +16066,15 @@ async function pickStoresTenant(slug) {
       new Promise(r => setTimeout(r, 420)),
     ]);
     if (tenant && typeof applyTenantBranding === 'function') applyTenantBranding(tenant);
-    // Setear el CONTEXTO de tenant (no solo la marca): así el guard cross-tenant del
-    // login sabe que la puerta es la de ESTE coach. Sin esto, una clienta del coach
-    // que entra por el buscador rebotaba con "tu cuenta está en otro coach" (la
-    // pantalla decía King pero la lógica resolvía el tenant neutral).
+    // Setear el CONTEXTO de tenant: el guard cross-tenant del login tiene que saber
+    // que la puerta es la de ESTE coach. currentTenant solo NO alcanza porque
+    // resetAppState() lo BORRA justo antes del guard (durante el login). La señal de
+    // localStorage `coachai_preview_tenant_v1` SÍ sobrevive el reset → la persistimos
+    // acá. Sin esto, una clienta del coach que entra por el buscador rebotaba con
+    // "tu cuenta está en otro coach" (la pantalla decía King pero la lógica resolvía
+    // el tenant neutral).
     if (tenant) currentTenant = tenant;
+    try { localStorage.setItem('coachai_preview_tenant_v1', slug); } catch (e) {}
   } catch (e) { console.warn('[stores] branding del coach falló:', e); }
   const t = _storesCoaches.find(x => x.slug === slug) || {};
   const d = t.directory || {};
@@ -16118,6 +16122,7 @@ function backToStoresBuscador() {
   // último coach abierto. Pasar branding_config vacío dispara la rama de limpieza.
   try { if (typeof applyTenantBranding === 'function') applyTenantBranding({ branding_config: {} }); } catch (e) {}
   currentTenant = null;  // volver al contexto NEUTRAL (sino el guard usaría el coach anterior)
+  try { localStorage.removeItem('coachai_preview_tenant_v1'); } catch (e) {}  // limpiar la señal del coach
   document.body.classList.add('stores-entry');  // volver a la entrada NEUTRAL
   const sec = document.getElementById('stores-buscador');
   const loginCard = document.querySelector('.landing-login-card');

@@ -1,1 +1,1 @@
-{"v":"20260629-1645-fix--buscador-setea-el-contexto-de-tenant-al-elegir-coach--guard-cross-tenant-"}
+{"v":"20260629-1659-fix--el-coach-elegido-en-el-buscador-persiste-en-localstorage--sobrevive-resetappstate-"}
