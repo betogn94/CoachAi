@@ -1,0 +1,6 @@
+# Docs internos: NO servirlos públicamente (arquitectura de seguridad / RLS,
+# runbooks del cutover, SQL de rollback, mails de admin, etc.). No se suben a Vercel.
+# Excepción: el brief de screenshots (no es sensible y se comparte con el equipo/Juli).
+docs/*
+!docs/screenshots-brief-juli.html
+!docs/screenshots-brief-juli.md
