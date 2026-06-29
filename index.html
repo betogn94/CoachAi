@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-2250-fix-v2--cards-home-sin-backdrop-filter--no-se-pintan----sin-reaccion-de-borde-al-tocar">
+<meta name="app-version" content="20260629-2303-fix-v3--home-sin-backdrop-filter-en-hero-semanas--vecinos-que-contagiaban-el-glitch-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -3833,12 +3833,12 @@ body.theme-king .home-plan-banner { background: #FFF0F4; border-color: rgba(255,
   margin: 12px 18px;
   padding: 18px;
   display: flex; align-items: center; gap: 18px;
-  background-color: rgba(20,20,32,0.55);
+  background-color: rgba(20,20,32,0.92);
   background-image:
     linear-gradient(135deg, rgba(124,106,255,0.10) 0%, transparent 45%),
     linear-gradient(225deg, rgba(46,207,181,0.05) 0%, transparent 45%);
-  -webkit-backdrop-filter: blur(24px) saturate(140%);
-  backdrop-filter: blur(24px) saturate(140%);
+  /* sin backdrop-filter: en iOS glitchea a blanco en el scroll y "contagia" a las
+     cards vecinas. Fondo casi sólido (la página de atrás es plana oscura → se ve igual). */
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 18px;
   box-shadow:
@@ -4220,12 +4220,11 @@ button.cai-home-card { cursor: pointer; }
 }
 .cai-home-semanas {
   padding: 16px;
-  background-color: rgba(20,20,32,0.55);
+  background-color: rgba(20,20,32,0.92);
   background-image:
     linear-gradient(135deg, rgba(124,106,255,0.06) 0%, transparent 45%),
     linear-gradient(225deg, rgba(46,207,181,0.04) 0%, transparent 45%);
-  -webkit-backdrop-filter: blur(24px) saturate(140%);
-  backdrop-filter: blur(24px) saturate(140%);
+  /* sin backdrop-filter: glitch blanco en iOS al scrollear (ver hero). */
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 16px;
   box-shadow:
