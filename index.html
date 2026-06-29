@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-1659-fix--el-coach-elegido-en-el-buscador-persiste-en-localstorage--sobrevive-resetappstate-">
+<meta name="app-version" content="20260629-1735-auth-cutover---migracion-de-pre-planes-via-rpc--get-clear-my-migration-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15306,10 +15306,17 @@ async function startPlanPrefetch() {
     const dbPlans = await loadCurrentWeekPlans();
     if (dbPlans) weeklyPlans = { ...(weeklyPlans || {}), ...dbPlans };
     if (currentUser.email) {
-      const { data: inv } = await sbClient.from('beta_invitados')
-        .select('pre_rutina, pre_dieta').ilike('email', currentUser.email).maybeSingle();
+      let inv = null;
+      if (typeof AUTH_OTP_ENABLED !== 'undefined' && AUTH_OTP_ENABLED) {
+        const { data: m } = await sbClient.rpc('get_my_migration'); inv = m;
+      } else {
+        const { data } = await sbClient.from('beta_invitados')
+          .select('pre_rutina, pre_dieta').ilike('email', currentUser.email).maybeSingle();
+        inv = data;
+      }
       if (inv && (inv.pre_rutina || inv.pre_dieta)) migradaPendiente = true;
     }
+
   } catch (e) {}
   if (_planPrefetch) return _planPrefetch;                              // re-check tras el await
   if (migradaPendiente) return null;                                    // migrada con plan migrado pendiente → no auto-generar
@@ -18119,11 +18126,16 @@ Combine this with the daily log for a complete picture of the client's journey. 
 async function migrateClientPreloadedPlans() {
   if (!sbClient || !currentUser?.email) return null;
   try {
-    const { data: inv } = await sbClient
-      .from('beta_invitados')
-      .select('migrada_de_coach, pre_rutina, pre_dieta')
-      .ilike('email', currentUser.email)
-      .maybeSingle();
+    // Pos-RLS beta_invitados queda LOCKED → en OTP la migración propia va por RPC.
+    let inv = null;
+    if (typeof AUTH_OTP_ENABLED !== 'undefined' && AUTH_OTP_ENABLED) {
+      const { data: m } = await sbClient.rpc('get_my_migration');
+      if (m && (m.pre_rutina || m.pre_dieta)) inv = m;
+    } else {
+      const { data } = await sbClient.from('beta_invitados')
+        .select('migrada_de_coach, pre_rutina, pre_dieta').ilike('email', currentUser.email).maybeSingle();
+      inv = data;
+    }
     if (!inv || (!inv.pre_rutina && !inv.pre_dieta)) return null;
 
     // Use the user's actual usuario_id (set by saveProfileToSupabase). It's
@@ -18169,9 +18181,13 @@ async function migrateClientPreloadedPlans() {
     } catch (e) { console.warn('[migration validator] runtime:', e); }
 
     // One-shot: clear the pre-loaded text so a second login doesn't re-insert
-    await sbClient.from('beta_invitados')
-      .update({ pre_rutina: null, pre_dieta: null })
-      .ilike('email', currentUser.email);
+    if (typeof AUTH_OTP_ENABLED !== 'undefined' && AUTH_OTP_ENABLED) {
+      await sbClient.rpc('clear_my_migration');
+    } else {
+      await sbClient.from('beta_invitados')
+        .update({ pre_rutina: null, pre_dieta: null })
+        .ilike('email', currentUser.email);
+    }
 
     if (typeof trackEvent === 'function') trackEvent('client_migrated', { from: inv.migrada_de_coach });
     return inv.migrada_de_coach || 'tu coach';
