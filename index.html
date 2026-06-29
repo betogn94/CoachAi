@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-0224-ux--overlay-de-transicion-usa-spinner-post-onboarding--sin-logo-achatado-">
+<meta name="app-version" content="20260629-0237-ux--splash-de-inicio--icono-centrado--en-reingresos--tapa-el-flash-del-login">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -3806,6 +3806,25 @@ body.theme-king .home-plan-banner { background: #FFF0F4; border-color: rgba(255,
   animation: plo-spin 0.9s linear infinite;
 }
 #stores-transition-overlay .sto-text { font-size: 14px; font-weight: 600; color: #4a4a55; }
+
+/* Splash de inicio (reingreso, estilo YouTube Music): icono de la app centrado
+   sobre el fondo del tema mientras tryAutoLogin restaura la sesión y carga la app
+   → tapa el flash del login. Solo en reingresos (hay sesión). bg = var(--bg) lo
+   pinta el script sync del tema, así matchea King (crema) o el default (oscuro). */
+#app-splash {
+  position: fixed; inset: 0; z-index: 100001;
+  display: none; align-items: center; justify-content: center;
+  background: var(--bg, #0d0d12);
+  transition: opacity .34s ease;
+}
+#app-splash .as-icon {
+  width: 92px; height: 92px; object-fit: contain;
+  animation: as-breath 1.6s ease-in-out infinite;
+}
+@keyframes as-breath {
+  0%, 100% { transform: scale(1);    opacity: .9; }
+  50%      { transform: scale(1.06); opacity: 1;  }
+}
 
 /* HERO ring card — ENTRENAMIENTOS X/N this week (informational only) */
 .cai-home-hero {
@@ -11767,6 +11786,33 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
 })();
 </script>
 
+<!-- SPLASH de inicio (reingreso): icono de la app centrado mientras tryAutoLogin
+     restaura la sesión y carga la app → tapa el flash del login. El <img logo-icon>
+     lo swapea el script sync de arriba al icono del tenant (King). Solo se muestra
+     si hay sesión previa: la PRIMERA vez se ve login + onboarding (deseado). -->
+<div id="app-splash" style="display:none">
+  <img class="as-icon" src="/logo-icon.png" alt="">
+</div>
+<script>
+  (function(){
+    try {
+      var hasSession = false;
+      try { hasSession = !!localStorage.getItem('coachai_session_v1'); } catch(e){}
+      // No mostrar en modos especiales: logout, impersonate (?as=), vidriera de
+      // stores (?stores=1) ni preview de onboarding.
+      var sp = new URLSearchParams(location.search);
+      var blocked = !!(sp.get('logout') || sp.get('as') || sp.get('stores') === '1' || sp.get('onboarding') === 'preview');
+      try { if (localStorage.getItem('coachai_preview_onboarding_v1') === '1') blocked = true; } catch(e){}
+      if (hasSession && !blocked) {
+        var el = document.getElementById('app-splash');
+        if (el) { el.style.display = 'flex'; window.__appSplashShownAt = Date.now(); }
+        // Red de seguridad: si algo cuelga, se va solo a los 8s.
+        setTimeout(function(){ try { if (typeof hideAppSplash === 'function') hideAppSplash(); else if (el) el.style.display = 'none'; } catch(e){} }, 8000);
+      }
+    } catch(e) {}
+  })();
+</script>
+
 <!-- Shared SVG <defs> for icons that reference brand gradients by id.
      Lives at document level so any <use href="#grad-brand"/> or stroke
      reference resolves regardless of where the consumer SVG is mounted. -->
@@ -14032,6 +14078,20 @@ function loadSession() {
 // On boot: if we remembered a login, pre-fill and resume automatically so the
 // user never re-types credentials. If they were wiped/un-invited/beta-full,
 // handleEmailLogin shows the proper message and we clear the stale session.
+// Oculta el splash de inicio (reingreso). Respeta una duración mínima (~550ms)
+// para que se sienta intencional y no un flicker, después hace fade. Idempotente.
+function hideAppSplash() {
+  var el = document.getElementById('app-splash');
+  if (!el || el.style.display === 'none' || el.dataset.hiding === '1') return;
+  el.dataset.hiding = '1';
+  var elapsed = Date.now() - (window.__appSplashShownAt || 0);
+  var wait = Math.max(0, 550 - elapsed);
+  setTimeout(function () {
+    el.style.opacity = '0';
+    setTimeout(function () { try { el.style.display = 'none'; } catch (e) {} }, 360);
+  }, wait);
+}
+
 async function tryAutoLogin() {
   // OTP mode (?authotp=1): resume from the persisted Supabase Auth session — no
   // re-typing and no re-sending a code. If there's no valid session, fall through
@@ -28642,7 +28702,13 @@ window.addEventListener('DOMContentLoaded', async () => {
   } catch (e) { console.warn('[preview] onboarding:', e); }
   // Persistent login: if this device logged in before, resume automatically.
   // (Skipped in onboarding-preview mode so the form stays on screen.)
-  if (!_previewOnboarding) tryAutoLogin().catch(console.error);
+  if (!_previewOnboarding) {
+    // Reingreso: el splash (icono centrado) tapa el flash del login hasta que la
+    // app esté lista (launchCoach resuelve) o tryAutoLogin caiga de vuelta al login.
+    tryAutoLogin().catch(console.error).finally(function () { try { hideAppSplash(); } catch (e) {} });
+  } else {
+    try { hideAppSplash(); } catch (e) {}
+  }
 
   // Funnel de stores: si ?stores=1, muestra la vidriera de coaches en el landing
   // (no-op sin el flag). Va después de tryAutoLogin para que una usuaria con
