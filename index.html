@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-2240-fix--cards-no-se-pintan-al-rozar--backdrop-filter----login-sin-borde-pegado-en-touch">
+<meta name="app-version" content="20260629-2250-fix-v2--cards-home-sin-backdrop-filter--no-se-pintan----sin-reaccion-de-borde-al-tocar">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -3932,12 +3932,14 @@ body.theme-king .home-plan-banner { background: #FFF0F4; border-color: rgba(255,
 .cai-home-card {
   position: relative;
   padding: 14px 14px 12px;
-  background-color: rgba(20,20,32,0.55);
+  background-color: rgba(20,20,32,0.93);
   background-image:
     linear-gradient(135deg, rgba(124,106,255,0.06) 0%, transparent 45%),
     linear-gradient(225deg, rgba(46,207,181,0.04) 0%, transparent 45%);
-  -webkit-backdrop-filter: blur(24px) saturate(140%);
-  backdrop-filter: blur(24px) saturate(140%);
+  /* SIN backdrop-filter a propósito: en iOS se rompe durante el scroll y el
+     cross-fade del rotador → la card se renderiza BLANCA/ilegible. Fondo casi
+     sólido (0.93) → se ve igual (la página de atrás es plana oscura) pero ya no
+     puede glitchear. (King ya venía sólido vía el override theme-king.) */
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 16px;
   box-shadow:
@@ -3953,11 +3955,9 @@ body.theme-king .home-plan-banner { background: #FFF0F4; border-color: rgba(255,
   transition: transform 0.18s cubic-bezier(0.18, 1.1, 0.4, 1.05), border-color 0.15s ease;
 }
 button.cai-home-card { cursor: pointer; }
-/* Press feedback SIN transform: un transform sobre una card con backdrop-filter lo
-   ROMPE en iOS → la card se "pintaba" blanca/ilegible al rozarla scrolleando. Solo
-   un borde sutil (backdrop-safe). */
-button.cai-home-card:active { border-color: rgba(124,106,255,0.32); }
-/* hover solo con puntero real → en touch no queda "pegado" tras tocar. */
+/* SIN reacción visual al tocar (ni transform ni borde): rozar la card mientras se
+   scrollea NO debe "pintarla" ni encenderle borde. La navegación al tocar ya es
+   feedback. (El transform además rompía el backdrop-filter en iOS → pintado blanco.) */
 @media (hover: hover) {
   button.cai-home-card:hover { border-color: rgba(124,106,255,0.20); }
 }
