@@ -3171,21 +3171,29 @@
     sendBtn?.addEventListener('click', async () => {
       const txt = (ta.value || '').trim();
       if (!txt) { ta.focus(); return; }
-      sendBtn.disabled = true; sendBtn.textContent = 'Enviando…';
+      // OPTIMISTA: mostramos el mensaje al instante (sin esperar la red ni un
+      // re-fetch del hilo entero), así la respuesta se siente inmediata. Antes
+      // había DOS viajes en fila (insert + re-bajar 50 mensajes) → se sentía lento.
+      const optimistic = {
+        id: 'tmp-' + Date.now(), de: 'coach', mensaje: txt,
+        nombre: currentUser?.nombre || 'Coach', leido: false,
+        created_at: new Date().toISOString(),
+      };
+      paintNotas([...notas, optimistic]);   // re-render instantáneo; deja la textarea vacía
+      // Insert en background.
       try {
         const { error } = await sb.from('notas_coach').insert([{
           usuario_id: cli.id, de: 'coach', mensaje: txt,
           nombre: currentUser?.nombre || 'Coach', leido: false,
         }]);
         if (error) throw error;
-        ta.value = '';
-        const { data } = await sb.from('notas_coach')
-          .select('id,mensaje,created_at,leido,de').eq('usuario_id', cli.id)
-          .order('created_at', { ascending: false }).limit(50);
-        paintNotas(data || []);
       } catch (e) {
         console.error('[studio] reply failed:', e);
-        sendBtn.disabled = false; sendBtn.textContent = 'Reintentar';
+        // Falló: revertimos el optimista y le devolvemos el texto para que no lo pierda.
+        paintNotas(notas);
+        const ta2 = document.getElementById('msg-reply-text');
+        if (ta2) { ta2.value = txt; ta2.focus(); }
+        alert('No se pudo enviar el mensaje. Reintentá.');
       }
     });
   }
