@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-0034-fix--auto-repeat-de-plan-tambien-cubre-cierre-mid-week--clientas-sin-plan-">
+<meta name="app-version" content="20260629-0051-feat--mensajeria-coach-cliente-bidireccional---2-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -8538,6 +8538,29 @@ body.theme-king .alim-edit-tip {
   letter-spacing: 1.5px; color: var(--accent-bright); margin-bottom: 6px;
 }
 .feedback-sub { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-bottom: 14px; }
+.feedback-thread {
+  display: flex; flex-direction: column; gap: 7px;
+  max-height: 38vh; overflow-y: auto; margin-bottom: 12px; padding: 2px;
+}
+.fb-msg { display: flex; }
+.fb-msg.them { justify-content: flex-start; }
+.fb-msg.me   { justify-content: flex-end; }
+.fb-bubble {
+  max-width: 80%; padding: 8px 11px; border-radius: 13px;
+  background: var(--surface2); border: 1px solid var(--border);
+}
+.fb-msg.me .fb-bubble { background: linear-gradient(135deg, var(--accent), var(--accent3)); border-color: transparent; }
+.fb-text { font-size: 13px; line-height: 1.4; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+.fb-msg.me .fb-text { color: #fff; }
+.fb-when { font-size: 10px; color: var(--muted); margin-top: 3px; }
+.fb-msg.me .fb-when { color: rgba(255,255,255,.8); text-align: right; }
+.fb-empty { font-size: 12.5px; color: var(--muted); font-style: italic; padding: 6px 2px; }
+.coach-reply-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px; margin-left: 8px;
+  background: #ff4d4f; color: #fff; border-radius: 9px;
+  font-size: 11px; font-weight: 700; vertical-align: middle;
+}
 .feedback-textarea {
   width: 100%; min-height: 120px; resize: vertical;
   background: var(--surface2); border: 1px solid var(--border);
@@ -12960,9 +12983,10 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
 
   <!-- Mensaje al coach + Soporte -->
   <div class="cai-perfil-tutorial" style="display:flex;flex-direction:column;gap:10px;">
-    <button class="cai-perfil-tutorial-btn" onclick="openCoachNote()" type="button">
+    <button class="cai-perfil-tutorial-btn" onclick="openCoachNote()" type="button" id="btn-coach-note">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       <span data-es="Mensaje para tu coach" data-en="Message your coach">Mensaje para tu coach</span>
+      <span class="coach-reply-badge" id="coach-reply-badge" style="display:none;"></span>
     </button>
     <button class="cai-perfil-tutorial-btn" onclick="openSupport()" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
@@ -13112,6 +13136,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   <div class="feedback-card coach-card">
     <div class="feedback-title" id="feedback-title">💬 Mensaje</div>
     <div class="feedback-sub" id="feedback-sub">—</div>
+    <div class="feedback-thread" id="feedback-thread" style="display:none;"></div>
     <textarea id="feedback-text" class="feedback-textarea" placeholder="Escribí tu mensaje…" maxlength="2000"></textarea>
     <div class="feedback-actions">
       <button class="feedback-cancel" onclick="closeFeedback()">Cancelar</button>
@@ -14227,8 +14252,71 @@ function _openFeedbackModal(mode, title, sub, placeholder) {
   document.getElementById('feedback-done').style.display = 'none';
   const btn = document.getElementById('feedback-send-btn');
   btn.disabled = false; btn.textContent = lang === 'es' ? 'Enviar' : 'Send';
+  const thread = document.getElementById('feedback-thread');
+  if (mode === 'coach') {
+    thread.style.display = 'flex';
+    thread.innerHTML = `<div class="fb-empty">${lang === 'es' ? 'Cargando conversación…' : 'Loading…'}</div>`;
+    _loadCoachThread();
+  } else {
+    thread.style.display = 'none';
+    thread.innerHTML = '';
+  }
   document.getElementById('feedback-overlay').classList.add('open');
   setTimeout(() => ta.focus(), 80);
+}
+
+// Hilo de mensajes coach↔cliente (POV cliente: sus mensajes a la derecha, los del
+// coach a la izquierda). Al abrirlo, marca como leídas las respuestas del coach.
+async function _loadCoachThread() {
+  const thread = document.getElementById('feedback-thread');
+  if (!thread || !currentUser) return;
+  try {
+    if (!sbClient) initSupabase();
+    const { data } = await sbClient.from('notas_coach')
+      .select('id,mensaje,created_at,leido,de').eq('usuario_id', currentUser.id)
+      .order('created_at', { ascending: true }).limit(50);
+    const msgs = data || [];
+    if (!msgs.length) { thread.style.display = 'none'; thread.innerHTML = ''; return; }
+    thread.style.display = 'flex';
+    thread.innerHTML = msgs.map(n => {
+      const mine = (n.de !== 'coach');
+      const when = new Date(n.created_at).toLocaleDateString(lang === 'es' ? 'es-AR' : 'en-US', { day: '2-digit', month: 'short' });
+      const who = mine ? '' : (lang === 'es' ? 'tu coach · ' : 'your coach · ');
+      return `<div class="fb-msg ${mine ? 'me' : 'them'}">
+        <div class="fb-bubble">
+          <div class="fb-text">${_esc(n.mensaje || '')}</div>
+          <div class="fb-when">${who}${_esc(when)}</div>
+        </div>
+      </div>`;
+    }).join('');
+    thread.scrollTop = thread.scrollHeight;
+    // Marcar como leídas las respuestas del coach (el cliente las acaba de ver).
+    const unreadCoach = msgs.filter(n => n.de === 'coach' && !n.leido);
+    if (unreadCoach.length) {
+      const ids = unreadCoach.map(n => n.id);
+      sbClient.from('notas_coach').update({ leido: true, leido_at: new Date().toISOString() }).in('id', ids).then(() => {}, () => {});
+      _setCoachReplyBadge(0);
+    }
+  } catch (e) { console.warn('coach thread load failed', e); }
+}
+
+// Badge en el botón "Mensaje para tu coach" del Perfil: cuántas respuestas del
+// coach hay sin leer. Así el cliente SABE que le contestaron (sin esto, las
+// respuestas del coach serían un agujero negro, el mismo problema al revés).
+function _setCoachReplyBadge(n) {
+  const b = document.getElementById('coach-reply-badge');
+  if (!b) return;
+  if (n > 0) { b.textContent = String(n); b.style.display = 'inline-flex'; }
+  else { b.style.display = 'none'; }
+}
+async function checkCoachReplies() {
+  try {
+    if (!sbClient || !currentUser) return;
+    const { count } = await sbClient.from('notas_coach')
+      .select('id', { count: 'exact', head: true })
+      .eq('usuario_id', currentUser.id).eq('de', 'coach').eq('leido', false);
+    _setCoachReplyBadge(count || 0);
+  } catch (e) { /* silencioso — el badge es un extra, no debe romper el boot */ }
 }
 function openSupport() {
   const es = lang === 'es';
@@ -14259,21 +14347,30 @@ async function submitFeedback() {
   btn.disabled = true; btn.textContent = lang === 'es' ? 'Enviando…' : 'Sending…';
   try {
     if (!sbClient) initSupabase();
-    const table = _feedbackMode === 'coach' ? 'notas_coach' : 'feedback';
-    const { error } = await sbClient.from(table).insert([{
+    const isCoach = _feedbackMode === 'coach';
+    const table = isCoach ? 'notas_coach' : 'feedback';
+    const row = {
       usuario_id: currentUser ? currentUser.id : null,
       nombre: currentUser ? (currentUser.nombre || null) : null,
       mensaje: msg
-    }]);
+    };
+    if (isCoach) row.de = 'cliente';
+    const { error } = await sbClient.from(table).insert([row]);
     if (error) throw error;
-    trackEvent(_feedbackMode === 'coach' ? 'coach_note_sent' : 'support_sent', null);
-    const done = document.getElementById('feedback-done');
-    done.textContent = _feedbackMode === 'coach'
-      ? (lang === 'es' ? '¡Listo! 🙌 Tu coach va a ver tu mensaje.' : 'Done! Your coach will see it.')
-      : (lang === 'es' ? '¡Gracias! 🙌 Recibimos tu reporte.' : 'Thanks! We got your report.');
-    done.style.display = 'block';
+    trackEvent(isCoach ? 'coach_note_sent' : 'support_sent', null);
     ta.value = '';
-    setTimeout(closeFeedback, 1400);
+    if (isCoach) {
+      // Mantener el modal abierto y refrescar el hilo → el cliente ve su mensaje
+      // recién enviado dentro de la conversación con el coach.
+      const btn2 = document.getElementById('feedback-send-btn');
+      btn2.disabled = false; btn2.textContent = lang === 'es' ? 'Enviar' : 'Send';
+      await _loadCoachThread();
+    } else {
+      const done = document.getElementById('feedback-done');
+      done.textContent = lang === 'es' ? '¡Gracias! 🙌 Recibimos tu reporte.' : 'Thanks! We got your report.';
+      done.style.display = 'block';
+      setTimeout(closeFeedback, 1400);
+    }
   } catch (e) {
     console.error('Feedback/coach-note send failed:', e);
     btn.disabled = false; btn.textContent = lang === 'es' ? 'Reintentar' : 'Retry';
@@ -18090,6 +18187,9 @@ async function launchCoach() {
   // re-guarda en su lugar. No-op si todo parsea (caso común). Ver selfHealPlans.
   _selfHealAttempted = { rutina: false, dieta: false };
   selfHealPlans().catch(e => console.warn('[CoachAI] selfHealPlans:', e));
+
+  // ¿El coach le respondió? Badge en el botón de Perfil (background, no bloquea).
+  checkCoachReplies().catch(() => {});
 
   // SYNC OUTBOX (refuerzo loop diario) — al abrir, reintentar lo que haya quedado
   // sin sincronizar de una sesión offline anterior + reflejar el indicador.

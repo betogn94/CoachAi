@@ -745,6 +745,34 @@
       padding: 8px 0;
     }
 
+    /* ---------- HILO DE MENSAJES (coach ↔ cliente) ---------- */
+    .msg-thread {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 340px;
+      overflow-y: auto;
+      padding: 4px 2px 8px;
+    }
+    .msg-row { display: flex; }
+    .msg-row.them { justify-content: flex-start; }
+    .msg-row.me   { justify-content: flex-end; }
+    .msg-bubble {
+      max-width: 78%;
+      padding: 9px 12px;
+      border-radius: 14px;
+      background: var(--bg-elev-2);
+      border: 1px solid var(--border-soft);
+    }
+    .msg-row.me .msg-bubble { background: var(--accent); border-color: var(--accent); }
+    .msg-text { font-size: 13px; line-height: 1.4; white-space: pre-wrap; word-break: break-word; }
+    .msg-row.me .msg-text { color: #fff; }
+    .msg-when { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+    .msg-row.me .msg-when { color: rgba(255,255,255,.75); text-align: right; }
+    .msg-reply { display: flex; gap: 8px; align-items: flex-end; margin-top: 10px; }
+    .msg-reply textarea { flex: 1; resize: vertical; min-height: 40px; }
+    .msg-reply .btn-primary { white-space: nowrap; padding: 10px 16px; }
+
     /* ---------- TRANSFORMACIÓN VISUAL (timeline de fotos por cierre) ---------- */
     .cli-transform-grid {
       display: flex; flex-direction: column;
@@ -2260,16 +2288,18 @@
         .filter(i => i.email.toLowerCase() !== myEmail)
         .map(i => ({ ...i, _isInvited: true, _openBugs: 0 }));
 
-      // Open-bug counts per user — only un-resolved feedback rows. Resolved
-      // bugs (resolved_at IS NOT NULL) still live in DB for history and show
-      // crossed out in the drill-down, but they don't drag the traffic light
-      // back to yellow/red. Parallel queries are fine for a handful of users.
+      // Mensajes SIN LEER del cliente (notas_coach, de='cliente', leido=false).
+      // Esto alimenta el semáforo + la card "Mensajes para vos" del dashboard.
+      // (Los bugs/feedback siguen visibles en el detalle del cliente vía paintBugs,
+      // pero ya no manejan el semáforo — lo que importa es no dejar a un cliente
+      // sin respuesta. _openBugs queda como nombre interno = mensajes sin leer.)
       const activos = await Promise.all((usuarios || []).map(async (u) => {
         const { count } = await sb
-          .from('feedback')
+          .from('notas_coach')
           .select('id', { count: 'exact', head: true })
           .eq('usuario_id', u.id)
-          .is('resolved_at', null);
+          .eq('de', 'cliente')
+          .eq('leido', false);
         return { ...u, _openBugs: count || 0 };
       }));
 
@@ -2555,7 +2585,7 @@
       // progreso photo; just the immutable 'inicio' row(s).
       sb.from('fotos_progreso').select('vista,url_foto,fecha,tipo').eq('usuario_id', uid).eq('tipo', 'inicio'),
       sb.from('feedback').select('id,mensaje,created_at,resolved_at,resolved_by,resolution_note').eq('usuario_id', uid).order('created_at', { ascending: false }).limit(20),
-      sb.from('notas_coach').select('id,mensaje,created_at,leido').eq('usuario_id', uid).order('created_at', { ascending: false }).limit(30),
+      sb.from('notas_coach').select('id,mensaje,created_at,leido,de').eq('usuario_id', uid).order('created_at', { ascending: false }).limit(50),
     ]);
 
     // Re-render datos personales with the full row (the initial paint used
@@ -3107,51 +3137,56 @@
   function paintNotas(notas) {
     const sec = document.getElementById('cli-notas');
     if (!sec) return;
-    const nuevas = notas.filter(n => !n.leido);
-    const leidas = notas.filter(n =>  n.leido);
-    const metaTxt = notas.length === 0
-      ? '0 mensajes'
-      : `${nuevas.length} nuevo${nuevas.length === 1 ? '' : 's'}` +
-        (leidas.length ? ` · ${leidas.length} leído${leidas.length === 1 ? '' : 's'}` : '');
+    const cli = _currentDetailClienta || {};
+    const thread = [...notas].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const unreadFromClient = thread.filter(n => (n.de === 'cliente' || !n.de) && !n.leido);
+    const nuevas = unreadFromClient.length;
     sec.innerHTML = `
-      <div class="detail-section-title">Mensajes del cliente <span class="meta">${esc(metaTxt)}</span></div>
-      ${notas.length === 0
-        ? '<div class="empty-row">Sin mensajes todavía.</div>'
-        : `<div class="timeline">
-            ${nuevas.map(n => `
-              <div class="timeline-item" data-nota-id="${esc(n.id)}">
-                <span class="when">${esc(fmtRelative(n.created_at))}</span>
-                <span class="what">${esc(n.mensaje || '')}</span>
-                <button type="button" class="bug-resolve" data-nota-leida="${esc(n.id)}" title="Marcar como leído">✓ Leído</button>
-              </div>
-            `).join('')}
-            ${leidas.length ? `
-              <details class="bug-resolved-group" ${nuevas.length === 0 ? 'open' : ''}>
-                <summary>Leídos · ${leidas.length}</summary>
-                ${leidas.map(n => `
-                  <div class="timeline-item" data-nota-id="${esc(n.id)}">
-                    <span class="when">${esc(fmtRelative(n.created_at))}</span>
-                    <span class="what">${esc(n.mensaje || '')}</span>
-                  </div>
-                `).join('')}
-              </details>
-            ` : ''}
-          </div>`
+      <div class="detail-section-title">Mensajes con ${esc(cli.nombre || 'el cliente')}${nuevas ? ` <span class="meta">${nuevas} nuevo${nuevas === 1 ? '' : 's'}</span>` : ''}</div>
+      <div class="msg-thread">
+        ${thread.length === 0
+          ? '<div class="empty-row">Sin mensajes todavía. Escribile abajo 👇</div>'
+          : thread.map(n => {
+              const mine = (n.de === 'coach');
+              return `<div class="msg-row ${mine ? 'me' : 'them'}">
+                <div class="msg-bubble">
+                  <div class="msg-text">${esc(n.mensaje || '')}</div>
+                  <div class="msg-when">${esc(fmtRelative(n.created_at))}</div>
+                </div>
+              </div>`;
+            }).join('')}
+      </div>
+      <div class="msg-reply">
+        <textarea id="msg-reply-text" class="form-input" rows="2" placeholder="Escribí una respuesta…"></textarea>
+        <button class="btn-primary" id="msg-reply-send" type="button">Enviar</button>
+      </div>`;
+    // Auto-marcar como leídos los mensajes del cliente al abrir el hilo.
+    if (unreadFromClient.length) {
+      const ids = unreadFromClient.map(n => n.id);
+      sb.from('notas_coach').update({ leido: true, leido_at: new Date().toISOString() }).in('id', ids).then(() => {}, () => {});
+    }
+    // Enviar respuesta (coach → cliente).
+    const sendBtn = document.getElementById('msg-reply-send');
+    const ta = document.getElementById('msg-reply-text');
+    sendBtn?.addEventListener('click', async () => {
+      const txt = (ta.value || '').trim();
+      if (!txt) { ta.focus(); return; }
+      sendBtn.disabled = true; sendBtn.textContent = 'Enviando…';
+      try {
+        const { error } = await sb.from('notas_coach').insert([{
+          usuario_id: cli.id, de: 'coach', mensaje: txt,
+          nombre: currentUser?.nombre || 'Coach', leido: false,
+        }]);
+        if (error) throw error;
+        ta.value = '';
+        const { data } = await sb.from('notas_coach')
+          .select('id,mensaje,created_at,leido,de').eq('usuario_id', cli.id)
+          .order('created_at', { ascending: false }).limit(50);
+        paintNotas(data || []);
+      } catch (e) {
+        console.error('[studio] reply failed:', e);
+        sendBtn.disabled = false; sendBtn.textContent = 'Reintentar';
       }
-    `;
-    sec.querySelectorAll('[data-nota-leida]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = btn.dataset.notaLeida;
-        btn.disabled = true; btn.textContent = '⏳…';
-        try {
-          const { error } = await sb.from('notas_coach').update({ leido: true, leido_at: new Date().toISOString() }).eq('id', id);
-          if (error) throw error;
-          btn.closest('.timeline-item')?.remove();
-        } catch (e) {
-          console.error('marcar leído falló:', e);
-          btn.disabled = false; btn.textContent = '✓ Leído';
-        }
-      });
     });
   }
 
