@@ -64,6 +64,10 @@ Crear `/.well-known/assetlinks.json` (servido desde la raíz del dominio). Plant
 - **Anti-steering**: dentro del wrapper, NO mostrar links/prompts de pago externo (ya hecho).
 - **Trial de invitado** (`?stores=1`): cuando el guest convierte → o **IAP** (comisión casual)
   o **registro afuera** (sin prompt de compra adentro). NO vender la sub adentro sin IAP.
+- **⚠️ Stripe = SOLO cobro fuera de las tiendas** (web/B2B: el coach le paga a la plataforma).
+  **JAMÁS** para compras dentro de iOS/Android (eso DEBE ser IAP de Apple/Google, o rechazo
+  instantáneo). Los docs legales (privacidad + términos) ya dejan esta distinción cristalina:
+  "Stripe = pagos fuera de las tiendas; compras in-app = Apple/Google".
 - Verificar contra las guidelines vigentes al armar (cambian seguido). No es asesoría legal.
 
 ## ✅ Checklist de submission (ambas stores)
