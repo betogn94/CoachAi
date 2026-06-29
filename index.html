@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-2137-stores--t-rminos-de-servicio---link-en-perfil">
+<meta name="app-version" content="20260629-2143-stores--aceptacion-de-terminos-privacidad-en-registro---marca-coachai-pro-en-docs">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -29620,6 +29620,9 @@ async function forceAppUpdate() {
     <div class="email-login-error" id="el-error"></div>
     <button class="btn-email-login" id="el-btn" onclick="handleEmailLogin()">INGRESAR →</button>
     <div class="email-login-loading" id="el-loading">Conectando...</div>
+    <p style="margin:12px 6px 0; font-size:11.5px; line-height:1.5; text-align:center; color:var(--muted,#9a9aa8);">
+      Al continuar aceptás los <a href="/terminos.html" target="_blank" rel="noopener" style="color:inherit; text-decoration:underline;">Términos de Servicio</a> y la <a href="/privacidad.html" target="_blank" rel="noopener" style="color:inherit; text-decoration:underline;">Política de Privacidad</a>.
+    </p>
   </div>
 
   <!-- ── Fase B (OTP) — pantalla del código. Overlay full-screen sobre el landing;
