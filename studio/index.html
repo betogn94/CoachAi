@@ -1920,7 +1920,16 @@
   // ---- Supabase ----
   const SUPABASE_URL = 'https://vmvhlgzwufkardaruutt.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtdmhsZ3p3dWZrYXJkYXJ1dXR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNzA4NjcsImV4cCI6MjA5Mjg0Njg2N30.x9-lV9xi3Kdu_zpHcGC0PC80-GiXpc1WD4lnAuFI_iM';
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // persistSession → Studio LEE la sesión de Supabase Auth que dejó el login de la
+  // app (mismo origen + mismo project ref = misma storage key `sb-<ref>-auth-token`).
+  // Sin OTP no hay sesión → es inocuo (idéntico a antes). Con OTP, el coach que se
+  // logueó en la app entra a Studio sin re-loguear (sesión compartida).
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+  });
+  // Modo OTP (gated, igual que la app): cuando está, Studio autentica con la sesión
+  // real (RLS por-usuario) en vez de leer coachai_session_v1 con la anon key.
+  const AUTH_OTP_ENABLED = new URLSearchParams(location.search).get('authotp') === '1';
 
   // ---- Tenant resolution from hostname ----
   // king.coachaipro.ai → 'jesus', coachaipro.ai (and localhost) → 'coachai-default'.
@@ -1990,7 +1999,51 @@
   let currentTenant = null;     // tenants row matching the hostname
 
   // ---- Auth gate ----
+  // Gate OTP (gated por ?authotp=1): autentica con la sesión real de Supabase
+  // (compartida con la app) y resuelve el coach vía auth_resolve_session (linkea
+  // auth_id + valida tenant/role server-side). Pos-cutover las queries de Studio
+  // corren autenticadas → la rama coach del RLS las deja ver sus clientas.
+  async function runAuthGateOTP() {
+    try {
+      const slug = resolveTenantSlug();
+      applyTenantAccent(slug);
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session || !session.user) {
+        return showGate('Iniciá sesión',
+          'Entrá con tu email desde el login de CoachAI y volvé a Studio.',
+          { ctaText: 'Ir al login', ctaHref: '/?authotp=1' });
+      }
+      const nombre = (session.user.user_metadata && session.user.user_metadata.nombre) || session.user.email;
+      const { data, error } = await sb.rpc('auth_resolve_session', {
+        p_email: session.user.email, p_nombre: nombre, p_entry_tenant_slug: slug, p_is_trial: false,
+      });
+      if (error) {
+        console.error('[studio] auth_resolve_session:', error);
+        return showGate('Error', 'No pudimos validar tu acceso. Probá recargar.', { ctaText: 'Recargar', ctaHref: location.pathname + location.search });
+      }
+      const r = data || {};
+      if (r.error) return showGate('Sesión inválida', 'Cerrá sesión y volvé a entrar.', { ctaText: 'Ir al login', ctaHref: '/?authotp=1' });
+      if (r.wrongTenant) return showGate('Tenant equivocado', 'Tu cuenta pertenece a otro coach. Entrá por el login correcto.', { ctaText: 'Volver', ctaHref: '/' });
+      const user = r.user;
+      if (!user || user.role !== 'admin') {
+        return showGate('No tenés permisos de admin', 'Studio es solo para coaches.', { ctaText: 'Volver a la app', ctaHref: '/' });
+      }
+      const { data: tenant, error: tErr } = await sb
+        .from('tenants').select('id, slug, name, branding_config, limits').eq('slug', slug).maybeSingle();
+      if (tErr || !tenant || user.tenant_id !== tenant.id) {
+        return showGate('Tenant inválido', 'No pudimos resolver tu tenant.', { ctaText: 'Volver', ctaHref: '/' });
+      }
+      currentUser = user;
+      currentTenant = tenant;
+      enterApp();
+    } catch (err) {
+      console.error('[studio] auth gate OTP error:', err);
+      showGate('Error', 'No pudimos validar tu acceso. Probá recargar.', { ctaText: 'Recargar', ctaHref: location.pathname + location.search });
+    }
+  }
+
   async function runAuthGate() {
+    if (AUTH_OTP_ENABLED) return runAuthGateOTP();
     try {
       const slug = resolveTenantSlug();
       applyTenantAccent(slug);
@@ -2278,10 +2331,17 @@
 
       // Pending invites (not yet onboarded). Also drop the coach's own email
       // in case they invited themselves before being promoted to admin.
-      const { data: invitados } = await sb
-        .from('beta_invitados')
-        .select('email, nombre, created_at')
-        .eq('tenant_slug', currentTenant.slug);
+      // Pos-RLS beta_invitados queda LOCKED → en modo OTP se lee vía RPC del coach.
+      let invitados = [];
+      if (AUTH_OTP_ENABLED) {
+        try {
+          const { data: rpcInv } = await sb.rpc('coach_list_invites');
+          if (rpcInv && rpcInv.ok && Array.isArray(rpcInv.invites)) invitados = rpcInv.invites;
+        } catch (e) { console.warn('[studio] coach_list_invites:', e); }
+      } else {
+        const { data } = await sb.from('beta_invitados').select('email, nombre, created_at').eq('tenant_slug', currentTenant.slug);
+        invitados = data || [];
+      }
 
       const pendingInvites = (invitados || [])
         .filter(i => !onboardedEmails.has(i.email.toLowerCase()))
@@ -3506,26 +3566,45 @@
       // (legacy from when beta was single-tenant) — duplicates surface as
       // Postgres error code 23505.
       const invitadoPor = currentUser?.email || 'admin';
-      const { error } = await sb.from('beta_invitados').insert([{
-        email,
-        nombre: nombre || null,
-        invitado_por: invitadoPor,
-        tenant_slug: currentTenant.slug,
-        // migrada_de_coach left null: with per-tenant Studio, the inviting
-        // coach is implied by tenant_slug. The column stays for legacy data
-        // but Studio never writes it.
-        migrada_de_coach: null,
-        pre_rutina: preRut || null,
-        pre_dieta:  preDie || null,
-      }]);
-      if (error) {
-        if (error.code === '23505') {
-          msg.textContent = 'Ese email ya estaba invitado.';
-        } else {
-          msg.textContent = 'No se pudo invitar: ' + error.message;
+      if (AUTH_OTP_ENABLED) {
+        // Pos-RLS beta_invitados queda LOCKED → invitar vía RPC del coach (valida
+        // que el que llama sea admin + usa SU tenant).
+        const { data: rIns, error: rpcErr } = await sb.rpc('coach_invite_client', {
+          p_email: email, p_nombre: nombre || null, p_pre_rutina: preRut || null, p_pre_dieta: preDie || null,
+        });
+        const res = rIns || {};
+        if (rpcErr || res.error) {
+          const code = res.error || (rpcErr && rpcErr.message);
+          msg.textContent = code === 'already_invited' ? 'Ese email ya estaba invitado.'
+            : code === 'already_user' ? 'Ese email ya es un cliente.'
+            : code === 'not_coach' ? 'No tenés permisos para invitar.'
+            : code === 'bad_email' ? 'Email inválido.'
+            : 'No se pudo invitar: ' + (code || 'error');
+          msg.className = 'form-msg err';
+          return;
         }
-        msg.className = 'form-msg err';
-        return;
+      } else {
+        const { error } = await sb.from('beta_invitados').insert([{
+          email,
+          nombre: nombre || null,
+          invitado_por: invitadoPor,
+          tenant_slug: currentTenant.slug,
+          // migrada_de_coach left null: with per-tenant Studio, the inviting
+          // coach is implied by tenant_slug. The column stays for legacy data
+          // but Studio never writes it.
+          migrada_de_coach: null,
+          pre_rutina: preRut || null,
+          pre_dieta:  preDie || null,
+        }]);
+        if (error) {
+          if (error.code === '23505') {
+            msg.textContent = 'Ese email ya estaba invitado.';
+          } else {
+            msg.textContent = 'No se pudo invitar: ' + error.message;
+          }
+          msg.className = 'form-msg err';
+          return;
+        }
       }
 
       // DB write succeeded — fire the courtesy email. Same endpoint the
