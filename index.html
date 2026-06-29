@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-2143-stores--aceptacion-de-terminos-privacidad-en-registro---marca-coachai-pro-en-docs">
+<meta name="app-version" content="20260629-2240-fix--cards-no-se-pintan-al-rozar--backdrop-filter----login-sin-borde-pegado-en-touch">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -747,8 +747,10 @@ body.theme-king .cai-home-card-dots .rot-dot {
 body.theme-king .cai-home-card-dots .rot-dot.is-active {
   background: var(--accent) !important;
 }
-body.theme-king button.cai-home-card:hover {
-  border-color: rgba(255,79,123,0.30) !important;
+@media (hover: hover) {
+  body.theme-king button.cai-home-card:hover {
+    border-color: rgba(255,79,123,0.30) !important;
+  }
 }
 /* Kcal bars in Coach AI card (vertical bars per meal) */
 body.theme-king #home-kcal-done {
@@ -3951,8 +3953,14 @@ body.theme-king .home-plan-banner { background: #FFF0F4; border-color: rgba(255,
   transition: transform 0.18s cubic-bezier(0.18, 1.1, 0.4, 1.05), border-color 0.15s ease;
 }
 button.cai-home-card { cursor: pointer; }
-button.cai-home-card:active { transform: scale(0.985); }
-button.cai-home-card:hover { border-color: rgba(124,106,255,0.20); }
+/* Press feedback SIN transform: un transform sobre una card con backdrop-filter lo
+   ROMPE en iOS → la card se "pintaba" blanca/ilegible al rozarla scrolleando. Solo
+   un borde sutil (backdrop-safe). */
+button.cai-home-card:active { border-color: rgba(124,106,255,0.32); }
+/* hover solo con puntero real → en touch no queda "pegado" tras tocar. */
+@media (hover: hover) {
+  button.cai-home-card:hover { border-color: rgba(124,106,255,0.20); }
+}
 .cai-home-card-top {
   display: flex; justify-content: space-between; align-items: flex-start;
   width: 100%;
@@ -9027,6 +9035,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
     inset 0 2px 0 var(--accent);
   transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
 }
+@media (hover: hover) {
 .landing-login-card:hover {
   border-color: rgba(124,106,255,0.5);
   box-shadow:
@@ -9035,6 +9044,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
     0 0 48px rgba(124,106,255,0.22),
     inset 0 2px 0 var(--accent-bright);
   transform: translateY(-3px);
+}
 }
 
 /* Brand icon image — square version (full circle visible) */
