@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-0100-feat--kill-switch-del-tenant---3-">
+<meta name="app-version" content="20260629-0146-compliance--anti-steering-en-pantalla-de-renovacion--wrapper-nativo-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -18004,6 +18004,30 @@ function isAccessBlocked(user) {
   return t < Date.now();
 }
 
+// ---- Wrapper nativo + anti-steering (de cara a las stores) ----
+// Apple/Google rechazan el "steering": mandar a pagar FUERA de la app desde
+// adentro del wrapper nativo (salvo storefront US, post-fallo Epic, y en litigio).
+// Como PWA/web esto NO aplica (la web no está sujeta a las reglas de la store).
+// Dejamos el gate listo: cuando empaquetemos el wrapper, le alcanza con setear UNA
+// de estas señales y todo link de pago externo se reemplaza solo por el mensaje
+// neutro ("hablá con tu coach"). Conservador a propósito: dentro del wrapper NO
+// mostramos pago externo en ningún storefront (preferimos "siempre compliant";
+// el beneficio de steering en US es marginal + está en litigio).
+function isNativeWrapper() {
+  try {
+    const q = new URLSearchParams(location.search);
+    if (q.get('native') === '1') { try { localStorage.setItem('coachai_native', '1'); } catch (e) {} return true; }
+    if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) return true;
+    if (/CoachAIApp/i.test(navigator.userAgent || '')) return true;
+    if ((document.referrer || '').startsWith('android-app://')) return true;
+    if (localStorage.getItem('coachai_native') === '1') return true;
+  } catch (e) {}
+  return false;
+}
+function shouldHideExternalPay() {
+  return isNativeWrapper();
+}
+
 function showRenewScreen(user) {
   // Overlay full-screen que tapa la app. Idempotente.
   if (document.getElementById('renew-overlay')) return;
@@ -18011,7 +18035,9 @@ function showRenewScreen(user) {
   const ov = document.createElement('div');
   ov.id = 'renew-overlay';
   ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0a0a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;font-family:inherit;gap:18px';
-  const baseRenew = user?.renew_url || RENEW_URL;
+  // Anti-steering: dentro del wrapper nativo NO ofrecemos pago externo → cae al
+  // mensaje neutro. En web (PWA/browser) el link de renovación sigue igual.
+  const baseRenew = shouldHideExternalPay() ? null : (user?.renew_url || RENEW_URL);
   const renewUrl = (baseRenew && user?.email)
     ? `${baseRenew}?prefilled_email=${encodeURIComponent(user.email)}`
     : baseRenew;
