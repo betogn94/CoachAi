@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-1434-ux-perfil---fueguito-animado-en-racha---saco-el----de-definir">
+<meta name="app-version" content="20260629-1444-ux-perfil---avatar-del-hero-redondo--circulo--en-vez-de-cuadrado">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12758,7 +12758,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   <style>
     .cai-perfil-hero { margin:8px 18px 16px; padding:18px; background:var(--surface,rgba(20,20,32,0.55)); border:1px solid var(--border,rgba(255,255,255,0.08)); border-radius:18px; box-shadow:var(--card-shadow, 0 16px 50px rgba(0,0,0,0.30)); }
     .cph-top { display:flex; align-items:center; gap:14px; }
-    .cph-avatar { position:relative; width:48px; height:48px; border-radius:14px; background:rgba(128,128,140,.10); background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; flex-shrink:0; cursor:pointer; border:none; padding:0; font-family:inherit; }
+    .cph-avatar { position:relative; width:48px; height:48px; border-radius:50%; background:rgba(128,128,140,.10); background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; flex-shrink:0; cursor:pointer; border:none; padding:0; font-family:inherit; }
     .cph-avatar:active { transform:scale(.96); }
     .cph-avatar.has-photo { background-size:cover; background-position:center; }
     .cph-avatar.has-photo #cph-initial { display:none; }
@@ -12769,7 +12769,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     .cai-avatar-actions { display:flex; gap:8px; flex-wrap:wrap; }
     .cai-avatar-btn { background:rgba(124,106,255,.12); color:var(--accent); border:none; border-radius:9px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; }
     .cai-avatar-btn.ghost { background:transparent; color:var(--muted); }
-    .cph-avatar-edit { position:absolute; right:-3px; bottom:-3px; width:17px; height:17px; border-radius:50%; background:var(--surface,#1b1b27); display:flex; align-items:center; justify-content:center; }
+    .cph-avatar-edit { position:absolute; right:0; bottom:0; width:17px; height:17px; border-radius:50%; background:var(--surface,#1b1b27); display:flex; align-items:center; justify-content:center; }
     .cph-avatar-edit svg { width:10px; height:10px; stroke:var(--muted,#9a9aa8); stroke-width:2.2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
     .perfil-datos-overlay { position:fixed; inset:0; z-index:6400; display:none; align-items:flex-end; justify-content:center; background:rgba(0,0,0,.5); }
     .pd-sheet { width:100%; max-width:480px; background:var(--surface,#1b1b27); border-radius:22px 22px 0 0; padding:8px 4px calc(22px + env(safe-area-inset-bottom, 0px)); box-shadow:0 -12px 40px -10px rgba(0,0,0,.5); max-height:88vh; overflow-y:auto; }
