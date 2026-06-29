@@ -33,8 +33,14 @@ a Jesús. Es ~5 min de ejecución.
    el deploy de la app (volver `AUTH_OTP_ENABLED` al gate `?authotp=1`). Diagnosticar
    con calma con el candado apagado.
 
+## ✅ CUTOVER EJECUTADO 2026-06-29 — ver estado en `auth_migration_plan` (memoria)
+Candado RLS aplicado + OTP permanente + verificado (7 tests SQL + 2 logins en vivo).
+Post-cutover, el advisor de seguridad surfació 2 gaps que YA se cerraron:
+- ✅ `beta_invitados` lockeada (tenía policy `USING(true)` → anon leía/escribía la allowlist).
+- ✅ `studio_delete_client(text,text)` legacy (2 args, anon-callable) dropeada.
+
 ## Post-flip (limpieza, sin apuro)
-- [ ] Dropear las funciones legacy de 2 args: `studio_delete_client(text,text)`.
+- [ ] **`studio_update_directory(text,text)`** — anon-callable + valida `p_admin_email` spoofeable (gap del advisor, NO dropeado porque el editor de directorio del Studio legacy podría usarlo). Reescribir validando `auth.uid()` (como `coach_*`) o migrar el editor a una RPC nueva, luego dropear la 2-arg.
 - [ ] Cerrar el caveat de `shouldCreateUser:true` (RPC de elegibilidad pre-send) si se ve abuso.
 - [ ] Sacar el `?authotp=1` de las URLs de prueba / docs.
 - [ ] **Fotos a bucket privado** (deferido): migrar `progress-photos` a privado +

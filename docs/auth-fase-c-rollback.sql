@@ -59,6 +59,9 @@ CREATE POLICY "Allow all on user_logros" ON public.user_logros FOR ALL TO public
 CREATE POLICY usuarios_insert ON public.usuarios FOR INSERT TO public WITH CHECK (true);
 CREATE POLICY usuarios_select ON public.usuarios FOR SELECT TO public USING (true);
 CREATE POLICY usuarios_update ON public.usuarios FOR UPDATE TO public USING (true);
+-- beta_invitados: se lockeó en el cutover (2026-06-29, gap del advisor). Recrear su
+-- policy permisiva para que la registración LEGACY (anon, post-rollback) lea la allowlist.
+CREATE POLICY beta_invitados_all ON public.beta_invitados FOR ALL TO public USING (true) WITH CHECK (true);
 
 -- 4) DROPEAR los helpers de la Fase C (opcional — son inofensivos) ---------
 DROP FUNCTION IF EXISTS public.app_current_uid();
