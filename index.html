@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-0249-fix--textos-legibles---boton-volver-visible-en-la-pantalla-de-invitado--stores-">
+<meta name="app-version" content="20260629-0259-feat--foto-de-perfil-del-usuario--editable-desde-datos-personales-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12760,6 +12760,15 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     .cph-top { display:flex; align-items:center; gap:14px; }
     .cph-avatar { position:relative; width:48px; height:48px; border-radius:14px; background:rgba(128,128,140,.10); background:color-mix(in srgb, var(--accent) 14%, transparent); color:var(--accent); display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:800; flex-shrink:0; cursor:pointer; border:none; padding:0; font-family:inherit; }
     .cph-avatar:active { transform:scale(.96); }
+    .cph-avatar.has-photo { background-size:cover; background-position:center; }
+    .cph-avatar.has-photo #cph-initial { display:none; }
+    .cai-perfil-info-avatar.has-photo, .cai-avatar-preview.has-photo { background-size:cover !important; background-position:center; color:transparent; }
+    /* Editor de foto de perfil en "Mi información" */
+    .cai-avatar-row { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
+    .cai-avatar-preview { width:56px; height:56px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800; color:var(--accent); background:color-mix(in srgb, var(--accent) 16%, transparent); }
+    .cai-avatar-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .cai-avatar-btn { background:rgba(124,106,255,.12); color:var(--accent); border:none; border-radius:9px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; }
+    .cai-avatar-btn.ghost { background:transparent; color:var(--muted); }
     .cph-avatar-edit { position:absolute; right:-3px; bottom:-3px; width:17px; height:17px; border-radius:50%; background:var(--surface,#1b1b27); display:flex; align-items:center; justify-content:center; }
     .cph-avatar-edit svg { width:10px; height:10px; stroke:var(--muted,#9a9aa8); stroke-width:2.2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
     .perfil-datos-overlay { position:fixed; inset:0; z-index:6400; display:none; align-items:flex-end; justify-content:center; background:rgba(0,0,0,.5); }
@@ -13008,6 +13017,14 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       </button>
       <!-- Expanded view: editable fields -->
       <div class="cai-perfil-info-body">
+        <div class="cai-perfil-info-field cai-avatar-row">
+          <div class="cai-avatar-preview" id="mi-info-avatar-preview">—</div>
+          <div class="cai-avatar-actions">
+            <button type="button" class="cai-avatar-btn" onclick="document.getElementById('mi-info-foto-input').click()" data-es="Cambiar foto" data-en="Change photo">Cambiar foto</button>
+            <button type="button" class="cai-avatar-btn ghost" id="mi-info-avatar-remove" onclick="removeAvatarPhoto()" style="display:none" data-es="Quitar" data-en="Remove">Quitar</button>
+          </div>
+          <input type="file" id="mi-info-foto-input" accept="image/*" style="display:none" onchange="onAvatarPicked(event)">
+        </div>
         <div class="cai-perfil-info-field">
           <label data-es="NOMBRE" data-en="NAME">NOMBRE</label>
           <input type="text" id="mi-info-nombre" maxlength="60" autocomplete="name">
@@ -23295,6 +23312,7 @@ async function renderPerfilHeroCard() {
   const isEs = lang === 'es';
   const nombre = (currentUser.nombre || '').trim() || (isEs ? 'Tu perfil' : 'Your profile');
   const av = document.getElementById('cph-initial'); if (av) av.textContent = (nombre[0] || '—').toUpperCase();
+  try { applyUserAvatar(); } catch (e) {}
   const nameEl = document.getElementById('cph-name'); if (nameEl) nameEl.textContent = nombre;
 
   const objLabel = {
@@ -24305,6 +24323,76 @@ function renderMiInfo() {
   if (tEl) tEl.value = currentUser.telefono || '';
   const msg = document.getElementById('mi-info-msg');
   if (msg) { msg.textContent = ''; msg.className = 'cai-perfil-info-msg'; }
+  applyUserAvatar();
+}
+
+// Pinta la foto de perfil (o la inicial del nombre) en los avatares: el hero del
+// Perfil, la fila colapsada de "Mi información" y el preview del editor.
+function applyUserAvatar() {
+  const url = (currentUser && currentUser.avatar_url) ? currentUser.avatar_url : null;
+  const ini = (((currentUser && currentUser.nombre) || '').trim().charAt(0) || '?').toUpperCase();
+  function paint(el, clearText) {
+    if (!el) return;
+    if (url) { el.style.backgroundImage = `url("${url}")`; el.classList.add('has-photo'); if (clearText) el.textContent = ''; }
+    else { el.style.backgroundImage = ''; el.classList.remove('has-photo'); if (clearText) el.textContent = ini; }
+  }
+  // El hero tiene la inicial en un span aparte (#cph-initial) → la pinta el CSS .has-photo.
+  paint(document.querySelector('.cph-avatar'), false);
+  const heroIni = document.getElementById('cph-initial'); if (heroIni && !url) heroIni.textContent = ini;
+  paint(document.getElementById('perfil-info-avatar'), true);
+  paint(document.getElementById('mi-info-avatar-preview'), true);
+  const rm = document.getElementById('mi-info-avatar-remove');
+  if (rm) rm.style.display = url ? 'inline-flex' : 'none';
+}
+
+function onAvatarPicked(ev) {
+  const file = ev.target && ev.target.files && ev.target.files[0];
+  if (ev.target) ev.target.value = '';   // permite re-elegir el mismo archivo
+  if (file) uploadAvatarPhoto(file);
+}
+
+async function uploadAvatarPhoto(file) {
+  if (!currentUser || !sbClient) return;
+  const isEs = lang === 'es';
+  const msg = document.getElementById('mi-info-msg');
+  const setMsg = (t, cls) => { if (msg) { msg.textContent = t; msg.className = 'cai-perfil-info-msg' + (cls ? ' ' + cls : ''); } };
+  setMsg(isEs ? 'Subiendo foto…' : 'Uploading…', '');
+  try {
+    const blob = await compressImage(file, 400, 0.85);   // avatar chico, no necesita full res
+    if (!blob) throw new Error('compress failed');
+    // Path ÚNICO por subida (avatar_<ts>.jpg) → INSERT puro: el bucket permite
+    // INSERT pero NO UPDATE, así que upsert fallaría ("violates RLS"). Bonus: el
+    // path único es su propio cache-bust. El archivo viejo queda huérfano (el
+    // bucket no tiene policy de DELETE; pesa ~1KB comprimido, despreciable).
+    const path = `${currentUser.id}/avatar_${Date.now()}.jpg`;
+    const { error: upErr } = await sbClient.storage.from('progress-photos')
+      .upload(path, blob, { contentType: 'image/jpeg' });
+    if (upErr) throw upErr;
+    const { data: { publicUrl } } = sbClient.storage.from('progress-photos').getPublicUrl(path);
+    const finalUrl = publicUrl;
+    const { error: dbErr } = await sbClient.from('usuarios').update({ avatar_url: finalUrl }).eq('id', currentUser.id);
+    if (dbErr) throw dbErr;
+    currentUser.avatar_url = finalUrl;
+    applyUserAvatar();
+    setMsg(isEs ? '✓ Foto actualizada' : '✓ Photo updated', 'ok');
+    if (typeof trackEvent === 'function') trackEvent('avatar_set', null);
+  } catch (e) {
+    console.error('[avatar] upload', e);
+    setMsg(isEs ? 'No se pudo subir la foto. Probá otra.' : 'Could not upload. Try another.', 'err');
+  }
+}
+
+async function removeAvatarPhoto() {
+  if (!currentUser || !sbClient) return;
+  const isEs = lang === 'es';
+  const msg = document.getElementById('mi-info-msg');
+  try {
+    await sbClient.from('usuarios').update({ avatar_url: null }).eq('id', currentUser.id);
+    sbClient.storage.from('progress-photos').remove([`${currentUser.id}/avatar.jpg`]).catch(() => {});
+    currentUser.avatar_url = null;
+    applyUserAvatar();
+    if (msg) { msg.textContent = isEs ? '✓ Foto quitada' : '✓ Photo removed'; msg.className = 'cai-perfil-info-msg ok'; }
+  } catch (e) { console.error('[avatar] remove', e); }
 }
 
 function togglePerfilInfo() {
