@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-1735-auth-cutover---migracion-de-pre-planes-via-rpc--get-clear-my-migration-">
+<meta name="app-version" content="20260629-1751-fix--chat-por-la-cola-offline--no-se-pierde----cupos-cuenta-solo-role-user">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -14105,7 +14105,10 @@ async function loginOrRegister(email, nombre, authUid = null) {
   const isFounderTenant = effectiveSlug && FOUNDER_TENANT_SLUGS.has(effectiveSlug);
   if (!isFounderTenant) {
     const cap = (tenantCap != null) ? tenantCap : BETA_MAX_USERS;
-    let cntQuery = sbClient.from('usuarios').select('id', { count: 'exact', head: true });
+    // Cuenta SOLO alumnos (role='user'), igual que Studio (getCapacidad). Antes
+    // contaba TODAS las filas (incl. admin/coach) → el login frenaba 1 cupo antes
+    // de lo que Studio mostraba (over-invite → la alumna rebotaba con betaFull).
+    let cntQuery = sbClient.from('usuarios').select('id', { count: 'exact', head: true }).eq('role', 'user');
     if (inviteTenantId) cntQuery = cntQuery.eq('tenant_id', inviteTenantId);
     const { count, error: cntErr } = await cntQuery;
     if (!cntErr && typeof count === 'number' && count >= cap) {
@@ -14654,7 +14657,16 @@ async function saveTrainedDayToSupabase() {
 
 async function saveChatToSupabase(messages, convHistory) {
   if (!sbClient || !currentUser) return;
-  await sbClient.from('historial_chat').upsert({ usuario_id: currentUser.id, fecha: getTodayKey(), mensajes: messages, conversation_history: convHistory }, { onConflict: 'usuario_id,fecha' });
+  // Por la cola offline (syncPush): si se cae la red, encola y reintenta solo
+  // (antes era un upsert directo → el turno de chat se perdía sin conexión, a
+  // diferencia del loop diario peso/comidas que sí recupera). key por día →
+  // dedup latest-wins (cada save manda la conversación completa del día).
+  return syncPush({
+    op: 'upsert', table: 'historial_chat',
+    row: { usuario_id: currentUser.id, fecha: getTodayKey(), mensajes: messages, conversation_history: convHistory },
+    onConflict: 'usuario_id,fecha',
+    key: 'chat_' + getTodayKey(),
+  });
 }
 
 // Loads ALL chat rows for the current user, ordered chronologically.
