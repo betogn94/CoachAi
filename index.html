@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260628-2357-studio--cupo-por-paquete--capacidad----bloqueo-de-invitar-al-tope">
+<meta name="app-version" content="20260629-0034-fix--auto-repeat-de-plan-tambien-cubre-cierre-mid-week--clientas-sin-plan-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -14612,12 +14612,15 @@ async function autoRepeatPlans() {
     if (!sbClient || !currentUser) return false;
     if (currentUser.role && currentUser.role !== 'user') return false;   // no coaches/admins (todos los tenants)
     const wkNow = getISOWeekKey();
-    // Candidatos: plan cerrado, con contenido, de una semana ISO ANTERIOR a la actual.
-    // (Si hubiera un plan de la semana actual sería el último y estaría activo, no
-    // cerrado → no entra. Eso ya descarta el re-clonado.)
+    // Candidatos: plan cerrado con contenido. Incluye el de la SEMANA ACTUAL si lo
+    // cerraron MID-WEEK (antes se exigía semana < actual, asumiendo que un plan de
+    // la semana actual estaría activo — FALSO si cierran a mitad de semana → la
+    // clienta quedaba trabada sin plan hasta el lunes; caso Carolina). El clon nace
+    // con fecha posterior al último cierre → activo → loadCurrentWeekPlans no lo
+    // re-marca cerrado → sin loop.
     const tipos = ['rutina', 'dieta'].filter(t => {
       const p = weeklyPlans[t];
-      return p && p.closed && p.contenido && p.semana_iso && p.semana_iso < wkNow;
+      return p && p.closed && p.contenido && p.semana_iso;
     });
     if (!tipos.length) return false;
     const { data: cierres } = await sbClient.from('cierres_semanales')
