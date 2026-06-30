@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260629-2303-fix-v3--home-sin-backdrop-filter-en-hero-semanas--vecinos-que-contagiaban-el-glitch-">
+<meta name="app-version" content="20260630-1256-fotos--firma-de-urls--etapa-1--bucket-aun-publico-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -20529,6 +20529,34 @@ async function subirFotoDesdeDash(event) {
   }
 }
 
+// ── Firma de fotos (bucket progress-photos → privado) ────────────────────────
+// Convierte las URLs públicas guardadas (url_foto / foto_url / avatar) en URLs
+// FIRMADAS temporales (24h). Dedup por PATH (mismo path → misma firma) para no
+// romper comparaciones por igualdad (p.ej. reciente.url_foto === inicial.url_foto).
+// Si la firma falla, deja la URL original → con el bucket aún público sigue
+// andando (red de seguridad de la Etapa 1). Muta las filas in-place.
+function _photoPathFromUrl(u) {
+  if (!u) return null;
+  const m = String(u).match(/\/progress-photos\/(.+?)(\?|$)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+async function signPhotoRows(rows, fields) {
+  if (!sbClient || !Array.isArray(rows) || !rows.length) return rows;
+  const uniq = new Set();
+  for (const r of rows) for (const f of fields) { const p = _photoPathFromUrl(r && r[f]); if (p) uniq.add(p); }
+  if (!uniq.size) return rows;
+  let byPath = {};
+  try {
+    const { data } = await sbClient.storage.from('progress-photos').createSignedUrls([...uniq], 86400);
+    if (data) for (const d of data) if (d && d.path && d.signedUrl) byPath[d.path] = d.signedUrl;
+  } catch (e) { return rows; }
+  for (const r of rows) for (const f of fields) {
+    const p = _photoPathFromUrl(r && r[f]);
+    if (p && byPath[p]) r[f] = byPath[p];
+  }
+  return rows;
+}
+
 async function loadAndRenderFotos() {
   if (!sbClient || !currentUser) return;
   const { data } = await sbClient.from('fotos_progreso')
@@ -20536,6 +20564,7 @@ async function loadAndRenderFotos() {
     .eq('usuario_id', currentUser.id)
     .order('fecha', { ascending: true });
   fotosProgreso = data || [];
+  await signPhotoRows(fotosProgreso, ['url_foto']);
   renderFotos(fotosProgreso);
 }
 
@@ -20934,6 +20963,7 @@ async function loadCierresSemanales() {
   const { data } = await sbClient.from('cierres_semanales')
     .select('*').eq('usuario_id', currentUser.id)
     .order('semana_num', { ascending: true });
+  await signPhotoRows(data || [], ['foto_url', 'foto_url_espalda']);
   return data || [];
 }
 
@@ -21487,7 +21517,9 @@ async function loadFotosProgreso() {
   const { data } = await sbClient.from('fotos_progreso')
     .select('*').eq('usuario_id', currentUser.id)
     .order('fecha', { ascending: true });
-  return data || [];
+  const rows = data || [];
+  await signPhotoRows(rows, ['url_foto']);
+  return rows;
 }
 
 function openCierreSemana(weekNum) {
@@ -24486,12 +24518,26 @@ function renderMiInfo() {
 
 // Pinta la foto de perfil (o la inicial del nombre) en los avatares: el hero del
 // Perfil, la fila colapsada de "Mi información" y el preview del editor.
-function applyUserAvatar() {
-  let url = (currentUser && currentUser.avatar_url) ? currentUser.avatar_url : null;
+let _avatarSignedCache = { src: null, signed: null };
+async function applyUserAvatar() {
+  let raw = (currentUser && currentUser.avatar_url) ? currentUser.avatar_url : null;
   // Validación: solo una URL https del storage de Supabase. avatar_url es una columna
   // escribible → sin esto, un valor con `")` podría romper el url("...") e inyectar CSS.
-  // Si no matchea, cae a la inicial (no se pinta nada raro).
-  if (url && !/^https:\/\/[a-z0-9.-]+\.supabase\.co\/storage\/v1\/object\/[^"')\s]+$/i.test(url)) url = null;
+  if (raw && !/^https:\/\/[a-z0-9.-]+\.supabase\.co\/storage\/v1\/object\/[^"')\s]+$/i.test(raw)) raw = null;
+  // Firmar (bucket privado) con cache por src → no re-firma en cada render. Si falla,
+  // usa la original (con el bucket aún público sigue andando — Etapa 1).
+  let url = null;
+  if (raw) {
+    if (_avatarSignedCache.src === raw && _avatarSignedCache.signed) { url = _avatarSignedCache.signed; }
+    else {
+      const p = _photoPathFromUrl(raw);
+      if (p && sbClient) {
+        try { const { data } = await sbClient.storage.from('progress-photos').createSignedUrl(p, 86400); url = (data && data.signedUrl) || raw; }
+        catch (e) { url = raw; }
+      } else { url = raw; }
+      _avatarSignedCache = { src: raw, signed: url };
+    }
+  }
   const ini = (((currentUser && currentUser.nombre) || '').trim().charAt(0) || '?').toUpperCase();
   function paint(el, clearText) {
     if (!el) return;

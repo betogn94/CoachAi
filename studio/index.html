@@ -2649,6 +2649,24 @@
       sb.from('notas_coach').select('id,mensaje,created_at,leido,de').eq('usuario_id', uid).order('created_at', { ascending: false }).limit(50),
     ]);
 
+    // Firmar las fotos (bucket progress-photos → privado): el coach las firma con
+    // SU sesión (la policy de storage tiene rama coach). Dedup por path. Si falla,
+    // deja la URL original (con el bucket aún público sigue andando — Etapa 1).
+    const signStudioPhotos = async (rows, fields) => {
+      if (!Array.isArray(rows) || !rows.length) return;
+      const pathOf = (u) => { if (!u) return null; const m = String(u).match(/\/progress-photos\/(.+?)(\?|$)/); return m ? decodeURIComponent(m[1]) : null; };
+      const uniq = new Set();
+      for (const r of rows) for (const f of fields) { const p = pathOf(r && r[f]); if (p) uniq.add(p); }
+      if (!uniq.size) return;
+      const byPath = {};
+      try { const { data } = await sb.storage.from('progress-photos').createSignedUrls([...uniq], 86400); if (data) for (const d of data) if (d && d.path && d.signedUrl) byPath[d.path] = d.signedUrl; }
+      catch (e) { return; }
+      for (const r of rows) for (const f of fields) { const p = pathOf(r && r[f]); if (p && byPath[p]) r[f] = byPath[p]; }
+    };
+    await signStudioPhotos(allCierres.data || [], ['foto_url', 'foto_url_espalda']);
+    await signStudioPhotos(cierres.data || [], ['foto_url', 'foto_url_espalda']);
+    await signStudioPhotos(fotos.data || [], ['url_foto']);
+
     // Re-render datos personales with the full row (the initial paint used
     // the lighter list-query data so sexo/edad/etc were undefined). Same
     // for actividad — session_count / last_active are in both but created_at
