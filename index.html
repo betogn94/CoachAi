@@ -24,7 +24,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260630-1310-fix--activar-notificaciones-bajo-rls--rpc-reasigna-endpoint-del-device-">
+<meta name="app-version" content="20260630-1359-sec--delete-account-exige-token-del-dueno--no-solo-id-email-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -22473,9 +22473,12 @@ async function confirmDeleteAccount() {
   if (btn) { btn.disabled = true; btn.textContent = lang === 'en' ? 'Deleting…' : 'Eliminando…'; }
   if (err) err.textContent = '';
   try {
+    // Mandar el token de sesión → el server verifica que el que borra es el DUEÑO.
+    let _tok = null;
+    try { const { data } = await sbClient.auth.getSession(); _tok = data && data.session && data.session.access_token; } catch (e) {}
     const r = await fetch('/api/delete-account', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(_tok ? { 'Authorization': 'Bearer ' + _tok } : {}) },
       body: JSON.stringify({ usuario_id: currentUser.id, email: (currentUser.email || '').toLowerCase() }),
     });
     const data = await r.json().catch(() => ({}));

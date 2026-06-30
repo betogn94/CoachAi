@@ -6,9 +6,9 @@
 // el resto). `tower_revenue` queda con usuario_id NULL (se conserva el ingreso
 // para contabilidad, desvinculado de la persona).
 //
-// Seguridad (modelo actual, pre-auth-real): guard de origen (solo la app) + match
-// usuario_id <-> email contra la base. Queda a la PAR del login actual (por email,
-// sin password). Cuando entre el auth real (Fase C) se suma verificar auth.uid().
+// Seguridad: guard de origen + verificación de la identidad REAL del que llama (su
+// JWT de sesión OTP → auth.uid() debe ser el DUEÑO de la cuenta). Solo el dueño con
+// sesión válida puede borrarse; no alcanza con conocer usuario_id+email.
 
 import { sb } from './tower/_db.js';
 import { isAllowedOrigin } from './_origin.js';
@@ -61,6 +61,19 @@ export default async function handler(req, res) {
     return res.status(403).json({ ok: false, error: 'forbidden_origin' });
   }
 
+  // Identidad REAL del que llama: su JWT de sesión. Solo el dueño puede borrarse.
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  if (!token) return res.status(401).json({ ok: false, error: 'no_auth' });
+  let callerAuthId = null;
+  try {
+    const ures = await fetch(SUPABASE_URL + '/auth/v1/user', {
+      headers: { apikey: svcKey(), Authorization: 'Bearer ' + token },
+    });
+    if (ures.ok) { const au = await ures.json(); callerAuthId = au && au.id; }
+  } catch (e) { /* cae a 401 abajo */ }
+  if (!callerAuthId) return res.status(401).json({ ok: false, error: 'invalid_token' });
+
   let body = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
   body = body || {};
@@ -76,6 +89,10 @@ export default async function handler(req, res) {
     const u = rows && rows[0];
     if (!u || String(u.email || '').toLowerCase() !== email) {
       return res.status(404).json({ ok: false, error: 'no_match' });
+    }
+    // El que llama DEBE ser el DUEÑO: su auth.uid() = el auth_id de la fila.
+    if (!u.auth_id || u.auth_id !== callerAuthId) {
+      return res.status(403).json({ ok: false, error: 'not_owner' });
     }
     const enc = encodeURIComponent(usuarioId);
 
