@@ -218,6 +218,14 @@ async function extendAccess(email, periodEndUnix) {
 
 // Primera compra → alta del cliente (beta_invitados) + acceso + email de invitación.
 async function handleCheckoutCompleted(session, stripe) {
+  // Guard King Mapa: el Mapa Estético ($19.99) es SOLO el diagnóstico → NO da acceso a
+  // la app (a diferencia del Foundation, que SÍ lo da). Este webhook otorga acceso a
+  // cualquier checkout completado, así que salteamos explícitamente el Mapa por su
+  // metadata. El Foundation (`foundation_king`) y las suscripciones directas siguen normal.
+  if (session.metadata?.product === 'mapa_estetico_king') {
+    console.log('[stripe] checkout de Mapa King ignorado (el Mapa no da acceso):', session.id);
+    return;
+  }
   const email = (session.customer_details?.email || session.customer_email || '').toLowerCase();
   const name  = session.customer_details?.name || null;
   if (!email) return;
