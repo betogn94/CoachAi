@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260703-1905-king-onb-c--plan-mapa-aware--arquetipo-diagnostico-al-prompt-">
+<meta name="app-version" content="20260703-1927-king-onb--frases-blancas---espera-generacion-dieta-rutina">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12379,8 +12379,10 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   .ko-inter .ko-scrim{position:absolute; inset:0; background:linear-gradient(180deg, rgba(10,8,12,.20) 0%, rgba(10,8,12,.05) 32%, rgba(10,8,12,.12) 60%, rgba(10,8,12,.52) 100%)}
   .ko-inter .ko-mid{position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:0 34px; z-index:2}
   .ko-inter .ko-rule{width:34px;height:3px;border-radius:3px;background:var(--ko-coral);margin-bottom:22px;box-shadow:0 0 14px rgba(255,79,123,.7)}
-  .ko-inter .ko-phrase{font-size:26px; line-height:1.26; font-weight:600; letter-spacing:-.01em; text-wrap:balance; text-shadow:0 2px 22px rgba(0,0,0,.4)}
-  .ko-inter .ko-go{position:absolute; bottom:calc(30px + env(safe-area-inset-bottom)); left:0; right:0; text-align:center; z-index:2; font-size:13px; color:rgba(255,255,255,.82); font-weight:500}
+  /* color con !important: los estilos globales del theme (King) pisaban el blanco
+     heredado y la frase salía negra sobre la foto (visto en QA iPhone 2026-07-03). */
+  .ko-inter .ko-phrase{font-size:26px; line-height:1.26; font-weight:600; letter-spacing:-.01em; text-wrap:balance; text-shadow:0 2px 22px rgba(0,0,0,.55); color:#fff !important}
+  .ko-inter .ko-go{position:absolute; bottom:calc(30px + env(safe-area-inset-bottom)); left:0; right:0; text-align:center; z-index:2; font-size:13px; color:rgba(255,255,255,.85) !important; font-weight:500; text-shadow:0 1px 10px rgba(0,0,0,.5)}
   .ko-final{padding:0 34px; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; background:var(--ko-cream)}
   .ko-final h1{font-size:29px;font-weight:700;letter-spacing:-.02em;color:var(--ko-ink);margin:0 0 14px}
   .ko-final p{font-size:14.5px;line-height:1.55;color:var(--ko-muted);margin:0;max-width:26ch}
@@ -14251,9 +14253,25 @@ function kingOnbFinish() {
   console.info('[king-onb] handoff:', JSON.stringify({ objetivo: selections.objetivo, nivel: selections.nivel, dias: selectedDias, comidas: selectedComidas, lesiones: selectedLesiones, dieta: selectedDieta }));
 
   // Handoff al motor de siempre. Al resolver, cerramos el overlay King para revelar
-  // la app (o su pantalla de carga de plan) que quedó armada por detrás.
+  // la app que quedó armada por detrás — pero recién cuando DIETA + RUTINA
+  // terminaron de generarse: la pantalla "Armando tu plan…" ES la sala de espera
+  // (pedido de Beto: darle tiempo al plan a generarse bien, sin apuros).
   const closeOv = () => { const ov = document.getElementById('king-onb'); if (ov) ov.classList.remove('ko-open'); };
-  Promise.resolve(launchCoach()).then(closeOv).catch(e => { console.error('[king-onb] launchCoach:', e); closeOv(); });
+  // startPlanPrefetch = el mismo motor de pre-generación del onboarding clásico
+  // (idempotente + guard de migradas). Corre en paralelo con launchCoach; el
+  // prompt ya es Mapa-aware porque _kingMapaCtx + selections quedaron seteados.
+  const genP = (typeof startPlanPrefetch === 'function')
+    ? Promise.resolve(startPlanPrefetch()).then(p => p || null).catch(() => null)
+    : Promise.resolve(null);
+  const launchP = Promise.resolve(launchCoach()).catch(e => console.error('[king-onb] launchCoach:', e));
+  const timeoutP = new Promise(r => setTimeout(r, 90000));   // red de seguridad: jamás dejarla clavada
+  Promise.race([
+    Promise.allSettled([launchP, genP.then(p => p)]).then(async () => {
+      // Esperar la generación real (allSettled de dieta+rutina), si existe.
+      try { if (_planPrefetch) await _planPrefetch; } catch (e) {}
+    }),
+    timeoutP,
+  ]).then(() => setTimeout(closeOv, 500));   // medio segundo para que la app pinte detrás
 }
 
 // Selección de chips: single (días/comidas) y multi con "Ninguna" exclusiva.
