@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260703-1927-king-onb--frases-blancas---espera-generacion-dieta-rutina">
+<meta name="app-version" content="20260703-2054-perfil-king-a--heroe-del-indice-de-armonia---flag-persist">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -13027,6 +13027,60 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     .cph-racha-flame { width:22px; height:22px; flex-shrink:0; transform-origin:50% 92%; animation:hscFlameFlicker 0.85s ease-in-out infinite; filter:drop-shadow(0 1px 3px rgba(255,120,0,0.45)); }
     @media (prefers-reduced-motion: reduce) { .cph-racha-flame { animation:none; } }
   </style>
+  <!-- ============================================================
+       PERFIL KING — héroe del Índice de Armonía (gated theme-king + ?indice=1).
+       Reemplaza al héroe de peso para King. Namespaced kp-* (cero colisión).
+       Sin el flag / no-King queda oculto → el Perfil clásico sale IDÉNTICO.
+       Diseño aprobado por Beto (mockup king-perfil-mockup.html): iOS-native,
+       coral SOLO en el anillo + la flechita del delta.
+       ============================================================ -->
+  <style>
+    .kp-hero{margin:8px 18px 16px; padding:20px; background:var(--card,#fff); border:1px solid var(--border,#ECECF1); border-radius:20px; box-shadow:var(--card-shadow,0 2px 10px rgba(20,15,10,.04))}
+    .kp-eyebrow{font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted,#6B6B80);margin-bottom:12px}
+    .kp-top{display:flex;align-items:center;gap:12px}
+    .kp-avatar{width:44px;height:44px;border-radius:50%;background:var(--surface2,#F3F3F6);border:none;display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--text,#1A1A26);font-size:17px;cursor:pointer;padding:0}
+    .kp-id{flex:1;min-width:0}
+    .kp-name{font-size:17px;font-weight:600;color:var(--text,#1A1A26);line-height:1.1;letter-spacing:-.01em}
+    .kp-chip{display:inline-block;margin-top:5px;font-size:11px;font-weight:500;color:var(--muted,#6B6B80);background:var(--surface2,#F3F3F6);border-radius:20px;padding:3px 10px;letter-spacing:.02em}
+    .kp-ring-wrap{display:flex;align-items:center;gap:22px;margin:16px 2px 4px}
+    .kp-ring{position:relative;width:116px;height:116px;flex:0 0 auto}
+    .kp-ring svg{width:116px;height:116px;display:block}
+    .kp-ring-track{fill:none;stroke:#F0F0F3;stroke-width:9}
+    .kp-ring-fill{fill:none;stroke:var(--accent,#FF4F7B);stroke-width:9;stroke-linecap:round;transition:stroke-dashoffset .8s cubic-bezier(.4,0,.2,1)}
+    .kp-ring-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .kp-ring-num b{font-size:36px;font-weight:700;color:var(--text,#1A1A26);letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+    .kp-ring-num span{font-size:10px;font-weight:600;color:var(--muted,#6B6B80);letter-spacing:.16em;text-transform:uppercase;margin-top:4px}
+    .kp-meta{flex:1;min-width:0}
+    .kp-delta{font-size:13.5px;font-weight:600;color:var(--text,#1A1A26)}
+    .kp-delta .kp-up{color:var(--accent,#FF4F7B);font-weight:700}
+    .kp-dist{font-size:13px;color:var(--muted,#6B6B80);line-height:1.55;margin-top:8px}
+    .kp-dist b{color:var(--text,#1A1A26);font-weight:600}
+    .kp-foot{display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:14px;border-top:1px solid var(--border,#ECECF1)}
+    .kp-lab{font-size:12.5px;color:var(--muted,#6B6B80)}
+    .kp-val{font-size:14px;font-weight:600;color:var(--text,#1A1A26);font-variant-numeric:tabular-nums}
+  </style>
+  <div class="kp-hero" id="perfil-hero-king" style="display:none">
+    <div class="kp-eyebrow">Método King</div>
+    <div class="kp-top">
+      <button class="kp-avatar" type="button" onclick="openPerfilDatos()" aria-label="Ver y editar tus datos"><span id="kph-initial">—</span></button>
+      <div class="kp-id"><div class="kp-name" id="kph-name">—</div><span class="kp-chip" id="kph-week">—</span></div>
+    </div>
+    <div class="kp-ring-wrap">
+      <div class="kp-ring">
+        <svg viewBox="0 0 116 116" aria-label="Índice de Armonía">
+          <circle class="kp-ring-track" cx="58" cy="58" r="51"/>
+          <circle class="kp-ring-fill" id="kph-ring" cx="58" cy="58" r="51" transform="rotate(-90 58 58)"/>
+        </svg>
+        <div class="kp-ring-num"><b id="kph-indice">—</b><span>Armonía</span></div>
+      </div>
+      <div class="kp-meta">
+        <div class="kp-delta" id="kph-delta"></div>
+        <div class="kp-dist" id="kph-dist"></div>
+      </div>
+    </div>
+    <div class="kp-foot"><span class="kp-lab">Peso actual</span><span class="kp-val" id="kph-weight">—</span></div>
+  </div>
+
   <div class="cai-perfil-hero" id="perfil-hero">
     <div class="cph-top">
       <button class="cph-avatar" type="button" onclick="openPerfilDatos()" aria-label="Ver y editar tus datos">
@@ -22867,8 +22921,12 @@ function playHomeCascade(wrapper) {
 //   Fórmula validada con Daniel (2026-06-24).
 // ============================
 const KING_INDICE_FLAG = (() => {
-  try { return new URLSearchParams(window.location.search).get('indice') === '1'; }
-  catch { return false; }
+  try {
+    const v = new URLSearchParams(window.location.search).get('indice');
+    if (v === '1') { try { localStorage.setItem('coachai_indice', '1'); } catch {} return true; }
+    if (v === '0') { try { localStorage.removeItem('coachai_indice'); } catch {} return false; }
+    return localStorage.getItem('coachai_indice') === '1';   // persistido → sobrevive el reload del login
+  } catch { return false; }
 })();
 
 function computeIndiceArmonia(cintura, cadera, hombros) {
@@ -23986,6 +24044,48 @@ function renderPerfilHeaderSub() {
 // Legacy back-compat shim (old renderPerfilHero name still referenced inside saveMiInfo).
 function renderPerfilHero() { renderPerfilHeaderSub(); renderPerfilHeroCard().catch(() => {}); }
 
+// PERFIL KING: pinta el héroe del Índice de Armonía (anillo + delta + distancia).
+// Lee el HISTORIAL de king_medidas (para el delta desde la 1ª medición). Reusa la
+// fórmula computeIndiceArmonia via el campo `indice` ya guardado por medición.
+async function renderPerfilKingHero() {
+  if (!currentUser || !sbClient) return;
+  const $ = (id) => document.getElementById(id);
+  const nombre = currentUser.nombre || '—';
+  if ($('kph-name')) $('kph-name').textContent = nombre;
+  if ($('kph-initial')) $('kph-initial').textContent = (String(nombre).trim()[0] || '—').toUpperCase();
+  const semanas = currentUser.created_at ? Math.max(1, Math.floor((Date.now() - new Date(currentUser.created_at)) / (7 * 864e5)) + 1) : 1;
+  if ($('kph-week')) $('kph-week').textContent = (lang === 'es') ? `Semana ${semanas}` : `Week ${semanas}`;
+  if ($('kph-weight')) $('kph-weight').textContent = currentUser.peso ? `${currentUser.peso} kg` : '—';
+
+  const ring = $('kph-ring'), num = $('kph-indice'), delta = $('kph-delta'), dist = $('kph-dist');
+  const CIRC = 2 * Math.PI * 51;   // ~320.4
+  if (ring) ring.style.strokeDasharray = CIRC;
+  let rows = [];
+  try {
+    const { data } = await sbClient.from('king_medidas').select('indice,fecha,created_at')
+      .eq('usuario_id', currentUser.id).order('fecha', { ascending: true }).order('created_at', { ascending: true });
+    rows = (data || []).filter(r => r.indice != null);
+  } catch (e) {}
+  if (!rows.length) {
+    if (num) num.textContent = '—';
+    if (ring) ring.style.strokeDashoffset = CIRC;
+    if (delta) delta.textContent = '';
+    if (dist) dist.innerHTML = 'Todavía no armaste tu Índice. Tocá <b>Actualizar mis medidas</b> abajo para tu primera medición.';
+    return;
+  }
+  const idx = Math.round(rows[rows.length - 1].indice);
+  const ini = Math.round(rows[0].indice);
+  const d = idx - ini;
+  if (num) num.textContent = idx;
+  if (ring) ring.style.strokeDashoffset = CIRC * (1 - Math.max(0, Math.min(100, idx)) / 100);
+  if (delta) {
+    delta.innerHTML = (rows.length > 1 && d !== 0)
+      ? `<span class="kp-up">${d > 0 ? '↑' : '↓'}</span> ${d > 0 ? '+' : ''}${d} desde tu inicio`
+      : 'Tu primera medición registrada';
+  }
+  if (dist) dist.innerHTML = `Estás a <b>${100 - idx} puntos</b> de tu silueta <b>reloj de arena</b>.`;
+}
+
 // HERO del Perfil: nombre + avatar + objetivo + semana del proceso + peso con el
 // cambio desde el inicio (el cambio motiva más que el número absoluto). El peso
 // inicial/actual sale de progreso_peso (primera vs última pesada); si no hay
@@ -24424,7 +24524,15 @@ async function renderPerfil() {
   if (!currentUser) return;
   // Render the header subtitle immediately from currentUser (no network needed)
   renderPerfilHeaderSub();
-  renderPerfilHeroCard().catch(() => {});   // hero card (nombre + objetivo + semana + peso)
+  // King (Índice): reemplaza el héroe de peso por el del Índice de Armonía (gated
+  // theme-king + ?indice=1). Sin el flag / no-King → héroe clásico, Perfil IDÉNTICO.
+  if (document.body.classList.contains('theme-king') && typeof KING_INDICE_FLAG !== 'undefined' && KING_INDICE_FLAG) {
+    const gh = document.getElementById('perfil-hero'); if (gh) gh.style.display = 'none';
+    const kh = document.getElementById('perfil-hero-king'); if (kh) kh.style.display = 'block';
+    renderPerfilKingHero().catch(() => {});
+  } else {
+    renderPerfilHeroCard().catch(() => {});   // hero card clásico (nombre + objetivo + semana + peso)
+  }
   renderPerfilProgreso().catch(() => {});   // sección de progreso (curva de peso + registro)
   maybeShowPesoPrompt().catch(() => {});    // empujón semanal al peso (post-cierre)
   // Orden emocional-primero: bajar "Mi plan de la semana" al fondo (después de
