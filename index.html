@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260703-2133-deploy">
+<meta name="app-version" content="20260703-2138-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -13049,9 +13049,11 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     .kp-hero{margin:8px 18px 16px; padding:20px; background:var(--card,#fff); border:1px solid var(--border,#ECECF1); border-radius:20px; box-shadow:var(--card-shadow,0 2px 10px rgba(20,15,10,.04))}
     .kp-eyebrow{font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted,#6B6B80);margin-bottom:12px}
     .kp-top{display:flex;align-items:center;gap:12px}
-    .kp-avatar{width:44px;height:44px;border-radius:50%;background:var(--surface2,#F3F3F6);border:none;display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--text,#1A1A26);font-size:17px;cursor:pointer;padding:0;overflow:hidden}
+    .kp-avatar{position:relative;width:44px;height:44px;border-radius:50%;background:var(--surface2,#F3F3F6);border:none;display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--text,#1A1A26);font-size:17px;cursor:pointer;padding:0}
     .kp-avatar.has-photo{background-size:cover;background-position:center}
     .kp-avatar.has-photo #kph-initial{display:none}
+    .kp-avatar-edit{position:absolute;right:-1px;bottom:-1px;width:17px;height:17px;border-radius:50%;background:var(--card,#fff);box-shadow:0 1px 3px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center}
+    .kp-avatar-edit svg{width:9px;height:9px;stroke:var(--muted,#6B6B80);stroke-width:2.4;fill:none;stroke-linecap:round;stroke-linejoin:round}
     .kp-id{flex:1;min-width:0}
     .kp-name{font-size:17px;font-weight:600;color:var(--text,#1A1A26);line-height:1.1;letter-spacing:-.01em}
     .kp-chip{display:inline-block;margin-top:5px;font-size:11px;font-weight:500;color:var(--muted,#6B6B80);background:var(--surface2,#F3F3F6);border-radius:20px;padding:3px 10px;letter-spacing:.02em}
@@ -13075,7 +13077,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   <div class="kp-hero" id="perfil-hero-king" style="display:none">
     <div class="kp-eyebrow">Método King</div>
     <div class="kp-top">
-      <button class="kp-avatar" type="button" onclick="openPerfilDatos()" aria-label="Ver y editar tus datos"><span id="kph-initial">—</span></button>
+      <button class="kp-avatar" type="button" onclick="openPerfilDatos()" aria-label="Ver y editar tus datos"><span id="kph-initial">—</span><span class="kp-avatar-edit" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span></button>
       <div class="kp-id"><div class="kp-name" id="kph-name">—</div><span class="kp-chip" id="kph-week">—</span></div>
     </div>
     <div class="kp-ring-wrap">
