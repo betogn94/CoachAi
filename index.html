@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260703-1858-king-onb-b--rutear-al-login---leer-king-intake">
+<meta name="app-version" content="20260703-1905-king-onb-c--plan-mapa-aware--arquetipo-diagnostico-al-prompt-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -14202,6 +14202,23 @@ function _koDeriveObjetivo(m) {
 function _koDiasArray(n) {
   return ({ 2: ['lun', 'jue'], 3: ['lun', 'mie', 'vie'], 4: ['lun', 'mar', 'jue', 'vie'], 5: ['lun', 'mar', 'mie', 'jue', 'vie'], 6: ['lun', 'mar', 'mie', 'jue', 'vie', 'sab'] })[n] || ['lun', 'mie', 'vie'];
 }
+// Incremento C: bloque del Mapa para inyectar en el prompt del coach (King). Vacío
+// si no hay Mapa (window._kingMapaCtx lo setea kingOnbFinish al generar el plan).
+function _koMapaPromptBlock() {
+  const m = (typeof window !== 'undefined') ? window._kingMapaCtx : null;
+  if (!m) return '';
+  const arqName = {
+    triangulo: 'Triángulo (base inferior dominante, falta tren superior)',
+    invertido: 'Triángulo invertido (tren superior dominante, faltan glúteos/cadera)',
+    rectangulo: 'Rectángulo (proporcionada pero sin contraste, falta cintura visual)',
+    reloj_incompleto: 'Reloj de arena incompleto (buena base, faltan zonas puntuales)'
+  }[_koNormArq(m.arquetipo)] || 'Reloj de arena incompleto';
+  const d = m.diagnostico || {};
+  const line = (label, v) => (v ? `\n- ${label}: ${String(v).trim()}` : '');
+  return `\n\nCONTEXTO DEL MAPA ESTÉTICO KING (diagnóstico de la clienta — ALINEÁ el entreno y la nutrición a esto):
+- Estructura: ${arqName}${line('Fortaleza', d.primary_strength)}${line('Cuello de botella (PRIORIDAD #1)', d.primary_bottleneck)}${line('Error a evitar', d.common_mistake)}${line('Próximo paso estratégico', d.next_step)}
+El método KING construye la silueta reloj de arena: se SUMA músculo donde falta (glúteos/hombros según el arquetipo), NO se resta. Priorizá el cuello de botella en el entrenamiento y sostené el superávit en la nutrición, salvo que el objetivo declarado sea "definir".`;
+}
 
 function kingOnbFinish() {
   _koData.lesiones = _koReadMulti('ko-lesiones', 'ko-lesiones-otra');
@@ -18227,7 +18244,7 @@ NUTRICIÓN:
 - Restricciones: ${dieta}
 - Alergias: ${alergias}
 - Comidas por día: ${selectedComidas || 'no especificado'}
-- No le gusta: ${noDislike}
+- No le gusta: ${noDislike}${_koMapaPromptBlock()}
 
 REGLAS IMPORTANTES:
 - Siempre usá el nombre de la persona
