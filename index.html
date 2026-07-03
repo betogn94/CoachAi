@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260703-2054-perfil-king-a--heroe-del-indice-de-armonia---flag-persist">
+<meta name="app-version" content="20260703-2128-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12003,6 +12003,14 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     .king-ind-bar-fill { height:100%; background:var(--accent); border-radius:4px; transition:width .7s cubic-bezier(.32,.72,0,1); }
     .king-ind-cta { margin-top:18px; width:100%; padding:12px; border:none; border-radius:13px; background:var(--accent); color:#fff; font-weight:700; font-size:13.5px; letter-spacing:.3px; box-shadow:var(--accent-shadow); cursor:pointer; font-family:inherit; }
     .king-ind-cta:active { transform:scale(.985); }
+    /* Card desplegable: plegada = anillo + gap; desplegada = medidores + CTA */
+    .king-ind-top { cursor:pointer; -webkit-tap-highlight-color:transparent; }
+    .king-ind-chev { width:20px; height:20px; flex-shrink:0; color:var(--muted); transition:transform .38s cubic-bezier(.32,.72,0,1); }
+    .king-indice-card.is-open .king-ind-chev { transform:rotate(180deg); }
+    .king-ind-expand { max-height:0; opacity:0; overflow:hidden; transition:max-height .42s cubic-bezier(.32,.72,0,1), opacity .3s ease; }
+    .king-indice-card.is-open .king-ind-expand { max-height:440px; opacity:1; }
+    /* King reform: el Índice reemplaza al hero de entrenamientos en Home */
+    body.king-reform #home-hero-entrenos { display:none !important; }
     #king-ind-empty { text-align:center; padding:6px 4px 2px; }
     .king-ind-empty-ico { font-size:30px; }
     .king-ind-empty-title { font-size:16px; font-weight:800; color:var(--text); margin-top:8px; }
@@ -12022,7 +12030,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     <div class="king-ind-eyebrow">tu mapa estético</div>
 
     <div id="king-ind-body">
-      <div class="king-ind-top">
+      <div class="king-ind-top" id="king-ind-toggle" role="button" tabindex="0" aria-expanded="false" onclick="toggleKingIndice()">
         <div class="king-ind-ring">
           <svg viewBox="0 0 110 110">
             <circle class="king-ind-ring-track" cx="55" cy="55" r="48"/>
@@ -12037,23 +12045,26 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
           <div class="king-ind-title">Índice de Armonía</div>
           <div class="king-ind-gap" id="king-ind-gap">—</div>
         </div>
+        <svg class="king-ind-chev" id="king-ind-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
       </div>
 
-      <div class="king-ind-meters">
-        <div>
-          <div class="king-ind-meter-top"><span>curva inferior</span><span class="king-ind-meter-val" id="king-m1-v">0</span></div>
-          <div class="king-ind-bar"><div class="king-ind-bar-fill" id="king-m1-bar" style="width:0%"></div></div>
+      <div class="king-ind-expand" id="king-ind-expand">
+        <div class="king-ind-meters">
+          <div>
+            <div class="king-ind-meter-top"><span>curva inferior</span><span class="king-ind-meter-val" id="king-m1-v">0</span></div>
+            <div class="king-ind-bar"><div class="king-ind-bar-fill" id="king-m1-bar" style="width:0%"></div></div>
+          </div>
+          <div>
+            <div class="king-ind-meter-top"><span>curva superior</span><span class="king-ind-meter-val" id="king-m2-v">0</span></div>
+            <div class="king-ind-bar"><div class="king-ind-bar-fill" id="king-m2-bar" style="width:0%"></div></div>
+          </div>
+          <div>
+            <div class="king-ind-meter-top"><span>simetría</span><span class="king-ind-meter-val" id="king-m3-v">0</span></div>
+            <div class="king-ind-bar"><div class="king-ind-bar-fill" id="king-m3-bar" style="width:0%"></div></div>
+          </div>
         </div>
-        <div>
-          <div class="king-ind-meter-top"><span>curva superior</span><span class="king-ind-meter-val" id="king-m2-v">0</span></div>
-          <div class="king-ind-bar"><div class="king-ind-bar-fill" id="king-m2-bar" style="width:0%"></div></div>
-        </div>
-        <div>
-          <div class="king-ind-meter-top"><span>simetría</span><span class="king-ind-meter-val" id="king-m3-v">0</span></div>
-          <div class="king-ind-bar"><div class="king-ind-bar-fill" id="king-m3-bar" style="width:0%"></div></div>
-        </div>
+        <button class="king-ind-cta" onclick="openMedidaCapture()">Actualizar mis medidas</button>
       </div>
-      <button class="king-ind-cta" onclick="openMedidaCapture()">Actualizar mis medidas</button>
     </div>
 
     <div id="king-ind-empty" style="display:none">
@@ -22982,6 +22993,8 @@ async function renderKingIndice() {
   const isKing = document.body.classList.contains('theme-king');
   if (!isKing || !KING_INDICE_FLAG) { card.style.display = 'none'; return; }
   card.style.display = 'block';
+  // King reform: el Índice es el hero de Home → oculta la card de entrenamientos.
+  document.body.classList.add('king-reform');
   const body = document.getElementById('king-ind-body');
   const empty = document.getElementById('king-ind-empty');
   let m = null;
@@ -22995,6 +23008,15 @@ async function renderKingIndice() {
   if (body) body.style.display = 'block';
   const r = computeIndiceArmonia(m.cintura, m.cadera, m.hombros);
   if (r) paintIndiceCard(r);
+}
+
+// Despliega/pliega la card del Índice: plegada = anillo + gap; abierta = medidores + CTA.
+function toggleKingIndice() {
+  const card = document.getElementById('king-indice-card');
+  if (!card) return;
+  const open = card.classList.toggle('is-open');
+  const t = document.getElementById('king-ind-toggle');
+  if (t) t.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
 function openMedidaCapture() {
