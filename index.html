@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260703-1827-king-onb--fix-barra-ios-compositing---fotos-gym-a-c">
+<meta name="app-version" content="20260703-1844-king-onb-a--wiring-finish--launchcoach---derivaciones-mapa">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -14069,10 +14069,14 @@ const KING_ONB_ENABLED = (() => {
 const KO_STEPS_TOTAL = 6;
 let _koIndex = 0;
 let _koData = { edad: null, peso: null, altura: null, dias: null, lesiones: [], comidas: null, dieta: [] };
+let _koMapa = null;    // { arquetipo, quiz_respuestas, diagnostico } del king_intake. Null = sin Mapa → defaults.
+let _koNombre = '';    // nombre de la clienta (del login / king_intake), para el handoff a launchCoach.
 
-function kingOnbOpen(nombre) {
+function kingOnbOpen(nombre, mapa) {
   const ov = document.getElementById('king-onb');
   if (!ov) return;
+  _koNombre = (nombre || '').trim();
+  if (mapa) _koMapa = mapa;   // { arquetipo, quiz_respuestas, diagnostico } — lo pasa proceedAfterAuth (incremento B)
   // Saludo personalizado si tenemos el nombre (del login / king_intake).
   if (nombre) {
     const sub = document.getElementById('ko-intro-sub');
@@ -14166,12 +14170,73 @@ function _koReadMulti(groupId, otraId) {
   return vals;
 }
 
+// ── Derivaciones desde el Mapa (esquema confirmado por Lovable 2026-07-03) ──
+function _koNormArq(a) {
+  let x = String(a || '').toLowerCase().replace(/-/g, '_');
+  if (x === 'reloj_arena') x = 'reloj_incompleto';                       // legacy con guión
+  return ['triangulo', 'invertido', 'rectangulo', 'reloj_incompleto'].includes(x) ? x : 'reloj_incompleto';
+}
+// nivel app (principiante/intermedio/avanzado) ← q3_experience
+function _koDeriveNivel(m) {
+  const e = m && m.quiz_respuestas ? String(m.quiz_respuestas.q3_experience || '').toLowerCase() : '';
+  if (e === 'gt3') return 'avanzado';
+  if (e === '1to3') return 'intermedio';
+  return 'principiante';   // nunca/lt6/6to12/desconocido → base primero (método King)
+}
+// objetivo entrenable (definir/volumen) ← q2_goal + arquetipo. Regla de Lovable:
+// ~85% construye (el hourglass se construye); "definir" solo si lo elige explícito
+// Y ya tiene base muscular (no principiante) y el arquetipo no exige construir.
+function _koDeriveObjetivo(m) {
+  const q = (m && m.quiz_respuestas) || {};
+  const goal = String(q.q2_goal || '').toLowerCase();
+  const arq = _koNormArq(m && m.arquetipo);
+  const exp = String(q.q3_experience || '').toLowerCase();
+  const sinBase = (exp === 'nunca' || exp === 'lt6' || exp === '6to12');
+  if (goal === 'definir') {
+    if (sinBase || arq === 'rectangulo' || arq === 'invertido') return 'volumen';  // override: primero construir
+    return 'definir';
+  }
+  return 'volumen';   // gluteos/piernas/reloj/cintura/femenina/segura → construcción
+}
+// N días → días bien espaciados (recuperación)
+function _koDiasArray(n) {
+  return ({ 2: ['lun', 'jue'], 3: ['lun', 'mie', 'vie'], 4: ['lun', 'mar', 'jue', 'vie'], 5: ['lun', 'mar', 'mie', 'jue', 'vie'], 6: ['lun', 'mar', 'mie', 'jue', 'vie', 'sab'] })[n] || ['lun', 'mie', 'vie'];
+}
+
 function kingOnbFinish() {
   _koData.lesiones = _koReadMulti('ko-lesiones', 'ko-lesiones-otra');
   _koData.dieta = _koReadMulti('ko-dieta', 'ko-dieta-otra');
-  // Incremento 1: solo capturamos. El wiring real (selections + saveProfile +
-  // launchCoach + lectura de king_intake) es el próximo incremento.
-  console.info('[king-onb] captured:', JSON.stringify(_koData));
+
+  // Enchufe al motor: llenamos los MISMOS campos + estado que lee launchCoach,
+  // derivando objetivo+nivel del Mapa. launchCoach NO se toca (guarda perfil +
+  // genera plan + entra a la app igual que el onboarding normal).
+  const setV = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  setV('f-nombre', _koNombre || (currentUser && currentUser.nombre) || '');
+  setV('f-edad', _koData.edad != null ? String(_koData.edad) : '');
+  setV('f-peso', _koData.peso != null ? String(_koData.peso) : '');
+  setV('f-altura', _koData.altura != null ? String(_koData.altura) : '');
+  setV('f-sexo', 'femenino');            // King = transformación estética femenina
+  setV('f-actividad', 'moderado');        // no se pregunta → default sensato
+  setV('f-lugar', 'gimnasio_completo');   // King asume gimnasio
+  setV('f-nodislike', '');
+
+  selections.objetivo = _koDeriveObjetivo(_koMapa);
+  selections.nivel    = _koDeriveNivel(_koMapa);
+  selectedDias        = _koDiasArray(_koData.dias);
+  selectedLesiones    = (_koData.lesiones || []).slice();
+  selectedDieta       = (_koData.dieta || []).slice();
+  selectedAlergias    = [];               // las alergias van dentro de "restricciones" (dieta)
+  selectedComidas     = _koData.comidas != null ? String(_koData.comidas) : '';
+
+  // Contexto del Mapa para el plan Mapa-aware (lo lee buildSystemPrompt — incremento C).
+  window._kingMapaCtx = _koMapa;
+
+  console.info('[king-onb] handoff:', JSON.stringify({ objetivo: selections.objetivo, nivel: selections.nivel, dias: selectedDias, comidas: selectedComidas, lesiones: selectedLesiones, dieta: selectedDieta }));
+
+  // Handoff al motor de siempre. Al resolver, cerramos el overlay King para revelar
+  // la app (o su pantalla de carga de plan) que quedó armada por detrás.
+  const closeOv = () => { const ov = document.getElementById('king-onb'); if (ov) ov.classList.remove('ko-open'); };
+  Promise.resolve(launchCoach()).then(closeOv).catch(e => { console.error('[king-onb] launchCoach:', e); closeOv(); });
 }
 
 // Selección de chips: single (días/comidas) y multi con "Ninguna" exclusiva.
