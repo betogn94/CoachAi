@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#141317">
+<title>Onboarding King — Mockup</title>
+<style>
+  html,body{margin:0;padding:0;background:#141317}
+  :root{
+    --cream:#F3F1EB;
+    --card:#FFFFFF;
+    --ink:#1A1917;
+    --muted:#8C877E;
+    --line:#E4E0D6;
+    --coral:#FF4F7B;
+    --coral-deep:#E03A6F;
+    --stage:#141317;
+    --sys:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  .wrap{
+    min-height:100dvh; background:
+      radial-gradient(120% 90% at 50% -10%, #26232b 0%, transparent 55%),
+      var(--stage);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:18px; padding:26px 16px; font-family:var(--sys); color:#fff;
+  }
+  .cap{display:flex;align-items:center;gap:9px;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:#9a958c;font-weight:600}
+  .cap .dot{width:7px;height:7px;border-radius:50%;background:var(--coral);box-shadow:0 0 10px rgba(255,79,123,.7)}
+
+  .device{
+    position:relative; width:min(388px,92vw); aspect-ratio:388/812;
+    background:#0c0c0e; border-radius:52px; padding:11px;
+    box-shadow:0 40px 90px -30px rgba(0,0,0,.8), 0 0 0 2px #2a2830, inset 0 0 0 1px #000;
+  }
+  .screen-area{position:relative; width:100%; height:100%; border-radius:42px; overflow:hidden; background:var(--cream)}
+  .viewport{position:absolute; inset:0; overflow:hidden}
+  .track{display:flex; height:100%; width:100%; transition:transform .46s cubic-bezier(.36,.66,.32,1)}
+  .screen{position:relative; min-width:100%; height:100%; display:flex; flex-direction:column}
+
+  .statusbar{position:absolute; top:0; left:0; right:0; height:46px; z-index:6;
+    display:flex; align-items:center; justify-content:space-between; padding:0 28px 0 30px;
+    font-size:14px; font-weight:600; color:var(--ink); pointer-events:none}
+  .statusbar .r{display:flex; gap:6px; align-items:center; font-size:12px; letter-spacing:.02em}
+  .notch{position:absolute; top:9px; left:50%; transform:translateX(-50%); width:104px; height:26px; background:#0c0c0e; border-radius:16px; z-index:7}
+  .device.dark .statusbar{color:#fff}
+
+  .topbar{position:absolute; top:46px; left:0; right:0; z-index:6; padding:6px 22px 0; display:flex; align-items:center; gap:14px}
+  .back{width:30px;height:30px;flex:0 0 auto;border:none;background:transparent;cursor:pointer;color:var(--ink);
+    display:flex;align-items:center;justify-content:center;transition:opacity .3s;border-radius:50%}
+  .device.dark .back{color:#fff}
+  .back:focus-visible{outline:2px solid var(--coral);outline-offset:2px}
+  .prog{flex:1; height:3px; background:var(--line); border-radius:3px; overflow:hidden; transition:opacity .3s}
+  .prog i{display:block; height:100%; width:14%; background:var(--coral); border-radius:3px; transition:width .46s cubic-bezier(.36,.66,.32,1)}
+
+  .q{padding:104px 30px 30px; height:100%; display:flex; flex-direction:column; background:var(--cream)}
+  .q h1{font-size:29px; line-height:1.14; font-weight:700; letter-spacing:-.02em; color:var(--ink); margin:0 0 12px; text-wrap:balance}
+  .q .sub{font-size:14.5px; line-height:1.5; color:var(--muted); margin:0; max-width:31ch}
+  .q .body{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:12px; margin-top:30px}
+  .q.center .body{justify-content:center; margin-top:0}
+
+  .field{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:13px 18px; box-shadow:0 2px 10px rgba(20,15,10,.03)}
+  .field label{display:block; font-size:11px; letter-spacing:.03em; color:var(--muted); font-weight:600; margin-bottom:2px}
+  .field .row{display:flex; align-items:baseline; gap:8px}
+  .field input{border:none; outline:none; background:transparent; font-family:var(--sys); font-size:20px; font-weight:600; color:var(--ink); width:100%; padding:0}
+  .field .unit{font-size:13px; color:var(--muted); font-weight:600}
+
+  .chips{display:flex; flex-wrap:wrap; gap:10px}
+  .chips.nums{gap:11px}
+  .chip{font-family:var(--sys); cursor:pointer; border:1px solid var(--line); background:var(--card);
+    color:var(--ink); border-radius:14px; padding:13px 20px; font-size:15px; font-weight:600;
+    box-shadow:0 2px 8px rgba(20,15,10,.03); transition:all .16s ease; -webkit-tap-highlight-color:transparent}
+  .chip.num{min-width:60px; text-align:center; font-size:17px}
+  .chip:hover{border-color:#cfc9bd}
+  .chip.sel{border-color:var(--coral); color:var(--coral-deep); background:#FFF3F6; box-shadow:0 3px 12px rgba(255,79,123,.14)}
+  .chip:focus-visible{outline:2px solid var(--coral); outline-offset:2px}
+
+  .foot{padding:0 30px 30px; display:flex; align-items:center; justify-content:flex-end; gap:14px}
+  .btn-next{width:60px;height:60px;border-radius:50%;border:none;background:var(--ink);color:#fff;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(0,0,0,.22);transition:transform .15s;font-size:26px;line-height:1}
+  .btn-next:active{transform:scale(.94)}
+  .btn-next:focus-visible{outline:2px solid var(--coral);outline-offset:3px}
+  .btn-pill{border:none;background:var(--ink);color:#fff;font-family:var(--sys);font-weight:600;font-size:16px;
+    padding:16px 40px;border-radius:100px;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.22);transition:transform .15s}
+  .btn-pill:active{transform:scale(.97)}
+  .btn-pill:focus-visible{outline:2px solid var(--coral);outline-offset:3px}
+
+  .intro{padding:0 30px; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; background:var(--cream)}
+  .intro .mark{font-size:12px;letter-spacing:.34em;font-weight:700;color:var(--coral);margin-bottom:22px}
+  .intro h1{font-size:33px;line-height:1.1;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin:0 0 16px;text-wrap:balance}
+  .intro p{font-size:15px;line-height:1.55;color:var(--muted);margin:0 0 40px;max-width:26ch}
+
+  .inter{position:relative; height:100%; overflow:hidden; color:#fff}
+  .inter .bg{position:absolute; inset:0}
+  .inter .bg.a{background:radial-gradient(130% 70% at 50% 8%, #cfeaf1 0%, transparent 58%), linear-gradient(180deg,#a6d4e6 0%,#79c2d2 38%,#cfe0cf 58%,#ecdfbf 100%)}
+  .inter .bg.b{background:radial-gradient(120% 70% at 72% 14%, #ffd9a8 0%, transparent 55%), linear-gradient(180deg,#f4b183 0%,#e88a6f 44%,#c25f74 78%,#9c4a6b 100%)}
+  .inter .bg.c{background:radial-gradient(120% 70% at 30% 82%, rgba(255,79,123,.55) 0%, transparent 55%), linear-gradient(180deg,#3a3350 0%,#5f4d6e 44%,#8a5a72 74%,#b56178 100%)}
+  .inter .scrim{position:absolute; inset:0; background:linear-gradient(180deg, rgba(10,8,12,.20) 0%, rgba(10,8,12,.05) 32%, rgba(10,8,12,.12) 60%, rgba(10,8,12,.52) 100%)}
+  .inter .tag{position:absolute; top:56px; right:20px; z-index:3; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.7); font-weight:600; border:1px solid rgba(255,255,255,.35); padding:4px 9px; border-radius:20px}
+  .inter .mid{position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:0 34px; z-index:2}
+  .inter .rule{width:34px;height:3px;border-radius:3px;background:var(--coral);margin-bottom:22px;box-shadow:0 0 14px rgba(255,79,123,.7)}
+  .inter .phrase{font-size:27px; line-height:1.26; font-weight:600; letter-spacing:-.01em; text-wrap:balance; text-shadow:0 2px 22px rgba(0,0,0,.4)}
+  .inter .go{position:absolute; bottom:34px; left:0; right:0; text-align:center; z-index:2; font-size:13px; color:rgba(255,255,255,.82); font-weight:500; display:flex; align-items:center; justify-content:center; gap:6px}
+  .inter .go .c{animation:bob 1.6s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
+
+  .final{padding:0 34px; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; background:var(--cream)}
+  .final h1{font-size:30px;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin:0 0 14px}
+  .final p{font-size:14.5px;line-height:1.55;color:var(--muted);margin:0 0 34px;max-width:26ch}
+  .spinner{width:38px;height:38px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--coral);animation:spin 0.9s linear infinite;margin-bottom:16px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .final .load{font-size:13px;color:var(--muted);letter-spacing:.02em;margin-bottom:40px}
+  .restart{background:none;border:none;color:var(--coral-deep);font-family:var(--sys);font-size:14px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+  .restart:focus-visible{outline:2px solid var(--coral);outline-offset:3px;border-radius:4px}
+
+  .hint{font-size:12px;color:#7d7970;text-align:center;max-width:340px;line-height:1.5}
+  .hint b{color:#b8b2a6;font-weight:600}
+  @media (prefers-reduced-motion: reduce){ .track{transition:none} .prog i{transition:none} .inter .go .c{animation:none} .spinner{animation:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="cap"><span class="dot"></span> Onboarding King · Mockup</div>
+
+  <div class="device" id="device">
+    <div class="notch"></div>
+    <div class="screen-area">
+      <div class="statusbar"><span>9:41</span><span class="r">5G ▂▄▆ 100%</span></div>
+      <div class="topbar">
+        <button class="back" id="back" aria-label="Volver">
+          <svg width="11" height="19" viewBox="0 0 11 19" fill="none"><path d="M9.5 1.5 2 9.5l7.5 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="prog" id="prog"><i id="progfill"></i></div>
+      </div>
+
+      <div class="viewport">
+        <div class="track" id="track">
+
+          <section class="screen" data-type="intro" data-step="0">
+            <div class="intro">
+              <div class="mark">MÉTODO KING</div>
+              <h1>Afinemos tu protocolo</h1>
+              <p>Virginia, tu Mapa ya sabe qué construir. Unas pocas preguntas y lo volvemos tu plan exacto.</p>
+              <button class="btn-pill" data-go="1">Empezar</button>
+            </div>
+          </section>
+
+          <section class="screen" data-type="q" data-step="1">
+            <div class="q">
+              <h1>Empecemos por lo esencial</h1>
+              <p class="sub">Con esto calculamos tu punto de partida y tus calorías.</p>
+              <div class="body">
+                <div class="field"><label>Edad</label><div class="row"><input value="29" inputmode="numeric" aria-label="Edad"><span class="unit">años</span></div></div>
+                <div class="field"><label>Peso</label><div class="row"><input value="63" inputmode="decimal" aria-label="Peso"><span class="unit">kg</span></div></div>
+                <div class="field"><label>Altura</label><div class="row"><input value="165" inputmode="numeric" aria-label="Altura"><span class="unit">cm</span></div></div>
+              </div>
+            </div>
+            <div class="foot"><button class="btn-next" data-go="2" aria-label="Continuar">›</button></div>
+          </section>
+
+          <section class="screen" data-type="interstitial" data-step="-1" data-tap="3">
+            <div class="inter">
+              <div class="bg a"></div><div class="scrim"></div>
+              <span class="tag">Foto King</span>
+              <div class="mid"><span class="rule"></span><div class="phrase">El único mal entrenamiento es el que va sin dirección.</div></div>
+              <div class="go">tocá para continuar <span class="c">›</span></div>
+            </div>
+          </section>
+
+          <section class="screen" data-type="q" data-step="2">
+            <div class="q center">
+              <h1>¿Cuántos días podés entrenar?</h1>
+              <p class="sub">Elegí lo que realmente vas a sostener — la constancia construye más que la perfección.</p>
+              <div class="body">
+                <div class="chips nums" data-single="true">
+                  <button class="chip num">2</button><button class="chip num">3</button>
+                  <button class="chip num sel">4</button><button class="chip num">5</button><button class="chip num">6</button>
+                </div>
+              </div>
+            </div>
+            <div class="foot"><button class="btn-next" data-go="4" aria-label="Continuar">›</button></div>
+          </section>
+
+          <section class="screen" data-type="q" data-step="3">
+            <div class="q">
+              <h1>¿Tenés alguna lesión o limitación?</h1>
+              <p class="sub">Para adaptar los ejercicios y cuidarte. Si no tenés, seguí.</p>
+              <div class="body">
+                <div class="chips" data-single="false" data-none="Ninguna">
+                  <button class="chip sel">Ninguna</button><button class="chip">Rodilla</button>
+                  <button class="chip">Espalda baja</button><button class="chip">Hombro</button><button class="chip">Otra</button>
+                </div>
+              </div>
+            </div>
+            <div class="foot"><button class="btn-next" data-go="5" aria-label="Continuar">›</button></div>
+          </section>
+
+          <section class="screen" data-type="interstitial" data-step="-1" data-tap="6">
+            <div class="inter">
+              <div class="bg b"></div><div class="scrim"></div>
+              <span class="tag">Foto King</span>
+              <div class="mid"><span class="rule"></span><div class="phrase">Construyamos tu base.</div></div>
+              <div class="go">tocá para continuar <span class="c">›</span></div>
+            </div>
+          </section>
+
+          <section class="screen" data-type="q" data-step="4">
+            <div class="q center">
+              <h1>¿Cuántas comidas hacés al día?</h1>
+              <p class="sub">Armamos tu nutrición alrededor de tu día, no al revés.</p>
+              <div class="body">
+                <div class="chips nums" data-single="true">
+                  <button class="chip num">2</button><button class="chip num">3</button>
+                  <button class="chip num sel">4</button><button class="chip num">5</button>
+                </div>
+              </div>
+            </div>
+            <div class="foot"><button class="btn-next" data-go="7" aria-label="Continuar">›</button></div>
+          </section>
+
+          <section class="screen" data-type="q" data-step="5">
+            <div class="q">
+              <h1>¿Alguna restricción o alergia?</h1>
+              <p class="sub">Contanos qué no comés (vegetariana, celíaca, alérgica a algo…). Si no, seguí.</p>
+              <div class="body">
+                <div class="chips" data-single="false" data-none="Ninguna">
+                  <button class="chip sel">Ninguna</button><button class="chip">Vegetariana</button>
+                  <button class="chip">Sin gluten</button><button class="chip">Sin lactosa</button><button class="chip">Otra</button>
+                </div>
+              </div>
+            </div>
+            <div class="foot"><button class="btn-next" data-go="8" aria-label="Continuar">›</button></div>
+          </section>
+
+          <section class="screen" data-type="interstitial" data-step="-1" data-tap="9">
+            <div class="inter">
+              <div class="bg c"></div><div class="scrim"></div>
+              <span class="tag">Foto King</span>
+              <div class="mid"><span class="rule"></span><div class="phrase">La proporción se construye, no se descubre.</div></div>
+              <div class="go">tocá para continuar <span class="c">›</span></div>
+            </div>
+          </section>
+
+          <section class="screen" data-type="final" data-step="6">
+            <div class="final">
+              <div class="spinner"></div>
+              <div class="load">Armando tu plan…</div>
+              <h1>Listo, Virginia ✨</h1>
+              <p>Estamos armando tu entrenamiento y tu nutrición, en base a tu Mapa Estético.</p>
+              <button class="restart" id="restart">Reiniciar mockup</button>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hint">Tocá <b>›</b> / <b>Empezar</b> para avanzar · en las pantallas de imagen tocá donde sea · <b>‹</b> arriba para volver. Las imágenes son <b>placeholders</b> (van fotos reales de King).</div>
+</div>
+
+<script>
+(function(){
+  var track=document.getElementById('track');
+  var screens=Array.prototype.slice.call(track.children);
+  var device=document.getElementById('device');
+  var back=document.getElementById('back');
+  var prog=document.getElementById('prog');
+  var fill=document.getElementById('progfill');
+  var cur=0, STEPS=6;
+
+  function render(){
+    track.style.transform='translateX('+(-cur*100)+'%)';
+    var s=screens[cur];
+    device.classList.toggle('dark', s.dataset.type==='interstitial');
+    back.style.opacity = cur===0?'0':'1';
+    back.style.pointerEvents = cur===0?'none':'auto';
+    var st=parseInt(s.dataset.step,10);
+    if(st>=0){ prog.style.opacity='1'; fill.style.width=(st/STEPS*100)+'%'; }
+    else{ prog.style.opacity='0'; }
+  }
+  function go(i){ cur=Math.max(0,Math.min(screens.length-1,i)); render(); }
+
+  document.querySelectorAll('[data-go]').forEach(function(b){
+    b.addEventListener('click',function(e){ e.stopPropagation(); go(parseInt(b.dataset.go,10)); });
+  });
+  screens.forEach(function(s){
+    if(s.dataset.tap){ s.addEventListener('click',function(){ go(parseInt(s.dataset.tap,10)); }); }
+  });
+  back.addEventListener('click',function(){ go(cur-1); });
+  document.getElementById('restart').addEventListener('click',function(e){ e.stopPropagation(); go(0); });
+
+  document.querySelectorAll('.chips').forEach(function(group){
+    var single=group.dataset.single==='true';
+    var noneLabel=group.dataset.none;
+    group.querySelectorAll('.chip').forEach(function(chip){
+      chip.addEventListener('click',function(e){
+        e.stopPropagation();
+        if(single){ group.querySelectorAll('.chip').forEach(function(c){c.classList.remove('sel');}); chip.classList.add('sel'); return; }
+        var isNone = noneLabel && chip.textContent.trim()===noneLabel;
+        if(isNone){ group.querySelectorAll('.chip').forEach(function(c){c.classList.remove('sel');}); chip.classList.add('sel'); return; }
+        if(noneLabel){ group.querySelectorAll('.chip').forEach(function(c){ if(c.textContent.trim()===noneLabel) c.classList.remove('sel'); }); }
+        chip.classList.toggle('sel');
+      });
+    });
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
