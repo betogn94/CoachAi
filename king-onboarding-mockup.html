@@ -55,24 +55,22 @@
   .prog{flex:1; height:3px; background:var(--line); border-radius:3px; overflow:hidden; transition:opacity .3s}
   .prog i{display:block; height:100%; width:14%; background:var(--coral); border-radius:3px; transition:width .46s cubic-bezier(.36,.66,.32,1)}
 
-  .q{padding:104px 30px 30px; height:100%; display:flex; flex-direction:column; background:var(--cream)}
+  .q{padding:92px 30px 22px; flex:1; display:flex; flex-direction:column; justify-content:center; text-align:center; background:var(--cream)}
   .q h1{font-size:29px; line-height:1.14; font-weight:700; letter-spacing:-.02em; color:var(--ink); margin:0 0 12px; text-wrap:balance}
-  .q .sub{font-size:14.5px; line-height:1.5; color:var(--muted); margin:0; max-width:31ch}
-  .q .body{flex:1; display:flex; flex-direction:column; justify-content:flex-start; gap:12px; margin-top:30px}
-  .q.center .body{justify-content:center; margin-top:0}
+  .q .sub{font-size:14.5px; line-height:1.5; color:var(--muted); margin:0 auto; max-width:30ch}
+  .q .body{display:flex; flex-direction:column; gap:10px; margin:30px auto 0; width:100%; max-width:300px}
 
-  .field{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:13px 18px; box-shadow:0 2px 10px rgba(20,15,10,.03)}
+  .field{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:13px 18px; box-shadow:0 2px 10px rgba(20,15,10,.03); text-align:center}
   .field label{display:block; font-size:11px; letter-spacing:.03em; color:var(--muted); font-weight:600; margin-bottom:2px}
-  .field .row{display:flex; align-items:baseline; gap:8px}
-  .field input{border:none; outline:none; background:transparent; font-family:var(--sys); font-size:20px; font-weight:600; color:var(--ink); width:100%; padding:0}
+  .field .row{display:flex; align-items:baseline; gap:8px; justify-content:center}
+  .field input{border:none; outline:none; background:transparent; font-family:var(--sys); font-size:20px; font-weight:600; color:var(--ink); width:3.4ch; text-align:center; padding:0}
   .field .unit{font-size:13px; color:var(--muted); font-weight:600}
 
-  .chips{display:flex; flex-wrap:wrap; gap:10px}
-  .chips.nums{gap:11px}
+  .chips{display:flex; flex-direction:column; gap:10px; width:100%}
   .chip{font-family:var(--sys); cursor:pointer; border:1px solid var(--line); background:var(--card);
-    color:var(--ink); border-radius:14px; padding:13px 20px; font-size:15px; font-weight:600;
+    color:var(--ink); border-radius:14px; padding:15px 20px; font-size:16px; font-weight:600; width:100%; text-align:center;
     box-shadow:0 2px 8px rgba(20,15,10,.03); transition:all .16s ease; -webkit-tap-highlight-color:transparent}
-  .chip.num{min-width:60px; text-align:center; font-size:17px}
+  .chip.num{font-size:17px}
   .chip:hover{border-color:#cfc9bd}
   .chip.sel{border-color:var(--coral); color:var(--coral-deep); background:#FFF3F6; box-shadow:0 3px 12px rgba(255,79,123,.14)}
   .chip:focus-visible{outline:2px solid var(--coral); outline-offset:2px}
