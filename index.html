@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260703-1809-king-onb--barra-progreso-full-width---sin-sparkle">
+<meta name="app-version" content="20260703-1819-king-onb--barra-firme-al-tope---fotos-reales-interstitials">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12321,9 +12321,12 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   }
   #king-onb.ko-open{display:block}
   #king-onb *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
-  .ko-prog{position:absolute; top:calc(env(safe-area-inset-top) + 12px); left:0; right:0; z-index:6; height:3px; background:var(--ko-line); overflow:hidden}
+  /* Barra de progreso: pegada al límite superior (env() respeta el notch en PWA;
+     en browser = 0 → la toca). Siempre visible: track con contraste real sobre
+     crema y sobre foto + el fill coral nunca baja del mínimo (ver kingOnbRender). */
+  .ko-prog{position:absolute; top:env(safe-area-inset-top, 0px); left:0; right:0; z-index:9; height:4px; background:#DDD7C9; overflow:hidden}
   .ko-prog i{display:block; height:100%; width:0%; background:var(--ko-coral); transition:width .46s cubic-bezier(.36,.66,.32,1)}
-  #king-onb.ko-dark .ko-prog{background:rgba(255,255,255,.30)}
+  #king-onb.ko-dark .ko-prog{background:rgba(255,255,255,.38)}
   .ko-back{position:absolute; top:calc(env(safe-area-inset-top) + 24px); left:14px; z-index:7; width:32px;height:32px;border:none;background:transparent;cursor:pointer;color:var(--ko-ink);
     display:flex;align-items:center;justify-content:center;transition:opacity .3s;border-radius:50%;padding:0}
   #king-onb.ko-dark .ko-back{color:#fff}
@@ -12364,9 +12367,11 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   .ko-intro p{font-size:15px;line-height:1.55;color:var(--ko-muted);margin:0 0 38px;max-width:26ch}
   .ko-inter{position:relative; height:100%; overflow:hidden; color:#fff; cursor:pointer}
   .ko-inter .ko-bg{position:absolute; inset:0; background-size:cover; background-position:center}
-  .ko-inter .ko-bg.ko-a{background-image:radial-gradient(130% 70% at 50% 8%, #cfeaf1 0%, transparent 58%), linear-gradient(180deg,#a6d4e6 0%,#79c2d2 38%,#cfe0cf 58%,#ecdfbf 100%)}
-  .ko-inter .ko-bg.ko-b{background-image:radial-gradient(120% 70% at 72% 14%, #ffd9a8 0%, transparent 55%), linear-gradient(180deg,#f4b183 0%,#e88a6f 44%,#c25f74 78%,#9c4a6b 100%)}
-  .ko-inter .ko-bg.ko-c{background-image:radial-gradient(120% 70% at 30% 82%, rgba(255,79,123,.55) 0%, transparent 55%), linear-gradient(180deg,#3a3350 0%,#5f4d6e 44%,#8a5a72 74%,#b56178 100%)}
+  /* Fotos reales (Unsplash license, uso comercial OK, self-hosted en /tenants/jesus/).
+     La foto va como capa superior; el degradé queda debajo como fallback de carga. */
+  .ko-inter .ko-bg.ko-a{background-image:url('/tenants/jesus/king-onb-a.jpg'), radial-gradient(130% 70% at 50% 8%, #cfeaf1 0%, transparent 58%), linear-gradient(180deg,#a6d4e6 0%,#79c2d2 38%,#cfe0cf 58%,#ecdfbf 100%)}
+  .ko-inter .ko-bg.ko-b{background-image:url('/tenants/jesus/king-onb-b.jpg'), radial-gradient(120% 70% at 72% 14%, #ffd9a8 0%, transparent 55%), linear-gradient(180deg,#f4b183 0%,#e88a6f 44%,#c25f74 78%,#9c4a6b 100%)}
+  .ko-inter .ko-bg.ko-c{background-image:url('/tenants/jesus/king-onb-c.jpg'), radial-gradient(120% 70% at 30% 82%, rgba(255,79,123,.55) 0%, transparent 55%), linear-gradient(180deg,#3a3350 0%,#5f4d6e 44%,#8a5a72 74%,#b56178 100%)}
   .ko-inter .ko-scrim{position:absolute; inset:0; background:linear-gradient(180deg, rgba(10,8,12,.20) 0%, rgba(10,8,12,.05) 32%, rgba(10,8,12,.12) 60%, rgba(10,8,12,.52) 100%)}
   .ko-inter .ko-mid{position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:0 34px; z-index:2}
   .ko-inter .ko-rule{width:34px;height:3px;border-radius:3px;background:var(--ko-coral);margin-bottom:22px;box-shadow:0 0 14px rgba(255,79,123,.7)}
@@ -14071,6 +14076,10 @@ function kingOnbOpen(nombre) {
     const fin = document.getElementById('ko-final-title');
     if (fin) fin.textContent = `Listo, ${nombre}`;
   }
+  // Precarga de las fotos de las interstitials: se bajan mientras la usuaria
+  // responde la primera pantalla, así la foto ya está lista al llegar (el
+  // degradé de fallback solo se vería en conexiones muy lentas).
+  ['a', 'b', 'c'].forEach(k => { const im = new Image(); im.src = `/tenants/jesus/king-onb-${k}.jpg`; });
   _koIndex = 0;
   kingOnbRender();
   ov.classList.add('ko-open');
@@ -14091,9 +14100,10 @@ function kingOnbRender() {
   const fill = document.getElementById('ko-progfill');
   const st = parseInt(s.dataset.step, 10);
   if (prog && fill) {
-    // Siempre visible (no desaparece en interstitials). En interstitials (st<0)
-    // mantiene el ancho del último paso.
-    if (st >= 0) fill.style.width = (st / KO_STEPS_TOTAL * 100) + '%';
+    // Siempre visible y FIRME: nunca se oculta (ni en interstitials, donde st<0
+    // mantiene el ancho del último paso) y el fill coral nunca baja del 5% — así
+    // en el intro (paso 0) ya se ve que hay una barra, no un hueco vacío.
+    if (st >= 0) fill.style.width = Math.max(5, st / KO_STEPS_TOTAL * 100) + '%';
   }
 }
 
