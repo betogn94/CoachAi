@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260703-1732-onboarding-king-v1--ui-gated-kingonb-">
+<meta name="app-version" content="20260703-1809-king-onb--barra-progreso-full-width---sin-sparkle">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12321,13 +12321,12 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   }
   #king-onb.ko-open{display:block}
   #king-onb *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
-  .ko-topbar{position:absolute; top:0; left:0; right:0; z-index:6;
-    padding:calc(14px + env(safe-area-inset-top)) 22px 8px; display:flex; align-items:center; gap:14px}
-  .ko-back{width:32px;height:32px;flex:0 0 auto;border:none;background:transparent;cursor:pointer;color:var(--ko-ink);
+  .ko-prog{position:absolute; top:calc(env(safe-area-inset-top) + 12px); left:0; right:0; z-index:6; height:3px; background:var(--ko-line); overflow:hidden}
+  .ko-prog i{display:block; height:100%; width:0%; background:var(--ko-coral); transition:width .46s cubic-bezier(.36,.66,.32,1)}
+  #king-onb.ko-dark .ko-prog{background:rgba(255,255,255,.30)}
+  .ko-back{position:absolute; top:calc(env(safe-area-inset-top) + 24px); left:14px; z-index:7; width:32px;height:32px;border:none;background:transparent;cursor:pointer;color:var(--ko-ink);
     display:flex;align-items:center;justify-content:center;transition:opacity .3s;border-radius:50%;padding:0}
   #king-onb.ko-dark .ko-back{color:#fff}
-  .ko-prog{flex:1; height:3px; background:var(--ko-line); border-radius:3px; overflow:hidden; transition:opacity .3s}
-  .ko-prog i{display:block; height:100%; width:0%; background:var(--ko-coral); border-radius:3px; transition:width .46s cubic-bezier(.36,.66,.32,1)}
   .ko-viewport{position:absolute; inset:0; overflow:hidden}
   .ko-track{display:flex; height:100%; width:100%; transition:transform .46s cubic-bezier(.36,.66,.32,1)}
   .ko-screen{position:relative; min-width:100%; height:100%; display:flex; flex-direction:column}
@@ -12382,12 +12381,10 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   @media (prefers-reduced-motion: reduce){ .ko-track{transition:none} .ko-prog i{transition:none} .ko-spinner{animation:none} }
 </style>
 <div id="king-onb" role="dialog" aria-label="Onboarding King">
-  <div class="ko-topbar">
-    <button class="ko-back" id="ko-back" aria-label="Volver" onclick="kingOnbBack()">
-      <svg width="11" height="19" viewBox="0 0 11 19" fill="none"><path d="M9.5 1.5 2 9.5l7.5 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
-    <div class="ko-prog" id="ko-prog"><i id="ko-progfill"></i></div>
-  </div>
+  <div class="ko-prog" id="ko-prog"><i id="ko-progfill"></i></div>
+  <button class="ko-back" id="ko-back" aria-label="Volver" onclick="kingOnbBack()">
+    <svg width="11" height="19" viewBox="0 0 11 19" fill="none"><path d="M9.5 1.5 2 9.5l7.5 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
   <div class="ko-viewport">
     <div class="ko-track" id="ko-track">
 
@@ -12512,7 +12509,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
         <div class="ko-final">
           <div class="ko-spinner"></div>
           <div class="ko-load">Armando tu plan…</div>
-          <h1 id="ko-final-title">Listo ✨</h1>
+          <h1 id="ko-final-title">Listo</h1>
           <p>Estamos armando tu entrenamiento y tu nutrición, en base a tu Mapa Estético.</p>
         </div>
       </section>
@@ -14072,7 +14069,7 @@ function kingOnbOpen(nombre) {
     const sub = document.getElementById('ko-intro-sub');
     if (sub) sub.textContent = `${nombre}, tu Mapa ya sabe qué construir. Unas pocas preguntas y lo volvemos tu plan exacto.`;
     const fin = document.getElementById('ko-final-title');
-    if (fin) fin.textContent = `Listo, ${nombre} ✨`;
+    if (fin) fin.textContent = `Listo, ${nombre}`;
   }
   _koIndex = 0;
   kingOnbRender();
@@ -14094,8 +14091,9 @@ function kingOnbRender() {
   const fill = document.getElementById('ko-progfill');
   const st = parseInt(s.dataset.step, 10);
   if (prog && fill) {
-    if (st >= 0) { prog.style.opacity = '1'; fill.style.width = (st / KO_STEPS_TOTAL * 100) + '%'; }
-    else { prog.style.opacity = '0'; }
+    // Siempre visible (no desaparece en interstitials). En interstitials (st<0)
+    // mantiene el ancho del último paso.
+    if (st >= 0) fill.style.width = (st / KO_STEPS_TOTAL * 100) + '%';
   }
 }
 
