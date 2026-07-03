@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260703-1819-king-onb--barra-firme-al-tope---fotos-reales-interstitials">
+<meta name="app-version" content="20260703-1827-king-onb--fix-barra-ios-compositing---fotos-gym-a-c">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12324,13 +12324,17 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   /* Barra de progreso: pegada al límite superior (env() respeta el notch en PWA;
      en browser = 0 → la toca). Siempre visible: track con contraste real sobre
      crema y sobre foto + el fill coral nunca baja del mínimo (ver kingOnbRender). */
-  .ko-prog{position:absolute; top:env(safe-area-inset-top, 0px); left:0; right:0; z-index:9; height:4px; background:#DDD7C9; overflow:hidden}
+  /* translateZ(0): fuerza a la barra/flecha a su PROPIA capa de GPU. Sin esto,
+     iOS Safari las hunde detrás del .ko-track cuando éste anima su transform
+     (el slide) → la barra "aparecía al tocar avanzar y desaparecía al asentarse".
+     Mismo clan de bug de compositing iOS que el backdrop-filter de Home. */
+  .ko-prog{position:absolute; top:env(safe-area-inset-top, 0px); left:0; right:0; z-index:10; height:4px; background:#DDD7C9; overflow:hidden; transform:translateZ(0)}
   .ko-prog i{display:block; height:100%; width:0%; background:var(--ko-coral); transition:width .46s cubic-bezier(.36,.66,.32,1)}
   #king-onb.ko-dark .ko-prog{background:rgba(255,255,255,.38)}
-  .ko-back{position:absolute; top:calc(env(safe-area-inset-top) + 24px); left:14px; z-index:7; width:32px;height:32px;border:none;background:transparent;cursor:pointer;color:var(--ko-ink);
-    display:flex;align-items:center;justify-content:center;transition:opacity .3s;border-radius:50%;padding:0}
+  .ko-back{position:absolute; top:calc(env(safe-area-inset-top) + 24px); left:14px; z-index:10; width:32px;height:32px;border:none;background:transparent;cursor:pointer;color:var(--ko-ink);
+    display:flex;align-items:center;justify-content:center;transition:opacity .3s;border-radius:50%;padding:0; transform:translateZ(0)}
   #king-onb.ko-dark .ko-back{color:#fff}
-  .ko-viewport{position:absolute; inset:0; overflow:hidden}
+  .ko-viewport{position:absolute; inset:0; overflow:hidden; z-index:1}
   .ko-track{display:flex; height:100%; width:100%; transition:transform .46s cubic-bezier(.36,.66,.32,1)}
   .ko-screen{position:relative; min-width:100%; height:100%; display:flex; flex-direction:column}
   .ko-q{padding:calc(74px + env(safe-area-inset-top)) 28px 20px; flex:1; display:flex; flex-direction:column; justify-content:center; text-align:center; background:var(--ko-cream)}
