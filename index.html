@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260701-1355-chat--filosof-a-de-adherencia--cambios-de-comidas-ejercicios-">
+<meta name="app-version" content="20260703-1732-onboarding-king-v1--ui-gated-kingonb-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12303,6 +12303,224 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   <p class="hero-sub" data-es="Respondé unas preguntas y tu coach de IA diseñará un plan 100% personalizado para vos — entrenamiento, nutrición y seguimiento." data-en="Answer a few questions and your AI coach will design a 100% personalized plan for you — training, nutrition and tracking.">Respondé unas preguntas y tu coach de IA diseñará un plan 100% personalizado para vos — entrenamiento, nutrición y seguimiento.</p>
 </div>
 
+<!-- ============================================================
+     ONBOARDING KING (gated ?kingonb=1) — flujo nuevo estilo iOS para el
+     tenant King: 7 pasos + 3 interstitials con frase. Overlay fixed,
+     namespaced ko-* (cero colisión con el onboarding actual). Mientras el
+     flag esté apagado, prod queda IDÉNTICO. Diseño aprobado por Beto+Jesús
+     (mockup king-onboarding-mockup.html): todo centrado, chips
+     rectangulares apilados, línea de progreso, tipografía del sistema.
+     ============================================================ -->
+<style>
+  #king-onb{
+    --ko-cream:#F3F1EB; --ko-card:#FFFFFF; --ko-ink:#1A1917; --ko-muted:#8C877E;
+    --ko-line:#E4E0D6; --ko-coral:#FF4F7B; --ko-coral-deep:#E03A6F;
+    --ko-sys:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    position:fixed; inset:0; z-index:12000; background:var(--ko-cream);
+    font-family:var(--ko-sys); display:none; overflow:hidden;
+  }
+  #king-onb.ko-open{display:block}
+  #king-onb *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  .ko-topbar{position:absolute; top:0; left:0; right:0; z-index:6;
+    padding:calc(14px + env(safe-area-inset-top)) 22px 8px; display:flex; align-items:center; gap:14px}
+  .ko-back{width:32px;height:32px;flex:0 0 auto;border:none;background:transparent;cursor:pointer;color:var(--ko-ink);
+    display:flex;align-items:center;justify-content:center;transition:opacity .3s;border-radius:50%;padding:0}
+  #king-onb.ko-dark .ko-back{color:#fff}
+  .ko-prog{flex:1; height:3px; background:var(--ko-line); border-radius:3px; overflow:hidden; transition:opacity .3s}
+  .ko-prog i{display:block; height:100%; width:0%; background:var(--ko-coral); border-radius:3px; transition:width .46s cubic-bezier(.36,.66,.32,1)}
+  .ko-viewport{position:absolute; inset:0; overflow:hidden}
+  .ko-track{display:flex; height:100%; width:100%; transition:transform .46s cubic-bezier(.36,.66,.32,1)}
+  .ko-screen{position:relative; min-width:100%; height:100%; display:flex; flex-direction:column}
+  .ko-q{padding:calc(74px + env(safe-area-inset-top)) 28px 20px; flex:1; display:flex; flex-direction:column; justify-content:center; text-align:center; background:var(--ko-cream)}
+  .ko-q h1{font-size:28px; line-height:1.14; font-weight:700; letter-spacing:-.02em; color:var(--ko-ink); margin:0 0 12px; text-wrap:balance}
+  .ko-q .ko-sub{font-size:14.5px; line-height:1.5; color:var(--ko-muted); margin:0 auto; max-width:30ch}
+  .ko-body{display:flex; flex-direction:column; gap:10px; margin:28px auto 0; width:100%; max-width:300px}
+  .ko-field{background:var(--ko-card); border:1px solid var(--ko-line); border-radius:16px; padding:12px 18px; box-shadow:0 2px 10px rgba(20,15,10,.03); text-align:center; transition:border-color .2s}
+  .ko-field.ko-missing{border-color:var(--ko-coral)}
+  .ko-field label{display:block; font-size:11px; letter-spacing:.03em; color:var(--ko-muted); font-weight:600; margin-bottom:2px}
+  .ko-field .ko-row{display:flex; align-items:baseline; gap:8px; justify-content:center}
+  .ko-field input{border:none; outline:none; background:transparent; font-family:var(--ko-sys); font-size:20px; font-weight:600; color:var(--ko-ink); width:3.2ch; text-align:right; padding:0; margin:0}
+  .ko-field input::placeholder{color:#C9C4B8; font-weight:500}
+  .ko-field .ko-unit{font-size:13px; color:var(--ko-muted); font-weight:600; width:4ch; text-align:left}
+  .ko-chips{display:flex; flex-direction:column; gap:10px; width:100%}
+  .ko-chip{font-family:var(--ko-sys); cursor:pointer; border:1px solid var(--ko-line); background:var(--ko-card);
+    color:var(--ko-ink); border-radius:14px; padding:14px 20px; font-size:16px; font-weight:600; width:100%; text-align:center;
+    box-shadow:0 2px 8px rgba(20,15,10,.03); transition:all .16s ease}
+  .ko-chip.ko-sel{border-color:var(--ko-coral); color:var(--ko-coral-deep); background:#FFF3F6; box-shadow:0 3px 12px rgba(255,79,123,.14)}
+  .ko-otra{display:none; margin-top:2px}
+  .ko-otra.ko-show{display:block}
+  .ko-otra input{width:100%; border:1px solid var(--ko-line); background:var(--ko-card); border-radius:14px; padding:13px 16px;
+    font-family:var(--ko-sys); font-size:15px; color:var(--ko-ink); outline:none; text-align:center}
+  .ko-otra input:focus{border-color:var(--ko-coral)}
+  .ko-foot{padding:0 28px calc(24px + env(safe-area-inset-bottom)); display:flex; align-items:center; justify-content:flex-end}
+  .ko-next{width:58px;height:58px;border-radius:50%;border:none;background:var(--ko-ink);color:#fff;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(0,0,0,.22);transition:transform .15s;font-size:24px;line-height:1;padding:0 0 2px}
+  .ko-next:active{transform:scale(.94)}
+  .ko-pill{border:none;background:var(--ko-ink);color:#fff;font-family:var(--ko-sys);font-weight:600;font-size:16px;
+    padding:16px 40px;border-radius:100px;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.22);transition:transform .15s}
+  .ko-pill:active{transform:scale(.97)}
+  .ko-intro{padding:0 30px; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; background:var(--ko-cream)}
+  .ko-intro .ko-mark{font-size:12px;letter-spacing:.34em;font-weight:700;color:var(--ko-coral);margin-bottom:22px}
+  .ko-intro h1{font-size:32px;line-height:1.1;font-weight:700;letter-spacing:-.02em;color:var(--ko-ink);margin:0 0 16px;text-wrap:balance}
+  .ko-intro p{font-size:15px;line-height:1.55;color:var(--ko-muted);margin:0 0 38px;max-width:26ch}
+  .ko-inter{position:relative; height:100%; overflow:hidden; color:#fff; cursor:pointer}
+  .ko-inter .ko-bg{position:absolute; inset:0; background-size:cover; background-position:center}
+  .ko-inter .ko-bg.ko-a{background-image:radial-gradient(130% 70% at 50% 8%, #cfeaf1 0%, transparent 58%), linear-gradient(180deg,#a6d4e6 0%,#79c2d2 38%,#cfe0cf 58%,#ecdfbf 100%)}
+  .ko-inter .ko-bg.ko-b{background-image:radial-gradient(120% 70% at 72% 14%, #ffd9a8 0%, transparent 55%), linear-gradient(180deg,#f4b183 0%,#e88a6f 44%,#c25f74 78%,#9c4a6b 100%)}
+  .ko-inter .ko-bg.ko-c{background-image:radial-gradient(120% 70% at 30% 82%, rgba(255,79,123,.55) 0%, transparent 55%), linear-gradient(180deg,#3a3350 0%,#5f4d6e 44%,#8a5a72 74%,#b56178 100%)}
+  .ko-inter .ko-scrim{position:absolute; inset:0; background:linear-gradient(180deg, rgba(10,8,12,.20) 0%, rgba(10,8,12,.05) 32%, rgba(10,8,12,.12) 60%, rgba(10,8,12,.52) 100%)}
+  .ko-inter .ko-mid{position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:0 34px; z-index:2}
+  .ko-inter .ko-rule{width:34px;height:3px;border-radius:3px;background:var(--ko-coral);margin-bottom:22px;box-shadow:0 0 14px rgba(255,79,123,.7)}
+  .ko-inter .ko-phrase{font-size:26px; line-height:1.26; font-weight:600; letter-spacing:-.01em; text-wrap:balance; text-shadow:0 2px 22px rgba(0,0,0,.4)}
+  .ko-inter .ko-go{position:absolute; bottom:calc(30px + env(safe-area-inset-bottom)); left:0; right:0; text-align:center; z-index:2; font-size:13px; color:rgba(255,255,255,.82); font-weight:500}
+  .ko-final{padding:0 34px; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; background:var(--ko-cream)}
+  .ko-final h1{font-size:29px;font-weight:700;letter-spacing:-.02em;color:var(--ko-ink);margin:0 0 14px}
+  .ko-final p{font-size:14.5px;line-height:1.55;color:var(--ko-muted);margin:0;max-width:26ch}
+  .ko-spinner{width:38px;height:38px;border-radius:50%;border:3px solid var(--ko-line);border-top-color:var(--ko-coral);animation:ko-spin .9s linear infinite;margin-bottom:16px}
+  @keyframes ko-spin{to{transform:rotate(360deg)}}
+  .ko-final .ko-load{font-size:13px;color:var(--ko-muted);letter-spacing:.02em;margin-bottom:36px}
+  @media (prefers-reduced-motion: reduce){ .ko-track{transition:none} .ko-prog i{transition:none} .ko-spinner{animation:none} }
+</style>
+<div id="king-onb" role="dialog" aria-label="Onboarding King">
+  <div class="ko-topbar">
+    <button class="ko-back" id="ko-back" aria-label="Volver" onclick="kingOnbBack()">
+      <svg width="11" height="19" viewBox="0 0 11 19" fill="none"><path d="M9.5 1.5 2 9.5l7.5 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="ko-prog" id="ko-prog"><i id="ko-progfill"></i></div>
+  </div>
+  <div class="ko-viewport">
+    <div class="ko-track" id="ko-track">
+
+      <!-- 0 · INTRO -->
+      <section class="ko-screen" data-kind="intro" data-step="0">
+        <div class="ko-intro">
+          <div class="ko-mark">MÉTODO KING</div>
+          <h1>Afinemos tu protocolo</h1>
+          <p id="ko-intro-sub">Tu Mapa ya sabe qué construir. Unas pocas preguntas y lo volvemos tu plan exacto.</p>
+          <button class="ko-pill" onclick="kingOnbNext()">Empezar</button>
+        </div>
+      </section>
+
+      <!-- 1 · DATOS BASE -->
+      <section class="ko-screen" data-kind="q" data-step="1">
+        <div class="ko-q">
+          <h1>Empecemos por lo esencial</h1>
+          <p class="ko-sub">Con esto calculamos tu punto de partida y tus calorías.</p>
+          <div class="ko-body">
+            <div class="ko-field" id="ko-f-edad"><label for="ko-edad">Edad</label><div class="ko-row"><input id="ko-edad" inputmode="numeric" maxlength="2" placeholder="—"><span class="ko-unit">años</span></div></div>
+            <div class="ko-field" id="ko-f-peso"><label for="ko-peso">Peso</label><div class="ko-row"><input id="ko-peso" inputmode="decimal" maxlength="5" placeholder="—"><span class="ko-unit">kg</span></div></div>
+            <div class="ko-field" id="ko-f-altura"><label for="ko-altura">Altura</label><div class="ko-row"><input id="ko-altura" inputmode="numeric" maxlength="3" placeholder="—"><span class="ko-unit">cm</span></div></div>
+          </div>
+        </div>
+        <div class="ko-foot"><button class="ko-next" onclick="kingOnbNext()" aria-label="Continuar">›</button></div>
+      </section>
+
+      <!-- A · INTERSTITIAL -->
+      <section class="ko-screen" data-kind="inter" data-step="-1" onclick="kingOnbNext()">
+        <div class="ko-inter">
+          <div class="ko-bg ko-a" id="ko-img-a"></div><div class="ko-scrim"></div>
+          <div class="ko-mid"><span class="ko-rule"></span><div class="ko-phrase">El único mal entrenamiento es el que va sin dirección.</div></div>
+          <div class="ko-go">tocá para continuar ›</div>
+        </div>
+      </section>
+
+      <!-- 2 · DÍAS -->
+      <section class="ko-screen" data-kind="q" data-step="2">
+        <div class="ko-q">
+          <h1>¿Cuántos días podés entrenar?</h1>
+          <p class="ko-sub">Elegí lo que realmente vas a sostener — la constancia construye más que la perfección.</p>
+          <div class="ko-body">
+            <div class="ko-chips" id="ko-dias" data-mode="single">
+              <button class="ko-chip" data-v="2">2</button><button class="ko-chip" data-v="3">3</button>
+              <button class="ko-chip" data-v="4">4</button><button class="ko-chip" data-v="5">5</button>
+              <button class="ko-chip" data-v="6">6</button>
+            </div>
+          </div>
+        </div>
+        <div class="ko-foot"><button class="ko-next" onclick="kingOnbNext()" aria-label="Continuar">›</button></div>
+      </section>
+
+      <!-- 3 · LESIONES -->
+      <section class="ko-screen" data-kind="q" data-step="3">
+        <div class="ko-q">
+          <h1>¿Tenés alguna lesión o limitación?</h1>
+          <p class="ko-sub">Para adaptar los ejercicios y cuidarte. Si no tenés, seguí.</p>
+          <div class="ko-body">
+            <div class="ko-chips" id="ko-lesiones" data-mode="multi" data-none="ninguna">
+              <button class="ko-chip ko-sel" data-v="ninguna">Ninguna</button><button class="ko-chip" data-v="rodilla">Rodilla</button>
+              <button class="ko-chip" data-v="espalda baja">Espalda baja</button><button class="ko-chip" data-v="hombro">Hombro</button>
+              <button class="ko-chip" data-v="__otra">Otra</button>
+            </div>
+            <div class="ko-otra" id="ko-lesiones-otra"><input placeholder="Contanos cuál…" maxlength="120"></div>
+          </div>
+        </div>
+        <div class="ko-foot"><button class="ko-next" onclick="kingOnbNext()" aria-label="Continuar">›</button></div>
+      </section>
+
+      <!-- B · INTERSTITIAL -->
+      <section class="ko-screen" data-kind="inter" data-step="-1" onclick="kingOnbNext()">
+        <div class="ko-inter">
+          <div class="ko-bg ko-b" id="ko-img-b"></div><div class="ko-scrim"></div>
+          <div class="ko-mid"><span class="ko-rule"></span><div class="ko-phrase">Construyamos tu base.</div></div>
+          <div class="ko-go">tocá para continuar ›</div>
+        </div>
+      </section>
+
+      <!-- 4 · COMIDAS -->
+      <section class="ko-screen" data-kind="q" data-step="4">
+        <div class="ko-q">
+          <h1>¿Cuántas comidas hacés al día?</h1>
+          <p class="ko-sub">Armamos tu nutrición alrededor de tu día, no al revés.</p>
+          <div class="ko-body">
+            <div class="ko-chips" id="ko-comidas" data-mode="single">
+              <button class="ko-chip" data-v="2">2</button><button class="ko-chip" data-v="3">3</button>
+              <button class="ko-chip" data-v="4">4</button><button class="ko-chip" data-v="5">5</button>
+            </div>
+          </div>
+        </div>
+        <div class="ko-foot"><button class="ko-next" onclick="kingOnbNext()" aria-label="Continuar">›</button></div>
+      </section>
+
+      <!-- 5 · RESTRICCIONES -->
+      <section class="ko-screen" data-kind="q" data-step="5">
+        <div class="ko-q">
+          <h1>¿Alguna restricción o alergia?</h1>
+          <p class="ko-sub">Contanos qué no comés. Si no tenés, seguí.</p>
+          <div class="ko-body">
+            <div class="ko-chips" id="ko-dieta" data-mode="multi" data-none="ninguna">
+              <button class="ko-chip ko-sel" data-v="ninguna">Ninguna</button><button class="ko-chip" data-v="vegetariana">Vegetariana</button>
+              <button class="ko-chip" data-v="sin gluten">Sin gluten</button><button class="ko-chip" data-v="sin lactosa">Sin lactosa</button>
+              <button class="ko-chip" data-v="__otra">Otra</button>
+            </div>
+            <div class="ko-otra" id="ko-dieta-otra"><input placeholder="Contanos cuál…" maxlength="160"></div>
+          </div>
+        </div>
+        <div class="ko-foot"><button class="ko-next" onclick="kingOnbNext()" aria-label="Continuar">›</button></div>
+      </section>
+
+      <!-- C · INTERSTITIAL -->
+      <section class="ko-screen" data-kind="inter" data-step="-1" onclick="kingOnbNext()">
+        <div class="ko-inter">
+          <div class="ko-bg ko-c" id="ko-img-c"></div><div class="ko-scrim"></div>
+          <div class="ko-mid"><span class="ko-rule"></span><div class="ko-phrase">La proporción se construye, no se descubre.</div></div>
+          <div class="ko-go">tocá para continuar ›</div>
+        </div>
+      </section>
+
+      <!-- 6 · CIERRE -->
+      <section class="ko-screen" data-kind="final" data-step="6">
+        <div class="ko-final">
+          <div class="ko-spinner"></div>
+          <div class="ko-load">Armando tu plan…</div>
+          <h1 id="ko-final-title">Listo ✨</h1>
+          <p>Estamos armando tu entrenamiento y tu nutrición, en base a tu Mapa Estético.</p>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
 <!-- FORM WRAPPER -->
 <div class="form-wrapper">
 
@@ -13823,6 +14041,172 @@ const AUTH_OTP_ENABLED = (() => {
 })();
 let _otpPending = null;          // { email, nombre } awaiting code verification
 let _otpCooldownTimer = null;
+
+// ============================
+// ONBOARDING KING — flujo nuevo (gated ?kingonb=1, persistido en localStorage;
+// ?kingonb=0 apaga). Mientras el flag esté apagado, prod queda IDÉNTICO: las
+// clientas King siguen viendo el onboarding clásico. Con el flag, este overlay
+// reemplaza la captura de perfil para King. En este incremento es SOLO la UI
+// (navegación + captura en memoria); el wiring a selections/launchCoach +
+// king_intake va en el próximo incremento.
+// ============================
+const KING_ONB_ENABLED = (() => {
+  try {
+    const v = new URLSearchParams(window.location.search).get('kingonb');
+    if (v === '1') { try { localStorage.setItem('coachai_king_onb', '1'); } catch {} return true; }
+    if (v === '0') { try { localStorage.removeItem('coachai_king_onb'); } catch {} return false; }
+    return localStorage.getItem('coachai_king_onb') === '1';
+  } catch { return false; }
+})();
+
+// Estado del flujo: respuestas capturadas + índice de pantalla actual.
+const KO_STEPS_TOTAL = 6;
+let _koIndex = 0;
+let _koData = { edad: null, peso: null, altura: null, dias: null, lesiones: [], comidas: null, dieta: [] };
+
+function kingOnbOpen(nombre) {
+  const ov = document.getElementById('king-onb');
+  if (!ov) return;
+  // Saludo personalizado si tenemos el nombre (del login / king_intake).
+  if (nombre) {
+    const sub = document.getElementById('ko-intro-sub');
+    if (sub) sub.textContent = `${nombre}, tu Mapa ya sabe qué construir. Unas pocas preguntas y lo volvemos tu plan exacto.`;
+    const fin = document.getElementById('ko-final-title');
+    if (fin) fin.textContent = `Listo, ${nombre} ✨`;
+  }
+  _koIndex = 0;
+  kingOnbRender();
+  ov.classList.add('ko-open');
+}
+
+function kingOnbRender() {
+  const track = document.getElementById('ko-track');
+  const ov = document.getElementById('king-onb');
+  if (!track || !ov) return;
+  const screens = track.children;
+  const s = screens[_koIndex];
+  track.style.transform = `translateX(${-_koIndex * 100}%)`;
+  // Interstitial = chrome oscuro (flecha blanca) + barra oculta.
+  ov.classList.toggle('ko-dark', s.dataset.kind === 'inter');
+  const back = document.getElementById('ko-back');
+  if (back) { back.style.opacity = _koIndex === 0 ? '0' : '1'; back.style.pointerEvents = _koIndex === 0 ? 'none' : 'auto'; }
+  const prog = document.getElementById('ko-prog');
+  const fill = document.getElementById('ko-progfill');
+  const st = parseInt(s.dataset.step, 10);
+  if (prog && fill) {
+    if (st >= 0) { prog.style.opacity = '1'; fill.style.width = (st / KO_STEPS_TOTAL * 100) + '%'; }
+    else { prog.style.opacity = '0'; }
+  }
+}
+
+// Validación del paso visible antes de avanzar. Marca en coral lo que falte.
+function kingOnbValidate() {
+  const track = document.getElementById('ko-track');
+  const s = track.children[_koIndex];
+  const kind = s.dataset.kind, step = parseInt(s.dataset.step, 10);
+  if (kind !== 'q') return true;
+  if (step === 1) {
+    const edad = parseInt(document.getElementById('ko-edad').value, 10);
+    const peso = parseFloat(String(document.getElementById('ko-peso').value).replace(',', '.'));
+    const altura = parseInt(document.getElementById('ko-altura').value, 10);
+    const okE = edad >= 14 && edad <= 90, okP = peso >= 35 && peso <= 250, okA = altura >= 120 && altura <= 220;
+    document.getElementById('ko-f-edad').classList.toggle('ko-missing', !okE);
+    document.getElementById('ko-f-peso').classList.toggle('ko-missing', !okP);
+    document.getElementById('ko-f-altura').classList.toggle('ko-missing', !okA);
+    if (okE && okP && okA) { _koData.edad = edad; _koData.peso = peso; _koData.altura = altura; return true; }
+    return false;
+  }
+  if (step === 2) { return _koData.dias !== null; }
+  if (step === 4) { return _koData.comidas !== null; }
+  return true; // lesiones y dieta tienen default ("Ninguna") → siempre válidas
+}
+
+function kingOnbNext() {
+  const track = document.getElementById('ko-track');
+  if (!track) return;
+  if (!kingOnbValidate()) return;
+  if (_koIndex >= track.children.length - 1) return;
+  _koIndex++;
+  kingOnbRender();
+  const s = track.children[_koIndex];
+  if (s.dataset.kind === 'final') kingOnbFinish();
+}
+function kingOnbBack() {
+  if (_koIndex <= 0) return;
+  _koIndex--;
+  kingOnbRender();
+}
+
+// Lee los chips de un grupo multi (con "Ninguna" exclusiva + campo "Otra").
+function _koReadMulti(groupId, otraId) {
+  const group = document.getElementById(groupId);
+  const vals = [];
+  group.querySelectorAll('.ko-chip.ko-sel').forEach(ch => {
+    const v = ch.dataset.v;
+    if (v === 'ninguna') return;
+    if (v === '__otra') {
+      const t = (document.getElementById(otraId).querySelector('input').value || '').trim();
+      if (t) vals.push(t);
+      return;
+    }
+    vals.push(v);
+  });
+  return vals;
+}
+
+function kingOnbFinish() {
+  _koData.lesiones = _koReadMulti('ko-lesiones', 'ko-lesiones-otra');
+  _koData.dieta = _koReadMulti('ko-dieta', 'ko-dieta-otra');
+  // Incremento 1: solo capturamos. El wiring real (selections + saveProfile +
+  // launchCoach + lectura de king_intake) es el próximo incremento.
+  console.info('[king-onb] captured:', JSON.stringify(_koData));
+}
+
+// Selección de chips: single (días/comidas) y multi con "Ninguna" exclusiva.
+(function koWireChips() {
+  const groups = [
+    { id: 'ko-dias', key: 'dias', single: true },
+    { id: 'ko-comidas', key: 'comidas', single: true },
+    { id: 'ko-lesiones', otra: 'ko-lesiones-otra' },
+    { id: 'ko-dieta', otra: 'ko-dieta-otra' },
+  ];
+  groups.forEach(g => {
+    const el = document.getElementById(g.id);
+    if (!el) return;
+    el.addEventListener('click', e => {
+      const chip = e.target.closest('.ko-chip');
+      if (!chip) return;
+      e.stopPropagation();
+      if (g.single) {
+        el.querySelectorAll('.ko-chip').forEach(c => c.classList.remove('ko-sel'));
+        chip.classList.add('ko-sel');
+        _koData[g.key] = parseInt(chip.dataset.v, 10);
+        return;
+      }
+      const v = chip.dataset.v;
+      const noneChip = el.querySelector('.ko-chip[data-v="ninguna"]');
+      const otraBox = g.otra ? document.getElementById(g.otra) : null;
+      if (v === 'ninguna') {
+        el.querySelectorAll('.ko-chip').forEach(c => c.classList.remove('ko-sel'));
+        chip.classList.add('ko-sel');
+        if (otraBox) otraBox.classList.remove('ko-show');
+        return;
+      }
+      if (noneChip) noneChip.classList.remove('ko-sel');
+      chip.classList.toggle('ko-sel');
+      if (v === '__otra' && otraBox) otraBox.classList.toggle('ko-show', chip.classList.contains('ko-sel'));
+      // Si quedó todo deseleccionado, vuelve a "Ninguna" (siempre hay respuesta).
+      if (!el.querySelector('.ko-chip.ko-sel') && noneChip) noneChip.classList.add('ko-sel');
+    });
+  });
+})();
+
+// DEV: con el flag activo, el overlay se abre solo al cargar para poder verlo
+// y probarlo sin login. Cuando hagamos el wiring real, esto se reemplaza por el
+// disparo desde proceedAfterAuth() para clientas King nuevas.
+if (KING_ONB_ENABLED) {
+  window.addEventListener('load', () => { setTimeout(() => kingOnbOpen('Virginia'), 400); });
+}
 
 // ============================
 // STORES FUNNEL — vidriera curada de coaches + demo gratis de 14 días.
