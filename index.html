@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260703-1844-king-onb-a--wiring-finish--launchcoach---derivaciones-mapa">
+<meta name="app-version" content="20260703-1858-king-onb-b--rutear-al-login---leer-king-intake">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -14278,10 +14278,36 @@ function kingOnbFinish() {
   });
 })();
 
-// DEV: con el flag activo, el overlay se abre solo al cargar para poder verlo
-// y probarlo sin login. Cuando hagamos el wiring real, esto se reemplaza por el
-// disparo desde proceedAfterAuth() para clientas King nuevas.
-if (KING_ONB_ENABLED) {
+// ── Incremento B: disparo real desde el login ──────────────────────────────
+// Para una clienta King NUEVA o con perfil incompleto, mostramos ESTE onboarding
+// en vez del clásico. Lee su Mapa (king_intake) por email para derivar objetivo/
+// nivel + alimentar el plan. Devuelve true si tomó el control (el caller hace return).
+// Gateado por KING_ONB_ENABLED (?kingonb=1) → dev-only hasta que lo activemos: sin
+// el flag, prod queda IDÉNTICO (las King siguen viendo el onboarding clásico).
+async function maybeKingOnboarding(email, nombre) {
+  if (!KING_ONB_ENABLED) return false;
+  const isKing = /^king\./i.test(location.hostname)
+    || document.body.classList.contains('theme-king')
+    || (typeof currentTenant !== 'undefined' && currentTenant && currentTenant.slug === 'jesus');
+  if (!isKing) return false;
+  // El Mapa es OPCIONAL: enriquece (objetivo/nivel/contexto). Si no hay fila, el
+  // onboarding corre igual con defaults (volumen/principiante).
+  let mapa = null;
+  try {
+    if (sbClient && email) {
+      const { data } = await sbClient.from('king_intake')
+        .select('arquetipo,quiz_respuestas,diagnostico')
+        .eq('email', String(email).toLowerCase()).maybeSingle();
+      if (data) mapa = data;
+    }
+  } catch (e) { console.warn('[king-onb] lectura king_intake:', e); }
+  kingOnbOpen(nombre, mapa);
+  return true;
+}
+
+// DEV standalone: ?kingonbdemo=1 abre el overlay solo al cargar (preview de UI sin
+// login, con datos mock). El disparo REAL es maybeKingOnboarding() desde el login.
+if (new URLSearchParams(location.search).get('kingonbdemo') === '1') {
   window.addEventListener('load', () => { setTimeout(() => kingOnbOpen('Virginia'), 400); });
 }
 
@@ -16379,6 +16405,9 @@ async function proceedAfterAuth(email, nombre, authUid) {
     document.body.classList.add('app-active');
 
     if (result.isNew) {
+      // King (incremento B): clienta nueva → onboarding King (gated ?kingonb=1).
+      // Si toma el control, cortamos acá (no mostramos el onboarding clásico).
+      if (await maybeKingOnboarding(email, nombre)) return;
       document.getElementById('hero-section').style.display = 'block';
       document.querySelector('.form-wrapper').style.display = 'block';
       document.querySelector('.progress-bar-container').style.display = 'block';
@@ -16403,6 +16432,8 @@ async function proceedAfterAuth(email, nombre, authUid) {
       if (p.objetivo && p.nivel && p.peso && p.altura && p.edad && p.sexo) {
         await launchCoach();
       } else {
+        // King (incremento B): perfil incompleto → onboarding King (gated). Corta acá.
+        if (await maybeKingOnboarding(p.email || email, p.nombre || nombre)) return;
         document.getElementById('hero-section').style.display = 'block';
         document.querySelector('.form-wrapper').style.display = 'block';
         document.querySelector('.progress-bar-container').style.display = 'block';
