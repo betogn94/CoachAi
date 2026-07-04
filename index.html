@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260703-2138-deploy">
+<meta name="app-version" content="20260704-0338-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -13202,6 +13202,82 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     </div>
   </div>
 
+  <!-- ============================================================
+       PROGRESO KING — evolución del Índice de Armonía (curva + medidores).
+       Reemplaza la "EVOLUCIÓN DEL PESO" para King. Namespaced kpg-* (cero
+       colisión). Oculto por defecto → sin flag/no-King el Perfil sale IDÉNTICO.
+       Diseño aprobado (mockup king-perfil-mockup.html): curva coral, medidores
+       monocromos con descripción, pill negra (firma del onboarding King).
+       ============================================================ -->
+  <style>
+    #perfil-progreso-king .kpg-card{background:var(--card,#fff);border:1px solid var(--border,#ECECF1);border-radius:18px;box-shadow:var(--card-shadow,0 2px 10px rgba(20,15,10,.04));padding:18px}
+    .kpg-sech{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+    .kpg-sech .t{font-size:15px;font-weight:600;color:var(--text,#1A1A26);letter-spacing:-.01em}
+    .kpg-sech .s{font-size:12px;color:var(--muted,#6B6B80)}
+    .kpg-chart{width:100%}
+    .kpg-chart svg{width:100%;height:auto;display:block}
+    .kpg-axis{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted,#6B6B80);margin-top:6px;padding:0 4px}
+    .kpg-med{margin-top:14px}
+    .kpg-row{display:flex;align-items:center;gap:13px;padding:12px 0;border-bottom:1px solid var(--border,#ECECF1)}
+    .kpg-row:last-child{border-bottom:none;padding-bottom:2px}
+    .kpg-ico{width:32px;height:32px;border-radius:10px;background:var(--surface2,#F5F5F8);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+    .kpg-ico svg{width:17px;height:17px;stroke:var(--text,#1A1A26);opacity:.72;fill:none}
+    .kpg-body{flex:1;min-width:0}
+    .kpg-ml{font-size:13.5px;font-weight:600;color:var(--text,#1A1A26);display:flex;justify-content:space-between;align-items:baseline;letter-spacing:-.005em}
+    .kpg-pct{font-size:13px;font-weight:600;color:var(--text,#1A1A26);font-variant-numeric:tabular-nums}
+    .kpg-track{height:5px;background:var(--surface2,#F0F0F3);border-radius:5px;margin-top:7px;overflow:hidden}
+    .kpg-track i{display:block;height:100%;background:var(--text,#1A1A26);opacity:.82;border-radius:5px;transition:width .7s cubic-bezier(.32,.72,0,1)}
+    .kpg-sub{font-size:11.5px;color:var(--muted,#6B6B80);margin-top:5px;line-height:1.4}
+    .kpg-cta{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:18px;padding:15px;border:none;color:#fff;background:var(--text,#1A1A26);border-radius:100px;font-family:inherit;font-weight:600;font-size:15px;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.16)}
+    .kpg-cta:active{transform:scale(.99)}
+    .kpg-cta svg{width:16px;height:16px;stroke:#fff;fill:none}
+    .kpg-empty{text-align:center;padding:18px 8px 6px}
+    .kpg-empty-title{font-size:15px;font-weight:700;color:var(--text,#1A1A26)}
+    .kpg-empty-sub{font-size:12.5px;color:var(--muted,#6B6B80);margin:6px 0 14px;line-height:1.5}
+  </style>
+  <div class="cai-perfil-section" id="perfil-progreso-king" style="display:none">
+    <div class="cai-perfil-section-title">TU ÍNDICE DE ARMONÍA</div>
+    <div class="kpg-card">
+      <div id="kpg-body">
+        <div class="kpg-sech"><div class="t">Tu evolución</div><div class="s" id="kpg-range">—</div></div>
+        <div class="kpg-chart" id="kpg-chart"></div>
+        <div class="kpg-axis"><span id="kpg-ax-l">—</span><span id="kpg-ax-r">—</span></div>
+        <div class="kpg-med">
+          <div class="kpg-row">
+            <div class="kpg-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6M10 4c0 4-4.5 5.5-4.5 9.5C5.5 17.5 8 20 12 20s6.5-2.5 6.5-6.5C18.5 9.5 14 8 14 4"/></svg></div>
+            <div class="kpg-body">
+              <div class="kpg-ml">Curva inferior <span class="kpg-pct" id="kpg-m1-v">—</span></div>
+              <div class="kpg-track"><i id="kpg-m1-bar" style="width:0%"></i></div>
+              <div class="kpg-sub">Cadera y glúteos respecto a tu cintura</div>
+            </div>
+          </div>
+          <div class="kpg-row">
+            <div class="kpg-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10c2.5-4 5-5.5 8-5.5S17.5 6 20 10M9.5 19c.5-3 1-4.5 2.5-4.5s2 1.5 2.5 4.5"/></svg></div>
+            <div class="kpg-body">
+              <div class="kpg-ml">Curva superior <span class="kpg-pct" id="kpg-m2-v">—</span></div>
+              <div class="kpg-track"><i id="kpg-m2-bar" style="width:0%"></i></div>
+              <div class="kpg-sub">Hombros respecto a tu cintura</div>
+            </div>
+          </div>
+          <div class="kpg-row">
+            <div class="kpg-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M8 8 5 12l3 4M16 8l3 4-3 4"/></svg></div>
+            <div class="kpg-body">
+              <div class="kpg-ml">Simetría <span class="kpg-pct" id="kpg-m3-v">—</span></div>
+              <div class="kpg-track"><i id="kpg-m3-bar" style="width:0%"></i></div>
+              <div class="kpg-sub">Balance entre tu tren superior e inferior</div>
+            </div>
+          </div>
+        </div>
+        <button class="kpg-cta" type="button" onclick="openMedidaCapture()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-8m0 0V4m0 8H4m8 0h8"/></svg> Actualizar mis medidas</button>
+      </div>
+      <div class="kpg-empty" id="kpg-empty" style="display:none">
+        <div class="kpg-empty-title">Armá tu Índice de Armonía</div>
+        <div class="kpg-empty-sub">Cargá tus medidas y empezá a ver tu evolución hacia el reloj de arena.</div>
+        <button class="kpg-cta" type="button" onclick="openMedidaCapture()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-8m0 0V4m0 8H4m8 0h8"/></svg> Empezar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="peso-log-overlay" id="peso-log-overlay" onclick="if(event.target===this) closePesoLog()">
     <div class="pl-sheet">
       <div class="pl-title" data-es="Tu peso de hoy" data-en="Today's weight">Tu peso de hoy</div>
@@ -23052,6 +23128,12 @@ async function saveMedida() {
     }]);
     closeMedidaCapture();
     await renderKingIndice();
+    // Si el Perfil King está a la vista, refrescá héroe + curva con la nueva medición.
+    const kpg = document.getElementById('perfil-progreso-king');
+    if (kpg && kpg.style.display !== 'none') {
+      renderPerfilKingHero().catch(() => {});
+      renderPerfilKingProgreso().catch(() => {});
+    }
     if (typeof trackEvent === 'function') trackEvent('king_medida_saved', { indice: r ? r.indice : null });
   } catch (e) {
     console.error('[king_medidas] save:', e);
@@ -24113,6 +24195,93 @@ async function renderPerfilKingHero() {
   if (dist) dist.innerHTML = `Estás a <b>${100 - idx} puntos</b> de tu silueta <b>reloj de arena</b>.`;
 }
 
+// PERFIL KING — sección "Progreso": curva del Índice (historial semanal de
+// king_medidas) + 3 medidores (curva inferior/superior/simetría de la última
+// medición). Reemplaza la curva de peso para King. Ver renderPerfilProgreso.
+async function renderPerfilKingProgreso() {
+  const section = document.getElementById('perfil-progreso-king');
+  if (!section || !currentUser || !sbClient) return;
+  const body = document.getElementById('kpg-body');
+  const empty = document.getElementById('kpg-empty');
+  let rows = [];
+  try {
+    const { data } = await sbClient.from('king_medidas').select('indice,cintura,cadera,hombros,fecha,created_at')
+      .eq('usuario_id', currentUser.id).order('fecha', { ascending: true }).order('created_at', { ascending: true });
+    rows = (data || []).filter(r => r.indice != null);
+  } catch (e) {}
+  if (!rows.length) {
+    if (body) body.style.display = 'none';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (body) body.style.display = 'block';
+  if (empty) empty.style.display = 'none';
+
+  // Resolución SEMANAL: la última medición de cada semana ISO (misma tendencia
+  // que la curva de peso). fecha (date) si existe, si no created_at (timestamp).
+  const byWeek = new Map();
+  rows.forEach(r => {
+    const d = r.fecha ? new Date(r.fecha + 'T12:00:00') : new Date(r.created_at);
+    byWeek.set(getISOWeekKey(d), r);
+  });
+  const weekly = Array.from(byWeek.values());
+  const vals = weekly.map(r => Math.round(r.indice));
+  const inicio = vals[0], hoy = vals[vals.length - 1];
+
+  const rEl = document.getElementById('kpg-range');
+  if (rEl) rEl.textContent = weekly.length > 1 ? `últimas ${weekly.length} semanas` : 'tu primera medición';
+  const axL = document.getElementById('kpg-ax-l'); if (axL) axL.textContent = `${inicio} · inicio`;
+  const axR = document.getElementById('kpg-ax-r'); if (axR) axR.textContent = `hoy · ${hoy}`;
+
+  drawIndiceChart(vals);
+
+  // Medidores desde la ÚLTIMA medición (sub-scores 0-100 vía computeIndiceArmonia).
+  const last = rows[rows.length - 1];
+  const r = computeIndiceArmonia(last.cintura, last.cadera, last.hombros);
+  if (r) {
+    const setM = (vId, bId, v) => {
+      const e = document.getElementById(vId); if (e) e.textContent = v + '%';
+      const b = document.getElementById(bId); if (b) b.style.width = v + '%';
+    };
+    setM('kpg-m1-v', 'kpg-m1-bar', r.sub.inferior);
+    setM('kpg-m2-v', 'kpg-m2-bar', r.sub.superior);
+    setM('kpg-m3-v', 'kpg-m3-bar', r.sub.simetria);
+  }
+}
+
+// Dibuja la curva del Índice (0-100, auto-escalada a los datos para que la
+// evolución sea legible). Coral solo en la línea + el punto final. Sin y-labels
+// (más limpio que la de peso; el anillo ya comunica el número).
+function drawIndiceChart(vals) {
+  const host = document.getElementById('kpg-chart');
+  if (!host) return;
+  const cs = getComputedStyle(document.documentElement);
+  const accent = (cs.getPropertyValue('--accent') || '#FF4F7B').trim() || '#FF4F7B';
+  const W = 300, H = 128, padT = 16, padB = 16, padL = 10, padR = 10;
+  let min = Math.min(...vals), max = Math.max(...vals);
+  if (min === max) { min -= 4; max += 4; }
+  const pad = (max - min) * 0.22 || 2; min -= pad; max += pad;
+  const n = vals.length;
+  const X = i => n === 1 ? W / 2 : (padL + i * ((W - padL - padR) / (n - 1)));
+  const Y = v => padT + (max - v) / (max - min) * (H - padT - padB);
+  const baseY = H - padB + 8;
+  const pts = vals.map((v, i) => X(i).toFixed(1) + ',' + Y(v).toFixed(1));
+  const line = pts.join(' ');
+  const area = 'M' + pts.join(' L') + ' L' + X(n - 1).toFixed(1) + ',' + baseY + ' L' + X(0).toFixed(1) + ',' + baseY + ' Z';
+  let grid = '';
+  [0.2, 0.5, 0.8].forEach(f => {
+    const yy = (padT + f * (H - padT - padB)).toFixed(1);
+    grid += '<line x1="0" y1="' + yy + '" x2="' + W + '" y2="' + yy + '" stroke="rgba(128,128,140,.12)" stroke-width="1"/>';
+  });
+  const lx = X(n - 1).toFixed(1), ly = Y(vals[n - 1]).toFixed(1);
+  const dot = '<circle cx="' + lx + '" cy="' + ly + '" r="4.5" fill="' + accent + '" stroke="#fff" stroke-width="2"/>';
+  host.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block" role="img" aria-label="curva del Índice de Armonía">' +
+    grid +
+    '<path d="' + area + '" fill="' + accent + '" opacity="0.06"/>' +
+    '<polyline points="' + line + '" fill="none" stroke="' + accent + '" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>' +
+    dot + '</svg>';
+}
+
 // HERO del Perfil: nombre + avatar + objetivo + semana del proceso + peso con el
 // cambio desde el inicio (el cambio motiva más que el número absoluto). El peso
 // inicial/actual sale de progreso_peso (primera vs última pesada); si no hay
@@ -24557,11 +24726,15 @@ async function renderPerfil() {
     const gh = document.getElementById('perfil-hero'); if (gh) gh.style.display = 'none';
     const kh = document.getElementById('perfil-hero-king'); if (kh) kh.style.display = 'block';
     renderPerfilKingHero().catch(() => {});
+    // Progreso King: curva del Índice + medidores reemplazan la curva de peso.
+    const gp = document.getElementById('perfil-progreso-section'); if (gp) gp.style.display = 'none';
+    const kp = document.getElementById('perfil-progreso-king'); if (kp) kp.style.display = 'block';
+    renderPerfilKingProgreso().catch(() => {});
   } else {
     renderPerfilHeroCard().catch(() => {});   // hero card clásico (nombre + objetivo + semana + peso)
+    renderPerfilProgreso().catch(() => {});   // sección de progreso (curva de peso + registro)
+    maybeShowPesoPrompt().catch(() => {});    // empujón semanal al peso (post-cierre)
   }
-  renderPerfilProgreso().catch(() => {});   // sección de progreso (curva de peso + registro)
-  maybeShowPesoPrompt().catch(() => {});    // empujón semanal al peso (post-cierre)
   // Orden emocional-primero: bajar "Mi plan de la semana" al fondo (después de
   // Último análisis, antes de la zona de ajustes). Idempotente — se puede correr
   // en cada render. El resto del orden ya viene del markup (hero → transformación
