@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260704-0338-deploy">
+<meta name="app-version" content="20260704-0415-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -23050,6 +23050,92 @@ async function loadLatestMedida() {
   return data;
 }
 
+// ── ARRANQUE ESTIMADO del Índice ("coach artificial") ─────────────────────────
+// El Mapa/quiz no trae centímetros → estimamos el punto de partida como lo haría
+// el coach a ojo: arquetipo = forma actual; experiencia entrenando = base
+// muscular; potencial del diagnóstico = margen. Agrega con los MISMOS pesos que
+// computeIndiceArmonia (.40/.35/.25) para que estimado y medido convivan en una
+// sola escala. Sub-scores clampeados a 35–80: nunca hiriente, siempre con margen.
+function estimarIndiceInicial(mapa, user) {
+  const base = {
+    triangulo:        { inferior: 66, superior: 46, simetria: 50 },  // cadera fuerte, hombros angostos
+    invertido:        { inferior: 44, superior: 72, simetria: 48 },  // hombros anchos, cadera angosta
+    rectangulo:       { inferior: 48, superior: 56, simetria: 70 },  // recta pero balanceada
+    reloj_incompleto: { inferior: 60, superior: 62, simetria: 66 },  // cerca del objetivo
+  }[(mapa && mapa.arquetipo) || ''] || { inferior: 52, superior: 55, simetria: 60 };  // sin Mapa: neutral
+
+  // Experiencia entrenando: q3 del quiz si hay Mapa; si no, el nivel del perfil.
+  const expTable = { nunca: 0, lt6: 1, '6to12': 2, '1to3': 4, gt3: 6 };
+  const q3 = mapa && mapa.quiz_respuestas && mapa.quiz_respuestas.q3_experience;
+  const expBump = (q3 && expTable[q3] != null) ? expTable[q3]
+    : ({ principiante: 0, intermedio: 3, avanzado: 5 }[(user && user.nivel) || ''] || 0);
+  // Potencial del diagnóstico — ajuste leve.
+  const potBump = { bajo: -2, medio: 0, alto: 2, muy_alto: 3 }[
+    (mapa && mapa.diagnostico && mapa.diagnostico.potential) || ''] || 0;
+
+  const clamp = v => Math.max(35, Math.min(80, Math.round(v)));
+  const sub = {
+    inferior: clamp(base.inferior + expBump + potBump),
+    superior: clamp(base.superior + expBump + potBump),
+    simetria: clamp(base.simetria + potBump),
+  };
+  const indice = Math.round(0.40 * sub.inferior + 0.35 * sub.superior + 0.25 * sub.simetria);
+  return { indice, sub };
+}
+
+// Sub-scores de una fila de king_medidas: con centímetros los calcula (fuente de
+// verdad); sin ellos (punto estimado/de cierre) usa los guardados, con fallback
+// al índice para puntos viejos de cierre sin subs.
+function subsFromRow(m) {
+  if (m && m.cintura != null && m.cadera != null && m.hombros != null) {
+    const r = computeIndiceArmonia(m.cintura, m.cadera, m.hombros);
+    if (r) return r;
+  }
+  if (m && m.indice != null) {
+    const idx = Math.round(m.indice);
+    return { indice: idx, sub: {
+      inferior: m.sub_inferior != null ? m.sub_inferior : idx,
+      superior: m.sub_superior != null ? m.sub_superior : idx,
+      simetria: m.sub_simetria != null ? m.sub_simetria : idx,
+    } };
+  }
+  return null;
+}
+
+// Garantiza que ninguna King vea el Índice vacío: si no tiene NINGÚN punto,
+// siembra el inicial estimado (del Mapa si existe — recién hecho en memoria o
+// king_intake por email — si no, del perfil). Guard por promesa → corre 1 sola
+// vez aunque Home y Perfil lo pidan en paralelo.
+let _indiceSeedP = null;
+function ensureIndiceSeed() {
+  if (_indiceSeedP) return _indiceSeedP;
+  _indiceSeedP = (async () => {
+    try {
+      if (!sbClient || !currentUser) return;
+      const { count, error } = await sbClient.from('king_medidas')
+        .select('id', { count: 'exact', head: true }).eq('usuario_id', currentUser.id);
+      if (error || (count || 0) > 0) return;
+      let mapa = window._kingMapaCtx || null;
+      if (!mapa && currentUser.email) {
+        try {
+          const { data } = await sbClient.from('king_intake')
+            .select('arquetipo,quiz_respuestas,diagnostico')
+            .eq('email', String(currentUser.email).toLowerCase()).maybeSingle();
+          mapa = data || null;
+        } catch (e) {}
+      }
+      const est = estimarIndiceInicial(mapa, currentUser);
+      await sbClient.from('king_medidas').insert([{
+        usuario_id: currentUser.id, origen: mapa ? 'mapa' : 'estimado',
+        indice: est.indice, sub_inferior: est.sub.inferior,
+        sub_superior: est.sub.superior, sub_simetria: est.sub.simetria,
+      }]);
+      console.info('[king-indice] seed', mapa ? 'mapa' : 'estimado', est.indice);
+    } catch (e) { console.warn('[king-indice] seed:', e && e.message); }
+  })();
+  return _indiceSeedP;
+}
+
 function paintIndiceCard(r) {
   const CIRC = 2 * Math.PI * 48;
   const fill = document.getElementById('king-ind-ring-fill');
@@ -23078,7 +23164,7 @@ async function renderKingIndice() {
   const body = document.getElementById('king-ind-body');
   const empty = document.getElementById('king-ind-empty');
   let m = null;
-  try { m = await loadLatestMedida(); } catch (e) {}
+  try { await ensureIndiceSeed(); m = await loadLatestMedida(); } catch (e) {}
   if (!m) {
     if (body) body.style.display = 'none';
     if (empty) empty.style.display = 'block';
@@ -23086,7 +23172,7 @@ async function renderKingIndice() {
   }
   if (empty) empty.style.display = 'none';
   if (body) body.style.display = 'block';
-  const r = computeIndiceArmonia(m.cintura, m.cadera, m.hombros);
+  const r = subsFromRow(m);   // cm → calcula; estimado/cierre → subs guardados
   if (r) paintIndiceCard(r);
 }
 
@@ -23125,6 +23211,8 @@ async function saveMedida() {
   try {
     await sbClient.from('king_medidas').insert([{
       usuario_id: currentUser.id, cintura: c, cadera: h, hombros: s, indice: r ? r.indice : null,
+      sub_inferior: r ? r.sub.inferior : null, sub_superior: r ? r.sub.superior : null,
+      sub_simetria: r ? r.sub.simetria : null,   // origen default 'medida'
     }]);
     closeMedidaCapture();
     await renderKingIndice();
@@ -24171,6 +24259,7 @@ async function renderPerfilKingHero() {
   if (ring) ring.style.strokeDasharray = CIRC;
   let rows = [];
   try {
+    await ensureIndiceSeed();   // nadie ve el Índice vacío (siembra el estimado si falta)
     const { data } = await sbClient.from('king_medidas').select('indice,fecha,created_at')
       .eq('usuario_id', currentUser.id).order('fecha', { ascending: true }).order('created_at', { ascending: true });
     rows = (data || []).filter(r => r.indice != null);
@@ -24205,7 +24294,8 @@ async function renderPerfilKingProgreso() {
   const empty = document.getElementById('kpg-empty');
   let rows = [];
   try {
-    const { data } = await sbClient.from('king_medidas').select('indice,cintura,cadera,hombros,fecha,created_at')
+    await ensureIndiceSeed();   // nadie ve el Índice vacío (siembra el estimado si falta)
+    const { data } = await sbClient.from('king_medidas').select('indice,cintura,cadera,hombros,sub_inferior,sub_superior,sub_simetria,origen,fecha,created_at')
       .eq('usuario_id', currentUser.id).order('fecha', { ascending: true }).order('created_at', { ascending: true });
     rows = (data || []).filter(r => r.indice != null);
   } catch (e) {}
@@ -24230,14 +24320,15 @@ async function renderPerfilKingProgreso() {
 
   const rEl = document.getElementById('kpg-range');
   if (rEl) rEl.textContent = weekly.length > 1 ? `últimas ${weekly.length} semanas` : 'tu primera medición';
-  const axL = document.getElementById('kpg-ax-l'); if (axL) axL.textContent = `${inicio} · inicio`;
+  const axL = document.getElementById('kpg-ax-l');
+  if (axL) axL.textContent = `${inicio} · ` + (weekly[0].origen === 'mapa' ? 'Mapa' : 'inicio');
   const axR = document.getElementById('kpg-ax-r'); if (axR) axR.textContent = `hoy · ${hoy}`;
 
   drawIndiceChart(vals);
 
-  // Medidores desde la ÚLTIMA medición (sub-scores 0-100 vía computeIndiceArmonia).
+  // Medidores desde la ÚLTIMA medición (cm → calcula; estimado → subs guardados).
   const last = rows[rows.length - 1];
-  const r = computeIndiceArmonia(last.cintura, last.cadera, last.hombros);
+  const r = subsFromRow(last);
   if (r) {
     const setM = (vId, bId, v) => {
       const e = document.getElementById(vId); if (e) e.textContent = v + '%';
