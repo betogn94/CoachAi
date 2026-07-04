@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260704-0539-deploy">
+<meta name="app-version" content="20260704-0550-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12713,12 +12713,15 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
           <div class="section-number">03</div>
           <div class="section-info">
             <div class="section-title" data-es="TU PLAN" data-en="YOUR PLAN">TU PLAN</div>
-            <div class="section-desc" data-es="Días, tiempo y lugar" data-en="Days, time and place">Días, tiempo y lugar</div>
+            <div class="section-desc" data-es="Tus días de gimnasio" data-en="Your gym days">Tus días de gimnasio</div>
           </div>
         </div>
         <div class="section-body">
           <div class="form-group full" style="margin-bottom:20px">
-            <label data-es="¿Qué días podés entrenar?" data-en="Which days can you train?">¿Qué días podés entrenar?</label>
+            <label data-es="¿Qué días entrenás en el GIMNASIO?" data-en="Which days do you train at the GYM?">¿Qué días entrenás en el GIMNASIO?</label>
+            <div style="font-size:12.5px;color:var(--muted);line-height:1.45;margin:2px 0 12px"
+                 data-es="⚠️ Importante: tu rutina se arma con exactamente los días que marques acá."
+                 data-en="⚠️ Important: your routine is built with exactly the days you select here.">⚠️ Importante: tu rutina se arma con exactamente los días que marques acá.</div>
             <div class="dias-grid">
               <div class="dia-card" onclick="toggleDia(this,'lun')"><div class="dia-name" data-es="LUN" data-en="MON">LUN</div><div class="dia-num">L</div></div>
               <div class="dia-card" onclick="toggleDia(this,'mar')"><div class="dia-name" data-es="MAR" data-en="TUE">MAR</div><div class="dia-num">M</div></div>
@@ -12729,11 +12732,13 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
               <div class="dia-card" onclick="toggleDia(this,'dom')"><div class="dia-name" data-es="DOM" data-en="SUN">DOM</div><div class="dia-num">D</div></div>
             </div>
           </div>
-          <div class="form-group full">
-            <label data-es="Lugar de entrenamiento" data-en="Training location">Lugar de entrenamiento</label>
+          <!-- Lugar de entrenamiento: se dejó de preguntar (2026-07-04) — nuestros
+               coaches son de gimnasio, punto. El select queda en el DOM (oculto)
+               porque launchCoach()/saveProfile()/buildSystemPrompt lo leen;
+               default = gimnasio_completo (igual que el onboarding King). -->
+          <div class="form-group full" style="display:none">
             <select id="f-lugar">
-              <option value="" data-es="— Seleccionar —" data-en="— Select —">— Seleccionar —</option>
-              <option value="gimnasio_completo" data-es="Gimnasio" data-en="Gym">Gimnasio</option>
+              <option value="gimnasio_completo" selected data-es="Gimnasio" data-en="Gym">Gimnasio</option>
               <option value="casa_sin_equipo" data-es="Casa - sin equipamiento" data-en="Home - no equipment">Casa - sin equipamiento</option>
               <option value="casa_mancuernas" data-es="Casa - con equipamiento" data-en="Home - with equipment">Casa - con equipamiento</option>
               <option value="aire_libre" data-es="Aire libre / calistenia" data-en="Outdoors / calisthenics">Aire libre / calistenia</option>
@@ -17315,7 +17320,7 @@ function restoreFormFromProfile(p) {
   document.getElementById('f-peso').value = p.peso || '';
   document.getElementById('f-altura').value = p.altura || '';
   document.getElementById('f-actividad').value = p.actividad || '';
-  document.getElementById('f-lugar').value = p.lugar || '';
+  document.getElementById('f-lugar').value = p.lugar || 'gimnasio_completo';   // ya no se pregunta — default gym
   document.getElementById('f-nodislike').value = p.nodislike || '';
   if (document.getElementById('f-cuello')) document.getElementById('f-cuello').value = p.cuello || '';
   if (document.getElementById('f-cintura-form')) document.getElementById('f-cintura-form').value = p.cinturaForm || '';
@@ -17912,16 +17917,7 @@ function buildResumen() {
   const sexo    = document.getElementById('f-sexo').value;
   const peso    = document.getElementById('f-peso').value;
   const altura  = document.getElementById('f-altura').value;
-  const lugar   = document.getElementById('f-lugar')?.value || '';
-
   const nivelLabels = { principiante: lang==='es'?'🌱 Principiante':'🌱 Beginner', intermedio: lang==='es'?'⚡ Intermedio':'⚡ Intermediate', avanzado: lang==='es'?'🔱 Avanzado':'🔱 Advanced' };
-  const lugarLabels = {
-    gimnasio_completo: lang==='es'?'🏋️ Gimnasio':'🏋️ Gym',
-    casa_sin_equipo:   lang==='es'?'🏠 Casa':'🏠 Home',
-    casa_mancuernas:   lang==='es'?'🏠 Casa + pesas':'🏠 Home + weights',
-    aire_libre:        lang==='es'?'🌳 Aire libre':'🌳 Outdoors',
-    mixto:             lang==='es'?'🔀 Mixto':'🔀 Mixed',
-  };
   const dietaSelected = [...document.querySelectorAll('#dieta-chips .chip.selected')]
     .map(c => c.textContent.replace(/[🌿🌱🌾🥛🥩✅]/g, '').trim());
   const restriccionesValue = dietaSelected.length
@@ -17929,7 +17925,7 @@ function buildResumen() {
     : (lang==='es' ? 'Ninguna' : 'None');
 
   // Compact list matching the Design mockup (CONFIRMÁ TUS DATOS):
-  // NOMBRE / EDAD / PESO·ALTURA / NIVEL / DÍAS / LUGAR / RESTRICCIONES.
+  // NOMBRE / EDAD / PESO·ALTURA / NIVEL / DÍAS DE GYM / RESTRICCIONES.
   // Long marketing text removed — it caused awkward 5-line wraps on the right.
   const dash = '—';
   const items = [
@@ -17937,8 +17933,7 @@ function buildResumen() {
     { label: lang==='es'?'Edad':'Age',    value: edad ? `${edad} · ${sexo || ''}`.trim().replace(/·\s*$/, '') : dash },
     { label: lang==='es'?'Peso · Altura':'Weight · Height', value: (peso && altura) ? `${peso}kg · ${altura}cm` : dash },
     { label: lang==='es'?'Nivel':'Level', value: nivelLabels[selections.nivel] || dash },
-    { label: lang==='es'?'Días':'Days',   value: selectedDias.length > 0 ? `${selectedDias.length} días/sem` : dash, cls: 'accent' },
-    { label: lang==='es'?'Lugar':'Place', value: lugarLabels[lugar] || dash },
+    { label: lang==='es'?'Días de gym':'Gym days', value: selectedDias.length > 0 ? `${selectedDias.length} días/sem` : dash, cls: 'accent' },
     { label: lang==='es'?'Restricciones':'Restrictions', value: restriccionesValue, cls: 'accent' },
   ];
 
