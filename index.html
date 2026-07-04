@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260704-0550-deploy">
+<meta name="app-version" content="20260704-1728-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -21275,6 +21275,28 @@ async function signPhotoRows(rows, fields) {
   return rows;
 }
 
+// Firma un set de URLs del bucket PRIVADO progress-photos para mandárselas a la
+// IA (análisis semanal + checkpoint visual). Sin esto, una URL /object/public/
+// de un bucket privado da 400 → la IA no puede descargar la foto → el análisis
+// falla ("Error, intentá de nuevo"). Devuelve el mismo objeto con signed URLs
+// (o la original si el firmado falla). Idempotente: el path se extrae igual de
+// una URL public o de una ya firmada.
+async function _signPhotosForAI(obj) {
+  const out = Object.assign({}, obj);
+  try {
+    if (!sbClient) return out;
+    const paths = {};
+    for (const k in obj) { const p = _photoPathFromUrl(obj[k]); if (p) paths[k] = p; }
+    const uniq = [...new Set(Object.values(paths))];
+    if (!uniq.length) return out;
+    const { data } = await sbClient.storage.from('progress-photos').createSignedUrls(uniq, 3600);
+    const byPath = {};
+    if (data) for (const d of data) if (d && d.path && d.signedUrl) byPath[d.path] = d.signedUrl;
+    for (const k in paths) if (byPath[paths[k]]) out[k] = byPath[paths[k]];
+  } catch (e) { console.warn('[cierre] firmar fotos para IA:', e && e.message); }
+  return out;
+}
+
 async function loadAndRenderFotos() {
   if (!sbClient || !currentUser) return;
   const { data } = await sbClient.from('fotos_progreso')
@@ -22899,7 +22921,10 @@ async function generateWeeklyAnalysis(nombre, weekNum, stats, objetivo, language
     photos = { semanaFrente: photos, inicioFrente: arguments[6] || null };
     indiceCtx = null;   // en la firma legacy el 7º argumento era la foto de inicio, no el Índice
   }
-  const { inicioFrente, inicioEspalda, semanaFrente, semanaEspalda } = photos || {};
+  // Bucket privado: firmar las URLs antes de mandarlas a la IA (una /public/ da
+  // 400 → el análisis fallaba con "Error, intentá de nuevo"). Ver _signPhotosForAI.
+  const { inicioFrente, inicioEspalda, semanaFrente, semanaEspalda } =
+    await _signPhotosForAI(photos || {});
 
   // Build the photo grid the model will see — order matters because the
   // prompt below refers to them positionally. We always send pairs that
@@ -23296,6 +23321,7 @@ let _kingPjePending = null;   // puntaje calculado esperando que el cierre persi
 // ante la duda, el veredicto menor; NO existe "empeoró" (el Índice nunca baja —
 // la luz/pose engañan y una semana mala no borra el proceso).
 async function kingCheckpointVisual(photos) {
+  photos = await _signPhotosForAI(photos || {});   // bucket privado → firmar para la IA
   const imgs = [];
   if (photos.inicioFrente)  imgs.push({ url: photos.inicioFrente,  label: 'INICIO · FRENTE' });
   if (photos.inicioEspalda) imgs.push({ url: photos.inicioEspalda, label: 'INICIO · ESPALDA' });
