@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Método King — Cómo funciona</title>
+<style>
+  :root{
+    --coral:#FF4F7B;
+    --coral-deep:#E23A63;
+    --coral-soft:#FFF0F4;
+    --ground:#FDF9FA;
+    --card:#FFFFFF;
+    --ink:#1C1620;
+    --muted:#7C7480;
+    --line:#F1E8EC;
+    --line-strong:#E7DAE0;
+    --sys:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--ground);color:var(--ink);font-family:var(--sys);line-height:1.6;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden}
+  .wrap{max-width:940px;margin:0 auto;padding:0 24px}
+  section{padding:clamp(56px,9vw,110px) 0}
+  h1,h2,h3{text-wrap:balance;letter-spacing:-0.03em;line-height:1.08;margin:0}
+  p{margin:0}
+  .eyebrow{font-family:var(--mono);font-size:0.72rem;letter-spacing:0.22em;text-transform:uppercase;
+    color:var(--coral-deep);font-weight:600}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  /* HERO */
+  .hero{padding-top:clamp(48px,8vw,88px);padding-bottom:clamp(40px,7vw,72px);position:relative}
+  .hero-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:clamp(32px,5vw,60px);align-items:center}
+  .hero h1{font-size:clamp(2.3rem,5.6vw,3.9rem);font-weight:800;margin:20px 0 0}
+  .hero h1 em{font-style:normal;color:var(--coral)}
+  .hero-sub{margin-top:22px;font-size:clamp(1.02rem,2vw,1.18rem);color:var(--muted);max-width:34ch}
+  .hero-ring{justify-self:center}
+  .ring-box{position:relative;width:min(240px,64vw);aspect-ratio:1}
+  .ring-box svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .ring-box .track{fill:none;stroke:var(--line-strong);stroke-width:9}
+  .ring-box .fill{fill:none;stroke:var(--coral);stroke-width:9;stroke-linecap:round}
+  .ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ring-center b{font-size:clamp(3.2rem,10vw,4.4rem);font-weight:800;letter-spacing:-0.05em;line-height:1;font-variant-numeric:tabular-nums}
+  .ring-center span{font-family:var(--mono);font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+  .ring-goal{margin-top:14px;text-align:center;font-size:0.86rem;color:var(--muted)}
+  .ring-goal b{color:var(--ink);font-weight:600}
+
+  /* SECTION HEADS */
+  .shead{max-width:60ch;margin-bottom:clamp(34px,5vw,56px)}
+  .shead h2{font-size:clamp(1.7rem,3.6vw,2.5rem);font-weight:800;margin-top:12px}
+  .shead p{margin-top:16px;color:var(--muted);font-size:1.05rem}
+  .band{background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+
+  /* TIMELINE */
+  .steps{display:flex;flex-direction:column;gap:2px}
+  .step{display:grid;grid-template-columns:auto 1fr;gap:22px;padding:22px 0;border-bottom:1px solid var(--line);align-items:start}
+  .step:last-child{border-bottom:none}
+  .step-n{font-family:var(--mono);font-size:0.8rem;font-weight:600;color:var(--muted);
+    width:34px;height:34px;border:1px solid var(--line-strong);border-radius:50%;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;font-variant-numeric:tabular-nums;margin-top:2px}
+  .step h3{font-size:1.16rem;font-weight:700}
+  .step p{margin-top:7px;color:var(--muted);font-size:1rem;max-width:60ch}
+  .step.key .step-n{background:var(--coral);border-color:var(--coral);color:#fff;box-shadow:0 6px 18px rgba(255,79,123,.32)}
+  .step.key h3{color:var(--coral-deep)}
+  .step.key{background:linear-gradient(90deg,var(--coral-soft),transparent 70%);border-radius:14px;
+    padding:22px 20px;margin:6px -20px;border-bottom:1px solid var(--line)}
+  .tl-note{margin-top:26px;padding:18px 22px;background:var(--coral-soft);border-radius:14px;
+    font-size:0.98rem;color:var(--ink)}
+  .tl-note b{color:var(--coral-deep)}
+
+  /* INDICE RULES */
+  .rules{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:8px}
+  .rule{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 22px 24px}
+  .rule .rn{font-family:var(--mono);font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--coral-deep);font-weight:600}
+  .rule h3{font-size:1.12rem;font-weight:700;margin-top:12px}
+  .rule p{margin-top:8px;color:var(--muted);font-size:0.97rem}
+  .curve-card{margin-top:28px;background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:26px clamp(20px,4vw,34px);display:grid;grid-template-columns:1fr auto;gap:28px;align-items:center}
+  .curve-card .lab{font-family:var(--mono);font-size:0.72rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted)}
+  .curve-card h3{font-size:1.28rem;font-weight:700;margin-top:10px}
+  .curve-card p{margin-top:8px;color:var(--muted);font-size:0.97rem;max-width:34ch}
+  .curve-wrap{width:min(320px,42vw)}
+  .curve-wrap svg{width:100%;height:auto;display:block}
+  .curve-ends{display:flex;justify-content:space-between;font-family:var(--mono);font-size:0.72rem;color:var(--muted);margin-top:8px;padding:0 2px}
+  .curve-ends b{color:var(--coral-deep)}
+
+  /* COHORTS */
+  .cohorts{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .cohort{border-radius:18px;padding:26px 24px;border:1px solid var(--line);background:var(--card)}
+  .cohort.now{border-color:var(--line-strong)}
+  .cohort.king{border-color:var(--coral);background:linear-gradient(160deg,var(--coral-soft),var(--card) 60%)}
+  .cohort .tag{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:0.7rem;
+    letter-spacing:0.14em;text-transform:uppercase;font-weight:600;padding:5px 11px;border-radius:100px}
+  .cohort.now .tag{background:#F4EEF1;color:var(--muted)}
+  .cohort.king .tag{background:var(--coral);color:#fff}
+  .cohort h3{font-size:1.2rem;font-weight:700;margin-top:16px}
+  .cohort .who{font-size:0.9rem;color:var(--muted);margin-top:4px}
+  .cohort p{margin-top:14px;font-size:0.98rem;color:var(--ink)}
+  .switch{margin-top:22px;background:var(--ink);color:#fff;border-radius:18px;padding:clamp(24px,4vw,32px);position:relative;overflow:hidden}
+  .switch .eyebrow{color:#FF97B4}
+  .switch h3{font-size:clamp(1.2rem,2.6vw,1.5rem);font-weight:700;margin-top:12px;color:#fff;max-width:30ch}
+  .switch p{margin-top:14px;color:#C9BFC7;font-size:1.02rem;max-width:58ch}
+  .seals{list-style:none;padding:0;margin:26px 0 0;display:grid;gap:12px}
+  .seals li{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;font-size:0.98rem;color:#ECE4EA}
+  .seals .ck{color:var(--coral);font-weight:700;font-family:var(--mono);margin-top:1px}
+
+  /* CLOSER */
+  .closer{text-align:center;background:var(--card);border-top:1px solid var(--line)}
+  .closer .eyebrow{color:var(--coral-deep)}
+  .closer h2{font-size:clamp(1.9rem,4.4vw,2.8rem);font-weight:800;margin-top:14px}
+  .closer p{margin:18px auto 0;color:var(--muted);max-width:52ch;font-size:1.06rem}
+  .status{display:inline-flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:28px}
+  .chip{font-family:var(--mono);font-size:0.76rem;letter-spacing:0.05em;padding:8px 14px;border-radius:100px;
+    background:var(--coral-soft);color:var(--coral-deep);font-weight:600;border:1px solid #FADAE3}
+  footer{text-align:center;padding:34px 24px 44px;color:var(--muted);font-family:var(--mono);font-size:0.74rem;letter-spacing:0.08em}
+  footer .dot{color:var(--coral)}
+
+  /* reveal */
+  .rv{opacity:0;transform:translateY(16px);transition:opacity .7s cubic-bezier(.22,.61,.36,1),transform .7s cubic-bezier(.22,.61,.36,1)}
+  .rv.in{opacity:1;transform:none}
+
+  @media(max-width:720px){
+    .hero-grid{grid-template-columns:1fr;gap:8px}
+    .hero-ring{order:-1}
+    .rules{grid-template-columns:1fr}
+    .curve-card{grid-template-columns:1fr}
+    .curve-wrap{width:100%}
+    .cohorts{grid-template-columns:1fr}
+    .step.key{margin-left:0;margin-right:0}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .rv{opacity:1;transform:none;transition:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">Cómo funciona · Método King</div>
+      <h1>De un Mapa estético a una transformación que <em>se puede medir</em>.</h1>
+      <p class="hero-sub">Cada semana la usuaria ve cuánto se acerca a su silueta reloj de arena. Este es el recorrido completo — desde que llega con su Mapa hasta que la app la acompaña, semana a semana.</p>
+    </div>
+    <div class="hero-ring">
+      <div class="ring-box">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="track" cx="60" cy="60" r="52"></circle>
+          <circle class="fill" id="heroFill" cx="60" cy="60" r="52"></circle>
+        </svg>
+        <div class="ring-center"><b id="heroNum">0</b><span>Armonía</span></div>
+      </div>
+      <div class="ring-goal">→ camino a su <b>reloj de arena</b></div>
+    </div>
+  </div>
+</header>
+
+<!-- EL VIAJE -->
+<section>
+  <div class="wrap">
+    <div class="shead rv">
+      <div class="eyebrow">El recorrido</div>
+      <h2>Qué vive una usuaria, paso a paso</h2>
+      <p>Ocho momentos, desde que recibe su Mapa hasta que la app se convierte en su acompañante semanal.</p>
+    </div>
+    <div class="steps">
+      <div class="step rv"><div class="step-n">1</div><div>
+        <h3>Llega con su Mapa</h3>
+        <p>Hace el quiz de Daniel y recibe su Mapa Estético: su arquetipo, su diagnóstico, su puntaje. Ese dato viaja solo a la app — cuando entra, ya sabemos quién es.</p>
+      </div></div>
+      <div class="step rv"><div class="step-n">2</div><div>
+        <h3>Un onboarding hecho para ella</h3>
+        <p>No ve el formulario genérico. Una experiencia estilo iOS, una pregunta por pantalla, con las imágenes y frases del método. Le pedimos solo lo mínimo: el Mapa ya trajo el diagnóstico.</p>
+      </div></div>
+      <div class="step rv"><div class="step-n">3</div><div>
+        <h3>Su plan, alineado al Mapa</h3>
+        <p>Dieta y rutina apuntadas a su objetivo y su arquetipo desde el primer día. La IA ya sabe hacia qué silueta está trabajando.</p>
+      </div></div>
+      <div class="step key rv"><div class="step-n">4</div><div>
+        <h3>Nace su Índice de Armonía</h3>
+        <p>El corazón del método. Un puntaje del 0 al 100 de qué tan cerca está de su reloj de arena. Nace estimado desde su Mapa —como el ojo de un coach— así nunca ve una pantalla vacía ni arranca de cero.</p>
+      </div></div>
+      <div class="step rv"><div class="step-n">5</div><div>
+        <h3>Su Home y su Perfil hablan de ella</h3>
+        <p>El Mapa como protagonista en el inicio; en el perfil, el anillo de su Índice, su foto, la curva de su evolución y sus medidores. El peso queda en segundo plano.</p>
+      </div></div>
+      <div class="step rv"><div class="step-n">6</div><div>
+        <h3>Usa la app como siempre</h3>
+        <p>Día a día registra comidas y entrenos: la app funciona idéntico a lo que ya conocemos. Nada nuevo que aprender.</p>
+      </div></div>
+      <div class="step rv"><div class="step-n">7</div><div>
+        <h3>Cada semana, su Índice se mueve</h3>
+        <p>Al cerrar la semana, su esfuerzo mueve la aguja: semana buena +2, decente +1, floja se mantiene. Nunca baja — una mala racha no le borra el progreso. El análisis se lo cuenta con cariño.</p>
+      </div></div>
+      <div class="step rv"><div class="step-n">8</div><div>
+        <h3>Cada 4 semanas, el checkpoint visual</h3>
+        <p>La IA compara sus fotos de inicio con las de ahora. Si ve mejora real, le da un salto extra. Es el gran momento del mes.</p>
+      </div></div>
+    </div>
+    <div class="tl-note rv">Y el ciclo <b>se reinicia limpio</b> cada semana, listo para la siguiente. La que quiere precisión, además, puede <b>medirse con cinta</b> y anclar su Índice con datos reales.</div>
+  </div>
+</section>
+
+<!-- EL ÍNDICE -->
+<section class="band">
+  <div class="wrap">
+    <div class="shead rv">
+      <div class="eyebrow">El corazón</div>
+      <h2>Cómo se comporta el Índice de Armonía</h2>
+      <p>Funciona como el ojo de un coach humano: informado por los datos, pero siempre del lado de la usuaria. Cuatro reglas lo hacen justo y motivador.</p>
+    </div>
+    <div class="rules">
+      <div class="rule rv"><div class="rn">Regla 01</div><h3>La adherencia mueve la aguja</h3><p>Su constancia semanal es lo que la hace subir. Progreso tangible cada domingo, no dentro de tres meses.</p></div>
+      <div class="rule rv"><div class="rn">Regla 02</div><h3>Nunca baja</h3><p>Una semana floja no borra lo logrado: el Índice se mantiene y el mensaje la contiene. No castiga.</p></div>
+      <div class="rule rv"><div class="rn">Regla 03</div><h3>Las fotos validan</h3><p>Cada 4 semanas, cuando el cambio ya se puede ver, la mirada de la IA habilita el salto grande.</p></div>
+      <div class="rule rv"><div class="rn">Regla 04</div><h3>La cinta es opcional</h3><p>Para la más comprometida: medidas reales que anclan el número con precisión. La mayoría no la necesita.</p></div>
+    </div>
+    <div class="curve-card rv">
+      <div>
+        <div class="lab">Su evolución</div>
+        <h3>La aguja avanza, semana a semana</h3>
+        <p>Del punto estimado por su Mapa hacia su reloj de arena — sin saltos bruscos ni retrocesos.</p>
+      </div>
+      <div class="curve-wrap">
+        <svg viewBox="0 0 300 130" aria-hidden="true">
+          <line x1="0" y1="34" x2="300" y2="34" stroke="#F1E8EC" stroke-width="1"></line>
+          <line x1="0" y1="72" x2="300" y2="72" stroke="#F1E8EC" stroke-width="1"></line>
+          <line x1="0" y1="110" x2="300" y2="110" stroke="#F1E8EC" stroke-width="1"></line>
+          <path id="curveArea" d="M12,96 74,86 136,74 198,58 260,40 L260,120 L12,120 Z" fill="rgba(255,79,123,.07)" opacity="0"></path>
+          <polyline id="curveLine" points="12,96 74,86 136,74 198,58 260,40" fill="none" stroke="#FF4F7B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></polyline>
+          <circle id="curveDot" cx="260" cy="40" r="4.8" fill="#FF4F7B" stroke="#fff" stroke-width="2.4" opacity="0"></circle>
+        </svg>
+        <div class="curve-ends"><span><b>60</b> · Mapa</span><span>hoy · <b>74</b></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONVIVENCIA -->
+<section>
+  <div class="wrap">
+    <div class="shead rv">
+      <div class="eyebrow">La convivencia</div>
+      <h2>Dos versiones, en armonía</h2>
+      <p>Cada usuaria tiene un sello en su ficha que decide qué experiencia ve. Nadie lo adivina: se estampa. Así activamos el Método King sin mover a nadie que ya esté usando la app.</p>
+    </div>
+    <div class="cohorts">
+      <div class="cohort now rv">
+        <span class="tag">Sin sello</span>
+        <h3>Las usuarias actuales</h3>
+        <div class="who">Las que ya usan la app hoy</div>
+        <p>Siguen con su versión de siempre, <b>idéntica, para siempre</b>. No cambia absolutamente nada para ellas — ni se enteran.</p>
+      </div>
+      <div class="cohort king rv">
+        <span class="tag">Con sello</span>
+        <h3>Las usuarias nuevas</h3>
+        <div class="who">Las que ingresan una vez activado</div>
+        <p>Nacen con el sello y <b>viven el Método King completo</b>, desde el Mapa hasta el Índice de Armonía.</p>
+      </div>
+    </div>
+    <div class="switch rv">
+      <div class="eyebrow">El interruptor</div>
+      <h3>Un solo cambio, el día que el equipo decida.</h3>
+      <p>Hoy el interruptor está apagado: la app está intacta para todos. El día D lo prendemos — desde ese momento, toda alta nueva entra en Método King, y las que ya estaban siguen exactamente como vienen.</p>
+      <ul class="seals">
+        <li><span class="ck">✓</span><span>Una usuaria actual nunca se topa con King, ni aunque compre el Mapa.</span></li>
+        <li><span class="ck">✓</span><span>Una usuaria King ve su experiencia en cualquier dispositivo — el sello vive en su ficha, no en el navegador.</span></li>
+        <li><span class="ck">✓</span><span>Desde el panel del coach, mirar a una clienta jamás le genera datos por error.</span></li>
+        <li><span class="ck">✓</span><span>Probado de punta a punta: sin fugas en ninguna dirección.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- CIERRE -->
+<section class="closer">
+  <div class="wrap rv">
+    <div class="eyebrow">El estado</div>
+    <h2>A un interruptor de distancia.</h2>
+    <p>El Método King está construido, probado y listo. Solo falta definir la fecha y el anuncio de Jesús para que las nuevas usuarias sepan que llega el Índice de Armonía.</p>
+    <div class="status">
+      <span class="chip">Motor del Índice ✓</span>
+      <span class="chip">Onboarding King ✓</span>
+      <span class="chip">Home + Perfil ✓</span>
+      <span class="chip">Reseteo semanal ✓</span>
+      <span class="chip">Convivencia hermética ✓</span>
+    </div>
+  </div>
+</section>
+
+<footer>CoachAI <span class="dot">·</span> Método King <span class="dot">·</span> Índice de Armonía</footer>
+
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var R=52, C=2*Math.PI*R, fill=document.getElementById('heroFill'), num=document.getElementById('heroNum');
+  fill.style.strokeDasharray=C;
+  var target=74;
+  if(reduce){
+    fill.style.strokeDashoffset=(C*(1-target/100)).toFixed(1); num.textContent=target;
+  }else{
+    fill.style.strokeDashoffset=C;
+    fill.style.transition='stroke-dashoffset 1.6s cubic-bezier(.22,.61,.36,1)';
+    requestAnimationFrame(function(){requestAnimationFrame(function(){
+      fill.style.strokeDashoffset=(C*(1-target/100)).toFixed(1);
+    });});
+    var t0=null, dur=1500;
+    function tick(ts){ if(!t0)t0=ts; var p=Math.min(1,(ts-t0)/dur);
+      var e=1-Math.pow(1-p,3); num.textContent=Math.round(e*target); if(p<1)requestAnimationFrame(tick); }
+    requestAnimationFrame(tick);
+  }
+
+  var line=document.getElementById('curveLine'), area=document.getElementById('curveArea'), dot=document.getElementById('curveDot');
+  function drawCurve(){
+    if(reduce){ area.style.opacity=1; dot.style.opacity=1; return; }
+    var L=line.getTotalLength();
+    line.style.strokeDasharray=L; line.style.strokeDashoffset=L;
+    line.style.transition='stroke-dashoffset 1.4s cubic-bezier(.22,.61,.36,1)';
+    requestAnimationFrame(function(){ line.style.strokeDashoffset=0; });
+    area.style.transition='opacity .9s ease .5s'; dot.style.transition='opacity .4s ease 1.3s';
+    requestAnimationFrame(function(){ area.style.opacity=1; dot.style.opacity=1; });
+  }
+
+  var els=[].slice.call(document.querySelectorAll('.rv'));
+  if(reduce || !('IntersectionObserver' in window)){
+    els.forEach(function(e){e.classList.add('in');}); drawCurve();
+  }else{
+    var io=new IntersectionObserver(function(ents){
+      ents.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in');
+        if(en.target.querySelector && en.target.querySelector('#curveLine')) drawCurve();
+        io.unobserve(en.target); } });
+    },{threshold:.16,rootMargin:'0px 0px -8% 0px'});
+    els.forEach(function(e){io.observe(e);});
+  }
+})();
+</script>
+</body>
+</html>
