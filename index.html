@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260704-0506-deploy">
+<meta name="app-version" content="20260704-0539-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -14396,6 +14396,17 @@ function kingOnbFinish() {
   // Contexto del Mapa para el plan Mapa-aware (lo lee buildSystemPrompt — incremento C).
   window._kingMapaCtx = _koMapa;
 
+  // Sello de cohorte (belt & suspenders — normalmente ya viene estampado del alta):
+  // confirma en memoria + DB que esta usuaria vive la experiencia King en todo
+  // dispositivo. Best-effort: si falla, el estampado del alta ya la cubre.
+  try {
+    if (currentUser) {
+      currentUser.metodo_king = true;
+      sbClient.from('usuarios').update({ metodo_king: true }).eq('id', currentUser.id)
+        .then(({ error }) => { if (error) console.warn('[king-onb] sello cohorte:', error.message); });
+    }
+  } catch (e) {}
+
   console.info('[king-onb] handoff:', JSON.stringify({ objetivo: selections.objetivo, nivel: selections.nivel, dias: selectedDias, comidas: selectedComidas, lesiones: selectedLesiones, dieta: selectedDieta }));
 
   // Handoff al motor de siempre. Al resolver, cerramos el overlay King para revelar
@@ -14466,7 +14477,11 @@ function kingOnbFinish() {
 // Gateado por KING_ONB_ENABLED (?kingonb=1) → dev-only hasta que lo activemos: sin
 // el flag, prod queda IDÉNTICO (las King siguen viendo el onboarding clásico).
 async function maybeKingOnboarding(email, nombre) {
-  if (!KING_ONB_ENABLED) return false;
+  // Gate por COHORTE: solo cuentas marcadas metodo_king (estampadas al alta) ven
+  // este onboarding — una legacy con perfil incompleto (hay 7) retoma el CLÁSICO.
+  // El flag dev (?kingonb=1) sigue abriendo la puerta para QA nuestro.
+  const esCohorte = typeof kingEsCohorte === 'function' && kingEsCohorte();
+  if (!KING_ONB_ENABLED && !(KING_REFORM_LIVE && esCohorte)) return false;
   const isKing = /^king\./i.test(location.hostname)
     || document.body.classList.contains('theme-king')
     || (typeof currentTenant !== 'undefined' && currentTenant && currentTenant.slug === 'jesus');
@@ -14803,6 +14818,12 @@ async function loginOrRegister(email, nombre, authUid = null) {
   const insertRow = { email, nombre };
   if (authUid) insertRow.auth_id = authUid;
   if (inviteTenantId) insertRow.tenant_id = inviteTenantId;
+  // Cohorte Método King: toda alta NUEVA en el tenant King nace marcada (post-
+  // activación, o en dev con ?kingonb=1 para QA). Las cuentas previas quedan
+  // false = experiencia clásica intacta. Ver kingEsCohorte().
+  if (effectiveSlug === 'jesus' && (KING_REFORM_LIVE || (typeof KING_ONB_ENABLED !== 'undefined' && KING_ONB_ENABLED))) {
+    insertRow.metodo_king = true;
+  }
   if (isTrial) {
     // Demo del funnel de stores: 14 días de acceso completo, sin tarjeta.
     // Al día 14 cae en isAccessBlocked → showRenewScreen (ya existe).
@@ -23066,6 +23087,24 @@ const KING_INDICE_FLAG = (() => {
   } catch { return false; }
 })();
 
+// ── COHORTE MÉTODO KING ──────────────────────────────────────────────────────
+// Fuente de verdad = usuarios.metodo_king (la ficha en DB), NO el navegador.
+// La marca se estampa al ALTA en el tenant King (post-activación) y la confirma
+// el onboarding King — nunca se infiere (una clienta clásica que compre el Mapa
+// NO cambia de experiencia sola; upsell = marcado manual con Jesús).
+// KING_REFORM_LIVE = interruptor de activación general (flip el día D):
+//   - false (hoy): prod idéntico; solo cuentas marcadas a mano (test) + flags dev.
+//   - true: toda alta nueva en King nace marcada → experiencia King completa.
+const KING_REFORM_LIVE = false;
+function kingEsCohorte() { return !!(currentUser && currentUser.metodo_king === true); }
+// UI King visible si: es de la cohorte (cualquier dispositivo — viene de la DB)
+// o el flag dev del navegador (?indice=1, solo para inspección/QA nuestro).
+// Los WRITES (seed/puntos del Índice) exigen SIEMPRE la cohorte real.
+function kingUiActiva() {
+  if (!document.body.classList.contains('theme-king')) return false;
+  return kingEsCohorte() || KING_INDICE_FLAG;
+}
+
 function computeIndiceArmonia(cintura, cadera, hombros) {
   const c = +cintura, h = +cadera, s = +hombros;
   if (!(c > 0 && h > 0 && s > 0)) return null;
@@ -23154,6 +23193,11 @@ function subsFromRow(m) {
 // vez aunque Home y Perfil lo pidan en paralelo.
 let _indiceSeedP = null;
 function ensureIndiceSeed() {
+  // WRITE gate: solo se siembra para la cohorte REAL (metodo_king en DB). El flag
+  // dev del navegador NO alcanza — así impersonar a una clienta clásica desde
+  // Studio con el flag activo jamás le crea datos. Early-return SIN cachear:
+  // si la marca aparece después (onboarding), el próximo llamado siembra normal.
+  if (!kingEsCohorte()) return Promise.resolve();
   if (_indiceSeedP) return _indiceSeedP;
   _indiceSeedP = (async () => {
     try {
@@ -23193,8 +23237,9 @@ function ensureIndiceSeed() {
 // punto de arranque, o esa semana del proceso ya puntuó).
 async function kingCierreCalcula(stats, weekNum) {
   try {
-    if (!document.body.classList.contains('theme-king')) return null;
-    if (typeof KING_INDICE_FLAG === 'undefined' || !KING_INDICE_FLAG) return null;
+    // WRITE gate: el puntaje del cierre es SOLO para la cohorte real (metodo_king
+    // en DB) — una clienta clásica jamás genera puntos, ni con el flag dev activo.
+    if (!kingEsCohorte()) return null;
     if (!sbClient || !currentUser || !stats || !weekNum) return null;
     const last = await loadLatestMedida();
     if (!last || last.indice == null) return null;   // sin arranque no hay a qué sumar
@@ -23319,8 +23364,7 @@ function paintIndiceCard(r) {
 async function renderKingIndice() {
   const card = document.getElementById('king-indice-card');
   if (!card) return;
-  const isKing = document.body.classList.contains('theme-king');
-  if (!isKing || !KING_INDICE_FLAG) { card.style.display = 'none'; return; }
+  if (!kingUiActiva()) { card.style.display = 'none'; return; }
   card.style.display = 'block';
   // King reform: el Índice es el hero de Home → oculta la card de entrenamientos.
   document.body.classList.add('king-reform');
@@ -24985,9 +25029,9 @@ async function renderPerfil() {
   if (!currentUser) return;
   // Render the header subtitle immediately from currentUser (no network needed)
   renderPerfilHeaderSub();
-  // King (Índice): reemplaza el héroe de peso por el del Índice de Armonía (gated
-  // theme-king + ?indice=1). Sin el flag / no-King → héroe clásico, Perfil IDÉNTICO.
-  if (document.body.classList.contains('theme-king') && typeof KING_INDICE_FLAG !== 'undefined' && KING_INDICE_FLAG) {
+  // King (Índice): reemplaza el héroe de peso por el del Índice de Armonía —
+  // cohorte metodo_king (o flag dev). Clásica/no-King → Perfil IDÉNTICO.
+  if (typeof kingUiActiva === 'function' && kingUiActiva()) {
     const gh = document.getElementById('perfil-hero'); if (gh) gh.style.display = 'none';
     const kh = document.getElementById('perfil-hero-king'); if (kh) kh.style.display = 'block';
     renderPerfilKingHero().catch(() => {});
