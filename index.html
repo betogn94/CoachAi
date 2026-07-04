@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260704-0434-deploy">
+<meta name="app-version" content="20260704-0444-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -22629,6 +22629,12 @@ async function ejecutarCierreSemana() {
     // for a legacy user). The analyzer compares each cierre vista against
     // its matching inicio vista, integrates the training + nutrition stats,
     // and produces a single multi-paragraph review.
+    // King: puntaje del Índice por adherencia (Fase 2). Se CALCULA antes del
+    // análisis (para que la IA lo mencione) pero se GUARDA recién cuando el
+    // cierre persistió OK. null si no aplica (no-King / sin flag / ya puntuó).
+    let kingPje = null;
+    try { kingPje = await kingCierreCalcula(stats); } catch (e) {}
+
     let analisis = null;
     try {
       analisis = await generateWeeklyAnalysis(nombre, cierreActualWeekNum, stats, objetivo, lang, {
@@ -22636,7 +22642,7 @@ async function ejecutarCierreSemana() {
         inicioEspalda: inicioEspaldaUrl,
         semanaFrente:  semanaFrenteUrl,
         semanaEspalda: semanaEspaldaUrl,
-      });
+      }, kingPje);
     } catch(e) {
       console.error('Weekly analysis generation failed:', e);
     }
@@ -22668,9 +22674,12 @@ async function ejecutarCierreSemana() {
       stats: statsJson
     };
 
+    _kingPjePending = kingPje;   // si el upsert falla, el retry path lo aplica después
     try {
       await sbClient.from('cierres_semanales').upsert([lastCierrePending], { onConflict: 'usuario_id,semana_num' });
       lastCierrePending = null; // success — clear cache
+      // King: el cierre persistió → guardar el punto del Índice de esta semana.
+      try { if (_kingPjePending) { await kingCierreGuarda(_kingPjePending); _kingPjePending = null; } } catch (eK) {}
       // Reabrir el ciclo EN CALIENTE. El cierre que acabamos de guardar hace que
       // los planes entregados antes del fin de esta semana pasen a closed=true.
       // Sin esto, en la MISMA sesión: (a) los quick-buttons "Dieta/Rutina de la
@@ -22831,6 +22840,8 @@ async function retryCierreSave() {
   try {
     await sbClient.from('cierres_semanales').upsert([lastCierrePending], { onConflict: 'usuario_id,semana_num' });
     lastCierrePending = null;
+    // King: aplicar el puntaje del Índice que quedó pendiente del intento fallido.
+    try { if (_kingPjePending) { await kingCierreGuarda(_kingPjePending); _kingPjePending = null; } } catch (eK) {}
     if (retryBanner) retryBanner.style.display = 'none';
     if (generarBtn) generarBtn.textContent = lang === 'es' ? '✓ Análisis guardado' : '✓ Analysis saved';
     await renderSemanas();
@@ -22844,7 +22855,7 @@ async function retryCierreSave() {
   }
 }
 
-async function generateWeeklyAnalysis(nombre, weekNum, stats, objetivo, language, photos = {}) {
+async function generateWeeklyAnalysis(nombre, weekNum, stats, objetivo, language, photos = {}, indiceCtx = null) {
   const isEs = language === 'es';
   const systemPrompt = isEs
     ? `Sos CoachAI, un coach personal experto y MUY motivador. Tu análisis semanal es lo que hace que el cliente quiera volver la semana que viene: entregás la verdad basada en datos, pero SIEMPRE de forma cálida, empática y que da ganas de seguir. Arrancás por los logros, enmarcás lo que falta como "el próximo paso" (nunca como fracaso) y cerrás motivando. Sos honesto sin ser duro: jamás mentís diciendo "todo perfecto", pero tampoco desinflás. Escribís en español rioplatense (voseo). Hacés inferencias físicas científicamente válidas basadas en entrenamiento, nutrición y fotos.`
@@ -22855,6 +22866,7 @@ async function generateWeeklyAnalysis(nombre, weekNum, stats, objetivo, language
   // path during the deploy transition.
   if (typeof photos === 'string') {
     photos = { semanaFrente: photos, inicioFrente: arguments[6] || null };
+    indiceCtx = null;   // en la firma legacy el 7º argumento era la foto de inicio, no el Índice
   }
   const { inicioFrente, inicioEspalda, semanaFrente, semanaEspalda } = photos || {};
 
@@ -22920,7 +22932,7 @@ DATOS DE LA SEMANA ${weekNum}:
 - Grasas: ${stats.avgFat ? `${stats.avgFat}g/día prom${tgtFat ? ` (target ${tgtFat}g)` : ''}` : 'no registradas'}
 - Días con registro de comidas: ${stats.totalLogs}/7
 - Número de semana en el proceso: ${weekNum}
-${prevSummary ? `\nHISTORIAL DE SEMANAS ANTERIORES:\n${prevSummary}\n` : ''}
+${indiceCtx ? `\nÍNDICE DE ARMONÍA (Método King — su puntaje hacia la silueta reloj de arena): esta semana ${indiceCtx.delta > 0 ? `SUBE +${indiceCtx.delta} → ${indiceCtx.indice}/100` : `se mantiene en ${indiceCtx.indice}/100`} por su adherencia. Mencionalo BREVE (1-2 frases) en el cierre motivador: ${indiceCtx.delta > 0 ? 'celebrá la suba y conectala con su constancia.' : 'sin dramatizar — su Índice no baja nunca, invitala a mover la aguja la próxima semana con adherencia.'} Podés decirle que lo vea en su Perfil.\n` : ''}${prevSummary ? `\nHISTORIAL DE SEMANAS ANTERIORES:\n${prevSummary}\n` : ''}
 Escribí un análisis cálido y motivador de 4-5 párrafos. El ORDEN importa: SIEMPRE arrancá por lo bueno.
 1. ARRANCÁ CELEBRANDO lo que ${nombre} hizo bien, con datos concretos (días entrenados, adherencia, lo que SÍ cumplió del target). Que lo primero que lea la haga sentir orgullosa de su esfuerzo.
 2. FOTOS: si ves mejoras —por sutiles que sean— marcalas PRIMERO y con entusiasmo, conectándolas con lo que hizo (entrenó + déficit → se ve más definida). Si es la primera semana y los cambios son sutiles, decilo con honestidad pero sin desinflar (es totalmente normal).
@@ -23154,6 +23166,70 @@ function ensureIndiceSeed() {
   })();
   return _indiceSeedP;
 }
+
+// ── FASE 2: el cierre semanal PUNTÚA el Índice ────────────────────────────────
+// Mecánica acordada (coach artificial): la ADHERENCIA mueve el número —
+// determinístico, acotado (+2 máx/semana) y NUNCA baja (mala semana = se
+// mantiene, el análisis dice por qué). Tope 90 sin medidas reales: la casi-
+// perfección solo se afirma con cinta métrica. Fotos/checkpoint = Fase 3.
+
+// Calcula el punto de esta semana SIN guardarlo (se guarda recién cuando el
+// cierre se persistió OK). Devuelve null si no aplica (no-King, sin flag, sin
+// punto de arranque, o ya puntuó esta semana).
+async function kingCierreCalcula(stats) {
+  try {
+    if (!document.body.classList.contains('theme-king')) return null;
+    if (typeof KING_INDICE_FLAG === 'undefined' || !KING_INDICE_FLAG) return null;
+    if (!sbClient || !currentUser || !stats) return null;
+    const last = await loadLatestMedida();
+    if (!last || last.indice == null) return null;   // sin arranque no hay a qué sumar
+    if (await _kingCierrePuntoYaExiste()) return null; // idempotente por semana ISO
+    // Adherencia: entrenos (60%) + constancia de registro (40%) — los mismos
+    // datos que ve el análisis. target = días planificados del perfil.
+    const target = (currentUser.dias_entreno && currentUser.dias_entreno.length) || 4;
+    const entrenoPct = Math.min(1, (stats.trained || 0) / Math.max(1, target));
+    const registroPct = Math.min(1, (stats.totalLogs || 0) / 7);
+    const score = 0.6 * entrenoPct + 0.4 * registroPct;
+    const prev = Math.round(last.indice);
+    const TOPE = 90;
+    let delta = score >= 0.8 ? 2 : (score >= 0.45 ? 1 : 0);
+    const nuevo = Math.max(prev, Math.min(Math.max(TOPE, prev), prev + delta));  // nunca baja; tope 90 (salvo que ya esté arriba por medida real)
+    delta = nuevo - prev;
+    const base = subsFromRow(last);
+    const cl = v => Math.max(0, Math.min(100, Math.round(v)));
+    const sub = base ? {
+      inferior: cl(base.sub.inferior + delta),
+      superior: cl(base.sub.superior + delta),
+      simetria: cl(base.sub.simetria + delta),
+    } : { inferior: nuevo, superior: nuevo, simetria: nuevo };
+    return { delta, indice: nuevo, prev, sub, score: Math.round(score * 100) };
+  } catch (e) { console.warn('[king-cierre] calcula:', e && e.message); return null; }
+}
+
+async function _kingCierrePuntoYaExiste() {
+  const { data } = await sbClient.from('king_medidas')
+    .select('fecha').eq('usuario_id', currentUser.id).eq('origen', 'cierre')
+    .order('fecha', { ascending: false }).limit(1);
+  const p = data && data[0];
+  return !!(p && getISOWeekKey(new Date(p.fecha + 'T12:00:00')) === getISOWeekKey());
+}
+
+// Guarda el punto calculado (post-cierre-persistido). Inserta TAMBIÉN con
+// delta 0: la curva muestra la semana plana — honesto ("no baja, no se mueve").
+async function kingCierreGuarda(p) {
+  if (!p || !sbClient || !currentUser) return;
+  try {
+    if (await _kingCierrePuntoYaExiste()) return;   // doble guardia (retry paths)
+    await sbClient.from('king_medidas').insert([{
+      usuario_id: currentUser.id, origen: 'cierre', indice: p.indice,
+      sub_inferior: p.sub.inferior, sub_superior: p.sub.superior, sub_simetria: p.sub.simetria,
+    }]);
+    console.info('[king-cierre] punto guardado:', p.prev, '→', p.indice, `(adherencia ${p.score}%)`);
+    if (typeof trackEvent === 'function') trackEvent('king_indice_cierre', { delta: p.delta, indice: p.indice, score: p.score });
+    renderKingIndice().catch(() => {});   // refresca la card de Home si está a la vista
+  } catch (e) { console.warn('[king-cierre] guarda:', e && e.message); }
+}
+let _kingPjePending = null;   // puntaje calculado esperando que el cierre persista (para el retry path)
 
 function paintIndiceCard(r) {
   const CIRC = 2 * Math.PI * 48;
