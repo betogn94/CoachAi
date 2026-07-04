@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260704-1752-deploy">
+<meta name="app-version" content="20260704-1822-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11341,11 +11341,6 @@ body.theme-king .cai-perfil-transform-badge {
 .entreno-done-medal { width: 104px; height: 104px; object-fit: contain; margin: 2px auto 14px; display: block; filter: drop-shadow(0 6px 14px rgba(17,17,26,.18)); }
 .entreno-done-title { font-size: 21px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
 .entreno-done-sub { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
-/* Paso de recorte de la foto (pan + pinch) */
-.crop-frame { position: relative; height: 56vh; aspect-ratio: 9 / 16; max-width: 86vw; overflow: hidden; border-radius: 16px; background: #111; touch-action: none; box-shadow: 0 20px 50px -18px rgba(0,0,0,.7); }
-.crop-img { position: absolute; top: 0; left: 0; transform-origin: 0 0; user-select: none; -webkit-user-select: none; -webkit-user-drag: none; pointer-events: none; }
-.crop-zoom { width: min(86vw, 320px); margin-top: 16px; accent-color: var(--accent); }
-.crop-hint { color: rgba(255,255,255,.72); font-size: 13px; margin-top: 10px; }
 /* ── Overlay de cierre obligatorio (bloquea Home/Chat/Perfil; tapa el nav z-index:90) ── */
 .cierre-gate-overlay {
   position: fixed; inset: 0; z-index: 4000;
@@ -14121,18 +14116,6 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       <button onclick="changeSharePhoto()" type="button">Cambiar foto</button>
       <button id="share-download-btn" onclick="downloadComposed()" type="button">Descargar</button>
     </div>
-  </div>
-</div>
-
-<!-- Paso de recorte: ajustar la foto (arrastrar + pellizcar) antes de componer -->
-<div class="share-prev-overlay crop-overlay" id="crop-overlay" role="dialog" aria-modal="true" aria-label="Ajustar foto">
-  <button class="share-prev-x" onclick="cancelCrop()" aria-label="Cerrar">×</button>
-  <div class="crop-frame" id="crop-frame"><img class="crop-img" id="crop-img" alt="" draggable="false"></div>
-  <input type="range" id="crop-zoom" class="crop-zoom" min="1" max="6" step="0.01" value="1" aria-label="Zoom">
-  <div class="crop-hint">Arrastrá y pellizcá para ajustar 📷</div>
-  <div class="share-prev-actions">
-    <button class="share-prev-btn" onclick="confirmCrop()" type="button">Usar esta foto</button>
-    <div class="share-prev-sub"><button onclick="changeSharePhoto()" type="button">Elegir otra</button></div>
   </div>
 </div>
 
@@ -25569,51 +25552,16 @@ function startShareLogro(logro){ if(!logro) return; _shareLogro = logro; const i
 function shareLogroFromCele(){ if(_celebratingLogro) startShareLogro(_celebratingLogro); }
 function changeSharePhoto(){ const inp=document.getElementById('share-photo-input'); if(inp){ inp.value=''; inp.click(); } }
 
-// Foto elegida → paso de RECORTE (ajustar/zoom) → componer → preview.
-let _crop = { img:null, baseScale:1, s:1, tx:0, ty:0, fw:0, fh:0 };
+// Foto elegida → DIRECTO a la preview con el template. Sin paso de recorte
+// manual (pedido de Beto 2026-07-04: la interfaz de zoom no quedaba bien):
+// drawShareCanvas encuadra la foto en cover 9:16 centrado automáticamente,
+// así que le pasamos la imagen original tal cual.
 function _shHideSourceOverlays(){ ['entreno-done-overlay','logro-overlay','share-prev-overlay'].forEach(id=>{ const e=document.getElementById(id); if(e) e.classList.remove('open'); }); }
 async function onSharePhotoPicked(inp){
   const file = inp && inp.files && inp.files[0]; if(!file || !_shareLogro) return;
-  try{ const img = await _shLoadFile(file); openCropStep(img); }catch(e){ console.warn('[share] load:', e); }
+  try{ const img = await _shLoadFile(file); _shHideSourceOverlays(); composeAndPreview(img); }
+  catch(e){ console.warn('[share] load:', e); }
 }
-// Paso de recorte: la foto en un marco 9:16, ajustable con arrastrar (pan) + pellizcar (zoom).
-function openCropStep(img){
-  _crop.img = img;
-  const cimg=document.getElementById('crop-img'); if(cimg) cimg.src = img.src;
-  _shHideSourceOverlays();
-  const ov=document.getElementById('crop-overlay'); if(ov) ov.classList.add('open');
-  const sl=document.getElementById('crop-zoom'); if(sl) sl.value=1;
-  const frame=document.getElementById('crop-frame'); if(!frame||!cimg) return;
-  void frame.offsetHeight;  // forzar layout antes de medir (no depender de rAF)
-  const r=frame.getBoundingClientRect(); _crop.fw=r.width||0; _crop.fh=r.height||0;
-  _crop.baseScale = (_crop.fw && _crop.fh) ? Math.max(_crop.fw/img.width, _crop.fh/img.height) : 1;
-  cimg.style.width=Math.round(img.width*_crop.baseScale)+'px'; cimg.style.height=Math.round(img.height*_crop.baseScale)+'px';
-  _crop.s=1; _crop.tx=(_crop.fw - img.width*_crop.baseScale)/2; _crop.ty=(_crop.fh - img.height*_crop.baseScale)/2;
-  _clampCrop(); _applyCrop(); _attachCropGestures();
-}
-function _applyCrop(){ const c=document.getElementById('crop-img'); if(c) c.style.transform='translate('+_crop.tx+'px,'+_crop.ty+'px) scale('+_crop.s+')'; const sl=document.getElementById('crop-zoom'); if(sl && document.activeElement!==sl) sl.value=Math.min(parseFloat(sl.max),_crop.s); }
-function _clampCrop(){ const dW=_crop.img.width*_crop.baseScale*_crop.s, dH=_crop.img.height*_crop.baseScale*_crop.s; _crop.tx=Math.min(0,Math.max(_crop.fw-dW,_crop.tx)); _crop.ty=Math.min(0,Math.max(_crop.fh-dH,_crop.ty)); }
-let _cropGesturesOn=false;
-function _attachCropGestures(){
-  if(_cropGesturesOn) return; _cropGesturesOn=true;
-  const el=document.getElementById('crop-frame'); if(!el) return;
-  const pts=new Map(); let sDist=1,sScale=1,sTx=0,sTy=0,sMid={x:0,y:0};
-  el.addEventListener('pointerdown',(e)=>{ try{el.setPointerCapture(e.pointerId);}catch(_){}; pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); if(pts.size===2){ const v=[...pts.values()]; sDist=Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y)||1; sScale=_crop.s; sTx=_crop.tx; sTy=_crop.ty; const rb=el.getBoundingClientRect(); sMid={x:(v[0].x+v[1].x)/2-rb.left, y:(v[0].y+v[1].y)/2-rb.top}; } });
-  el.addEventListener('pointermove',(e)=>{ if(!pts.has(e.pointerId)) return; const prev=pts.get(e.pointerId); pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(pts.size===1){ _crop.tx+=e.clientX-prev.x; _crop.ty+=e.clientY-prev.y; _clampCrop(); _applyCrop(); }
-    else if(pts.size===2){ const v=[...pts.values()]; const d=Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y)||1; const ns=Math.max(1,Math.min(6,sScale*d/sDist)); const ratio=ns/sScale; _crop.s=ns; _crop.tx=sMid.x-(sMid.x-sTx)*ratio; _crop.ty=sMid.y-(sMid.y-sTy)*ratio; _clampCrop(); _applyCrop(); } });
-  const up=(e)=>{ pts.delete(e.pointerId); }; el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up);
-  const sl=document.getElementById('crop-zoom'); if(sl){ sl.addEventListener('input',()=>{ const ns=Math.max(1,parseFloat(sl.value)||1); const ratio=ns/_crop.s; const cx=_crop.fw/2, cy=_crop.fh/2; _crop.s=ns; _crop.tx=cx-(cx-_crop.tx)*ratio; _crop.ty=cy-(cy-_crop.ty)*ratio; _clampCrop(); _applyCrop(); }); }
-}
-function confirmCrop(){
-  const bs=_crop.baseScale*_crop.s||1;
-  const sx=-_crop.tx/bs, sy=-_crop.ty/bs, sw=_crop.fw/bs, sh=_crop.fh/bs;
-  const cv=document.createElement('canvas'); cv.width=1080; cv.height=1920;
-  try{ cv.getContext('2d').drawImage(_crop.img, sx, sy, sw, sh, 0,0,1080,1920); }catch(e){ console.warn('[crop]',e); }
-  const ov=document.getElementById('crop-overlay'); if(ov) ov.classList.remove('open');
-  composeAndPreview(cv);
-}
-function cancelCrop(){ const ov=document.getElementById('crop-overlay'); if(ov) ov.classList.remove('open'); _celeShowing=false; setTimeout(()=>{ try{_drainCele();}catch(e){} },380); }
 // Componer la imagen final (foto recortada + medalla + textos) y mostrar el preview.
 async function composeAndPreview(photo){
   const ov=document.getElementById('share-prev-overlay'); if(ov) ov.classList.add('open');
