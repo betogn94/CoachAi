@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260704-0449-deploy">
+<meta name="app-version" content="20260704-0506-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -22634,7 +22634,7 @@ async function ejecutarCierreSemana() {
     // cierre persistió OK. null si no aplica (no-King / sin flag / ya puntuó).
     let kingPje = null;
     try {
-      kingPje = await kingCierreCalcula(stats);
+      kingPje = await kingCierreCalcula(stats, cierreActualWeekNum);
       // Fase 3: cada 4 semanas, CHECKPOINT VISUAL — la IA compara las fotos de
       // inicio vs las de este cierre y habilita el salto que la adherencia sola
       // no da (hasta +2 extra). Falla silenciosa = semana normal, sin bonus.
@@ -23190,15 +23190,19 @@ function ensureIndiceSeed() {
 
 // Calcula el punto de esta semana SIN guardarlo (se guarda recién cuando el
 // cierre se persistió OK). Devuelve null si no aplica (no-King, sin flag, sin
-// punto de arranque, o ya puntuó esta semana).
-async function kingCierreCalcula(stats) {
+// punto de arranque, o esa semana del proceso ya puntuó).
+async function kingCierreCalcula(stats, weekNum) {
   try {
     if (!document.body.classList.contains('theme-king')) return null;
     if (typeof KING_INDICE_FLAG === 'undefined' || !KING_INDICE_FLAG) return null;
-    if (!sbClient || !currentUser || !stats) return null;
+    if (!sbClient || !currentUser || !stats || !weekNum) return null;
     const last = await loadLatestMedida();
     if (!last || last.indice == null) return null;   // sin arranque no hay a qué sumar
-    if (await _kingCierrePuntoYaExiste()) return null; // idempotente por semana ISO
+    // Idempotente por SEMANA DEL PROCESO (semana_num — como cierres_semanales),
+    // NO por semana ISO del calendario: un cierre hecho tarde (lunes) caería en
+    // la misma semana ISO que el siguiente y bloquearía el puntaje nuevo
+    // (arrastre entre semanas — bug cazado en QA 2026-07-04).
+    if (await _kingCierrePuntoYaExiste(weekNum)) return null;
     // Adherencia: entrenos (60%) + constancia de registro (40%) — los mismos
     // datos que ve el análisis. target = días planificados del perfil.
     const target = (currentUser.dias_entreno && currentUser.dias_entreno.length) || 4;
@@ -23217,16 +23221,15 @@ async function kingCierreCalcula(stats) {
       superior: cl(base.sub.superior + delta),
       simetria: cl(base.sub.simetria + delta),
     } : { inferior: nuevo, superior: nuevo, simetria: nuevo };
-    return { delta, indice: nuevo, prev, sub, score: Math.round(score * 100) };
+    return { delta, indice: nuevo, prev, sub, score: Math.round(score * 100), semana: weekNum };
   } catch (e) { console.warn('[king-cierre] calcula:', e && e.message); return null; }
 }
 
-async function _kingCierrePuntoYaExiste() {
+async function _kingCierrePuntoYaExiste(weekNum) {
   const { data } = await sbClient.from('king_medidas')
-    .select('fecha').eq('usuario_id', currentUser.id).eq('origen', 'cierre')
-    .order('fecha', { ascending: false }).limit(1);
-  const p = data && data[0];
-  return !!(p && getISOWeekKey(new Date(p.fecha + 'T12:00:00')) === getISOWeekKey());
+    .select('id').eq('usuario_id', currentUser.id).eq('origen', 'cierre')
+    .eq('semana_num', weekNum).limit(1);
+  return !!(data && data[0]);
 }
 
 // Guarda el punto calculado (post-cierre-persistido). Inserta TAMBIÉN con
@@ -23234,9 +23237,9 @@ async function _kingCierrePuntoYaExiste() {
 async function kingCierreGuarda(p) {
   if (!p || !sbClient || !currentUser) return;
   try {
-    if (await _kingCierrePuntoYaExiste()) return;   // doble guardia (retry paths)
+    if (await _kingCierrePuntoYaExiste(p.semana)) return;   // doble guardia (retry paths)
     await sbClient.from('king_medidas').insert([{
-      usuario_id: currentUser.id, origen: 'cierre', indice: p.indice,
+      usuario_id: currentUser.id, origen: 'cierre', semana_num: p.semana, indice: p.indice,
       sub_inferior: p.sub.inferior, sub_superior: p.sub.superior, sub_simetria: p.sub.simetria,
     }]);
     console.info('[king-cierre] punto guardado:', p.prev, '→', p.indice, `(adherencia ${p.score}%)`);
