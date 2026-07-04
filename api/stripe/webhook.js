@@ -17,6 +17,11 @@ export const config = { api: { bodyParser: false } };
 
 const APP_URL = 'https://coachaipro.ai';
 
+// Price del Mapa Estético King ($19.99, one-time). Red de seguridad del guard:
+// si el checkout NO trae metadata.product (ej. se recreó el producto y se perdió
+// la etiqueta), igual lo reconocemos por este price → no da acceso + se registra.
+const MAPA_PRICE_ID = 'price_1TpbZ80MxxlML2QQivc7CdyI';
+
 async function readRawBody(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
@@ -264,13 +269,27 @@ async function extendAccess(email, periodEndUnix) {
   } catch (err) { console.warn('[stripe] extendAccess invitados:', err?.message); }
 }
 
+// ¿Es el checkout del Mapa Estético? Primero por metadata (lo primario); si el
+// metadata.product NO viene (se recreó el producto y se perdió), red de seguridad
+// por el price. Si trae OTRO product declarado (ej. foundation) → no es Mapa, sin
+// llamada extra a Stripe.
+async function isMapaCheckout(session, stripe) {
+  const prod = session.metadata?.product;
+  if (prod === 'mapa_estetico_king') return true;
+  if (prod) return false;   // declara otro producto → confiamos, no es el Mapa
+  try {
+    const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10 });
+    return (items?.data || []).some(li => li && li.price && li.price.id === MAPA_PRICE_ID);
+  } catch (e) { console.warn('[stripe] no se pudieron leer line items del checkout:', e?.message); return false; }
+}
+
 // Primera compra → alta del cliente (beta_invitados) + acceso + email de invitación.
 async function handleCheckoutCompleted(session, stripe) {
   // Guard King Mapa: el Mapa Estético ($19.99) es SOLO el diagnóstico → NO da acceso a
   // la app (a diferencia del Foundation, que SÍ lo da). Este webhook otorga acceso a
   // cualquier checkout completado, así que salteamos explícitamente el Mapa por su
   // metadata. El Foundation (`foundation_king`) y las suscripciones directas siguen normal.
-  if (session.metadata?.product === 'mapa_estetico_king') {
+  if (await isMapaCheckout(session, stripe)) {
     // El Mapa NO da acceso a la app, pero SÍ es un ingreso → lo registramos.
     console.log('[stripe] checkout de Mapa King (registra ingreso, no da acceso):', session.id);
     try { await recordMapaRevenue(session); } catch (e) { console.error('[stripe] mapa revenue:', e?.message); }
