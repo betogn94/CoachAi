@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260704-0415-deploy">
+<meta name="app-version" content="20260704-0429-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12063,15 +12063,16 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
             <div class="king-ind-bar"><div class="king-ind-bar-fill" id="king-m3-bar" style="width:0%"></div></div>
           </div>
         </div>
-        <button class="king-ind-cta" onclick="openMedidaCapture()">Actualizar mis medidas</button>
+        <!-- Sin CTA en Home: las medidas se actualizan solo desde el Perfil
+             (pedido de Beto 2026-07-04) — Home es vidriera, Perfil es gestión. -->
       </div>
     </div>
 
     <div id="king-ind-empty" style="display:none">
       <div class="king-ind-empty-ico">📐</div>
       <div class="king-ind-empty-title">Armá tu Mapa Estético</div>
-      <div class="king-ind-empty-sub">Cargá tus medidas y descubrí tu Índice de Armonía hacia el Hourglass.</div>
-      <button class="king-ind-cta" onclick="openMedidaCapture()">Empezar</button>
+      <div class="king-ind-empty-sub">Descubrí tu Índice de Armonía hacia el Hourglass desde tu Perfil.</div>
+      <button class="king-ind-cta" onclick="showPerfil(); setActiveNav('nav-perfil')">Ir a mi Perfil</button>
     </div>
   </div>
 
@@ -14863,8 +14864,13 @@ async function tryAutoLogin() {
       if (session && session.user) {
         const saved = loadSession();
         await proceedAfterAuth(session.user.email, (saved && saved.nombre) || '', session.user.id);
+      } else {
+        // Diagnóstico logout-en-reload: distinguir "no hay sesión guardada" (el
+        // storage no la tiene → problema de persistencia del navegador) de un
+        // error de red/boot (cae al catch). Clave para el bug de Safari.
+        console.info('[autologin otp] sin sesión persistida (storage vacío o token vencido no-renovable)');
       }
-    } catch (e) { console.warn('[autologin otp]', e); }
+    } catch (e) { console.warn('[autologin otp] falló el resume (red/boot):', e); }
     return;
   }
   const s = loadSession();
@@ -16459,6 +16465,19 @@ async function handleEmailLogin() {
     btn.disabled = true; loading.style.display = 'block'; error.textContent = '';
     try {
       if (!sbClient) initSupabase();
+      // Resiliencia: si YA hay una sesión de Supabase válida para ESTE email
+      // (ej: el auto-login del boot falló por un hipo de red y la usuaria cayó
+      // al formulario), no la hacemos re-verificar — entra directo con la
+      // sesión persistida. Solo pide código cuando de verdad no hay sesión.
+      try {
+        const { data: { session } } = await sbClient.auth.getSession();
+        if (session && session.user && String(session.user.email || '').toLowerCase() === email) {
+          console.info('[login] sesión vigente para', email, '→ sin re-verificar');
+          await proceedAfterAuth(email, nombre, session.user.id);
+          btn.disabled = false; loading.style.display = 'none';
+          return;
+        }
+      } catch (e) { /* sin sesión → flujo OTP normal */ }
       await sendOtpCode(email);
       _otpPending = { email, nombre };
       showOtpScreen(email);
@@ -23188,6 +23207,10 @@ function toggleKingIndice() {
 function openMedidaCapture() {
   const ov = document.getElementById('king-medida-overlay');
   if (!ov) return;
+  // El overlay nace dentro del contenedor de Home → si Home está display:none
+  // (ej: estás en Perfil), un fixed dentro de un ancestro oculto NO se pinta.
+  // Lo movemos a <body> la primera vez (idempotente) → abre desde cualquier lado.
+  if (ov.parentElement !== document.body) document.body.appendChild(ov);
   ['km-cintura', 'km-cadera', 'km-hombros'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
   const err = document.getElementById('km-error'); if (err) err.textContent = '';
   const btn = document.getElementById('km-save-btn'); if (btn) btn.disabled = false;
