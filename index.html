@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260704-0444-deploy">
+<meta name="app-version" content="20260704-0449-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -22633,7 +22633,22 @@ async function ejecutarCierreSemana() {
     // análisis (para que la IA lo mencione) pero se GUARDA recién cuando el
     // cierre persistió OK. null si no aplica (no-King / sin flag / ya puntuó).
     let kingPje = null;
-    try { kingPje = await kingCierreCalcula(stats); } catch (e) {}
+    try {
+      kingPje = await kingCierreCalcula(stats);
+      // Fase 3: cada 4 semanas, CHECKPOINT VISUAL — la IA compara las fotos de
+      // inicio vs las de este cierre y habilita el salto que la adherencia sola
+      // no da (hasta +2 extra). Falla silenciosa = semana normal, sin bonus.
+      if (kingPje && cierreActualWeekNum >= 4 && cierreActualWeekNum % 4 === 0) {
+        const veredicto = await kingCheckpointVisual({
+          inicioFrente: inicioFrenteUrl, inicioEspalda: inicioEspaldaUrl,
+          semanaFrente: semanaFrenteUrl, semanaEspalda: semanaEspaldaUrl,
+        });
+        if (veredicto) {
+          kingPje = kingAplicaCheckpoint(kingPje, veredicto);
+          console.info('[king-checkpoint] semana', cierreActualWeekNum, '→', veredicto, `(bonus +${kingPje.bonus})`);
+        }
+      }
+    } catch (e) { console.warn('[king-cierre] puntaje:', e && e.message); }
 
     let analisis = null;
     try {
@@ -22932,7 +22947,7 @@ DATOS DE LA SEMANA ${weekNum}:
 - Grasas: ${stats.avgFat ? `${stats.avgFat}g/día prom${tgtFat ? ` (target ${tgtFat}g)` : ''}` : 'no registradas'}
 - Días con registro de comidas: ${stats.totalLogs}/7
 - Número de semana en el proceso: ${weekNum}
-${indiceCtx ? `\nÍNDICE DE ARMONÍA (Método King — su puntaje hacia la silueta reloj de arena): esta semana ${indiceCtx.delta > 0 ? `SUBE +${indiceCtx.delta} → ${indiceCtx.indice}/100` : `se mantiene en ${indiceCtx.indice}/100`} por su adherencia. Mencionalo BREVE (1-2 frases) en el cierre motivador: ${indiceCtx.delta > 0 ? 'celebrá la suba y conectala con su constancia.' : 'sin dramatizar — su Índice no baja nunca, invitala a mover la aguja la próxima semana con adherencia.'} Podés decirle que lo vea en su Perfil.\n` : ''}${prevSummary ? `\nHISTORIAL DE SEMANAS ANTERIORES:\n${prevSummary}\n` : ''}
+${indiceCtx ? `\nÍNDICE DE ARMONÍA (Método King — su puntaje hacia la silueta reloj de arena): esta semana ${indiceCtx.delta > 0 ? `SUBE +${indiceCtx.delta} → ${indiceCtx.indice}/100` : `se mantiene en ${indiceCtx.indice}/100`}${indiceCtx.checkpoint ? ` (incluye CHECKPOINT VISUAL de cada 4 semanas: el veredicto mirando sus fotos fue "${indiceCtx.checkpoint.replace('_', ' ')}"${indiceCtx.bonus > 0 ? ` → +${indiceCtx.bonus} extra` : ''})` : ' por su adherencia'}. Mencionalo BREVE (1-2 frases) en el cierre motivador: ${indiceCtx.delta > 0 ? 'celebrá la suba y conectala con su constancia.' : 'sin dramatizar — su Índice no baja nunca, invitala a mover la aguja la próxima semana con adherencia.'}${indiceCtx.checkpoint === 'mejora_clara' ? ' El checkpoint confirmó mejora visible: destacalo como hito.' : ''} Podés decirle que lo vea en su Perfil.\n` : ''}${prevSummary ? `\nHISTORIAL DE SEMANAS ANTERIORES:\n${prevSummary}\n` : ''}
 Escribí un análisis cálido y motivador de 4-5 párrafos. El ORDEN importa: SIEMPRE arrancá por lo bueno.
 1. ARRANCÁ CELEBRANDO lo que ${nombre} hizo bien, con datos concretos (días entrenados, adherencia, lo que SÍ cumplió del target). Que lo primero que lea la haga sentir orgullosa de su esfuerzo.
 2. FOTOS: si ves mejoras —por sutiles que sean— marcalas PRIMERO y con entusiasmo, conectándolas con lo que hizo (entrenó + déficit → se ve más definida). Si es la primera semana y los cambios son sutiles, decilo con honestidad pero sin desinflar (es totalmente normal).
@@ -23230,6 +23245,56 @@ async function kingCierreGuarda(p) {
   } catch (e) { console.warn('[king-cierre] guarda:', e && e.message); }
 }
 let _kingPjePending = null;   // puntaje calculado esperando que el cierre persista (para el retry path)
+
+// ── FASE 3: CHECKPOINT VISUAL (cada 4 semanas) ────────────────────────────────
+// El ojo del coach: la IA compara las fotos del cierre vs las de INICIO y da un
+// veredicto de UNA palabra, que habilita el salto del Índice que la adherencia
+// sola no puede dar (semana checkpoint: hasta +2 extra). Conservador por diseño:
+// ante la duda, el veredicto menor; NO existe "empeoró" (el Índice nunca baja —
+// la luz/pose engañan y una semana mala no borra el proceso).
+async function kingCheckpointVisual(photos) {
+  const imgs = [];
+  if (photos.inicioFrente)  imgs.push({ url: photos.inicioFrente,  label: 'INICIO · FRENTE' });
+  if (photos.inicioEspalda) imgs.push({ url: photos.inicioEspalda, label: 'INICIO · ESPALDA' });
+  if (photos.semanaFrente)  imgs.push({ url: photos.semanaFrente,  label: 'ACTUAL · FRENTE' });
+  if (photos.semanaEspalda) imgs.push({ url: photos.semanaEspalda, label: 'ACTUAL · ESPALDA' });
+  const hasInicio = !!(photos.inicioFrente || photos.inicioEspalda);
+  const hasActual = !!(photos.semanaFrente || photos.semanaEspalda);
+  if (!hasInicio || !hasActual) return null;   // sin par comparable no hay checkpoint
+  const system = 'Sos el ojo experto de un coach de estética corporal femenina (Método King: progreso hacia la silueta reloj de arena). Comparás fotos de INICIO vs ACTUALES de una clienta y das UN veredicto de progreso visual. Respondés ÚNICAMENTE una de estas tres palabras exactas: mejora_clara | mejora_sutil | igual. Nada más — sin explicación. Criterios: cintura más definida, cadera y glúteos con más forma, hombros más marcados, mejor postura, proporción global más cercana al reloj de arena. Sé conservador: si dudás entre dos veredictos, elegí el menor. Si se ve igual o la diferencia puede ser luz/pose/ropa, respondé: igual.';
+  const text = 'Fotos adjuntas en orden: ' + imgs.map(i => i.label).join(', ') + '. Compará INICIO vs ACTUAL y respondé el veredicto (una sola palabra).';
+  const resp = await fetch('/api/chat', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system,
+      messages: [{ role: 'user', content: [...imgs.map(i => ({ type: 'image', source: { type: 'url', url: i.url } })), { type: 'text', text }] }],
+      model: 'haiku'
+    })
+  });
+  if (!resp.ok) return null;
+  const data = await resp.json().catch(() => null);
+  const t = String((data && data.content && data.content[0] && data.content[0].text) || '').toLowerCase();
+  if (t.includes('mejora_clara') || t.includes('mejora clara')) return 'mejora_clara';
+  if (t.includes('mejora_sutil') || t.includes('mejora sutil')) return 'mejora_sutil';
+  if (t.includes('igual')) return 'igual';
+  return null;   // respuesta inesperada → sin checkpoint (no adivinamos)
+}
+
+// Aplica el bonus del checkpoint al puntaje ya calculado por adherencia,
+// respetando las MISMAS barandas (nunca baja, tope 90 sin medida real).
+function kingAplicaCheckpoint(p, veredicto) {
+  if (!p || !veredicto) return p;
+  const bonus = { mejora_clara: 2, mejora_sutil: 1, igual: 0 }[veredicto] || 0;
+  const TOPE = 90;
+  const nuevo = Math.max(p.prev, Math.min(Math.max(TOPE, p.prev), p.indice + bonus));
+  const realBonus = nuevo - p.indice;
+  const cl = v => Math.max(0, Math.min(100, Math.round(v)));
+  return Object.assign({}, p, {
+    indice: nuevo, delta: nuevo - p.prev,
+    sub: { inferior: cl(p.sub.inferior + realBonus), superior: cl(p.sub.superior + realBonus), simetria: cl(p.sub.simetria + realBonus) },
+    checkpoint: veredicto, bonus: realBonus,
+  });
+}
 
 function paintIndiceCard(r) {
   const CIRC = 2 * Math.PI * 48;
