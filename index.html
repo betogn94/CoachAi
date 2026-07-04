@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260704-1728-deploy">
+<meta name="app-version" content="20260704-1752-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -16523,6 +16523,10 @@ async function handleEmailLogin() {
 // the original handleEmailLogin body — unchanged except for threading authUid into
 // loginOrRegister and closing the OTP overlay once the lookup resolves.
 async function proceedAfterAuth(email, nombre, authUid) {
+  // Higiene entre usuarias (dispositivo compartido): limpiar el contexto del Mapa
+  // de una sesión anterior. Sin esto, si A onboardea y B loguea sin recargar, el
+  // seed del Índice de B podría usar el Mapa de A. El onboarding de B lo re-setea.
+  try { window._kingMapaCtx = null; } catch (e) {}
   const btn = document.getElementById('el-btn');
   const loading = document.getElementById('el-loading');
   const error = document.getElementById('el-error');
@@ -23162,12 +23166,19 @@ async function loadLatestMedida() {
 // computeIndiceArmonia (.40/.35/.25) para que estimado y medido convivan en una
 // sola escala. Sub-scores clampeados a 35–80: nunca hiriente, siempre con margen.
 function estimarIndiceInicial(mapa, user) {
+  // Normaliza el arquetipo antes del lookup: minúsculas + guiones/espacios → guión
+  // bajo, y alias legacy (reloj-arena / reloj de arena → reloj_incompleto,
+  // triangulo invertido → invertido). Hoy Lovable ya manda reloj_incompleto, pero
+  // esto evita que un cambio de formato del quiz caiga silenciosamente al default.
+  const _arq = String((mapa && mapa.arquetipo) || '').toLowerCase().trim().replace(/[\s-]+/g, '_');
+  const arqKey = (_arq === 'reloj_arena' || _arq === 'reloj' || _arq === 'reloj_de_arena') ? 'reloj_incompleto'
+               : (_arq === 'triangulo_invertido') ? 'invertido' : _arq;
   const base = {
     triangulo:        { inferior: 66, superior: 46, simetria: 50 },  // cadera fuerte, hombros angostos
     invertido:        { inferior: 44, superior: 72, simetria: 48 },  // hombros anchos, cadera angosta
     rectangulo:       { inferior: 48, superior: 56, simetria: 70 },  // recta pero balanceada
     reloj_incompleto: { inferior: 60, superior: 62, simetria: 66 },  // cerca del objetivo
-  }[(mapa && mapa.arquetipo) || ''] || { inferior: 52, superior: 55, simetria: 60 };  // sin Mapa: neutral
+  }[arqKey] || { inferior: 52, superior: 55, simetria: 60 };  // sin Mapa / desconocido: neutral
 
   // Experiencia entrenando: q3 del quiz si hay Mapa; si no, el nivel del perfil.
   const expTable = { nunca: 0, lt6: 1, '6to12': 2, '1to3': 4, gt3: 6 };
