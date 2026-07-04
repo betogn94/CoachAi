@@ -11,7 +11,7 @@ import { sb } from './_db.js';
 
 const VALID_PERIODS  = new Set(['mensual', 'anual', 'unico']);
 const VALID_METHODS  = new Set(['transferencia', 'efectivo', 'mercadopago', 'tarjeta', 'stripe', 'otro']);
-const VALID_CONCEPTS = new Set(['suscripcion', 'paquete', 'whitelabel', 'otro']);
+const VALID_CONCEPTS = new Set(['suscripcion', 'foundation', 'mapa_estetico', 'paquete', 'whitelabel', 'otro']);
 const VALID_PAYERS   = new Set(['usuario', 'tenant']);
 const VALID_CURRENCY = new Set(['ARS', 'USD']);
 

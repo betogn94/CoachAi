@@ -180,27 +180,75 @@ async function handleInvoicePaid(invoice, stripe) {
   const subRefFee = invoice.parent?.subscription_details?.subscription || invoice.subscription || null;
   const stripeFee = await subStripeFee(stripe, subRefFee);
 
+  // ¿Es el pago del FOUNDATION ($297)? Su invoice inicial trae una línea one-time
+  // (price SIN recurring, el pago de por vida). Los cobros recurrentes ($19.99/mes)
+  // y las suscripciones directas NO tienen línea one-time. Así los separamos en
+  // Tower: Foundation = ingreso único; suscripción = recurrente (cuenta al MRR).
+  const lines = invoice.lines?.data || [];
+  const isFoundation = lines.some(l => l && l.price && !l.price.recurring);
+
   await sb('/tower_revenue', {
     method: 'POST',
     body: {
       payer_type: 'usuario',
       tenant_id: tenantId,
       cliente_nombre: name,
-      concept: 'suscripcion',
+      concept: isFoundation ? 'foundation' : 'suscripcion',
       amount,
       currency,
       payment_method: 'stripe',
-      billing_period: 'mensual',
-      recurring: true,
+      billing_period: isFoundation ? 'unico' : 'mensual',
+      recurring: !isFoundation,
       period_start: periodStart,
       source: 'stripe',
       stripe_payment_id: stripeId,
       stripe_fee: stripeFee,
       created_by: 'stripe-webhook',
-      notes: email ? `Stripe · ${email}` : 'Stripe',
+      notes: (isFoundation ? 'Foundation · ' : 'Stripe · ') + (email || 'sin email'),
     },
     prefer: 'return=minimal',
   });
+}
+
+// Mapa Estético ($19.99 one-time): ingreso puntual (NO da acceso). Llega como
+// checkout.session.completed (mode:payment), sin invoice.paid → lo registramos acá.
+async function recordMapaRevenue(session) {
+  const stripeId = session.id;
+  // Idempotencia: un reintento de Stripe no duplica el ingreso.
+  const existing = await sb(`/tower_revenue?stripe_payment_id=eq.${encodeURIComponent(stripeId)}&select=id&limit=1`);
+  if (existing && existing.length) return;
+
+  const slug = session.metadata?.tenant_slug || 'jesus';
+  const tenantId = await tenantIdBySlug(slug);
+  const email = (session.customer_details?.email || session.customer_email || '').toLowerCase() || null;
+  const name  = session.customer_details?.name || email || 'Cliente Stripe';
+  const amount = (session.amount_total || 0) / 100;
+  const currency = normalizeCurrency(session.currency);
+  const periodStart = session.created
+    ? new Date(session.created * 1000).toISOString().slice(0, 10)
+    : new Date().toISOString().slice(0, 10);
+
+  await sb('/tower_revenue', {
+    method: 'POST',
+    body: {
+      payer_type: 'usuario',
+      tenant_id: tenantId,
+      cliente_nombre: name,
+      concept: 'mapa_estetico',
+      amount,
+      currency,
+      payment_method: 'stripe',
+      billing_period: 'unico',
+      recurring: false,
+      period_start: periodStart,
+      source: 'stripe',
+      stripe_payment_id: stripeId,
+      created_by: 'stripe-webhook',
+      notes: email ? `Mapa Estético · ${email}` : 'Mapa Estético',
+    },
+    prefer: 'return=minimal',
+  });
+  console.log('[stripe] Mapa King registrado:', amount, currency, email || '(sin email)');
 }
 
 // Setea acceso_hasta del cliente (por email) en usuarios Y beta_invitados.
@@ -223,7 +271,9 @@ async function handleCheckoutCompleted(session, stripe) {
   // cualquier checkout completado, así que salteamos explícitamente el Mapa por su
   // metadata. El Foundation (`foundation_king`) y las suscripciones directas siguen normal.
   if (session.metadata?.product === 'mapa_estetico_king') {
-    console.log('[stripe] checkout de Mapa King ignorado (el Mapa no da acceso):', session.id);
+    // El Mapa NO da acceso a la app, pero SÍ es un ingreso → lo registramos.
+    console.log('[stripe] checkout de Mapa King (registra ingreso, no da acceso):', session.id);
+    try { await recordMapaRevenue(session); } catch (e) { console.error('[stripe] mapa revenue:', e?.message); }
     return;
   }
   const email = (session.customer_details?.email || session.customer_email || '').toLowerCase();

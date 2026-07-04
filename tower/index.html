@@ -2670,7 +2670,7 @@
       } catch (e) { return (c === 'USD' ? 'US$' : '$') + (Number(n) || 0).toLocaleString('es-AR'); }
     }
     const _REV_METHOD_LABEL  = { transferencia: 'Transferencia', efectivo: 'Efectivo', mercadopago: 'Mercado Pago', tarjeta: 'Tarjeta', stripe: 'Stripe', otro: 'Otro' };
-    const _REV_CONCEPT_LABEL = { suscripcion: 'Suscripción', paquete: 'Paquete', whitelabel: 'Whitelabel', otro: 'Otro' };
+    const _REV_CONCEPT_LABEL = { suscripcion: 'Suscripción', mapa_estetico: 'Mapa Estético', foundation: 'Foundation', paquete: 'Paquete', whitelabel: 'Whitelabel', otro: 'Otro' };
     const _REV_PERIOD_LABEL  = { mensual: 'Mensual', anual: 'Anual', unico: 'Único' };
 
     async function renderFinanciero(el) {
@@ -2814,6 +2814,8 @@
             <label>Concepto</label>
             <select id="rv_concept">
               <option value="suscripcion">Suscripción</option>
+              <option value="mapa_estetico">Mapa Estético</option>
+              <option value="foundation">Foundation</option>
               <option value="paquete">Paquete de usuarios</option>
               <option value="whitelabel">Whitelabel</option>
               <option value="otro">Otro</option>
