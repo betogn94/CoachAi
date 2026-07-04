@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260704-0429-deploy">
+<meta name="app-version" content="20260704-0434-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -24337,12 +24337,19 @@ async function renderPerfilKingProgreso() {
     const d = r.fecha ? new Date(r.fecha + 'T12:00:00') : new Date(r.created_at);
     byWeek.set(getISOWeekKey(d), r);
   });
-  const weekly = Array.from(byWeek.values());
+  let weekly = Array.from(byWeek.values());
+  // Ancla inicial: el punto de partida (Mapa/estimado) SIEMPRE abre la curva.
+  // Sin esto, una medición en la MISMA semana del arranque pisa al seed en el
+  // byWeek y la curva colapsa a un punto (medís y "no se mueve nada").
+  if (rows.length > 1 && weekly[0] !== rows[0]) weekly = [rows[0], ...weekly];
   const vals = weekly.map(r => Math.round(r.indice));
   const inicio = vals[0], hoy = vals[vals.length - 1];
 
   const rEl = document.getElementById('kpg-range');
-  if (rEl) rEl.textContent = weekly.length > 1 ? `últimas ${weekly.length} semanas` : 'tu primera medición';
+  if (rEl) {
+    rEl.textContent = weekly.length <= 1 ? 'tu primera medición'
+      : (byWeek.size <= 1 ? 'esta semana' : `últimas ${byWeek.size} semanas`);
+  }
   const axL = document.getElementById('kpg-ax-l');
   if (axL) axL.textContent = `${inicio} · ` + (weekly[0].origen === 'mapa' ? 'Mapa' : 'inicio');
   const axR = document.getElementById('kpg-ax-r'); if (axR) axR.textContent = `hoy · ${hoy}`;
