@@ -21,6 +21,10 @@ const APP_URL = 'https://coachaipro.ai';
 // si el checkout NO trae metadata.product (ej. se recreó el producto y se perdió
 // la etiqueta), igual lo reconocemos por este price → no da acceso + se registra.
 const MAPA_PRICE_ID = 'price_1TpbZ80MxxlML2QQivc7CdyI';
+// Price del pago ÚNICO de $297 del Foundation (el "plan de por vida"). Lo usamos
+// para reconocer su invoice aunque un cupón lo deje en $0 → se registra como
+// 'foundation' (único), no como suscripción recurrente que inflaría el MRR.
+const FOUNDATION_PRICE_ID = 'price_1To8sh0MxxlML2QQ4oTM4AIQ';
 
 async function readRawBody(req) {
   const chunks = [];
@@ -190,7 +194,14 @@ async function handleInvoicePaid(invoice, stripe) {
   // y las suscripciones directas NO tienen línea one-time. Así los separamos en
   // Tower: Foundation = ingreso único; suscripción = recurrente (cuenta al MRR).
   const lines = invoice.lines?.data || [];
-  const isFoundation = lines.some(l => l && l.price && !l.price.recurring);
+  // Log de diagnóstico (por si la estructura del invoice cambiara con cupones/API).
+  try { console.log('[stripe] invoice lines:', JSON.stringify(lines.map(l => ({ price: l && l.price && l.price.id, rec: !!(l && l.price && l.price.recurring), amt: l && l.amount })))); } catch (e) {}
+  // Foundation: PRIMERO por su price one-time ($297) — robusto aunque un cupón lo
+  // deje en $0 (la línea sigue con ese price). Respaldo: cualquier línea sin recurring.
+  const isFoundation = lines.some(l =>
+    (l && l.price && l.price.id === FOUNDATION_PRICE_ID) ||
+    (l && l.price && !l.price.recurring)
+  );
 
   await sb('/tower_revenue', {
     method: 'POST',
