@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260705-1723-deploy">
+<meta name="app-version" content="20260705-2254-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -23153,7 +23153,7 @@ const KING_INDICE_FLAG = (() => {
 // KING_REFORM_LIVE = interruptor de activación general (flip el día D):
 //   - false (hoy): prod idéntico; solo cuentas marcadas a mano (test) + flags dev.
 //   - true: toda alta nueva en King nace marcada → experiencia King completa.
-const KING_REFORM_LIVE = false;
+const KING_REFORM_LIVE = true;   // ACTIVADO 2026-07-05 (E2E con Jesús): toda alta nueva en King nace cohorte metodo_king
 function kingEsCohorte() { return !!(currentUser && currentUser.metodo_king === true); }
 // UI King visible si: es de la cohorte (cualquier dispositivo — viene de la DB)
 // o el flag dev del navegador (?indice=1, solo para inspección/QA nuestro).
