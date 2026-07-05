@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260705-2254-deploy">
+<meta name="app-version" content="20260705-2331-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -20156,6 +20156,21 @@ async function renderMiAlimentacion() {
   const haveMacroTargets = !!(_alimHeader && (_alimHeader.targetProt || _alimHeader.targetCarbs || _alimHeader.targetFat));
   // Detect whether at least one meal has real macros parsed.
   const anyRealMacros = day.meals.some(m => m.prot != null || m.carbs != null || m.fat != null);
+
+  // Método King (y cualquier plan que liste alimentos + gramos con el objetivo
+  // SOLO en el header "Target: X kcal · P/C/G", sin kcal por comida): repartimos
+  // ese objetivo diario equitativamente entre las comidas del día. Sin esto, la
+  // card, el registro y el cierre dan 0/0 (no hay kcal por comida que sumar).
+  if (plannedDayKcal === 0 && _alimHeader && _alimHeader.targetKcal > 0 && day.meals.length) {
+    const _n = day.meals.length;
+    day.meals.forEach(m => {
+      if (!m.kcal)  m.kcal  = Math.round(_alimHeader.targetKcal / _n);
+      if (m.prot  == null && _alimHeader.targetProt  != null) m.prot  = Math.round(_alimHeader.targetProt  / _n);
+      if (m.carbs == null && _alimHeader.targetCarbs != null) m.carbs = Math.round(_alimHeader.targetCarbs / _n);
+      if (m.fat   == null && _alimHeader.targetFat   != null) m.fat   = Math.round(_alimHeader.targetFat   / _n);
+    });
+    plannedDayKcal = day.meals.reduce((s, m) => s + (m.kcal || 0), 0);
+  }
 
   day.meals.forEach((m, j) => {
     const st = estado[`d${i}m${j}`] || {};
