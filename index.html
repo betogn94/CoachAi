@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260705-1714-deploy">
+<meta name="app-version" content="20260705-1723-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -16534,8 +16534,16 @@ async function handleEmailLogin() {
       _saveOtpPending(email, nombre);   // sobrevive el relanzamiento de la PWA (ir al mail y volver)
       showOtpScreen(email);
     } catch (err) {
-      error.textContent = 'No pudimos enviar el código. Revisá el email e intentá de nuevo.';
       console.error('[otp send]', err);
+      // Distinguir el RATE LIMIT de Supabase (pidió muchos códigos seguidos) de un
+      // fallo real. "Reintentá" empeora el bloqueo → si es rate limit, decile que
+      // espere y que revise el mail (el código anterior probablemente ya llegó).
+      const m = String((err && err.message) || '').toLowerCase();
+      const isRate = (err && err.status === 429) || m.includes('rate limit') ||
+        m.includes('security purposes') || m.includes('only request this after') || m.includes('too many');
+      error.textContent = isRate
+        ? 'Ya te enviamos un código recién. Revisá tu mail (y la carpeta de spam). Si no llegó, esperá 1 minuto antes de volver a intentar.'
+        : 'No pudimos enviar el código. Revisá el email e intentá de nuevo.';
     }
     btn.disabled = false; loading.style.display = 'none';
     return;
