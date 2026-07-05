@@ -26,7 +26,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260704-1949-deploy">
+<meta name="app-version" content="20260705-1714-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -14184,6 +14184,26 @@ const AUTH_OTP_ENABLED = (() => {
 let _otpPending = null;          // { email, nombre } awaiting code verification
 let _otpCooldownTimer = null;
 
+// El estado "esperando código" DEBE sobrevivir un relanzamiento de la PWA: en
+// iPhone, salir al mail a buscar el código de 6 dígitos y volver a la app la
+// relanza desde cero → sin esto, _otpPending (en memoria) se pierde, la app
+// vuelve al login ("todo a 0") y al ingresar el código tira error. Lo
+// persistimos en localStorage y lo restauramos al bootear (ver tryAutoLogin).
+// Los códigos de Supabase viven ~1h → damos 55 min de margen.
+const LS_OTP_PENDING = 'coachai_otp_pending';
+function _saveOtpPending(email, nombre) {
+  try { localStorage.setItem(LS_OTP_PENDING, JSON.stringify({ email, nombre: nombre || '', ts: Date.now() })); } catch (e) {}
+}
+function _clearOtpPending() { try { localStorage.removeItem(LS_OTP_PENDING); } catch (e) {} }
+function _loadOtpPending() {
+  try {
+    const p = JSON.parse(localStorage.getItem(LS_OTP_PENDING) || 'null');
+    if (!p || !p.email) return null;
+    if (Date.now() - (p.ts || 0) > 55 * 60 * 1000) { _clearOtpPending(); return null; }  // vencido
+    return p;
+  } catch (e) { return null; }
+}
+
 // ============================
 // ONBOARDING KING — flujo nuevo (gated ?kingonb=1, persistido en localStorage;
 // ?kingonb=0 apaga). Mientras el flag esté apagado, prod queda IDÉNTICO: las
@@ -14555,6 +14575,7 @@ function showOtpScreen(email) {
 }
 
 function hideOtpScreen() {
+  _clearOtpPending();   // login resuelto o "cambiar email" → ya no hay OTP pendiente
   const ov = document.getElementById('otp-overlay');
   if (ov) ov.style.display = 'none';
 }
@@ -14578,11 +14599,22 @@ async function submitOtpCode() {
   const code = _otpReadCode();
   const err = document.getElementById('otp-error');
   if (!code || code.length < 6) { if (err) err.textContent = 'Ingresá los 6 dígitos'; return; }
+  // Guard: si el estado se perdió (relanzamiento sin restaurar) intentamos
+  // recuperarlo del storage antes de crashear en _otpPending.email.
+  if (!_otpPending || !_otpPending.email) {
+    const pend = _loadOtpPending();
+    if (pend) _otpPending = { email: pend.email, nombre: pend.nombre || '' };
+  }
+  if (!_otpPending || !_otpPending.email) {
+    if (err) err.textContent = 'Se venció la sesión. Tocá "Cambiar email" y pedí un código nuevo.';
+    return;
+  }
   const vb = document.getElementById('otp-verify-btn');
   const ld = document.getElementById('otp-loading');
   if (vb) vb.disabled = true; if (err) err.textContent = ''; if (ld) ld.style.display = 'block';
   try {
     const authUid = await verifyOtpCode(_otpPending.email, code);
+    _clearOtpPending();   // código consumido (no reutilizable) → no lo restauramos más
     // Identity confirmed → run the real login, now authenticated.
     await proceedAfterAuth(_otpPending.email, _otpPending.nombre, authUid);
   } catch (e) {
@@ -14871,13 +14903,23 @@ async function tryAutoLogin() {
       if (!sbClient) initSupabase();
       const { data: { session } } = await sbClient.auth.getSession();
       if (session && session.user) {
+        _clearOtpPending();   // ya hay sesión → no queda código pendiente
         const saved = loadSession();
         await proceedAfterAuth(session.user.email, (saved && saved.nombre) || '', session.user.id);
       } else {
-        // Diagnóstico logout-en-reload: distinguir "no hay sesión guardada" (el
-        // storage no la tiene → problema de persistencia del navegador) de un
-        // error de red/boot (cae al catch). Clave para el bug de Safari.
-        console.info('[autologin otp] sin sesión persistida (storage vacío o token vencido no-renovable)');
+        // Sin sesión: ¿la usuaria pidió un código y salió al mail a buscarlo? En
+        // iPhone, volver a la app la relanzó desde cero y _otpPending (memoria) se
+        // perdió. Restauramos la pantalla de código con su email para que ingrese
+        // el que le llegó (el código de Supabase sigue vivo ~1h). SIN esto la app
+        // volvía al login ("todo a 0") y el código tiraba error.
+        const pend = _loadOtpPending();
+        if (pend) {
+          _otpPending = { email: pend.email, nombre: pend.nombre || '' };
+          showOtpScreen(pend.email);
+          console.info('[otp] pantalla de código restaurada tras relanzamiento para', pend.email);
+        } else {
+          console.info('[autologin otp] sin sesión persistida (storage vacío o token vencido no-renovable)');
+        }
       }
     } catch (e) { console.warn('[autologin otp] falló el resume (red/boot):', e); }
     return;
@@ -16489,6 +16531,7 @@ async function handleEmailLogin() {
       } catch (e) { /* sin sesión → flujo OTP normal */ }
       await sendOtpCode(email);
       _otpPending = { email, nombre };
+      _saveOtpPending(email, nombre);   // sobrevive el relanzamiento de la PWA (ir al mail y volver)
       showOtpScreen(email);
     } catch (err) {
       error.textContent = 'No pudimos enviar el código. Revisá el email e intentá de nuevo.';
