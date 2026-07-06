@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260706-1839-deploy">
+<meta name="app-version" content="20260706-1851-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15595,18 +15595,30 @@ async function saveWeeklyPlan(tipo, contenido) {
     try {
       const parsed = parseDietaContenido(contenido);
       const issues = validateDietaConsistency(parsed);
-      if (issues.length) {
-        const rows = issues.map(i => ({
-          usuario_id: currentUser.id,
-          plan_id: data.id,
-          source: 'ai', // saveWeeklyPlan is invoked from the AI chat flow
-          severity: i.severity,
-          issue_type: i.type,
-          details: i,
-        }));
-        sbClient.from('dieta_consistency_alerts').insert(rows)
-          .then(({ error }) => { if (error) console.warn('[dieta validator]', error); });
-      }
+      // Replace the current snapshot: cada regeneración del plan reusa el mismo
+      // plan_id (upsert por semana), así que primero limpiamos las alertas SIN
+      // resolver de este plan para no acumular duplicados en cada replan. Las ya
+      // resueltas por el coach quedan como historial. Si el plan corregido ya no
+      // tiene issues, este delete igual deja Tower limpio.
+      sbClient.from('dieta_consistency_alerts')
+        .delete()
+        .eq('plan_id', data.id)
+        .eq('source', 'ai')
+        .eq('resolved', false)
+        .then(({ error: delErr }) => {
+          if (delErr) { console.warn('[dieta validator] cleanup', delErr); return; }
+          if (!issues.length) return;
+          const rows = issues.map(i => ({
+            usuario_id: currentUser.id,
+            plan_id: data.id,
+            source: 'ai', // saveWeeklyPlan is invoked from the AI chat flow
+            severity: i.severity,
+            issue_type: i.type,
+            details: i,
+          }));
+          sbClient.from('dieta_consistency_alerts').insert(rows)
+            .then(({ error }) => { if (error) console.warn('[dieta validator]', error); });
+        });
     } catch (e) { console.warn('[dieta validator] runtime:', e); }
   }
   return data;
@@ -26642,14 +26654,21 @@ function validateDietaConsistency(parsed) {
     if (!content) return 0;
     const lower = stripAcc(content.toLowerCase());
     let total = 0;
-    // Find "<food> Xg" patterns and accumulate
-    for (const food in KCAL_PER_G) {
-      // Match "food ... 150g" or "150g food"
-      const re = new RegExp(`(?:${food}[^\\d]{0,20}(\\d{2,4})\\s*g)|((?:\\d{2,4})\\s*g[^\\d]{0,20}${food})`, 'gi');
+    // Split into "+"/","-separated food segments FIRST. Two reasons:
+    //   1) grams stay with their own food — otherwise "pollo 200g + arroz 150g"
+    //      would let the arroz rule grab the 200g of the chicken (contaminación).
+    //   2) synonyms don't double-count — "pechuga de pollo 200g" matches BOTH
+    //      `pechuga` y `pollo`; contar la mayor tasa UNA vez = 200g de pollo, no 400g.
+    // Conservative lower-bound: solo dispara ante sub-declaraciones groseras.
+    for (const seg of lower.split(/[+,;]/)) {
+      let best = 0;
+      for (const food in KCAL_PER_G) if (seg.includes(food)) best = Math.max(best, KCAL_PER_G[food]);
+      if (!best) continue;
+      const re = /(\d{2,4})\s*g\b/g;
       let m;
-      while ((m = re.exec(lower)) !== null) {
-        const grams = parseInt(m[1] || m[2]);
-        if (grams && grams >= 30 && grams <= 600) total += grams * KCAL_PER_G[food];
+      while ((m = re.exec(seg)) !== null) {
+        const grams = parseInt(m[1]);
+        if (grams >= 30 && grams <= 600) total += grams * best;
       }
     }
     return Math.round(total);
