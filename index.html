@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>CoachAI Pro — Tu entrenador personal con IA</title>
+<!-- Open Graph (preview de links) por DEFECTO. Para el subdominio King el
+     middleware.js le sirve a los scrapers (WhatsApp, etc.) su versión rosada —
+     esto es el fallback para el resto de los hosts / bots no cubiertos. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CoachAI Pro">
+<meta property="og:title" content="CoachAI Pro — Tu entrenador personal con IA">
+<meta property="og:description" content="Tu plan de nutrición y entrenamiento personalizado con IA, con seguimiento diario.">
+<meta property="og:image" content="https://coachaipro.ai/icon-512.png">
+<meta property="og:url" content="https://coachaipro.ai/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://coachaipro.ai/icon-512.png">
 <!-- Verificación de propiedad del sitio en Google Search Console (para el dev account de Google Play) -->
 <meta name="google-site-verification" content="5vh3tm7rpaTqoYJc2S4ye3EjpcqYvuHOLjaffnSd7Ro" />
 <!-- ===== PWA install (manifest + iOS A2HS support + theme color) ===== -->
@@ -26,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260705-2331-deploy">
+<meta name="app-version" content="20260706-1815-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
