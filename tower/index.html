@@ -2323,9 +2323,8 @@
       teamObjetivos.forEach(o => { o._dragged = (o.semana < mon); });
       const byMember = {};
       teamObjetivos.forEach(o => { (byMember[o.member] = byMember[o.member] || []).push(o); });
-      // Los dueños ven un carril por cada miembro (aunque esté vacío, para poder
-      // agregar). Un miembro ve solo el suyo.
-      const laneMembers = teamObjOwner ? Object.keys(MEMBER_META) : (teamObjMe ? [teamObjMe] : Object.keys(MEMBER_META));
+      // Calendario compartido: todos ven un carril por cada miembro.
+      const laneMembers = Object.keys(MEMBER_META);
       const sortFn = (a, b) => (a.orden || 0) - (b.orden || 0) || (a.created_at || '').localeCompare(b.created_at || '');
       const html = `<div class="obj-lanes">` + laneMembers.map(m => {
         const mm = MEMBER_META[m]; if (!mm) return '';
@@ -2376,7 +2375,7 @@
       const isEdit = !!obj;
       const o = obj || {};
       const owner = o.member || defaultMember || teamObjMe || Object.keys(MEMBER_META)[0];
-      const canPickOwner = teamObjOwner;   // solo beto/jesus eligen de quién es
+      const canPickOwner = true;   // todos pueden elegir de quién es el objetivo
       const memberOpts = Object.entries(MEMBER_META).map(([m, mm]) => `<option value="${m}"${m === owner ? ' selected' : ''}>${mm.label}</option>`).join('');
       const html = `
         <h2>${isEdit ? 'Editar objetivo' : 'Nuevo objetivo'}</h2>

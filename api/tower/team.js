@@ -105,16 +105,14 @@ export default withAuth(async (req, res, session) => {
   // Rama gemela del calendario. Un objetivo pertenece a UNA semana (el lunes) y a
   // UN dueño (member). Los activos sin terminar se arrastran a la semana siguiente.
   if (req.query.obj) {
-    const isOwner = TEAM_OWNERS.includes(me);
-    // Un miembro (no dueño) solo ve/gestiona los suyos; los dueños ven todos.
-    const mine = isOwner ? '' : `&member=eq.${me || '__none__'}`;
-
+    // Calendario compartido: TODO el equipo ve y gestiona todos los carriles
+    // (decisión Beto 2026-07-06, igual que Contenido).
     if (method === 'GET') {
       const semana = String(req.query.semana || '').slice(0, 10);
       if (!isDate(semana)) return badRequest(res, 'semana (YYYY-MM-DD, lunes) requerida');
-      const enSemana  = await sb(`/team_objetivos?semana=eq.${semana}${mine}&order=orden.asc,created_at.asc`);
-      const arrastrad = await sb(`/team_objetivos?semana=lt.${semana}&estado=in.(${ACTIVE.join(',')})${mine}&order=orden.asc,created_at.asc`);
-      return res.status(200).json({ ok: true, objetivos: [...arrastrad, ...enSemana], me, owner: isOwner });
+      const enSemana  = await sb(`/team_objetivos?semana=eq.${semana}&order=orden.asc,created_at.asc`);
+      const arrastrad = await sb(`/team_objetivos?semana=lt.${semana}&estado=in.(${ACTIVE.join(',')})&order=orden.asc,created_at.asc`);
+      return res.status(200).json({ ok: true, objetivos: [...arrastrad, ...enSemana], me, owner: true });
     }
 
     let ob = req.body;
@@ -126,9 +124,8 @@ export default withAuth(async (req, res, session) => {
       const semana = String(ob.semana || '').slice(0, 10);
       if (!titulo) return badRequest(res, 'titulo requerido');
       if (!isDate(semana)) return badRequest(res, 'semana (YYYY-MM-DD) requerida');
-      // Dueño: el pedido (solo si quien crea es owner), si no, uno mismo.
-      let owner = MEMBERS.includes(ob.member) ? ob.member : me;
-      if (!isOwner) owner = me;
+      // Dueño: el pedido (cualquiera puede asignarlo a cualquiera), si no, uno mismo.
+      const owner = MEMBERS.includes(ob.member) ? ob.member : me;
       const row = {
         titulo, semana, member: owner,
         estado: ESTADOS.includes(ob.estado) ? ob.estado : 'por_hacer',
@@ -153,8 +150,8 @@ export default withAuth(async (req, res, session) => {
         patch.estado = ob.estado;
         patch.completed_at = ob.estado === 'hecha' ? new Date().toISOString() : null;
       }
-      // Solo un dueño puede reasignar el objetivo a otra persona.
-      if (isOwner && MEMBERS.includes(ob.member)) patch.member = ob.member;
+      // Cualquiera puede reasignar el objetivo a otra persona.
+      if (MEMBERS.includes(ob.member)) patch.member = ob.member;
       if (isDate(ob.semana)) patch.semana = ob.semana;
       if (Number.isInteger(ob.orden)) patch.orden = ob.orden;
       if (ob.addNota && String(ob.addNota).trim()) {
