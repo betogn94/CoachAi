@@ -2316,7 +2316,7 @@
       // own table. We filter admins out for display below.
       const { data: allUsuarios } = await sb
         .from('usuarios')
-        .select('id, email, nombre, last_active, session_count, created_at, role')
+        .select('id, email, nombre, last_active, session_count, created_at, role, acceso_hasta, suscripcion_cancelada_at')
         .eq('tenant_id', currentTenant.id)
         .order('last_active', { ascending: false, nullsFirst: false });
 
@@ -2340,14 +2340,21 @@
           if (rpcInv && rpcInv.ok && Array.isArray(rpcInv.invites)) invitados = rpcInv.invites;
         } catch (e) { console.warn('[studio] coach_list_invites:', e); }
       } else {
-        const { data } = await sb.from('beta_invitados').select('email, nombre, created_at').eq('tenant_slug', currentTenant.slug);
+        const { data } = await sb.from('beta_invitados').select('email, nombre, created_at, invitado_por').eq('tenant_slug', currentTenant.slug);
         invitados = data || [];
       }
+
+      // Mapa email → origen de alta ('stripe' = pago recurrente; otro = manual).
+      // Se arma de la MISMA lista de invitados (que incluye a los ya onboardeados)
+      // para no disparar una consulta por fila. Los onboardeados salen de usuarios,
+      // así que acá solo tomamos el origen.
+      const originMap = new Map();
+      (invitados || []).forEach(i => { if (i && i.email) originMap.set(i.email.toLowerCase(), i.invitado_por || null); });
 
       const pendingInvites = (invitados || [])
         .filter(i => !onboardedEmails.has(i.email.toLowerCase()))
         .filter(i => i.email.toLowerCase() !== myEmail)
-        .map(i => ({ ...i, _isInvited: true, _openBugs: 0 }));
+        .map(i => ({ ...i, _isInvited: true, _openBugs: 0, _origin: i.invitado_por || null }));
 
       // Mensajes SIN LEER del cliente (notas_coach, de='cliente', leido=false).
       // Esto alimenta el semáforo + la card "Mensajes para vos" del dashboard.
@@ -2361,7 +2368,7 @@
           .eq('usuario_id', u.id)
           .eq('de', 'cliente')
           .eq('leido', false);
-        return { ...u, _openBugs: count || 0 };
+        return { ...u, _openBugs: count || 0, _origin: originMap.get(u.email.toLowerCase()) || null };
       }));
 
       // Compute traffic-light bucket counts for dashboard
@@ -2389,17 +2396,51 @@
     return (s || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
   }
 
+  // ---- Estado de cobro de un cliente (semáforo único: lista + detalle) ----
+  // _origin === 'stripe' → pago recurrente (Stripe renueva solo). Cualquier otro
+  // origen → manual (lo renueva el coach a mano). suscripcion_cancelada_at solo lo
+  // setea el webhook de Stripe: un recurrente que canceló pasa a contar como manual
+  // hacia su acceso_hasta. Umbrales (pedido de Jesús): rojo ≤1 día o vencido,
+  // amarillo ≤5, verde el resto. Recurrente activo = siempre verde (no vence solo).
+  function cobroEstado(c) {
+    const isAuto = c && c._origin === 'stripe';
+    const cancelada = !!(c && c.suscripcion_cancelada_at);
+    const tipo = isAuto ? 'recurrente' : 'manual';
+    const accesoHasta = c && c.acceso_hasta ? new Date(c.acceso_hasta) : null;
+    const days = accesoHasta ? Math.ceil((accesoHasta.getTime() - Date.now()) / 86400000) : null;
+    let color;
+    if (c && c._isInvited)          color = 'gray';   // aún no arrancó
+    else if (isAuto && !cancelada)  color = 'green';  // Stripe cobra solo
+    else if (days == null)          color = 'green';  // sin vencimiento (acceso libre)
+    else if (days <= 1)             color = 'red';    // 1 día o vencido
+    else if (days <= 5)             color = 'yellow'; // por vencer
+    else                            color = 'green';
+    return { tipo, isAuto, cancelada, accesoHasta, days, color };
+  }
+
   const _CLIENTAS_THEAD = `
     <thead><tr>
       <th>Estado</th>
       <th>Cliente</th>
       <th>Tipo</th>
       <th>Última actividad</th>
-      <th class="cell-right">Sesiones</th>
+      <th>Cobro</th>
       <th class="cell-right">Bugs</th>
     </tr></thead>`;
 
   function _clientaRowHTML(c) {
+    const cobro = cobroEstado(c);
+    const cobroLabel = cobro.tipo === 'recurrente' ? 'Recurrente' : 'Manual';
+    // Tooltip con el detalle de la renovación.
+    let cobroTitle;
+    if (c._isInvited) cobroTitle = 'Pendiente — todavía no entró';
+    else if (cobro.isAuto && !cobro.cancelada) cobroTitle = 'Recurrente — Stripe renueva solo';
+    else if (cobro.accesoHasta) {
+      const f = cobro.accesoHasta.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
+      const d = cobro.days;
+      const cuando = d < 0 ? `venció hace ${Math.abs(d)}d` : d === 0 ? 'vence hoy' : `en ${d}d`;
+      cobroTitle = `${cobro.cancelada ? 'Recurrente cancelado' : 'Manual'} — acceso hasta ${f} (${cuando})`;
+    } else cobroTitle = 'Manual — sin vencimiento';
     return `
       <tr class="clickable" data-key="${esc(c.id || ('invite:' + c.email))}">
         <td>${tlBadge(c._tl.color, c._tl.reason)}</td>
@@ -2409,7 +2450,7 @@
         </td>
         <td>${c._isInvited ? '<span class="badge badge-pending">pendiente</span>' : '<span class="badge badge-accent">activo</span>'}</td>
         <td class="cell-dim">${fmtRelative(c.last_active || c.created_at)}</td>
-        <td class="cell-right cell-mono">${c.session_count != null ? fmtInt(c.session_count) : '—'}</td>
+        <td><span class="tl tl-${cobro.color}" title="${esc(cobroTitle)}"><span class="tl-dot"></span>${cobroLabel}</span></td>
         <td class="cell-right">
           ${c._openBugs > 0 ? `<span class="badge badge-danger">${c._openBugs}</span>` : '<span class="cell-dim">0</span>'}
         </td>
@@ -2737,32 +2778,28 @@
     const avgLabel = avgPerDay >= 1 ? avgPerDay.toFixed(1) : avgPerDay.toFixed(2);
 
     // ---- Suscripción: fecha de renovación + tipo de cobro ----
-    // 'stripe' = renovación automática recurrente; cualquier otro origen = manual.
-    // suscripcion_cancelada_at solo lo setea el webhook de Stripe (churn): el
-    // cliente mantiene acceso hasta acceso_hasta pero ya no vuelve a cobrar.
-    const accesoHasta = u?.acceso_hasta ? new Date(u.acceso_hasta) : null;
-    const cancelada = !!u?.suscripcion_cancelada_at;
-    const isAuto = inviteOrigin === 'stripe';
-    const cobroNota = isAuto
-      ? (cancelada ? '🔄 Automático · cancelado' : '🔄 Recurrente automático')
+    // Mismo semáforo que la lista (cobroEstado): un solo lugar decide los umbrales.
+    const origin = (inviteOrigin != null) ? inviteOrigin : (u && u._origin) || null;
+    const cobro = cobroEstado({ acceso_hasta: u?.acceso_hasta, suscripcion_cancelada_at: u?.suscripcion_cancelada_at, _origin: origin });
+    const cobroNota = cobro.isAuto
+      ? (cobro.cancelada ? '🔄 Automático · cancelado' : '🔄 Recurrente automático')
       : '✍️ Manual mes a mes';
-    let renovValue, renovColor = 'var(--text)', renovSub;
-    if (accesoHasta) {
-      const days = Math.ceil((accesoHasta.getTime() - Date.now()) / 86400000);
-      renovValue = accesoHasta.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' });
-      if (days < 0) {
-        renovColor = 'var(--danger)';
+    const COBRO_COLOR = { green: 'var(--success)', yellow: 'var(--warning)', red: 'var(--danger)', gray: 'var(--text-dim)' };
+    let renovValue, renovColor = COBRO_COLOR[cobro.color] || 'var(--text)', renovSub;
+    if (cobro.accesoHasta) {
+      const days = cobro.days;
+      renovValue = cobro.accesoHasta.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' });
+      if (cobro.isAuto && !cobro.cancelada) {
+        renovSub = cobroNota; // recurrente activo: renueva solo, sin cuenta regresiva
+      } else if (days < 0) {
         renovSub = `Venció hace ${Math.abs(days)} ${Math.abs(days) === 1 ? 'día' : 'días'} · ${cobroNota}`;
-      } else if (days <= 7) {
-        renovColor = 'var(--warning)';
+      } else if (days <= 5) {
         renovSub = `En ${days} ${days === 1 ? 'día' : 'días'} · ${cobroNota}`;
       } else {
-        renovColor = 'var(--success)';
         renovSub = cobroNota;
       }
     } else {
       renovValue = 'Sin vencimiento';
-      renovColor = 'var(--text-dim)';
       renovSub = cobroNota;
     }
 
