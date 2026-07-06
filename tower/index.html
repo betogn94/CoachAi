@@ -2043,33 +2043,129 @@
       jesus: { label: 'Jesús', color: '#14b8a6' },
       aylen: { label: 'Aylen', color: '#ec4899' },
     };
-    // Calendario de contenido: tipos, estados de producción y redes.
-    const CONT_TIPO_META = {
-      reel:      { label: 'Reel',      color: '#f59e0b' },
-      historia:  { label: 'Historia',  color: '#14b8a6' },
-      post:      { label: 'Post',      color: '#5B8DEF' },
-      carrusel:  { label: 'Carrusel',  color: '#a855f7' },
-      grabacion: { label: 'Grabación', color: '#ec4899' },
-      trial:     { label: 'Trial',     color: '#22C55E' },
+    // ===== Dashboard de marketing por mes (pestaña Contenido) =====
+    // Fase 1: el plan de julio vive en código (fiel al diseño de Juli); el estado
+    // interactivo (checks + KPIs) se guarda COMPARTIDO en la base por mes. Fase 2
+    // moverá el plan a la base con un editor para armar los meses desde la UI.
+    const MKT_TAREAS = ['REEL 1', 'REEL 2', 'TRIAL', 'HISTORIAS'];
+    const MKT_BANNER_NOTE = '8 rutinas + 2 reels fuera de rutinas. Uno de esos dos es el viral estratégico semanal.';
+    const MKT_KPIS = [
+      { key: 'quiz_clicks', label: 'Clicks al Quiz' },
+      { key: 'quiz_started', label: 'Quiz iniciados' },
+      { key: 'quiz_completed', label: 'Quiz completados' },
+      { key: 'maps', label: 'Mapas comprados' },
+      { key: 'foundation', label: 'Foundation' },
+      { key: 'elite_apps', label: 'Aplicaciones Elite' },
+      { key: 'calls', label: 'Llamadas agendadas' },
+      { key: 'sales', label: 'Ventas' },
+    ];
+    const MKT_MESES = {
+      '2026-07': {
+        titulo: 'Julio 2026',
+        hero: {
+          eyebrow: 'CALENDARIO MAESTRO · 6/7 AL 31/7',
+          title: 'Contenido que atrae, diagnostica y convierte.',
+          text: 'La prioridad de julio es recuperar alcance con rutinas, llevar la mayoría del tráfico al Quiz KING y convertir la atención en Mapa Estético, Foundation y, para las mujeres de alta intención, Coaching Elite.',
+          cards: [
+            { t: 'Fórmula editorial', b: '80% rutinas · 20% fuera de rutinas · 1 gran reel viral estratégico por semana.' },
+            { t: 'CTA dominante', b: 'HACÉ TU QUIZ KING · Principal destino de historias, perfil, automatizaciones y Meta Ads.' },
+          ],
+        },
+        stats: [
+          { n: '60', l: 'videos en julio' }, { n: '40', l: 'reels nuevos' }, { n: '20', l: 'reels Trial' },
+          { n: '80%', l: 'rutinas' }, { n: '20%', l: 'fuera de rutinas' }, { n: '2', l: 'carruseles' },
+        ],
+        embudo: [
+          { b: 'CONTENIDO', s: 'Me identifico.' }, { b: 'QUIZ', s: 'Descubro qué pasa.' },
+          { b: 'MAPA ESTÉTICO', s: 'Sé QUÉ hacer.' }, { b: 'FOUNDATION', s: 'Sé CÓMO hacerlo.' },
+          { b: 'COACHING ELITE', s: 'Daniel dirige mi proceso.' },
+        ],
+        buyer: [
+          'Mujer alrededor de 40 años, con hijos, trabajo independiente y capacidad económica. Ya invirtió en estética, especialmente facial, pero todavía no resolvió su inseguridad corporal.',
+          'Evita prendas que antes le gustaban, se oculta más, siente que perdió parte de su feminidad y quiere una silueta más armónica y cercana al reloj de arena.',
+        ],
+        idea: {
+          quote: 'Tu cuerpo no necesita más castigo. Necesita una dirección.',
+          body: 'Primero descubrís. Después sabés QUÉ hacer. Luego aprendés CÓMO hacerlo. Y si buscás máxima personalización, Daniel dirige personalmente tu transformación.',
+        },
+        grabaciones: [
+          { fecha: 'Sábado 4/7', semana: '6 al 10', objetivo: 'Rutinas + reel viral + recursos orgánicos' },
+          { fecha: 'Sábado 11/7', semana: '13 al 17', objetivo: 'Rutinas + reel viral + recursos de Mapa Estético' },
+          { fecha: 'Sábado 18/7', semana: '20 al 24', objetivo: 'Rutinas + reel viral + material de Foundation/CoachAI' },
+          { fecha: 'Sábado 25/7', semana: '27 al 31', objetivo: 'Rutinas + reel viral + casos + recursos Elite' },
+        ],
+        historias: [
+          { b: '1 · HUMANO', s: 'Daniel, su día, entrenamiento, trabajo.' },
+          { b: '2 · IDENTIFICACIÓN', s: 'Ropa, tiempo, inseguridad, edad.' },
+          { b: '3 · INTERACCIÓN', s: 'Encuesta, caja, slider, pregunta.' },
+          { b: '4 · PROFUNDIZACIÓN', s: 'Tip, caso, respuesta o automatización.' },
+          { b: '5 · CONVERSIÓN', s: 'Principalmente Quiz. 1 día/semana: Elite.' },
+        ],
+        automatizaciones: [
+          { b: 'MAPA', p: 'Antes de decirte qué hacer, KING empieza entendiendo tu cuerpo. CTA: HACER EL QUIZ.' },
+          { b: 'FOUNDATION', p: 'El Mapa te dice QUÉ necesita tu cuerpo. Foundation te muestra CÓMO llevarlo a la práctica. CTA: EMPEZAR EL QUIZ.' },
+          { b: 'ELITE', p: 'Coaching 1:1 donde Daniel dirige personalmente la transformación. CTA: APLICAR AL COACHING.' },
+        ],
+        metaAds: [
+          { t: 'Campaña principal', lines: ['Destino: Quiz KING.', 'Creativos: ropa, 40 años, cuerpo actual, "no quiero volver a los 25", mismo peso / distinto cuerpo.'] },
+          { t: 'Retargeting', lines: ['Vieron reels → visitaron perfil → iniciaron Quiz → no terminaron → terminaron y no compraron Mapa.', 'Alta intención: casos y consumo repetido → aplicación o llamada con Daniel.'] },
+        ],
+        weeks: [
+          {
+            week: 'SEMANA 1', dates: '6 al 10 de julio', theme: 'VOLVER A VERTE',
+            objective: 'Identificación emocional: ropa, inseguridad, edad, cuerpo actual y deseo de volver a sentirse atractiva.',
+            recording: 'Sábado 4/7 · 7:00 a 9:00',
+            viral: { title: 'La ropa que antes usabas', hook: 'Hay una prenda en tu placard que todavía te encanta… pero ya no te la ponés.', lines: ['No porque haya pasado de moda.', 'No porque ya no te guste.', 'Sino porque dejaste de sentirte cómoda con tu cuerpo dentro de ella.', 'No necesitás volver al cuerpo de los 25. Necesitás entender qué necesita el cuerpo que tenés hoy.'], cta: 'Empezá por el Quiz KING. Está en mi perfil.' },
+            days: [
+              { date: 'LUNES 6/7', cta: 'QUIZ', stories: ['Humano: Daniel comenzando la semana, entrenando o trabajando.', 'Identificación: “Hay mujeres que no dejaron de amar determinada ropa. Dejaron de sentirse cómodas dentro de ella.”', 'Interacción: Encuesta — ¿Tenés alguna prenda que ya no usás por cómo te sentís con tu cuerpo?', 'Profundización: Respondé MAPA y te muestro por dónde empezar a entender tu cuerpo.', 'Conversión: Link directo — HACÉ TU QUIZ KING.'] },
+              { date: 'MARTES 7/7', cta: 'QUIZ', stories: ['Humano: Momento real de Daniel.', 'Identificación: ¿Qué mirás primero cuando evaluás si progresaste?', 'Interacción: Balanza / Espejo y ropa.', 'Profundización: Mini explicación sobre peso, forma y proporción.', 'Conversión: Link al Quiz.'] },
+              { date: 'MIÉRCOLES 8/7', cta: 'QUIZ', stories: ['Humano: Daniel hablando de inseguridades corporales reales.', 'Identificación: ¿Qué zona ocultás más con la ropa?', 'Interacción: Caja abierta.', 'Profundización: Compartir respuestas de forma anónima.', 'Conversión: Keyword MAPA + link al Quiz.'] },
+              { date: 'JUEVES 9/7', cta: 'ELITE', stories: ['Humano: Daniel trabajando.', 'Identificación: Mostrar el valor de tener una mirada experta.', 'Interacción: ¿Sentís que necesitás un seguimiento realmente personalizado?', 'Profundización: Explicación breve del Coaching Elite.', 'Conversión: Link para aplicar/agendar llamada con Daniel.'] },
+              { date: 'VIERNES 10/7', cta: 'QUIZ', stories: ['Humano: Reflexión de cierre de semana.', 'Identificación: ¿Sentís que tu cuerpo necesita una estrategia diferente a la que usabas hace años?', 'Interacción: Encuesta.', 'Profundización: Keyword MAPA.', 'Conversión: Link al Quiz.'] },
+            ],
+          },
+          {
+            week: 'SEMANA 2', dates: '13 al 17 de julio', theme: 'TU CUERPO TIENE UNA ARQUITECTURA',
+            objective: 'Instalar el diferencial: antes de decirte cómo entrenar, hay que entender qué necesita tu cuerpo.',
+            recording: 'Sábado 11/7 · 7:00 a 9:00',
+            viral: { title: 'Nunca harías esto con tu cara', hook: 'Nunca dejarías que alguien haga un tratamiento en tu cara sin analizarte antes. Entonces, ¿por qué entrenás tu cuerpo sin saber qué necesita?', lines: ['Para tu piel pedís diagnóstico.', 'Preguntás qué tratamiento sirve para vos.', 'Pero con tu cuerpo copiás una rutina y esperás un resultado personalizado.', 'Antes de decirte cómo entrenar, primero hay que entender qué necesita tu cuerpo.'], cta: 'Hacé el Quiz KING. Ese es el primer paso.' },
+            days: [
+              { date: 'LUNES 13/7', cta: 'QUIZ', stories: ['Humano: Daniel con una rutina.', 'Identificación: ¿Alguna vez copiaste una rutina de internet?', 'Interacción: Encuesta.', 'Profundización: No todas las estructuras necesitan lo mismo.', 'Conversión: Link al Quiz.'] },
+              { date: 'MARTES 14/7', cta: 'QUIZ', stories: ['Humano: Mostrar un Mapa Estético.', 'Identificación: ¿Alguna vez alguien analizó tu cuerpo antes de decirte qué entrenar?', 'Interacción: Encuesta.', 'Profundización: El Mapa Estético te dice QUÉ hacer.', 'Conversión: Link al Quiz.'] },
+              { date: 'MIÉRCOLES 15/7', cta: 'QUIZ', carousel: 'CARRUSEL 1 · TU CUERPO CAMBIÓ', stories: ['Humano: Promoción del carrusel.', 'Identificación: ¿Qué sentís que dejó de funcionarte como antes?', 'Interacción: Caja.', 'Profundización: Respuesta de Daniel.', 'Conversión: Link al Quiz.'] },
+              { date: 'JUEVES 16/7', cta: 'ELITE', stories: ['Humano: Entrenamiento o trabajo con una clienta.', 'Identificación: Qué creía que necesitaba.', 'Interacción: Qué detectó Daniel.', 'Profundización: Qué cambió en la dirección.', 'Conversión: Link para aplicar con Daniel.'] },
+              { date: 'VIERNES 17/7', cta: 'QUIZ', stories: ['Humano: FAQ del Quiz.', 'Identificación: ¿Qué analiza?', 'Interacción: ¿Qué sucede cuando terminás?', 'Profundización: Después puede acceder a su Mapa Estético.', 'Conversión: Link al Quiz.'] },
+            ],
+          },
+          {
+            week: 'SEMANA 3', dates: '20 al 24 de julio', theme: 'SABER QUÉ HACER NO ES SABER CÓMO HACERLO',
+            objective: 'Instalar la diferencia: Mapa Estético = QUÉ hacer. Foundation = CÓMO hacerlo.',
+            recording: 'Sábado 18/7 · 7:00 a 9:00',
+            viral: { title: 'No sos inconstante. Estás agotada de decidir.', hook: 'Capaz no sos inconstante. Capaz estás agotada de tener que decidir todo.', lines: ['Qué comer.', 'Qué entrenar.', 'Cuántas repeticiones.', 'Si lo estás haciendo bien.', 'Tenés hijos, trabajo y responsabilidades… y encima esperás diseñar tu propia transformación.', 'Tu problema no siempre es falta de disciplina. A veces te falta un sistema.', 'El Mapa te dice QUÉ necesita tu cuerpo. Foundation te muestra CÓMO llevarlo a la práctica.'], cta: 'Todo comienza por entender tu punto de partida. Hacé el Quiz KING.' },
+            days: [
+              { date: 'LUNES 20/7', cta: 'QUIZ', stories: ['Humano: Mostrar CoachAI.', 'Identificación: ¿Qué te cuesta más?', 'Interacción: Saber qué hacer / Saber cómo sostenerlo.', 'Profundización: Mapa = QUÉ. Foundation = CÓMO.', 'Conversión: Link al Quiz.'] },
+              { date: 'MARTES 21/7', cta: 'QUIZ', stories: ['Humano: Mostrar una pantalla real de Foundation/CoachAI.', 'Identificación: Mostrar una funcionalidad.', 'Interacción: Encuesta.', 'Profundización: Keyword FOUNDATION.', 'Conversión: Link al Quiz.'] },
+              { date: 'MIÉRCOLES 22/7', cta: 'QUIZ', stories: ['Humano: Daniel hablando sobre el tiempo real de una mujer.', 'Identificación: ¿Cuántos días realmente podés entrenar?', 'Interacción: 2 o 3 / 4 o más.', 'Profundización: Respuesta y adaptación del método.', 'Conversión: Link al Quiz.'] },
+              { date: 'JUEVES 23/7', cta: 'ELITE', stories: ['Humano: Experiencia de una clienta.', 'Identificación: Problema inicial.', 'Interacción: Qué detectó Daniel.', 'Profundización: Qué cambió.', 'Conversión: Link de aplicación a Elite.'] },
+              { date: 'VIERNES 24/7', cta: 'QUIZ', stories: ['Humano: No todas necesitan el mismo nivel de acompañamiento.', 'Identificación: Foundation.', 'Interacción: Elite.', 'Profundización: ¿Cuál sentís que necesitás hoy?', 'Conversión: Para la mayoría, Quiz. Para alta intención, llamada con Daniel.'] },
+            ],
+          },
+          {
+            week: 'SEMANA 4', dates: '27 al 31 de julio', theme: 'VOLVER A SENTIRTE VOS',
+            objective: 'Cerrar el arco emocional del mes con identidad, seguridad, transformación y decisión.',
+            recording: 'Sábado 25/7 · 7:00 a 9:00',
+            viral: { title: 'No querés volver a tener 25', hook: 'Vos no querés volver a tener 25 años. Querés volver a sentirte atractiva a los 40.', lines: ['Querés volver a ponerte esa ropa sin pensar tanto.', 'Mirarte al espejo sin buscar primero qué esconder.', 'Sacarte una foto sin cambiar diez veces el ángulo.', 'Sentirte femenina. Sentirte segura. Sentirte vos.', 'No necesitás perseguir el cuerpo que tenías hace 15 años.', 'Necesitás construir el mejor cuerpo posible para la mujer que sos hoy.'], cta: 'Empezá entendiendo qué necesita tu cuerpo. Hacé el Quiz KING.' },
+            days: [
+              { date: 'LUNES 27/7', cta: 'QUIZ', stories: ['Humano: Hablar de ropa.', 'Identificación: Pregunta sobre prendas que hoy evita.', 'Interacción: Encuesta.', 'Profundización: Keyword MAPA.', 'Conversión: Link al Quiz.'] },
+              { date: 'MARTES 28/7', cta: 'QUIZ', stories: ['Humano: Reflexión emocional.', 'Identificación: ¿Qué querés recuperar?', 'Interacción: Seguridad / Sentirme yo.', 'Profundización: Keyword MAPA.', 'Conversión: Link al Quiz.'] },
+              { date: 'MIÉRCOLES 29/7', cta: 'QUIZ', carousel: 'CARRUSEL 2 · ASÍ FUNCIONA KING', stories: ['Humano: Mostrar el recorrido.', 'Identificación: Quiz.', 'Interacción: Mapa Estético.', 'Profundización: Foundation / Elite.', 'Conversión: Link al Quiz.'] },
+              { date: 'JUEVES 30/7', cta: 'ELITE', stories: ['Humano: Caso real.', 'Identificación: Qué pensaba la mujer.', 'Interacción: Qué se detectó.', 'Profundización: Intervención de Daniel.', 'Conversión: Aplicación a Elite.'] },
+              { date: 'VIERNES 31/7', cta: 'QUIZ', stories: ['Humano: Recap del mes.', 'Identificación: Qué aprendimos.', 'Interacción: ¿Ya hiciste tu Quiz?', 'Profundización: Resolver una objeción.', 'Conversión: Link al Quiz.'] },
+            ],
+          },
+        ],
+      },
     };
-    const CONT_ESTADO_META = {
-      idea:      { label: '💡 Idea',      color: '#8B95A7' },
-      guionado:  { label: '📝 Guionado',  color: '#f59e0b' },
-      grabado:   { label: '🎬 Grabado',   color: '#a855f7' },
-      editado:   { label: '✂️ Editado',   color: '#5B8DEF' },
-      publicado: { label: '✓ Publicado',  color: '#22C55E' },
-      cancelada: { label: '❌ Cancelada',  color: '#EF4444' },
-    };
-    const CONT_RED_META = {
-      instagram: { label: 'Instagram', short: 'IG' },
-      tiktok:    { label: 'TikTok',    short: 'TikTok' },
-      facebook:  { label: 'Facebook',  short: 'FB' },
-      x:         { label: 'X',         short: 'X' },
-      youtube:   { label: 'YouTube',   short: 'YT' },
-    };
-    const CONT_ESTADOS = Object.keys(CONT_ESTADO_META);
-    const CONT_TIPOS   = Object.keys(CONT_TIPO_META);
-    const CONT_CERRADO = ['publicado', 'cancelada'];   // tachado/atenuado
     const TEAM_VAPID_PUBLIC = 'BMU0PM_rgcq81HVt8F1Qma0AwbjoHeja5yv6LfadmumHa2Z_IJNmLHuLBsQsrxw13Kso2Krgz7UrU1-ZhsN4WIo';
     function teamB64ToUint8(base64String) {
       const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -2081,7 +2177,7 @@
 
     let teamWeekOffset = 0, teamMyOnly = false, teamTasks = [], teamMe = null, teamDates = [];
     let teamView = 'cal', teamObjOffset = 0, teamObjetivos = [], teamObjMon = null, teamObjMe = null, teamObjOwner = false;
-    let teamContOffset = 0, teamContenido = [], teamContDates = [];
+    let teamMktMes = null, teamMktState = { checks: {}, kpis: {} };
 
     // --- Push del Team: activar notificaciones desde Tower (1 toque por dispositivo) ---
     function teamUpdateNotifBtn(active) {
@@ -2191,8 +2287,99 @@
       .obj-lane-name{font-weight:700;font-size:14px;color:var(--text)}
       .obj-lane-count{margin-left:auto;font-size:12px;color:var(--text-muted)}
       .obj-lane-list{display:flex;flex-direction:column}
-      .ccard-hora{font-variant-numeric:tabular-nums;font-weight:700;font-size:13px;color:var(--text);background:var(--bg-elev-2);border:1px solid var(--border);border-radius:6px;padding:2px 7px;flex:none;line-height:1.5}
-      .ccard-hora-none{color:var(--text-dim);font-weight:400}
+      /* ===== Dashboard de marketing (pestaña Contenido) ===== */
+      .mkt{display:flex;flex-direction:column;gap:22px}
+      .mkt h1,.mkt h2,.mkt h3,.mkt h4{margin:0}
+      .mkt-monthbar{display:flex;align-items:center;gap:10px}
+      .mkt-month{font-size:16px;font-weight:800;color:var(--text);letter-spacing:.02em}
+      .mkt-eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:800;color:var(--text-muted)}
+      .mkt-eyebrow.accent{color:var(--accent)}
+      .mkt-hero{padding:26px;border:1px solid var(--border);border-radius:16px;background:var(--bg-elev)}
+      .mkt-hero h1{font-size:clamp(24px,3.4vw,38px);line-height:1.05;margin:12px 0 12px;color:var(--text)}
+      .mkt-hero-sub{color:var(--text-muted);font-size:15px;line-height:1.6;margin:0}
+      .mkt-hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+      .mkt-hero-card{padding:16px;border:1px solid var(--border);border-radius:12px;background:var(--bg-elev-2);font-size:13px;color:var(--text-muted);line-height:1.5}
+      .mkt-hero-card strong{display:block;color:var(--accent);font-size:12px;margin-bottom:6px;letter-spacing:.05em;text-transform:uppercase}
+      .mkt-stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+      .mkt-stat{padding:16px;border:1px solid var(--border);border-radius:12px;background:var(--bg-elev)}
+      .mkt-stat-n{font-size:26px;font-weight:800;color:var(--text);line-height:1}
+      .mkt-stat-l{font-size:11px;color:var(--text-muted);margin-top:6px;text-transform:uppercase;letter-spacing:.05em}
+      .mkt-section{display:flex;flex-direction:column;gap:12px}
+      .mkt-sec-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-end;flex-wrap:wrap}
+      .mkt-sec-head h2{font-size:22px;color:var(--text);line-height:1}
+      .mkt-sec-head p{margin:4px 0 0;color:var(--text-muted);font-size:13px}
+      .mkt-flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+      .mkt-step{position:relative;padding:16px;border:1px solid var(--border);border-radius:12px;background:var(--bg-elev)}
+      .mkt-step:not(:last-child):after{content:'→';position:absolute;right:-11px;top:50%;transform:translateY(-50%);color:var(--accent);font-weight:800;z-index:2}
+      .mkt-step b{display:block;color:var(--text);font-size:14px}
+      .mkt-step span{display:block;color:var(--text-muted);font-size:12px;margin-top:6px;line-height:1.5}
+      .mkt-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+      .mkt-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+      .mkt-card{padding:18px;border:1px solid var(--border);border-radius:12px;background:var(--bg-elev)}
+      .mkt-card h3{color:var(--text);font-size:18px;margin-bottom:8px}
+      .mkt-card p{color:var(--text-muted);line-height:1.6;font-size:14px;margin:0 0 10px}
+      .mkt-card p:last-child{margin-bottom:0}
+      .mkt-auto-b{display:block;color:var(--accent);font-size:15px;letter-spacing:.05em;margin-bottom:6px}
+      .mkt-quote{font-size:17px;color:var(--text)!important;font-weight:700;line-height:1.4}
+      .mkt-progress-wrap{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+      .mkt-progress{height:10px;background:var(--bg-elev-2);border:1px solid var(--border);border-radius:999px;overflow:hidden}
+      .mkt-progress span{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+      .mkt-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+      .mkt-tab{border:1px solid var(--border);background:var(--bg-elev);color:var(--text-muted);padding:9px 14px;border-radius:999px;cursor:pointer;font-size:13px;font-weight:600}
+      .mkt-tab:hover{color:var(--text)}
+      .mkt-tab.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+      .mkt-search{flex:1;min-width:200px;background:var(--input-bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-size:13px}
+      .mkt-week{display:none}
+      .mkt-week.on{display:block}
+      .mkt-week-banner{display:grid;grid-template-columns:1.3fr .7fr;gap:14px;padding:18px;border:1px solid var(--border);border-radius:14px;background:var(--bg-elev);margin-bottom:12px}
+      .mkt-week-banner h3{font-size:26px;line-height:1;margin:8px 0;color:var(--text)}
+      .mkt-week-banner p{margin:0;color:var(--text-muted);font-size:13px;line-height:1.5}
+      .mkt-record{padding:16px;border:1px solid var(--accent);border-radius:12px;background:var(--accent-soft)}
+      .mkt-record h4{color:var(--text);font-size:14px;margin:8px 0 6px}
+      .mkt-record p{margin:0;color:var(--text-muted);font-size:12px;line-height:1.5}
+      .mkt-pill{display:inline-flex;padding:5px 10px;border-radius:999px;border:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text-muted);background:var(--bg-elev-2)}
+      .mkt-pill.quiz{color:var(--accent);background:var(--accent-soft);border-color:var(--accent)}
+      .mkt-pill.elite{color:#c084fc;background:rgba(168,85,247,.14);border-color:rgba(168,85,247,.5)}
+      .mkt-days{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+      .mkt-day{border:1px solid var(--border);border-radius:12px;background:var(--bg-elev);padding:14px;display:flex;flex-direction:column;gap:10px}
+      .mkt-day-head{display:flex;justify-content:space-between;gap:8px;align-items:center}
+      .mkt-day h4{font-size:13px;color:var(--text);letter-spacing:.02em}
+      .mkt-tasks{display:grid;gap:6px}
+      .mkt-task{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;background:var(--bg-elev-2);font-size:12px;color:var(--text-muted);border:1px solid var(--border);cursor:pointer}
+      .mkt-task input{accent-color:var(--accent);cursor:pointer}
+      .mkt-carousel{padding:9px 10px;border:1px dashed var(--accent);border-radius:9px;color:var(--accent);font-size:11px;font-weight:700;background:var(--accent-soft)}
+      .mkt-story-toggle{border:1px solid var(--border);background:var(--bg-elev-2);color:var(--text);padding:9px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:600}
+      .mkt-story-toggle:hover{border-color:var(--accent);color:var(--accent)}
+      .mkt-story-list{display:none;margin:0;padding-left:18px}
+      .mkt-story-list.open{display:block}
+      .mkt-story-list li{font-size:12px;color:var(--text-muted);margin-bottom:7px;line-height:1.5}
+      .mkt-viral{margin-top:12px;display:grid;grid-template-columns:.8fr 1.2fr;gap:14px}
+      .mkt-viral-main{padding:22px;border:1px solid var(--border);border-radius:14px;background:var(--bg-elev-2)}
+      .mkt-viral-main h3{font-size:24px;line-height:1.05;margin:10px 0 12px;color:var(--text)}
+      .mkt-viral-main blockquote{margin:0;padding:14px 16px;border-left:3px solid var(--accent);background:var(--accent-soft);font-size:16px;line-height:1.55;border-radius:0 10px 10px 0;color:var(--text)}
+      .mkt-viral-script{padding:20px;border:1px solid var(--border);border-radius:14px;background:var(--bg-elev)}
+      .mkt-viral-script ol{margin:10px 0 0;padding-left:18px}
+      .mkt-viral-script li{margin-bottom:8px;color:var(--text-muted);line-height:1.5;font-size:14px}
+      .mkt-cta-label{color:var(--accent)}
+      .mkt-schedule{width:100%;border-collapse:collapse}
+      .mkt-schedule th,.mkt-schedule td{text-align:left;padding:11px;border-bottom:1px solid var(--border)}
+      .mkt-schedule th{color:var(--accent);font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+      .mkt-schedule td{color:var(--text-muted);font-size:13px}
+      .mkt-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+      .mkt-kpi{padding:16px;border:1px solid var(--border);border-radius:12px;background:var(--bg-elev)}
+      .mkt-kpi label{display:block;font-size:11px;color:var(--accent);margin-bottom:8px;letter-spacing:.05em;text-transform:uppercase;font-weight:700}
+      .mkt-kpi input{width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:9px;color:var(--text);padding:10px 11px;font-size:14px}
+      @media(max-width:900px){
+        .mkt-hero-grid,.mkt-grid2,.mkt-viral,.mkt-week-banner{grid-template-columns:1fr}
+        .mkt-stats{grid-template-columns:repeat(3,1fr)}
+        .mkt-flow,.mkt-days{grid-template-columns:repeat(2,1fr)}
+        .mkt-grid3{grid-template-columns:1fr}
+        .mkt-step:after{display:none}
+        .mkt-kpis{grid-template-columns:repeat(2,1fr)}
+      }
+      @media(max-width:560px){
+        .mkt-stats,.mkt-flow,.mkt-days,.mkt-kpis{grid-template-columns:1fr}
+      }
     </style>`;
 
     async function renderTeam(el) {
@@ -2216,7 +2403,7 @@
       const mount = () => {
         const root = document.getElementById('teamViewRoot');
         if (teamView === 'obj') teamMountObj(root);
-        else if (teamView === 'cont') teamMountCont(root);
+        else if (teamView === 'cont') mktMount(root);
         else teamMountCal(root);
       };
       el.querySelectorAll('.tseg').forEach(b => b.addEventListener('click', () => {
@@ -2583,181 +2770,182 @@
       catch { return ''; }
     }
 
-    // ---------- Vista CONTENIDO (calendario de redes; día+hora, sin arrastre) ----------
-    function teamMountCont(root) {
-      root.innerHTML = `
-        <div class="team-toolbar">
-          <div class="team-weeknav">
-            <button class="btn" id="contPrev" title="Semana anterior">‹</button>
-            <button class="btn" id="contToday">Hoy</button>
-            <button class="btn" id="contNext" title="Semana siguiente">›</button>
-            <span class="team-weeklabel" id="contWeekLabel">—</span>
-          </div>
-          <button class="btn btn-primary-sm" id="contAddBtn">+ Nueva pieza</button>
-        </div>
-        <div id="teamContBoard"><div class="placeholder"><span class="spinner"></span> &nbsp; Cargando…</div></div>
-      `;
-      document.getElementById('contAddBtn').addEventListener('click', () => openContModal(null, isoLocal(new Date())));
-      document.getElementById('contPrev').addEventListener('click', () => { teamContOffset--; teamContLoad(); });
-      document.getElementById('contNext').addEventListener('click', () => { teamContOffset++; teamContLoad(); });
-      document.getElementById('contToday').addEventListener('click', () => { teamContOffset = 0; teamContLoad(); });
-
-      const board = document.getElementById('teamContBoard');
-      board.addEventListener('change', (e) => {
-        const sel = e.target.closest('.tcard-estado');
-        if (sel) teamContSetEstado(sel.dataset.estado, sel.value);
-      });
-      board.addEventListener('click', (e) => {
-        const ed = e.target.closest('[data-edit]'); if (ed) { const c = teamContenido.find(x => x.id === ed.dataset.edit); if (c) openContModal(c); return; }
-        const nt = e.target.closest('[data-notas]'); if (nt) { const c = teamContenido.find(x => x.id === nt.dataset.notas); if (c) openTeamNotasModal(c, 'cont'); return; }
-        const ad = e.target.closest('[data-add]'); if (ad) { openContModal(null, ad.dataset.add); return; }
-      });
-      teamContLoad();
+    // ---------- Vista CONTENIDO = Dashboard de marketing (por mes, compartido) ----------
+    function mktMount(root) {
+      const meses = Object.keys(MKT_MESES).sort().reverse();
+      if (!teamMktMes || !MKT_MESES[teamMktMes]) teamMktMes = meses[0];
+      root.innerHTML = `<div id="mktRoot"><div class="placeholder"><span class="spinner"></span> &nbsp; Cargando…</div></div>`;
+      mktLoad();
     }
 
-    async function teamContLoad() {
-      teamContDates = teamWeekDates(teamContOffset);
-      const from = teamContDates[0].iso, to = teamContDates[6].iso;
-      const lbl = document.getElementById('contWeekLabel');
-      if (lbl) lbl.textContent = `${teamContDates[0].dd}/${teamContDates[0].mm} – ${teamContDates[6].dd}/${teamContDates[6].mm}`;
-      const board = document.getElementById('teamContBoard');
-      if (board) board.innerHTML = '<div class="placeholder"><span class="spinner"></span> &nbsp; Cargando…</div>';
-      const { ok, data } = await api(`/api/tower/team?cont=1&from=${from}&to=${to}`);
+    async function mktLoad() {
+      const rootEl = document.getElementById('mktRoot');
+      if (rootEl) rootEl.innerHTML = '<div class="placeholder"><span class="spinner"></span> &nbsp; Cargando…</div>';
+      const { ok, data } = await api(`/api/tower/team?mkt=1&mes=${encodeURIComponent(teamMktMes)}`);
       if (!ok || !data?.ok) {
-        if (board) board.innerHTML = `<div class="placeholder"><strong>Error</strong>${escapeHtml(data?.detail || data?.error || 'No se pudo cargar')}</div>`;
+        if (rootEl) rootEl.innerHTML = `<div class="placeholder"><strong>Error</strong>${escapeHtml(data?.detail || data?.error || 'No se pudo cargar')}</div>`;
         return;
       }
-      teamContenido = data.contenido || [];
-      teamContRenderBoard();
+      teamMktState = { checks: (data.estado && data.estado.checks) || {}, kpis: (data.estado && data.estado.kpis) || {} };
+      mktRender();
     }
 
-    function teamContRenderBoard() {
-      const board = document.getElementById('teamContBoard');
-      if (!board) return;
-      const byDay = {};
-      teamContenido.forEach(c => { (byDay[c.fecha] = byDay[c.fecha] || []).push(c); });
-      const sortFn = (a, b) => (a.hora || '99:99').localeCompare(b.hora || '99:99') || (a.orden || 0) - (b.orden || 0) || (a.created_at || '').localeCompare(b.created_at || '');
-      const html = teamContDates.map(d => {
-        const list = (byDay[d.iso] || []).sort(sortFn);
-        return `<div class="tday${d.isToday ? ' tday-today' : ''}">
-          <div class="tday-head">
-            <span class="tday-name">${d.name}</span>
-            <span class="tday-date">${d.dd}/${d.mm}</span>
-            ${d.isToday ? '<span class="tday-hoy">hoy</span>' : ''}
-            <span class="tday-add" data-add="${d.iso}" title="Agregar pieza en este día">+</span>
+    function mktRender() {
+      const rootEl = document.getElementById('mktRoot');
+      if (!rootEl) return;
+      const plan = MKT_MESES[teamMktMes];
+      const meses = Object.keys(MKT_MESES).sort().reverse();
+      const idx = meses.indexOf(teamMktMes);
+      const checks = teamMktState.checks || {};
+      const esc = escapeHtml;
+
+      const heroCards = plan.hero.cards.map(c => `<div class="mkt-hero-card"><strong>${esc(c.t)}</strong>${esc(c.b)}</div>`).join('');
+      const stats = plan.stats.map(s => `<div class="mkt-stat"><div class="mkt-stat-n">${esc(s.n)}</div><div class="mkt-stat-l">${esc(s.l)}</div></div>`).join('');
+      const embudo = plan.embudo.map(e => `<div class="mkt-step"><b>${esc(e.b)}</b><span>${esc(e.s)}</span></div>`).join('');
+      const historias = plan.historias.map(h => `<div class="mkt-step"><b>${esc(h.b)}</b><span>${esc(h.s)}</span></div>`).join('');
+      const autos = plan.automatizaciones.map(a => `<div class="mkt-card"><b class="mkt-auto-b">${esc(a.b)}</b><p>${esc(a.p)}</p></div>`).join('');
+      const metaAds = plan.metaAds.map(m => `<div class="mkt-card"><h3>${esc(m.t)}</h3>${m.lines.map(l => `<p>${esc(l)}</p>`).join('')}</div>`).join('');
+      const grabs = plan.grabaciones.map(g => `<tr><td>${esc(g.fecha)}</td><td>${esc(g.semana)}</td><td>${esc(g.objetivo)}</td></tr>`).join('');
+      const kpis = MKT_KPIS.map(k => `<div class="mkt-kpi"><label>${esc(k.label)}</label><input type="number" min="0" placeholder="0" data-kpi="${k.key}" value="${esc(teamMktState.kpis[k.key] != null ? String(teamMktState.kpis[k.key]) : '')}"></div>`).join('');
+      const weekTabs = plan.weeks.map((w, wi) => `<button class="mkt-tab${wi === 0 ? ' on' : ''}" data-week="w${wi + 1}">Semana ${wi + 1}</button>`).join('') + `<button class="mkt-tab" data-week="all">Ver todo</button>`;
+
+      const weeksHtml = plan.weeks.map((w, wi) => {
+        const days = w.days.map((d, di) => {
+          const tasks = MKT_TAREAS.map((t, ti) => {
+            const key = `w${wi + 1}-${di}-${ti}`;
+            return `<label class="mkt-task"><input type="checkbox" class="mkt-check" data-key="${key}"${checks[key] ? ' checked' : ''}>${esc(t)}</label>`;
+          }).join('');
+          const carousel = d.carousel ? `<div class="mkt-carousel">${esc(d.carousel)}</div>` : '';
+          const stories = d.stories.map(s => `<li>${esc(s)}</li>`).join('');
+          const search = esc((d.date + ' ' + d.cta + ' ' + d.stories.join(' ') + (d.carousel || '')).toLowerCase());
+          return `<article class="mkt-day" data-search="${search}">
+            <div class="mkt-day-head"><h4>${esc(d.date)}</h4><span class="mkt-pill ${d.cta === 'ELITE' ? 'elite' : 'quiz'}">${esc(d.cta)}</span></div>
+            <div class="mkt-tasks">${tasks}</div>
+            ${carousel}
+            <button class="mkt-story-toggle" type="button">Ver secuencia de historias</button>
+            <ol class="mkt-story-list">${stories}</ol>
+          </article>`;
+        }).join('');
+        return `<section class="mkt-week${wi === 0 ? ' on' : ''}" id="w${wi + 1}">
+          <div class="mkt-week-banner">
+            <div><div class="mkt-eyebrow accent">${esc(w.week)} · ${esc(w.dates)}</div><h3>${esc(w.theme)}</h3><p>${esc(w.objective)}</p></div>
+            <div class="mkt-record"><span class="mkt-pill">GRABACIÓN</span><h4>${esc(w.recording)}</h4><p>${esc(MKT_BANNER_NOTE)}</p></div>
           </div>
-          <div class="tday-list">${list.length ? list.map(teamContCard).join('') : '<div class="tday-empty">—</div>'}</div>
-        </div>`;
+          <div class="mkt-days">${days}</div>
+          <div class="mkt-viral">
+            <div class="mkt-viral-main"><div class="mkt-eyebrow accent">REEL VIRAL DE LA SEMANA</div><h3>${esc(w.viral.title)}</h3><blockquote>${esc(w.viral.hook)}</blockquote></div>
+            <div class="mkt-viral-script"><span class="mkt-pill">DESARROLLO</span><ol>${w.viral.lines.map(x => `<li>${esc(x)}</li>`).join('')}</ol><p><strong class="mkt-cta-label">CTA:</strong> ${esc(w.viral.cta)}</p></div>
+          </div>
+        </section>`;
       }).join('');
-      board.innerHTML = html;
-    }
 
-    function teamContCard(c) {
-      const em = CONT_ESTADO_META[c.estado] || CONT_ESTADO_META.idea;
-      const tm = CONT_TIPO_META[c.tipo] || CONT_TIPO_META.reel;
-      const closed = CONT_CERRADO.includes(c.estado);
-      const hora = c.hora
-        ? `<span class="ccard-hora">${escapeHtml(c.hora.slice(0, 5))}</span>`
-        : `<span class="ccard-hora ccard-hora-none">—</span>`;
-      const tipo = `<span class="tmember" style="background:${tm.color}1f;color:${tm.color};border:1px solid ${tm.color}55">${escapeHtml(tm.label)}</span>`;
-      const redes = (c.redes || []).map(r => { const rm = CONT_RED_META[r]; return rm ? `<span class="tchip">${escapeHtml(rm.short)}</span>` : ''; }).join('');
-      const nCount = Array.isArray(c.notas) ? c.notas.length : 0;
-      const opts = CONT_ESTADOS.map(s => `<option value="${s}"${s === c.estado ? ' selected' : ''}>${CONT_ESTADO_META[s].label}</option>`).join('');
-      return `<div class="tcard${closed ? ' tcard-closed' : ''}" data-id="${c.id}" style="border-left-color:${em.color}">
-        <div class="tcard-top">
-          ${hora}
-          <span class="tcard-titulo">${escapeHtml(c.titulo)}</span>
-          <button class="tcard-edit" data-edit="${c.id}" title="Editar">⋯</button>
-        </div>
-        <div class="tcard-meta">
-          <select class="tcard-estado" data-estado="${c.id}" style="color:${em.color}">${opts}</select>
-          ${tipo}${redes}
-          <span class="tcard-asignados">${teamMemberChips(c.asignados)}</span>
-          <button class="tcard-notas" data-notas="${c.id}" title="Notas">📝${nCount ? ' ' + nCount : ''}</button>
-        </div>
-      </div>`;
-    }
-
-    async function teamContSetEstado(id, estado) {
-      const { ok, data } = await api(`/api/tower/team?cont=1&id=${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ estado }) });
-      if (ok && data?.ok) {
-        const i = teamContenido.findIndex(c => c.id === id);
-        if (i >= 0) teamContenido[i] = data.contenido;
-        teamContRenderBoard();
-      } else { toast('No se pudo actualizar', 'error'); teamContLoad(); }
-    }
-
-    function openContModal(cont, defaultFecha) {
-      const isEdit = !!cont;
-      const c = cont || {};
-      const fecha = c.fecha || defaultFecha || isoLocal(new Date());
-      const isRed  = (r) => (c.redes || []).includes(r) ? 'checked' : '';
-      const isAsig = (m) => (c.asignados || []).includes(m) ? 'checked' : '';
-      const html = `
-        <h2>${isEdit ? 'Editar pieza' : 'Nueva pieza'}</h2>
-        <div class="field"><label>Qué se sube</label><input id="ct_titulo" type="text" placeholder="Ej: Hook glúteos — 3 errores" autocomplete="off" required></div>
-        <div class="form-grid-2">
-          <div class="field"><label>Día</label><input id="ct_fecha" type="date" value="${fecha}" required></div>
-          <div class="field"><label>Hora (opcional)</label><input id="ct_hora" type="time" value="${c.hora ? escapeHtml(c.hora.slice(0, 5)) : ''}"></div>
-        </div>
-        <div class="form-grid-2">
-          <div class="field"><label>Tipo</label><select id="ct_tipo">${CONT_TIPOS.map(t => `<option value="${t}"${(c.tipo || 'reel') === t ? ' selected' : ''}>${CONT_TIPO_META[t].label}</option>`).join('')}</select></div>
-          <div class="field"><label>Estado</label><select id="ct_estado">${CONT_ESTADOS.map(s => `<option value="${s}"${(c.estado || 'idea') === s ? ' selected' : ''}>${CONT_ESTADO_META[s].label}</option>`).join('')}</select></div>
-        </div>
-        <div class="field"><label>Redes <span style="color:var(--text-muted);font-weight:400">(una o varias)</span></label><div class="tk-members">${Object.entries(CONT_RED_META).map(([r, rm]) => `<label class="tk-mem"><input type="checkbox" class="ct_red" value="${r}" ${isRed(r)}> <span style="font-weight:600">${rm.label}</span></label>`).join('')}</div></div>
-        <div class="field"><label>Responsable</label><div class="tk-members">${Object.entries(MEMBER_META).map(([m, mm]) => `<label class="tk-mem"><input type="checkbox" class="ct_asig" value="${m}" ${isAsig(m)}> <span style="color:${mm.color};font-weight:600">${mm.label}</span></label>`).join('')}</div></div>
-        <div class="modal-actions">
-          ${isEdit ? '<button class="btn btn-danger-ghost" id="ct_del" style="margin-right:auto">Eliminar</button>' : ''}
-          <button class="btn" data-modal-action="cancel">Cancelar</button>
-          <button class="btn btn-primary-sm" id="ct_save">${isEdit ? 'Guardar' : 'Crear'}</button>
+      rootEl.innerHTML = `
+        <div class="mkt">
+          <div class="mkt-monthbar">
+            <button class="btn" id="mktPrev" title="Mes anterior"${idx >= meses.length - 1 ? ' disabled' : ''}>‹</button>
+            <span class="mkt-month">${esc(plan.titulo)}</span>
+            <button class="btn" id="mktNext" title="Mes siguiente"${idx <= 0 ? ' disabled' : ''}>›</button>
+          </div>
+          <section class="mkt-hero">
+            <div class="mkt-eyebrow accent">${esc(plan.hero.eyebrow)}</div>
+            <h1>${esc(plan.hero.title)}</h1>
+            <p class="mkt-hero-sub">${esc(plan.hero.text)}</p>
+            <div class="mkt-hero-grid">${heroCards}</div>
+          </section>
+          <div class="mkt-stats">${stats}</div>
+          <section class="mkt-section"><div class="mkt-sec-head"><div><h2>Embudo oficial de KING</h2><p>La comunicación respeta siempre esta secuencia.</p></div></div><div class="mkt-flow">${embudo}</div></section>
+          <section class="mkt-section"><div class="mkt-grid2">
+            <div class="mkt-card"><h3>Buyer persona principal</h3>${plan.buyer.map(b => `<p>${esc(b)}</p>`).join('')}</div>
+            <div class="mkt-card"><h3>Idea central del mes</h3><p class="mkt-quote">“${esc(plan.idea.quote)}”</p><p>${esc(plan.idea.body)}</p></div>
+          </div></section>
+          <section class="mkt-section" id="mktCalendar">
+            <div class="mkt-sec-head"><div><h2>Calendario interactivo</h2><p>Marcá lo que ya se hizo — se guarda para todo el equipo.</p></div><button class="btn" id="mktReset">Resetear progreso</button></div>
+            <div class="mkt-progress-wrap"><div class="mkt-progress"><span id="mktProgressBar"></span></div><strong id="mktProgressText">0%</strong></div>
+            <div class="mkt-controls">${weekTabs}<input class="mkt-search" id="mktSearch" placeholder="Buscar fecha, CTA o historia…"></div>
+            <div id="mktWeeks">${weeksHtml}</div>
+          </section>
+          <section class="mkt-section"><div class="mkt-sec-head"><div><h2>Jornadas de grabación</h2><p>Todos los sábados · 7:00 a 9:00 h</p></div></div>
+            <div class="mkt-card"><table class="mkt-schedule"><thead><tr><th>Fecha</th><th>Semana</th><th>Objetivo</th></tr></thead><tbody>${grabs}</tbody></table></div>
+          </section>
+          <section class="mkt-section"><div class="mkt-sec-head"><div><h2>Fórmula oficial de historias</h2><p>Humano → identificación → interacción → profundización → conversión.</p></div></div><div class="mkt-flow">${historias}</div></section>
+          <section class="mkt-section"><div class="mkt-sec-head"><div><h2>Automatizaciones</h2><p>Convertir interacción en recorrido.</p></div></div><div class="mkt-grid3">${autos}</div></section>
+          <section class="mkt-section"><div class="mkt-sec-head"><div><h2>Meta Ads</h2><p>El orgánico funciona como laboratorio creativo.</p></div></div><div class="mkt-grid2">${metaAds}</div></section>
+          <section class="mkt-section"><div class="mkt-sec-head"><div><h2>Panel de métricas</h2><p>Cargá los números — se guardan para todo el equipo.</p></div></div><div class="mkt-kpis">${kpis}</div></section>
         </div>`;
-      const back = document.createElement('div');
-      back.className = 'modal-backdrop';
-      back.innerHTML = `<div class="modal">${html}</div>`;
-      document.body.appendChild(back);
-      lockBodyScroll();
-      const close = () => { back.remove(); unlockBodyScroll(); };
-      back.addEventListener('click', (e) => { if (e.target === back || e.target.matches('[data-modal-action="cancel"]')) close(); });
-      setTimeout(() => { const ti = back.querySelector('#ct_titulo'); if (ti) { if (isEdit) ti.value = c.titulo || ''; ti.focus(); } }, 50);
 
-      back.querySelector('#ct_save').addEventListener('click', async () => {
-        const titulo = back.querySelector('#ct_titulo').value.trim();
-        const fechaV = back.querySelector('#ct_fecha').value;
-        if (!titulo) { toast('Poné qué se sube', 'error'); return; }
-        if (!fechaV) { toast('Elegí un día', 'error'); return; }
-        const payload = {
-          titulo,
-          fecha: fechaV,
-          hora: back.querySelector('#ct_hora').value || null,
-          tipo: back.querySelector('#ct_tipo').value,
-          estado: back.querySelector('#ct_estado').value,
-          redes: [...back.querySelectorAll('.ct_red:checked')].map(x => x.value),
-          asignados: [...back.querySelectorAll('.ct_asig:checked')].map(x => x.value),
-        };
-        const btn = back.querySelector('#ct_save'); btn.disabled = true; btn.textContent = 'Guardando…';
-        const r = isEdit
-          ? await api(`/api/tower/team?cont=1&id=${encodeURIComponent(c.id)}`, { method: 'PATCH', body: JSON.stringify(payload) })
-          : await api('/api/tower/team?cont=1', { method: 'POST', body: JSON.stringify(payload) });
-        if (r.ok && r.data?.ok) { toast(isEdit ? 'Pieza actualizada' : 'Pieza creada', 'success'); close(); teamContLoad(); }
-        else { btn.disabled = false; btn.textContent = isEdit ? 'Guardar' : 'Crear'; toast('No se pudo guardar', 'error'); }
+      mktWire();
+      mktUpdateProgress();
+    }
+
+    function mktWire() {
+      const rootEl = document.getElementById('mktRoot');
+      if (!rootEl) return;
+      const meses = Object.keys(MKT_MESES).sort().reverse();
+      const idx = meses.indexOf(teamMktMes);
+      const prev = document.getElementById('mktPrev'), next = document.getElementById('mktNext');
+      if (prev) prev.addEventListener('click', () => { if (idx < meses.length - 1) { teamMktMes = meses[idx + 1]; mktLoad(); } });
+      if (next) next.addEventListener('click', () => { if (idx > 0) { teamMktMes = meses[idx - 1]; mktLoad(); } });
+
+      rootEl.querySelectorAll('.mkt-tab').forEach(b => b.addEventListener('click', () => {
+        rootEl.querySelectorAll('.mkt-tab').forEach(x => x.classList.toggle('on', x === b));
+        const id = b.dataset.week;
+        rootEl.querySelectorAll('.mkt-week').forEach(w => w.classList.toggle('on', id === 'all' || w.id === id));
+      }));
+
+      const search = document.getElementById('mktSearch');
+      if (search) search.addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase().trim();
+        rootEl.querySelectorAll('.mkt-week').forEach(w => {
+          let any = false;
+          w.querySelectorAll('.mkt-day').forEach(d => { const hit = !q || d.dataset.search.includes(q); d.style.display = hit ? '' : 'none'; if (hit) any = true; });
+          w.style.display = any ? '' : 'none';
+        });
       });
 
-      if (isEdit) {
-        back.querySelector('#ct_del').addEventListener('click', async () => {
-          if (!confirm('¿Eliminar esta pieza? No se puede deshacer.')) return;
-          const r = await api(`/api/tower/team?cont=1&id=${encodeURIComponent(c.id)}`, { method: 'DELETE' });
-          if (r.ok && r.data?.ok) { toast('Pieza eliminada', 'success'); close(); teamContLoad(); }
-          else toast('No se pudo eliminar', 'error');
-        });
-      }
+      rootEl.querySelectorAll('.mkt-story-toggle').forEach(b => b.addEventListener('click', () => { b.nextElementSibling.classList.toggle('open'); }));
+      rootEl.querySelectorAll('.mkt-check').forEach(c => c.addEventListener('change', () => mktSaveCheck(c.dataset.key, c.checked)));
+      rootEl.querySelectorAll('[data-kpi]').forEach(i => i.addEventListener('change', () => mktSaveKpi(i.dataset.kpi, i.value)));
+      const reset = document.getElementById('mktReset');
+      if (reset) reset.addEventListener('click', mktResetProgress);
     }
 
-    // Hilo de notas compartido por tareas ('task'), objetivos ('obj') y contenido ('cont').
+    function mktUpdateProgress() {
+      const rootEl = document.getElementById('mktRoot'); if (!rootEl) return;
+      const all = [...rootEl.querySelectorAll('.mkt-check')];
+      const done = all.filter(c => c.checked).length;
+      const p = all.length ? Math.round(done / all.length * 100) : 0;
+      const bar = document.getElementById('mktProgressBar'), txt = document.getElementById('mktProgressText');
+      if (bar) bar.style.width = p + '%';
+      if (txt) txt.textContent = p + '%';
+    }
+
+    async function mktSaveCheck(key, val) {
+      if (val) teamMktState.checks[key] = true; else delete teamMktState.checks[key];
+      mktUpdateProgress();
+      const { ok, data } = await api(`/api/tower/team?mkt=1&mes=${encodeURIComponent(teamMktMes)}`, { method: 'PATCH', body: JSON.stringify({ checkKey: key, checkVal: !!val }) });
+      if (!ok || !data?.ok) toast('No se pudo guardar el cambio', 'error');
+    }
+
+    async function mktSaveKpi(key, val) {
+      const v = String(val || '').trim();
+      if (v === '') delete teamMktState.kpis[key]; else teamMktState.kpis[key] = v;
+      const { ok, data } = await api(`/api/tower/team?mkt=1&mes=${encodeURIComponent(teamMktMes)}`, { method: 'PATCH', body: JSON.stringify({ kpiKey: key, kpiVal: v }) });
+      if (!ok || !data?.ok) toast('No se pudo guardar el número', 'error');
+    }
+
+    async function mktResetProgress() {
+      if (!confirm('¿Resetear TODO el progreso marcado de este mes? (no toca los KPIs)')) return;
+      teamMktState.checks = {};
+      const { ok, data } = await api(`/api/tower/team?mkt=1&mes=${encodeURIComponent(teamMktMes)}`, { method: 'PATCH', body: JSON.stringify({ resetChecks: true }) });
+      if (ok && data?.ok) { mktRender(); toast('Progreso reseteado', 'success'); }
+      else toast('No se pudo resetear', 'error');
+    }
+
+    // Hilo de notas compartido por tareas ('task') y objetivos ('obj').
     function openTeamNotasModal(item, kind) {
       const cfg = ({
-        obj:  { url: (id) => `/api/tower/team?obj=1&id=${encodeURIComponent(id)}`,  field: 'objetivo',  store: () => teamObjetivos, rerender: () => teamObjRenderBoard() },
-        cont: { url: (id) => `/api/tower/team?cont=1&id=${encodeURIComponent(id)}`, field: 'contenido', store: () => teamContenido, rerender: () => teamContRenderBoard() },
-        task: { url: (id) => `/api/tower/team?id=${encodeURIComponent(id)}`,        field: 'task',      store: () => teamTasks,     rerender: () => teamRenderBoard(teamDates) },
+        obj:  { url: (id) => `/api/tower/team?obj=1&id=${encodeURIComponent(id)}`, field: 'objetivo', store: () => teamObjetivos, rerender: () => teamObjRenderBoard() },
+        task: { url: (id) => `/api/tower/team?id=${encodeURIComponent(id)}`,       field: 'task',     store: () => teamTasks,     rerender: () => teamRenderBoard(teamDates) },
       })[kind || 'task'];
       const renderNota = (n) => {
         const mm = MEMBER_META[n.autor] || {};
