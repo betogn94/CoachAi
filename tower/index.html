@@ -2053,6 +2053,7 @@
     }
 
     let teamWeekOffset = 0, teamMyOnly = false, teamTasks = [], teamMe = null, teamDates = [];
+    let teamView = 'cal', teamObjOffset = 0, teamObjetivos = [], teamObjMon = null, teamObjMe = null, teamObjOwner = false;
 
     // --- Push del Team: activar notificaciones desde Tower (1 toque por dispositivo) ---
     function teamUpdateNotifBtn(active) {
@@ -2152,6 +2153,16 @@
       .tnota-head{font-size:11px;font-weight:600;display:flex;gap:8px;margin-bottom:3px}
       .tnota-ts{color:var(--text-muted);font-weight:400}
       .tnota-body{font-size:13px;white-space:pre-wrap;word-break:break-word;color:var(--text)}
+      .team-switch{display:inline-flex;gap:4px;background:var(--bg-elev-2);border:1px solid var(--border);border-radius:10px;padding:3px;margin:2px 0 16px}
+      .tseg{background:none;border:none;color:var(--text-muted);font-size:13px;font-weight:600;padding:6px 14px;border-radius:8px;cursor:pointer}
+      .tseg.on{background:var(--bg-elev);color:var(--text)}
+      .obj-lanes{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+      .obj-lane{min-width:0}
+      .obj-lane-head{display:flex;align-items:center;gap:8px;padding:5px 2px 8px;border-bottom:2px solid var(--border);margin-bottom:10px}
+      .obj-ava{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:none}
+      .obj-lane-name{font-weight:700;font-size:14px;color:var(--text)}
+      .obj-lane-count{margin-left:auto;font-size:12px;color:var(--text-muted)}
+      .obj-lane-list{display:flex;flex-direction:column}
     </style>`;
 
     async function renderTeam(el) {
@@ -2159,10 +2170,34 @@
         <div class="page-header">
           <div>
             <h1 class="page-title">Team</h1>
-            <p class="page-sub">Tablero de trabajo semanal del equipo.</p>
+            <p class="page-sub">Tablero de trabajo del equipo.</p>
           </div>
-          <button class="btn btn-primary-sm" id="teamAddBtn">+ Nueva tarea</button>
+          <button class="btn" id="teamNotifBtn" title="Recibir avisos de tus tareas">🔔 Activar notificaciones</button>
         </div>
+        <div class="team-switch">
+          <button class="tseg${teamView === 'cal' ? ' on' : ''}" data-view="cal">📅 Calendario</button>
+          <button class="tseg${teamView === 'obj' ? ' on' : ''}" data-view="obj">🎯 Objetivos</button>
+        </div>
+        <div id="teamViewRoot"></div>
+      `;
+      const notifBtn = document.getElementById('teamNotifBtn');
+      if (notifBtn) { notifBtn.addEventListener('click', teamSubscribePush); teamRefreshNotifState(); }
+      const mount = () => {
+        const root = document.getElementById('teamViewRoot');
+        if (teamView === 'obj') teamMountObj(root); else teamMountCal(root);
+      };
+      el.querySelectorAll('.tseg').forEach(b => b.addEventListener('click', () => {
+        if (teamView === b.dataset.view) return;
+        teamView = b.dataset.view;
+        el.querySelectorAll('.tseg').forEach(x => x.classList.toggle('on', x.dataset.view === teamView));
+        mount();
+      }));
+      mount();
+    }
+
+    // ---------- Vista CALENDARIO (tareas por día, con hora/recordatorio) ----------
+    function teamMountCal(root) {
+      root.innerHTML = `
         <div class="team-toolbar">
           <div class="team-weeknav">
             <button class="btn" id="teamPrev" title="Semana anterior">‹</button>
@@ -2171,8 +2206,8 @@
             <span class="team-weeklabel" id="teamWeekLabel">—</span>
           </div>
           <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-            <button class="btn" id="teamNotifBtn" title="Recibir avisos de tus tareas">🔔 Activar notificaciones</button>
             <label class="team-myonly"><input type="checkbox" id="teamMyOnlyChk"> Mis tareas</label>
+            <button class="btn btn-primary-sm" id="teamAddBtn">+ Nueva tarea</button>
           </div>
         </div>
         <div id="teamBoard"><div class="placeholder"><span class="spinner"></span> &nbsp; Cargando…</div></div>
@@ -2183,8 +2218,6 @@
       document.getElementById('teamToday').addEventListener('click', () => { teamWeekOffset = 0; teamLoad(); });
       const chk = document.getElementById('teamMyOnlyChk'); chk.checked = teamMyOnly;
       chk.addEventListener('change', (e) => { teamMyOnly = e.target.checked; teamRenderBoard(teamDates); });
-      const notifBtn = document.getElementById('teamNotifBtn');
-      if (notifBtn) { notifBtn.addEventListener('click', teamSubscribePush); teamRefreshNotifState(); }
 
       const board = document.getElementById('teamBoard');
       board.addEventListener('change', (e) => {
@@ -2197,6 +2230,167 @@
         const ad = e.target.closest('[data-add]'); if (ad) { openTeamTaskModal(null, ad.dataset.add); return; }
       });
       teamLoad();
+    }
+
+    // ---------- Vista OBJETIVOS (carriles por miembro, sin fecha/hora) ----------
+    function teamMountObj(root) {
+      root.innerHTML = `
+        <div class="team-toolbar">
+          <div class="team-weeknav">
+            <button class="btn" id="objPrev" title="Semana anterior">‹</button>
+            <button class="btn" id="objToday">Esta semana</button>
+            <button class="btn" id="objNext" title="Semana siguiente">›</button>
+            <span class="team-weeklabel" id="objWeekLabel">—</span>
+          </div>
+          <button class="btn btn-primary-sm" id="objAddBtn">+ Nuevo objetivo</button>
+        </div>
+        <div id="teamObjBoard"><div class="placeholder"><span class="spinner"></span> &nbsp; Cargando…</div></div>
+      `;
+      document.getElementById('objAddBtn').addEventListener('click', () => openObjModal(null));
+      document.getElementById('objPrev').addEventListener('click', () => { teamObjOffset--; teamObjLoad(); });
+      document.getElementById('objNext').addEventListener('click', () => { teamObjOffset++; teamObjLoad(); });
+      document.getElementById('objToday').addEventListener('click', () => { teamObjOffset = 0; teamObjLoad(); });
+
+      const board = document.getElementById('teamObjBoard');
+      board.addEventListener('change', (e) => {
+        const sel = e.target.closest('.tcard-estado');
+        if (sel) teamObjSetEstado(sel.dataset.estado, sel.value);
+      });
+      board.addEventListener('click', (e) => {
+        const ed = e.target.closest('[data-edit]'); if (ed) { const o = teamObjetivos.find(x => x.id === ed.dataset.edit); if (o) openObjModal(o); return; }
+        const nt = e.target.closest('[data-notas]'); if (nt) { const o = teamObjetivos.find(x => x.id === nt.dataset.notas); if (o) openTeamNotasModal(o, 'obj'); return; }
+        const ad = e.target.closest('[data-add]'); if (ad) { openObjModal(null, ad.dataset.add); return; }
+      });
+      teamObjLoad();
+    }
+
+    async function teamObjLoad() {
+      const dates = teamWeekDates(teamObjOffset);
+      teamObjMon = dates[0].iso;
+      const lbl = document.getElementById('objWeekLabel');
+      if (lbl) lbl.textContent = `${dates[0].dd}/${dates[0].mm} – ${dates[6].dd}/${dates[6].mm}`;
+      const board = document.getElementById('teamObjBoard');
+      if (board) board.innerHTML = '<div class="placeholder"><span class="spinner"></span> &nbsp; Cargando…</div>';
+      const { ok, data } = await api(`/api/tower/team?obj=1&semana=${teamObjMon}`);
+      if (!ok || !data?.ok) {
+        if (board) board.innerHTML = `<div class="placeholder"><strong>Error</strong>${escapeHtml(data?.detail || data?.error || 'No se pudo cargar')}</div>`;
+        return;
+      }
+      teamObjetivos = data.objetivos || [];
+      teamObjMe = data.me || teamMe || null;
+      teamObjOwner = !!data.owner;
+      teamObjRenderBoard();
+    }
+
+    function teamObjRenderBoard() {
+      const board = document.getElementById('teamObjBoard');
+      if (!board) return;
+      const mon = teamObjMon;
+      // Arrastre (display-time): un objetivo de una semana anterior se muestra acá.
+      teamObjetivos.forEach(o => { o._dragged = (o.semana < mon); });
+      const byMember = {};
+      teamObjetivos.forEach(o => { (byMember[o.member] = byMember[o.member] || []).push(o); });
+      // Los dueños ven un carril por cada miembro (aunque esté vacío, para poder
+      // agregar). Un miembro ve solo el suyo.
+      const laneMembers = teamObjOwner ? Object.keys(MEMBER_META) : (teamObjMe ? [teamObjMe] : Object.keys(MEMBER_META));
+      const sortFn = (a, b) => (a.orden || 0) - (b.orden || 0) || (a.created_at || '').localeCompare(b.created_at || '');
+      const html = `<div class="obj-lanes">` + laneMembers.map(m => {
+        const mm = MEMBER_META[m]; if (!mm) return '';
+        const list = (byMember[m] || []).slice().sort(sortFn);
+        const done = list.filter(o => o.estado === 'hecha').length;
+        return `<div class="obj-lane">
+          <div class="obj-lane-head" style="border-bottom-color:${mm.color}">
+            <span class="obj-ava" style="background:${mm.color}1f;color:${mm.color}">${escapeHtml(mm.label[0])}</span>
+            <span class="obj-lane-name">${escapeHtml(mm.label)}</span>
+            <span class="obj-lane-count">${done} / ${list.length}</span>
+            <span class="tday-add" data-add="${m}" title="Nuevo objetivo de ${escapeHtml(mm.label)}">+</span>
+          </div>
+          <div class="obj-lane-list">${list.length ? list.map(teamObjCard).join('') : '<div class="tday-empty">Sin objetivos</div>'}</div>
+        </div>`;
+      }).join('') + `</div>`;
+      board.innerHTML = html;
+    }
+
+    function teamObjCard(o) {
+      const em = ESTADO_META[o.estado] || ESTADO_META.por_hacer;
+      const closed = (o.estado === 'hecha' || o.estado === 'cancelada');
+      const dragged = o._dragged ? `<span class="tchip tdrag" title="Arrastrado de una semana anterior">↪ de antes</span>` : '';
+      const nCount = Array.isArray(o.notas) ? o.notas.length : 0;
+      const opts = TEAM_ESTADOS.map(s => `<option value="${s}"${s === o.estado ? ' selected' : ''}>${ESTADO_META[s].label}</option>`).join('');
+      return `<div class="tcard${closed ? ' tcard-closed' : ''}" data-id="${o.id}" style="border-left-color:${em.color}">
+        <div class="tcard-top">
+          <span class="tcard-titulo">${escapeHtml(o.titulo)}</span>
+          <button class="tcard-edit" data-edit="${o.id}" title="Editar">⋯</button>
+        </div>
+        <div class="tcard-meta">
+          <select class="tcard-estado" data-estado="${o.id}" style="color:${em.color}">${opts}</select>
+          ${dragged}
+          <button class="tcard-notas" data-notas="${o.id}" title="Notas">📝${nCount ? ' ' + nCount : ''}</button>
+        </div>
+      </div>`;
+    }
+
+    async function teamObjSetEstado(id, estado) {
+      const { ok, data } = await api(`/api/tower/team?obj=1&id=${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ estado }) });
+      if (ok && data?.ok) {
+        const i = teamObjetivos.findIndex(o => o.id === id);
+        if (i >= 0) teamObjetivos[i] = data.objetivo;
+        teamObjRenderBoard();
+      } else { toast('No se pudo actualizar', 'error'); teamObjLoad(); }
+    }
+
+    function openObjModal(obj, defaultMember) {
+      const isEdit = !!obj;
+      const o = obj || {};
+      const owner = o.member || defaultMember || teamObjMe || Object.keys(MEMBER_META)[0];
+      const canPickOwner = teamObjOwner;   // solo beto/jesus eligen de quién es
+      const memberOpts = Object.entries(MEMBER_META).map(([m, mm]) => `<option value="${m}"${m === owner ? ' selected' : ''}>${mm.label}</option>`).join('');
+      const html = `
+        <h2>${isEdit ? 'Editar objetivo' : 'Nuevo objetivo'}</h2>
+        <div class="field"><label>Objetivo de la semana</label><input id="ob_titulo" type="text" placeholder="Ej: Cerrar 5 ventas del Método KING" autocomplete="off" required></div>
+        <div class="form-grid-2">
+          <div class="field"><label>Dueño</label><select id="ob_member" ${canPickOwner ? '' : 'disabled'}>${memberOpts}</select></div>
+          <div class="field"><label>Estado</label><select id="ob_estado">${TEAM_ESTADOS.map(s => `<option value="${s}"${(o.estado || 'por_hacer') === s ? ' selected' : ''}>${ESTADO_META[s].label}</option>`).join('')}</select></div>
+        </div>
+        <div class="modal-actions">
+          ${isEdit ? '<button class="btn btn-danger-ghost" id="ob_del" style="margin-right:auto">Eliminar</button>' : ''}
+          <button class="btn" data-modal-action="cancel">Cancelar</button>
+          <button class="btn btn-primary-sm" id="ob_save">${isEdit ? 'Guardar' : 'Crear'}</button>
+        </div>`;
+      const back = document.createElement('div');
+      back.className = 'modal-backdrop';
+      back.innerHTML = `<div class="modal">${html}</div>`;
+      document.body.appendChild(back);
+      lockBodyScroll();
+      const close = () => { back.remove(); unlockBodyScroll(); };
+      back.addEventListener('click', (e) => { if (e.target === back || e.target.matches('[data-modal-action="cancel"]')) close(); });
+      setTimeout(() => { const ti = back.querySelector('#ob_titulo'); if (ti) { if (isEdit) ti.value = o.titulo || ''; ti.focus(); } }, 50);
+
+      back.querySelector('#ob_save').addEventListener('click', async () => {
+        const titulo = back.querySelector('#ob_titulo').value.trim();
+        if (!titulo) { toast('Poné un objetivo', 'error'); return; }
+        const payload = {
+          titulo,
+          member: back.querySelector('#ob_member').value,
+          estado: back.querySelector('#ob_estado').value,
+        };
+        if (!isEdit) payload.semana = teamObjMon;   // en edición NO movemos la semana
+        const btn = back.querySelector('#ob_save'); btn.disabled = true; btn.textContent = 'Guardando…';
+        const r = isEdit
+          ? await api(`/api/tower/team?obj=1&id=${encodeURIComponent(o.id)}`, { method: 'PATCH', body: JSON.stringify(payload) })
+          : await api('/api/tower/team?obj=1', { method: 'POST', body: JSON.stringify(payload) });
+        if (r.ok && r.data?.ok) { toast(isEdit ? 'Objetivo actualizado' : 'Objetivo creado', 'success'); close(); teamObjLoad(); }
+        else { btn.disabled = false; btn.textContent = isEdit ? 'Guardar' : 'Crear'; toast('No se pudo guardar', 'error'); }
+      });
+
+      if (isEdit) {
+        back.querySelector('#ob_del').addEventListener('click', async () => {
+          if (!confirm('¿Eliminar este objetivo? No se puede deshacer.')) return;
+          const r = await api(`/api/tower/team?obj=1&id=${encodeURIComponent(o.id)}`, { method: 'DELETE' });
+          if (r.ok && r.data?.ok) { toast('Objetivo eliminado', 'success'); close(); teamObjLoad(); }
+          else toast('No se pudo eliminar', 'error');
+        });
+      }
     }
 
     async function teamLoad() {
@@ -2357,14 +2551,19 @@
       catch { return ''; }
     }
 
-    function openTeamNotasModal(task) {
+    // Hilo de notas compartido por tareas (kind por defecto) y objetivos (kind='obj').
+    function openTeamNotasModal(item, kind) {
+      const isObj = kind === 'obj';
+      const patchUrl = (id) => isObj
+        ? `/api/tower/team?obj=1&id=${encodeURIComponent(id)}`
+        : `/api/tower/team?id=${encodeURIComponent(id)}`;
       const renderNota = (n) => {
         const mm = MEMBER_META[n.autor] || {};
         return `<div class="tnota"><div class="tnota-head"><span style="color:${mm.color || 'var(--text-muted)'}">${escapeHtml(mm.label || n.autor || '—')}</span><span class="tnota-ts">${fmtNotaTs(n.ts)}</span></div><div class="tnota-body">${escapeHtml(n.texto)}</div></div>`;
       };
-      const notas = Array.isArray(task.notas) ? task.notas : [];
+      const notas = Array.isArray(item.notas) ? item.notas : [];
       const html = `
-        <h2>Notas · ${escapeHtml(task.titulo)}</h2>
+        <h2>Notas · ${escapeHtml(item.titulo)}</h2>
         <div class="tnotas-list" id="tnotasList">${notas.length ? notas.map(renderNota).join('') : '<div class="tday-empty">Sin notas todavía.</div>'}</div>
         <div class="field"><textarea id="tnota_input" placeholder="Escribí una nota para el equipo…"></textarea></div>
         <div class="modal-actions"><button class="btn" data-modal-action="cancel">Cerrar</button><button class="btn btn-primary-sm" id="tnota_add">Agregar nota</button></div>`;
@@ -2373,17 +2572,20 @@
       back.innerHTML = `<div class="modal">${html}</div>`;
       document.body.appendChild(back);
       lockBodyScroll();
-      const close = () => { back.remove(); unlockBodyScroll(); teamRenderBoard(teamDates); };  // refresca el contador 📝
+      // Al cerrar, refresca el contador 📝 del tablero que corresponda.
+      const close = () => { back.remove(); unlockBodyScroll(); if (isObj) teamObjRenderBoard(); else teamRenderBoard(teamDates); };
       back.addEventListener('click', (e) => { if (e.target === back || e.target.matches('[data-modal-action="cancel"]')) close(); });
       back.querySelector('#tnota_add').addEventListener('click', async () => {
         const txt = back.querySelector('#tnota_input').value.trim(); if (!txt) return;
         const btn = back.querySelector('#tnota_add'); btn.disabled = true;
-        const { ok, data } = await api(`/api/tower/team?id=${encodeURIComponent(task.id)}`, { method: 'PATCH', body: JSON.stringify({ addNota: txt }) });
-        if (ok && data?.ok) {
-          const i = teamTasks.findIndex(t => t.id === task.id); if (i >= 0) teamTasks[i] = data.task;
-          task.notas = data.task.notas || [];
+        const { ok, data } = await api(patchUrl(item.id), { method: 'PATCH', body: JSON.stringify({ addNota: txt }) });
+        const saved = data && (isObj ? data.objetivo : data.task);
+        if (ok && data?.ok && saved) {
+          const store = isObj ? teamObjetivos : teamTasks;
+          const i = store.findIndex(x => x.id === item.id); if (i >= 0) store[i] = saved;
+          item.notas = saved.notas || [];
           const list = back.querySelector('#tnotasList');
-          if (list) { const empty = list.querySelector('.tday-empty'); if (empty) list.innerHTML = ''; list.insertAdjacentHTML('beforeend', renderNota(task.notas[task.notas.length - 1])); list.scrollTop = list.scrollHeight; }
+          if (list) { const empty = list.querySelector('.tday-empty'); if (empty) list.innerHTML = ''; list.insertAdjacentHTML('beforeend', renderNota(item.notas[item.notas.length - 1])); list.scrollTop = list.scrollHeight; }
           back.querySelector('#tnota_input').value = ''; btn.disabled = false;
         } else { btn.disabled = false; toast('No se pudo agregar la nota', 'error'); }
       });

@@ -95,6 +95,85 @@ export default withAuth(async (req, res, session) => {
     return res.status(405).json({ ok: false, error: 'method_not_allowed' });
   }
 
+  // ---------- OBJETIVOS SEMANALES (tablero por miembro; sin fecha/hora) ----------
+  // Rama gemela del calendario. Un objetivo pertenece a UNA semana (el lunes) y a
+  // UN dueño (member). Los activos sin terminar se arrastran a la semana siguiente.
+  if (req.query.obj) {
+    const isOwner = TEAM_OWNERS.includes(me);
+    // Un miembro (no dueño) solo ve/gestiona los suyos; los dueños ven todos.
+    const mine = isOwner ? '' : `&member=eq.${me || '__none__'}`;
+
+    if (method === 'GET') {
+      const semana = String(req.query.semana || '').slice(0, 10);
+      if (!isDate(semana)) return badRequest(res, 'semana (YYYY-MM-DD, lunes) requerida');
+      const enSemana  = await sb(`/team_objetivos?semana=eq.${semana}${mine}&order=orden.asc,created_at.asc`);
+      const arrastrad = await sb(`/team_objetivos?semana=lt.${semana}&estado=in.(${ACTIVE.join(',')})${mine}&order=orden.asc,created_at.asc`);
+      return res.status(200).json({ ok: true, objetivos: [...arrastrad, ...enSemana], me, owner: isOwner });
+    }
+
+    let ob = req.body;
+    if (typeof ob === 'string') { try { ob = JSON.parse(ob); } catch { ob = {}; } }
+    ob = ob || {};
+
+    if (method === 'POST') {
+      const titulo = String(ob.titulo || '').trim();
+      const semana = String(ob.semana || '').slice(0, 10);
+      if (!titulo) return badRequest(res, 'titulo requerido');
+      if (!isDate(semana)) return badRequest(res, 'semana (YYYY-MM-DD) requerida');
+      // Dueño: el pedido (solo si quien crea es owner), si no, uno mismo.
+      let owner = MEMBERS.includes(ob.member) ? ob.member : me;
+      if (!isOwner) owner = me;
+      const row = {
+        titulo, semana, member: owner,
+        estado: ESTADOS.includes(ob.estado) ? ob.estado : 'por_hacer',
+        created_by: me,
+      };
+      const created = await sb('/team_objetivos', { method: 'POST', body: row, prefer: 'return=representation' });
+      const objRow = Array.isArray(created) ? created[0] : created;
+      // Aviso si le asignaste el objetivo a otro (dueño ≠ creador).
+      if (owner && owner !== me) {
+        const quien = MEMBER_LABEL[me] || 'Alguien';
+        await pushToMembers([owner], { title: '🎯 Nuevo objetivo', body: `${quien} te asignó: ${titulo}`, url: '/tower/' }).catch(() => {});
+      }
+      return res.status(201).json({ ok: true, objetivo: objRow });
+    }
+
+    if (method === 'PATCH') {
+      const id = String(req.query.id || '');
+      if (!id) return badRequest(res, 'id requerido');
+      const patch = {};
+      if (typeof ob.titulo === 'string' && ob.titulo.trim()) patch.titulo = ob.titulo.trim();
+      if (ESTADOS.includes(ob.estado)) {
+        patch.estado = ob.estado;
+        patch.completed_at = ob.estado === 'hecha' ? new Date().toISOString() : null;
+      }
+      // Solo un dueño puede reasignar el objetivo a otra persona.
+      if (isOwner && MEMBERS.includes(ob.member)) patch.member = ob.member;
+      if (isDate(ob.semana)) patch.semana = ob.semana;
+      if (Number.isInteger(ob.orden)) patch.orden = ob.orden;
+      if (ob.addNota && String(ob.addNota).trim()) {
+        const cur = await sb(`/team_objetivos?id=eq.${id}&select=notas`);
+        const notas = (cur && cur[0] && Array.isArray(cur[0].notas)) ? cur[0].notas : [];
+        notas.push({ autor: me, texto: String(ob.addNota).trim(), ts: new Date().toISOString() });
+        patch.notas = notas;
+      }
+      if (!Object.keys(patch).length) return badRequest(res, 'nada para actualizar');
+      patch.updated_at = new Date().toISOString();
+      const updated = await sb(`/team_objetivos?id=eq.${id}`, { method: 'PATCH', body: patch, prefer: 'return=representation' });
+      return res.status(200).json({ ok: true, objetivo: Array.isArray(updated) ? updated[0] : updated });
+    }
+
+    if (method === 'DELETE') {
+      const id = String(req.query.id || '');
+      if (!id) return badRequest(res, 'id requerido');
+      await sb(`/team_objetivos?id=eq.${id}`, { method: 'DELETE' });
+      return res.status(200).json({ ok: true });
+    }
+
+    res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
+    return res.status(405).json({ ok: false, error: 'method_not_allowed' });
+  }
+
   // ---------- LISTAR ----------
   if (method === 'GET') {
     const from = String(req.query.from || '').slice(0, 10);
