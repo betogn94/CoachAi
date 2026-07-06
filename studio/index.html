@@ -2633,7 +2633,7 @@
     // only selects a few columns to keep the table fast — for the drill-down
     // we need the rest (sexo/edad/objetivo/nivel/dias/etc) so we re-fetch.
     const uid = clienta.id;
-    const [fullUserRes, planes, cierres, allCierres, fotos, bugs, notasCoach] = await Promise.all([
+    const [fullUserRes, planes, cierres, allCierres, fotos, bugs, notasCoach, inviteRes] = await Promise.all([
       sb.from('usuarios').select('*').eq('id', uid).maybeSingle(),
       sb.from('planes_semanales').select('tipo,fecha_entrega,semana_iso,contenido,updated_at').eq('usuario_id', uid).order('fecha_entrega', { ascending: false }).limit(10),
       sb.from('cierres_semanales').select('*').eq('usuario_id', uid).order('semana_num', { ascending: false }).limit(1),
@@ -2647,7 +2647,16 @@
       sb.from('fotos_progreso').select('vista,url_foto,fecha,tipo').eq('usuario_id', uid).eq('tipo', 'inicio'),
       sb.from('feedback').select('id,mensaje,created_at,resolved_at,resolved_by,resolution_note').eq('usuario_id', uid).order('created_at', { ascending: false }).limit(20),
       sb.from('notas_coach').select('id,mensaje,created_at,leido,de').eq('usuario_id', uid).order('created_at', { ascending: false }).limit(50),
+      // Origen de alta (para saber si el cobro es automático por Stripe o manual).
+      // Vive en beta_invitados (RLS-locked → RPC del coach en modo OTP).
+      AUTH_OTP_ENABLED
+        ? sb.rpc('coach_invite_origin', { p_email: clienta.email })
+        : sb.from('beta_invitados').select('invitado_por').eq('email', clienta.email).maybeSingle(),
     ]);
+
+    // 'stripe' = entró pagando por Stripe → renovación automática recurrente.
+    // Cualquier otro origen (migrado a mano, invitado por el coach) = manual.
+    const inviteOrigin = inviteRes?.data?.invitado_por || null;
 
     // Firmar las fotos (bucket progress-photos → privado): el coach las firma con
     // SU sesión (la policy de storage tiene rama coach). Dedup por path. Si falla,
@@ -2689,7 +2698,7 @@
       }
       const actSection = document.getElementById('cli-actividad');
       if (actSection) {
-        actSection.innerHTML = `<div class="detail-section-title">Actividad en la app</div>${renderActividadCard(fullUser)}`;
+        actSection.innerHTML = `<div class="detail-section-title">Actividad en la app</div>${renderActividadCard(fullUser, inviteOrigin)}`;
       }
     }
 
@@ -2719,13 +2728,44 @@
   // the existing usuarios.session_count + last_active fields the main app
   // already maintains via the heartbeat. Days-active is derived from
   // created_at → today; avg sessions/day = session_count / days-active.
-  function renderActividadCard(u) {
+  function renderActividadCard(u, inviteOrigin) {
     const sessionCount = u?.session_count || 0;
     const createdAt = u?.created_at ? new Date(u.created_at) : null;
     const lastActive = u?.last_active ? new Date(u.last_active) : null;
     const daysSinceJoined = createdAt ? Math.max(1, Math.floor((Date.now() - createdAt.getTime()) / 86400000)) : 1;
     const avgPerDay = (sessionCount / daysSinceJoined);
     const avgLabel = avgPerDay >= 1 ? avgPerDay.toFixed(1) : avgPerDay.toFixed(2);
+
+    // ---- Suscripción: fecha de renovación + tipo de cobro ----
+    // 'stripe' = renovación automática recurrente; cualquier otro origen = manual.
+    // suscripcion_cancelada_at solo lo setea el webhook de Stripe (churn): el
+    // cliente mantiene acceso hasta acceso_hasta pero ya no vuelve a cobrar.
+    const accesoHasta = u?.acceso_hasta ? new Date(u.acceso_hasta) : null;
+    const cancelada = !!u?.suscripcion_cancelada_at;
+    const isAuto = inviteOrigin === 'stripe';
+    const cobroNota = isAuto
+      ? (cancelada ? '🔄 Automático · cancelado' : '🔄 Recurrente automático')
+      : '✍️ Manual mes a mes';
+    let renovValue, renovColor = 'var(--text)', renovSub;
+    if (accesoHasta) {
+      const days = Math.ceil((accesoHasta.getTime() - Date.now()) / 86400000);
+      renovValue = accesoHasta.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' });
+      if (days < 0) {
+        renovColor = 'var(--danger)';
+        renovSub = `Venció hace ${Math.abs(days)} ${Math.abs(days) === 1 ? 'día' : 'días'} · ${cobroNota}`;
+      } else if (days <= 7) {
+        renovColor = 'var(--warning)';
+        renovSub = `En ${days} ${days === 1 ? 'día' : 'días'} · ${cobroNota}`;
+      } else {
+        renovColor = 'var(--success)';
+        renovSub = cobroNota;
+      }
+    } else {
+      renovValue = 'Sin vencimiento';
+      renovColor = 'var(--text-dim)';
+      renovSub = cobroNota;
+    }
+
     return `<div class="activity-grid">
       <div class="activity-stat">
         <div class="label">Sesiones</div>
@@ -2743,9 +2783,14 @@
         <div class="sub">${lastActive ? lastActive.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }) : 'nunca abrió'}</div>
       </div>
       <div class="activity-stat">
-        <div class="label">Onboarding</div>
+        <div class="label">Inicio</div>
         <div class="value">${createdAt ? esc(fmtRelative(u.created_at)) : '—'}</div>
         <div class="sub">${createdAt ? createdAt.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</div>
+      </div>
+      <div class="activity-stat" style="grid-column: 1 / -1;">
+        <div class="label">Renovación</div>
+        <div class="value" style="color:${renovColor};">${esc(renovValue)}</div>
+        <div class="sub">${esc(renovSub)}</div>
       </div>
     </div>`;
   }
