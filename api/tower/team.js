@@ -22,7 +22,7 @@ const ACTIVE  = ['por_hacer', 'en_progreso'];   // los únicos estados que se "a
 // Calendario de CONTENIDO (redes) — su propio set de tipos/estados/redes.
 const CONT_ESTADOS = ['idea', 'guionado', 'grabado', 'editado', 'publicado', 'cancelada'];
 const CONT_TIPOS   = ['reel', 'historia', 'post', 'carrusel', 'grabacion', 'trial'];
-const CONT_REDES   = ['instagram', 'tiktok', 'facebook'];
+const CONT_REDES   = ['instagram', 'tiktok', 'facebook', 'x', 'youtube'];
 const cleanFromSet = (arr, set) => Array.isArray(arr) ? [...new Set(arr.filter((x) => set.includes(x)))] : [];
 
 const isDate = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
