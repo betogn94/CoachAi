@@ -2043,6 +2043,31 @@
       jesus: { label: 'Jesús', color: '#14b8a6' },
       aylen: { label: 'Aylen', color: '#ec4899' },
     };
+    // Calendario de contenido: tipos, estados de producción y redes.
+    const CONT_TIPO_META = {
+      reel:      { label: 'Reel',      color: '#f59e0b' },
+      historia:  { label: 'Historia',  color: '#14b8a6' },
+      post:      { label: 'Post',      color: '#5B8DEF' },
+      carrusel:  { label: 'Carrusel',  color: '#a855f7' },
+      grabacion: { label: 'Grabación', color: '#ec4899' },
+      trial:     { label: 'Trial',     color: '#22C55E' },
+    };
+    const CONT_ESTADO_META = {
+      idea:      { label: '💡 Idea',      color: '#8B95A7' },
+      guionado:  { label: '📝 Guionado',  color: '#f59e0b' },
+      grabado:   { label: '🎬 Grabado',   color: '#a855f7' },
+      editado:   { label: '✂️ Editado',   color: '#5B8DEF' },
+      publicado: { label: '✓ Publicado',  color: '#22C55E' },
+      cancelada: { label: '❌ Cancelada',  color: '#EF4444' },
+    };
+    const CONT_RED_META = {
+      instagram: { label: 'Instagram', short: 'IG' },
+      tiktok:    { label: 'TikTok',    short: 'TikTok' },
+      facebook:  { label: 'Facebook',  short: 'FB' },
+    };
+    const CONT_ESTADOS = Object.keys(CONT_ESTADO_META);
+    const CONT_TIPOS   = Object.keys(CONT_TIPO_META);
+    const CONT_CERRADO = ['publicado', 'cancelada'];   // tachado/atenuado
     const TEAM_VAPID_PUBLIC = 'BMU0PM_rgcq81HVt8F1Qma0AwbjoHeja5yv6LfadmumHa2Z_IJNmLHuLBsQsrxw13Kso2Krgz7UrU1-ZhsN4WIo';
     function teamB64ToUint8(base64String) {
       const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -2054,6 +2079,7 @@
 
     let teamWeekOffset = 0, teamMyOnly = false, teamTasks = [], teamMe = null, teamDates = [];
     let teamView = 'cal', teamObjOffset = 0, teamObjetivos = [], teamObjMon = null, teamObjMe = null, teamObjOwner = false;
+    let teamContOffset = 0, teamContenido = [], teamContDates = [];
 
     // --- Push del Team: activar notificaciones desde Tower (1 toque por dispositivo) ---
     function teamUpdateNotifBtn(active) {
@@ -2163,6 +2189,8 @@
       .obj-lane-name{font-weight:700;font-size:14px;color:var(--text)}
       .obj-lane-count{margin-left:auto;font-size:12px;color:var(--text-muted)}
       .obj-lane-list{display:flex;flex-direction:column}
+      .ccard-hora{font-variant-numeric:tabular-nums;font-weight:700;font-size:13px;color:var(--text);background:var(--bg-elev-2);border:1px solid var(--border);border-radius:6px;padding:2px 7px;flex:none;line-height:1.5}
+      .ccard-hora-none{color:var(--text-dim);font-weight:400}
     </style>`;
 
     async function renderTeam(el) {
@@ -2177,6 +2205,7 @@
         <div class="team-switch">
           <button class="tseg${teamView === 'cal' ? ' on' : ''}" data-view="cal">📅 Calendario</button>
           <button class="tseg${teamView === 'obj' ? ' on' : ''}" data-view="obj">🎯 Objetivos</button>
+          <button class="tseg${teamView === 'cont' ? ' on' : ''}" data-view="cont">📱 Contenido</button>
         </div>
         <div id="teamViewRoot"></div>
       `;
@@ -2184,7 +2213,9 @@
       if (notifBtn) { notifBtn.addEventListener('click', teamSubscribePush); teamRefreshNotifState(); }
       const mount = () => {
         const root = document.getElementById('teamViewRoot');
-        if (teamView === 'obj') teamMountObj(root); else teamMountCal(root);
+        if (teamView === 'obj') teamMountObj(root);
+        else if (teamView === 'cont') teamMountCont(root);
+        else teamMountCal(root);
       };
       el.querySelectorAll('.tseg').forEach(b => b.addEventListener('click', () => {
         if (teamView === b.dataset.view) return;
@@ -2551,12 +2582,182 @@
       catch { return ''; }
     }
 
-    // Hilo de notas compartido por tareas (kind por defecto) y objetivos (kind='obj').
+    // ---------- Vista CONTENIDO (calendario de redes; día+hora, sin arrastre) ----------
+    function teamMountCont(root) {
+      root.innerHTML = `
+        <div class="team-toolbar">
+          <div class="team-weeknav">
+            <button class="btn" id="contPrev" title="Semana anterior">‹</button>
+            <button class="btn" id="contToday">Hoy</button>
+            <button class="btn" id="contNext" title="Semana siguiente">›</button>
+            <span class="team-weeklabel" id="contWeekLabel">—</span>
+          </div>
+          <button class="btn btn-primary-sm" id="contAddBtn">+ Nueva pieza</button>
+        </div>
+        <div id="teamContBoard"><div class="placeholder"><span class="spinner"></span> &nbsp; Cargando…</div></div>
+      `;
+      document.getElementById('contAddBtn').addEventListener('click', () => openContModal(null, isoLocal(new Date())));
+      document.getElementById('contPrev').addEventListener('click', () => { teamContOffset--; teamContLoad(); });
+      document.getElementById('contNext').addEventListener('click', () => { teamContOffset++; teamContLoad(); });
+      document.getElementById('contToday').addEventListener('click', () => { teamContOffset = 0; teamContLoad(); });
+
+      const board = document.getElementById('teamContBoard');
+      board.addEventListener('change', (e) => {
+        const sel = e.target.closest('.tcard-estado');
+        if (sel) teamContSetEstado(sel.dataset.estado, sel.value);
+      });
+      board.addEventListener('click', (e) => {
+        const ed = e.target.closest('[data-edit]'); if (ed) { const c = teamContenido.find(x => x.id === ed.dataset.edit); if (c) openContModal(c); return; }
+        const nt = e.target.closest('[data-notas]'); if (nt) { const c = teamContenido.find(x => x.id === nt.dataset.notas); if (c) openTeamNotasModal(c, 'cont'); return; }
+        const ad = e.target.closest('[data-add]'); if (ad) { openContModal(null, ad.dataset.add); return; }
+      });
+      teamContLoad();
+    }
+
+    async function teamContLoad() {
+      teamContDates = teamWeekDates(teamContOffset);
+      const from = teamContDates[0].iso, to = teamContDates[6].iso;
+      const lbl = document.getElementById('contWeekLabel');
+      if (lbl) lbl.textContent = `${teamContDates[0].dd}/${teamContDates[0].mm} – ${teamContDates[6].dd}/${teamContDates[6].mm}`;
+      const board = document.getElementById('teamContBoard');
+      if (board) board.innerHTML = '<div class="placeholder"><span class="spinner"></span> &nbsp; Cargando…</div>';
+      const { ok, data } = await api(`/api/tower/team?cont=1&from=${from}&to=${to}`);
+      if (!ok || !data?.ok) {
+        if (board) board.innerHTML = `<div class="placeholder"><strong>Error</strong>${escapeHtml(data?.detail || data?.error || 'No se pudo cargar')}</div>`;
+        return;
+      }
+      teamContenido = data.contenido || [];
+      teamContRenderBoard();
+    }
+
+    function teamContRenderBoard() {
+      const board = document.getElementById('teamContBoard');
+      if (!board) return;
+      const byDay = {};
+      teamContenido.forEach(c => { (byDay[c.fecha] = byDay[c.fecha] || []).push(c); });
+      const sortFn = (a, b) => (a.hora || '99:99').localeCompare(b.hora || '99:99') || (a.orden || 0) - (b.orden || 0) || (a.created_at || '').localeCompare(b.created_at || '');
+      const html = teamContDates.map(d => {
+        const list = (byDay[d.iso] || []).sort(sortFn);
+        return `<div class="tday${d.isToday ? ' tday-today' : ''}">
+          <div class="tday-head">
+            <span class="tday-name">${d.name}</span>
+            <span class="tday-date">${d.dd}/${d.mm}</span>
+            ${d.isToday ? '<span class="tday-hoy">hoy</span>' : ''}
+            <span class="tday-add" data-add="${d.iso}" title="Agregar pieza en este día">+</span>
+          </div>
+          <div class="tday-list">${list.length ? list.map(teamContCard).join('') : '<div class="tday-empty">—</div>'}</div>
+        </div>`;
+      }).join('');
+      board.innerHTML = html;
+    }
+
+    function teamContCard(c) {
+      const em = CONT_ESTADO_META[c.estado] || CONT_ESTADO_META.idea;
+      const tm = CONT_TIPO_META[c.tipo] || CONT_TIPO_META.reel;
+      const closed = CONT_CERRADO.includes(c.estado);
+      const hora = c.hora
+        ? `<span class="ccard-hora">${escapeHtml(c.hora.slice(0, 5))}</span>`
+        : `<span class="ccard-hora ccard-hora-none">—</span>`;
+      const tipo = `<span class="tmember" style="background:${tm.color}1f;color:${tm.color};border:1px solid ${tm.color}55">${escapeHtml(tm.label)}</span>`;
+      const redes = (c.redes || []).map(r => { const rm = CONT_RED_META[r]; return rm ? `<span class="tchip">${escapeHtml(rm.short)}</span>` : ''; }).join('');
+      const nCount = Array.isArray(c.notas) ? c.notas.length : 0;
+      const opts = CONT_ESTADOS.map(s => `<option value="${s}"${s === c.estado ? ' selected' : ''}>${CONT_ESTADO_META[s].label}</option>`).join('');
+      return `<div class="tcard${closed ? ' tcard-closed' : ''}" data-id="${c.id}" style="border-left-color:${em.color}">
+        <div class="tcard-top">
+          ${hora}
+          <span class="tcard-titulo">${escapeHtml(c.titulo)}</span>
+          <button class="tcard-edit" data-edit="${c.id}" title="Editar">⋯</button>
+        </div>
+        <div class="tcard-meta">
+          <select class="tcard-estado" data-estado="${c.id}" style="color:${em.color}">${opts}</select>
+          ${tipo}${redes}
+          <span class="tcard-asignados">${teamMemberChips(c.asignados)}</span>
+          <button class="tcard-notas" data-notas="${c.id}" title="Notas">📝${nCount ? ' ' + nCount : ''}</button>
+        </div>
+      </div>`;
+    }
+
+    async function teamContSetEstado(id, estado) {
+      const { ok, data } = await api(`/api/tower/team?cont=1&id=${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ estado }) });
+      if (ok && data?.ok) {
+        const i = teamContenido.findIndex(c => c.id === id);
+        if (i >= 0) teamContenido[i] = data.contenido;
+        teamContRenderBoard();
+      } else { toast('No se pudo actualizar', 'error'); teamContLoad(); }
+    }
+
+    function openContModal(cont, defaultFecha) {
+      const isEdit = !!cont;
+      const c = cont || {};
+      const fecha = c.fecha || defaultFecha || isoLocal(new Date());
+      const isRed  = (r) => (c.redes || []).includes(r) ? 'checked' : '';
+      const isAsig = (m) => (c.asignados || []).includes(m) ? 'checked' : '';
+      const html = `
+        <h2>${isEdit ? 'Editar pieza' : 'Nueva pieza'}</h2>
+        <div class="field"><label>Qué se sube</label><input id="ct_titulo" type="text" placeholder="Ej: Hook glúteos — 3 errores" autocomplete="off" required></div>
+        <div class="form-grid-2">
+          <div class="field"><label>Día</label><input id="ct_fecha" type="date" value="${fecha}" required></div>
+          <div class="field"><label>Hora (opcional)</label><input id="ct_hora" type="time" value="${c.hora ? escapeHtml(c.hora.slice(0, 5)) : ''}"></div>
+        </div>
+        <div class="form-grid-2">
+          <div class="field"><label>Tipo</label><select id="ct_tipo">${CONT_TIPOS.map(t => `<option value="${t}"${(c.tipo || 'reel') === t ? ' selected' : ''}>${CONT_TIPO_META[t].label}</option>`).join('')}</select></div>
+          <div class="field"><label>Estado</label><select id="ct_estado">${CONT_ESTADOS.map(s => `<option value="${s}"${(c.estado || 'idea') === s ? ' selected' : ''}>${CONT_ESTADO_META[s].label}</option>`).join('')}</select></div>
+        </div>
+        <div class="field"><label>Redes <span style="color:var(--text-muted);font-weight:400">(una o varias)</span></label><div class="tk-members">${Object.entries(CONT_RED_META).map(([r, rm]) => `<label class="tk-mem"><input type="checkbox" class="ct_red" value="${r}" ${isRed(r)}> <span style="font-weight:600">${rm.label}</span></label>`).join('')}</div></div>
+        <div class="field"><label>Responsable</label><div class="tk-members">${Object.entries(MEMBER_META).map(([m, mm]) => `<label class="tk-mem"><input type="checkbox" class="ct_asig" value="${m}" ${isAsig(m)}> <span style="color:${mm.color};font-weight:600">${mm.label}</span></label>`).join('')}</div></div>
+        <div class="modal-actions">
+          ${isEdit ? '<button class="btn btn-danger-ghost" id="ct_del" style="margin-right:auto">Eliminar</button>' : ''}
+          <button class="btn" data-modal-action="cancel">Cancelar</button>
+          <button class="btn btn-primary-sm" id="ct_save">${isEdit ? 'Guardar' : 'Crear'}</button>
+        </div>`;
+      const back = document.createElement('div');
+      back.className = 'modal-backdrop';
+      back.innerHTML = `<div class="modal">${html}</div>`;
+      document.body.appendChild(back);
+      lockBodyScroll();
+      const close = () => { back.remove(); unlockBodyScroll(); };
+      back.addEventListener('click', (e) => { if (e.target === back || e.target.matches('[data-modal-action="cancel"]')) close(); });
+      setTimeout(() => { const ti = back.querySelector('#ct_titulo'); if (ti) { if (isEdit) ti.value = c.titulo || ''; ti.focus(); } }, 50);
+
+      back.querySelector('#ct_save').addEventListener('click', async () => {
+        const titulo = back.querySelector('#ct_titulo').value.trim();
+        const fechaV = back.querySelector('#ct_fecha').value;
+        if (!titulo) { toast('Poné qué se sube', 'error'); return; }
+        if (!fechaV) { toast('Elegí un día', 'error'); return; }
+        const payload = {
+          titulo,
+          fecha: fechaV,
+          hora: back.querySelector('#ct_hora').value || null,
+          tipo: back.querySelector('#ct_tipo').value,
+          estado: back.querySelector('#ct_estado').value,
+          redes: [...back.querySelectorAll('.ct_red:checked')].map(x => x.value),
+          asignados: [...back.querySelectorAll('.ct_asig:checked')].map(x => x.value),
+        };
+        const btn = back.querySelector('#ct_save'); btn.disabled = true; btn.textContent = 'Guardando…';
+        const r = isEdit
+          ? await api(`/api/tower/team?cont=1&id=${encodeURIComponent(c.id)}`, { method: 'PATCH', body: JSON.stringify(payload) })
+          : await api('/api/tower/team?cont=1', { method: 'POST', body: JSON.stringify(payload) });
+        if (r.ok && r.data?.ok) { toast(isEdit ? 'Pieza actualizada' : 'Pieza creada', 'success'); close(); teamContLoad(); }
+        else { btn.disabled = false; btn.textContent = isEdit ? 'Guardar' : 'Crear'; toast('No se pudo guardar', 'error'); }
+      });
+
+      if (isEdit) {
+        back.querySelector('#ct_del').addEventListener('click', async () => {
+          if (!confirm('¿Eliminar esta pieza? No se puede deshacer.')) return;
+          const r = await api(`/api/tower/team?cont=1&id=${encodeURIComponent(c.id)}`, { method: 'DELETE' });
+          if (r.ok && r.data?.ok) { toast('Pieza eliminada', 'success'); close(); teamContLoad(); }
+          else toast('No se pudo eliminar', 'error');
+        });
+      }
+    }
+
+    // Hilo de notas compartido por tareas ('task'), objetivos ('obj') y contenido ('cont').
     function openTeamNotasModal(item, kind) {
-      const isObj = kind === 'obj';
-      const patchUrl = (id) => isObj
-        ? `/api/tower/team?obj=1&id=${encodeURIComponent(id)}`
-        : `/api/tower/team?id=${encodeURIComponent(id)}`;
+      const cfg = ({
+        obj:  { url: (id) => `/api/tower/team?obj=1&id=${encodeURIComponent(id)}`,  field: 'objetivo',  store: () => teamObjetivos, rerender: () => teamObjRenderBoard() },
+        cont: { url: (id) => `/api/tower/team?cont=1&id=${encodeURIComponent(id)}`, field: 'contenido', store: () => teamContenido, rerender: () => teamContRenderBoard() },
+        task: { url: (id) => `/api/tower/team?id=${encodeURIComponent(id)}`,        field: 'task',      store: () => teamTasks,     rerender: () => teamRenderBoard(teamDates) },
+      })[kind || 'task'];
       const renderNota = (n) => {
         const mm = MEMBER_META[n.autor] || {};
         return `<div class="tnota"><div class="tnota-head"><span style="color:${mm.color || 'var(--text-muted)'}">${escapeHtml(mm.label || n.autor || '—')}</span><span class="tnota-ts">${fmtNotaTs(n.ts)}</span></div><div class="tnota-body">${escapeHtml(n.texto)}</div></div>`;
@@ -2573,15 +2774,15 @@
       document.body.appendChild(back);
       lockBodyScroll();
       // Al cerrar, refresca el contador 📝 del tablero que corresponda.
-      const close = () => { back.remove(); unlockBodyScroll(); if (isObj) teamObjRenderBoard(); else teamRenderBoard(teamDates); };
+      const close = () => { back.remove(); unlockBodyScroll(); cfg.rerender(); };
       back.addEventListener('click', (e) => { if (e.target === back || e.target.matches('[data-modal-action="cancel"]')) close(); });
       back.querySelector('#tnota_add').addEventListener('click', async () => {
         const txt = back.querySelector('#tnota_input').value.trim(); if (!txt) return;
         const btn = back.querySelector('#tnota_add'); btn.disabled = true;
-        const { ok, data } = await api(patchUrl(item.id), { method: 'PATCH', body: JSON.stringify({ addNota: txt }) });
-        const saved = data && (isObj ? data.objetivo : data.task);
+        const { ok, data } = await api(cfg.url(item.id), { method: 'PATCH', body: JSON.stringify({ addNota: txt }) });
+        const saved = data && data[cfg.field];
         if (ok && data?.ok && saved) {
-          const store = isObj ? teamObjetivos : teamTasks;
+          const store = cfg.store();
           const i = store.findIndex(x => x.id === item.id); if (i >= 0) store[i] = saved;
           item.notas = saved.notas || [];
           const list = back.querySelector('#tnotasList');

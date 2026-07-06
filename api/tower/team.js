@@ -19,6 +19,12 @@ const RECORDATORIOS = [0, 15, 30, 60];   // minutos antes de la hora (null = sin
 const MEMBERS = TEAM_MEMBERS;                    // lista única (incluye a Aylen) desde _auth.js
 const ACTIVE  = ['por_hacer', 'en_progreso'];   // los únicos estados que se "arrastran"
 
+// Calendario de CONTENIDO (redes) — su propio set de tipos/estados/redes.
+const CONT_ESTADOS = ['idea', 'guionado', 'grabado', 'editado', 'publicado', 'cancelada'];
+const CONT_TIPOS   = ['reel', 'historia', 'post', 'carrusel', 'grabacion', 'trial'];
+const CONT_REDES   = ['instagram', 'tiktok', 'facebook'];
+const cleanFromSet = (arr, set) => Array.isArray(arr) ? [...new Set(arr.filter((x) => set.includes(x)))] : [];
+
 const isDate = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
 const isHora = (s) => typeof s === 'string' && /^\d{2}:\d{2}/.test(s);
 
@@ -167,6 +173,86 @@ export default withAuth(async (req, res, session) => {
       const id = String(req.query.id || '');
       if (!id) return badRequest(res, 'id requerido');
       await sb(`/team_objetivos?id=eq.${id}`, { method: 'DELETE' });
+      return res.status(200).json({ ok: true });
+    }
+
+    res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
+    return res.status(405).json({ ok: false, error: 'method_not_allowed' });
+  }
+
+  // ---------- CALENDARIO DE CONTENIDO (redes) ----------
+  // Planificación semanal de posteos. Anclado a día+hora, SIN arrastre. Lo ve todo
+  // el equipo (calendario compartido; Juli lo planifica entero).
+  if (req.query.cont) {
+    if (method === 'GET') {
+      const from = String(req.query.from || '').slice(0, 10);
+      const to   = String(req.query.to   || '').slice(0, 10);
+      if (!isDate(from) || !isDate(to)) return badRequest(res, 'from/to (YYYY-MM-DD) requeridos');
+      const rows = await sb(`/team_contenido?fecha=gte.${from}&fecha=lte.${to}&order=fecha.asc,hora.asc.nullslast,orden.asc,created_at.asc`);
+      return res.status(200).json({ ok: true, contenido: rows, me, owner: TEAM_OWNERS.includes(me) });
+    }
+
+    let cb = req.body;
+    if (typeof cb === 'string') { try { cb = JSON.parse(cb); } catch { cb = {}; } }
+    cb = cb || {};
+
+    if (method === 'POST') {
+      const titulo = String(cb.titulo || '').trim();
+      const fecha  = String(cb.fecha || '').slice(0, 10);
+      if (!titulo) return badRequest(res, 'titulo requerido');
+      if (!isDate(fecha)) return badRequest(res, 'fecha (YYYY-MM-DD) requerida');
+      const asignados = cleanAsignados(cb.asignados);
+      const row = {
+        fecha, titulo,
+        hora:   isHora(cb.hora) ? cb.hora.slice(0, 5) : null,
+        tipo:   CONT_TIPOS.includes(cb.tipo) ? cb.tipo : 'reel',
+        estado: CONT_ESTADOS.includes(cb.estado) ? cb.estado : 'idea',
+        redes:  cleanFromSet(cb.redes, CONT_REDES),
+        asignados,
+        created_by: me,
+      };
+      const created = await sb('/team_contenido', { method: 'POST', body: row, prefer: 'return=representation' });
+      const pieza = Array.isArray(created) ? created[0] : created;
+      const notify = asignados.filter((m) => m !== me);
+      if (notify.length) {
+        const quien = MEMBER_LABEL[me] || 'Alguien';
+        await pushToMembers(notify, { title: '📱 Nueva pieza de contenido', body: `${quien} te asignó: ${titulo}`, url: '/tower/' }).catch(() => {});
+      }
+      return res.status(201).json({ ok: true, contenido: pieza });
+    }
+
+    if (method === 'PATCH') {
+      const id = String(req.query.id || '');
+      if (!id) return badRequest(res, 'id requerido');
+      const patch = {};
+      if (typeof cb.titulo === 'string' && cb.titulo.trim()) patch.titulo = cb.titulo.trim();
+      if (CONT_ESTADOS.includes(cb.estado)) {
+        patch.estado = cb.estado;
+        patch.completed_at = cb.estado === 'publicado' ? new Date().toISOString() : null;
+      }
+      if (CONT_TIPOS.includes(cb.tipo)) patch.tipo = cb.tipo;
+      if (cb.hora === null) patch.hora = null;
+      else if (isHora(cb.hora)) patch.hora = cb.hora.slice(0, 5);
+      if (isDate(cb.fecha)) patch.fecha = cb.fecha;
+      if (Array.isArray(cb.redes)) patch.redes = cleanFromSet(cb.redes, CONT_REDES);
+      if (Array.isArray(cb.asignados)) patch.asignados = cleanAsignados(cb.asignados);
+      if (Number.isInteger(cb.orden)) patch.orden = cb.orden;
+      if (cb.addNota && String(cb.addNota).trim()) {
+        const cur = await sb(`/team_contenido?id=eq.${id}&select=notas`);
+        const notas = (cur && cur[0] && Array.isArray(cur[0].notas)) ? cur[0].notas : [];
+        notas.push({ autor: me, texto: String(cb.addNota).trim(), ts: new Date().toISOString() });
+        patch.notas = notas;
+      }
+      if (!Object.keys(patch).length) return badRequest(res, 'nada para actualizar');
+      patch.updated_at = new Date().toISOString();
+      const updated = await sb(`/team_contenido?id=eq.${id}`, { method: 'PATCH', body: patch, prefer: 'return=representation' });
+      return res.status(200).json({ ok: true, contenido: Array.isArray(updated) ? updated[0] : updated });
+    }
+
+    if (method === 'DELETE') {
+      const id = String(req.query.id || '');
+      if (!id) return badRequest(res, 'id requerido');
+      await sb(`/team_contenido?id=eq.${id}`, { method: 'DELETE' });
       return res.status(200).json({ ok: true });
     }
 
