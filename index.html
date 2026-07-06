@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260706-1815-deploy">
+<meta name="app-version" content="20260706-1839-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -3934,6 +3934,23 @@ body.theme-king .home-plan-banner { background: #FFF0F4; border-color: rgba(255,
   75% { transform: scale(1.04, 0.98) rotate(1.6deg); }
 }
 @media (prefers-reduced-motion: reduce) { .home-streak-chip .hsc-flame-svg { animation: none; } }
+
+/* Banner "Tu coach te escribió" — trae al Home el aviso que vivía escondido en
+   el Perfil. Usa var(--accent) → coral en King, violeta en default. */
+.home-coach-msg {
+  display: flex; align-items: center; gap: 11px;
+  margin: 12px 18px 0; padding: 13px 15px;
+  background: var(--accent, #7c6aff); color: #fff;
+  border-radius: 14px; cursor: pointer;
+  box-shadow: var(--accent-shadow, 0 6px 18px rgba(124,106,255,.30));
+  -webkit-tap-highlight-color: transparent;
+}
+.home-coach-msg:active { transform: scale(.99); }
+.home-coach-msg .hcm-ico { font-size: 20px; flex-shrink: 0; line-height: 1; }
+.home-coach-msg .hcm-text { flex: 1; min-width: 0; font-size: 14px; font-family: 'DM Sans', sans-serif; line-height: 1.35; }
+.home-coach-msg .hcm-text b { font-weight: 700; }
+.home-coach-msg .hcm-sub { opacity: .85; }
+.home-coach-msg .hcm-arrow { font-size: 22px; opacity: .8; flex-shrink: 0; line-height: 1; }
 
 /* 2-col grid for the action cards (shortcuts + chart + chat) */
 .cai-home-grid {
@@ -11981,6 +11998,15 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     </div>
   </div>
 
+  <!-- Aviso de mensaje del coach sin leer. El badge vivía escondido en el Perfil
+       (agujero negro: las clientas no lo veían y seguían preguntando). Este banner
+       lo trae al Home. Lo muestra/oculta _setCoachReplyBadge según los no leídos. -->
+  <div class="home-coach-msg" id="home-coach-msg" style="display:none" onclick="openCoachNote()" role="button" tabindex="0">
+    <span class="hcm-ico" aria-hidden="true">💬</span>
+    <span class="hcm-text"><b data-es="Tu coach te escribió" data-en="Your coach messaged you">Tu coach te escribió</b> <span class="hcm-sub" data-es="— tocá para leer" data-en="— tap to read">— tocá para leer</span></span>
+    <span class="hcm-arrow" aria-hidden="true">›</span>
+  </div>
+
   <!-- Aviso de carga post-onboarding: visible mientras se pre-generan los planes -->
   <div class="home-plan-banner" id="home-plan-banner" style="display:none">
     <span class="hpb-ico">⏳</span>
@@ -15209,9 +15235,14 @@ async function _loadCoachThread() {
 // respuestas del coach serían un agujero negro, el mismo problema al revés).
 function _setCoachReplyBadge(n) {
   const b = document.getElementById('coach-reply-badge');
-  if (!b) return;
-  if (n > 0) { b.textContent = String(n); b.style.display = 'inline-flex'; }
-  else { b.style.display = 'none'; }
+  if (b) {
+    if (n > 0) { b.textContent = String(n); b.style.display = 'inline-flex'; }
+    else { b.style.display = 'none'; }
+  }
+  // Banner en el Home: saca el aviso del Perfil (donde era un agujero negro) y
+  // lo pone donde la clienta SÍ mira. Tocarlo abre el hilo (openCoachNote).
+  const banner = document.getElementById('home-coach-msg');
+  if (banner) banner.style.display = n > 0 ? 'flex' : 'none';
 }
 async function checkCoachReplies() {
   try {
@@ -23606,6 +23637,7 @@ function showHome() {
   wrapper.style.display = 'block';
   playHomeCascade(wrapper); // cards en cascada (salvo que venga del swipe)
   renderHome();
+  checkCoachReplies().catch(() => {});   // refresca el banner "tu coach te escribió"
   renderKingIndice();       // Mapa Estético vivo (King-only + ?indice=1)
   updateCardSVGAspect();
   setActiveNav('nav-inicio');
