@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260706-2159-deploy">
+<meta name="app-version" content="20260707-1509-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -24969,13 +24969,30 @@ function renderPerfilAnalisis(cierres) {
 
 function goToWeekAnalisis(weekNum) {
   showDashboard();
-  setTimeout(() => {
+  // El "último análisis" suele ser de una semana YA cerrada, y en Seguimiento
+  // Semanal esas viven dentro del desplegable "Ver semanas anteriores"
+  // (#semanas-past, display:none). Sin abrir ese cajón, scrollIntoView cae
+  // sobre un elemento sin layout y la usuaria queda tirada arriba del Home
+  // (bug reportado: "me manda a inicio"). Abrimos el cajón, abrimos la card y
+  // recién ahí scrolleamos. Reintentamos por si el dashboard aún no renderizó.
+  const reveal = () => {
     const card = document.getElementById(`semana-card-${weekNum}`);
-    if (card) {
-      card.classList.add('open');
-      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!card) return false;
+    const past = document.getElementById('semanas-past');
+    if (past && past.contains(card) && past.style.display === 'none') {
+      past.style.display = 'flex';
+      document.getElementById('semanas-toggle-btn')?.classList.add('open');
     }
-  }, 300);
+    card.classList.add('open');
+    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return true;
+  };
+  // 300ms: deja que showHome() termine su render async del seguimiento y su
+  // scrollToTop (rAF) ANTES de abrir el cajón y scrollear — si no, el render
+  // tardío reponía display:none o el snap-to-top pisaba nuestro scroll.
+  let tries = 0;
+  const tick = () => { if (!reveal() && tries++ < 12) setTimeout(tick, 100); };
+  setTimeout(tick, 300);
 }
 
 // Sheet de datos personales (la abre el avatar del hero). renderMiInfo() rellena
