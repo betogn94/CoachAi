@@ -21,10 +21,17 @@ const APP_URL = 'https://coachaipro.ai';
 // si el checkout NO trae metadata.product (ej. se recreó el producto y se perdió
 // la etiqueta), igual lo reconocemos por este price → no da acceso + se registra.
 const MAPA_PRICE_ID = 'price_1TpbZ80MxxlML2QQivc7CdyI';
-// Price del pago ÚNICO de $297 del Foundation (el "plan de por vida"). Lo usamos
-// para reconocer su invoice aunque un cupón lo deje en $0 → se registra como
+// Prices del pago ÚNICO del Foundation (el "plan de por vida"). Lo usamos para
+// reconocer su invoice aunque un cupón lo deje en $0 → se registra como
 // 'foundation' (único), no como suscripción recurrente que inflaría el MRR.
-const FOUNDATION_PRICE_ID = 'price_1To8sh0MxxlML2QQ4oTM4AIQ';
+// Los precios de Stripe NO se editan → cada cambio de monto crea un price nuevo;
+// reconocemos TODOS los históricos para que tanto los pagos viejos como los nuevos
+// se clasifiquen igual. (Además hay red de seguridad: cualquier línea sin
+// recurrencia también cuenta como Foundation, ver isFoundation abajo.)
+const FOUNDATION_PRICE_IDS = new Set([
+  'price_1To8sh0MxxlML2QQ4oTM4AIQ', // $297   — original (congelado)
+  'price_1TqhUi0MxxlML2QQI8m0zg2j', // $99.32 — nuevo (2026-07-07)
+]);
 
 async function readRawBody(req) {
   const chunks = [];
@@ -199,7 +206,7 @@ async function handleInvoicePaid(invoice, stripe) {
   // Foundation: PRIMERO por su price one-time ($297) — robusto aunque un cupón lo
   // deje en $0 (la línea sigue con ese price). Respaldo: cualquier línea sin recurring.
   const isFoundation = lines.some(l =>
-    (l && l.price && l.price.id === FOUNDATION_PRICE_ID) ||
+    (l && l.price && FOUNDATION_PRICE_IDS.has(l.price.id)) ||
     (l && l.price && !l.price.recurring)
   );
 
