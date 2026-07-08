@@ -314,6 +314,17 @@ async function isMapaCheckout(session, stripe) {
   } catch (e) { console.warn('[stripe] no se pudieron leer line items del checkout:', e?.message); return false; }
 }
 
+// Price del producto "CoachAI Pro King clásico" ($19.99/mes recurrente): marca King
+// (tenant jesus) pero SIN el Método King. Se reconoce por su price → la invitación
+// nace con metodo_king=false y el RPC de alta la crea FUERA de la cohorte King.
+const COACHAI_CLASICO_PRICE_ID = 'price_1TqlNC0MxxlML2QQc31yqj2p';
+async function checkoutEsClasico(session, stripe) {
+  try {
+    const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10 });
+    return (items?.data || []).some(li => li && li.price && li.price.id === COACHAI_CLASICO_PRICE_ID);
+  } catch (e) { console.warn('[stripe] no se pudieron leer line items (clasico):', e?.message); return false; }
+}
+
 // Primera compra → alta del cliente (beta_invitados) + acceso + email de invitación.
 async function handleCheckoutCompleted(session, stripe) {
   // Guard King Mapa: el Mapa Estético ($19.99) es SOLO el diagnóstico → NO da acceso a
@@ -344,6 +355,11 @@ async function handleCheckoutCompleted(session, stripe) {
   if (!end) end = addMonthsUnix(Math.floor(Date.now() / 1000), 1);
   const accesoHasta = new Date(end * 1000).toISOString();
 
+  // ¿Es el producto "King clásico"? Si sí, la invitación nace metodo_king=false →
+  // el RPC de alta la crea en King PERO sin la cohorte del Método. Foundation y
+  // suscripciones directas quedan sin marcar (NULL) → el RPC les da método por tenant.
+  const esClasico = await checkoutEsClasico(session, stripe);
+
   // Idempotencia: si ya está en beta_invitados (mismo email+tenant), solo
   // refrescamos acceso_hasta; si no, lo creamos ya con acceso_hasta.
   const existing = await sb(
@@ -359,6 +375,7 @@ async function handleCheckoutCompleted(session, stripe) {
         invitado_por: 'stripe',
         notas: 'Alta automática vía pago Stripe',
         ...(accesoHasta ? { acceso_hasta: accesoHasta } : {}),
+        ...(esClasico ? { metodo_king: false } : {}),
       },
       prefer: 'return=minimal',
     });
@@ -367,7 +384,7 @@ async function handleCheckoutCompleted(session, stripe) {
     // (si volvió, ya no está cancelado).
     await sb(
       `/beta_invitados?email=eq.${encodeURIComponent(email)}&tenant_slug=eq.${encodeURIComponent(slug)}`,
-      { method: 'PATCH', body: { acceso_hasta: accesoHasta, suscripcion_cancelada_at: null }, prefer: 'return=minimal' }
+      { method: 'PATCH', body: { acceso_hasta: accesoHasta, suscripcion_cancelada_at: null, ...(esClasico ? { metodo_king: false } : {}) }, prefer: 'return=minimal' }
     );
   }
   // Si el cliente ya onboardeó (existe en usuarios), también lo actualizamos.
