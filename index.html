@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260708-1548-deploy">
+<meta name="app-version" content="20260708-2006-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -702,6 +702,12 @@ body.theme-king {
 
 /* --- Capa full-screen: barra arriba + form ocupando toda la pantalla.
    Gateadas por :has() → solo cuando el onboarding está display:block. --- */
+/* Full-screen de verdad: el header de la app (logo COACHAI PRO) queda oculto
+   mientras el onboarding King está a la vista (proceedAfterAuth lo prende con
+   display:flex inline ANTES del onboarding — el !important de stylesheet le
+   gana al inline). Al entrar a la app (form-wrapper→none) reaparece solo. */
+body.theme-king:has(.form-wrapper[style*="block"]) #main-header { display:none !important; }
+
 /* Barra de progreso = calco de .ko-prog del Método King: UNA línea continua
    edge-to-edge de 4px cuyo fill coral avanza panel a panel (JS setea
    --kob-prog en updateOnboardingChrome). Va POR ENCIMA del interstitial
@@ -18042,6 +18048,10 @@ function initOnboardingPanels() {
     if (typeof wrapKingSelects === 'function') { try { wrapKingSelects(); } catch (e) {} }
     // Copy estilo ko (frase natural, sin emojis) — solo King, con restore.
     if (typeof kobApplyCopy === 'function') { try { kobApplyCopy(); } catch (e) {} }
+    // Precarga de las fotos de las láminas: sin esto, la primera lámina muestra
+    // un microsegundo el degradado de respaldo de .ko-a/.ko-c mientras el JPG
+    // baja. Precargadas acá (arranque del onboarding), llegan calientes.
+    try { ['a', 'c'].forEach(k => { const im = new Image(); im.src = '/tenants/jesus/king-onb-' + k + '.jpg'; }); } catch (e) {}
   } else if (typeof kobRestoreCopy === 'function') {
     try { kobRestoreCopy(); } catch (e) {}
   }
