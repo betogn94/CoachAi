@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260707-1509-deploy">
+<meta name="app-version" content="20260708-1548-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -675,6 +675,252 @@ body.theme-king .section-number {
 body.theme-king .section-title { color: var(--accent) !important; }
 body.theme-king .landing-footer-text,
 body.theme-king footer { color: var(--muted) !important; }
+
+/* =====================================================================
+   KING · onboarding CLÁSICO con el look del onboarding "Método King" (ko-*)
+   ---------------------------------------------------------------------
+   El onboarding clásico (tenant King, clientas que compran la app SIN el
+   Método) ya venía coloreado a la paleta King (blanco/coral). Este bloque
+   lo lleva al mismo LENGUAJE VISUAL que el onboarding del Método King:
+   fondo crema a sangre, tarjetas disueltas (cardless), título centrado,
+   chips apilados full-width, sin emojis, botón "›" circular de tinta, y
+   los interstitials a pantalla completa entre bloques.
+
+   Solo capa visual — el motor (initOnboardingPanels / nextPanel /
+   validateStep / launchCoach / fotos) NO se toca. Las reglas que cambian
+   el LAYOUT (fixed / flex) se gatean con :has(.form-wrapper[style*="block"])
+   para que solo apliquen mientras el onboarding está a la vista y jamás
+   filtren al resto de la app. Paleta ko cacheada en vars --kob-*.
+   ===================================================================== */
+body.theme-king {
+  --kob-cream:#F3F1EB;
+  --kob-ink:#1A1917;
+  --kob-muted:#8C877E;
+  --kob-line:#E4E0D6;
+  --kob-sys:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+
+/* --- Capa full-screen: barra arriba + form ocupando toda la pantalla.
+   Gateadas por :has() → solo cuando el onboarding está display:block. --- */
+/* Barra de progreso = calco de .ko-prog del Método King: UNA línea continua
+   edge-to-edge de 4px cuyo fill coral avanza panel a panel (JS setea
+   --kob-prog en updateOnboardingChrome). Va POR ENCIMA del interstitial
+   (z 130 > 120) para que no desaparezca en las láminas, igual que en el ko.
+   La barra vive FUERA del form-wrapper → se gatea con :has. */
+body.theme-king:has(.form-wrapper[style*="block"]) .progress-bar-container {
+  position:fixed; top:0; left:0; right:0; z-index:130;
+  padding:env(safe-area-inset-top,0px) 0 0 !important;
+  background:transparent;
+  /* La base trae border-bottom 1px var(--border) (#ECECF1 en King) → era la
+     rayita blanca visible entre la barra y la foto del interstitial. */
+  border:none !important;
+  pointer-events:none;
+}
+body.theme-king:has(.form-wrapper[style*="block"]) .progress-steps {
+  display:block !important; position:relative;
+  height:4px; margin:0 !important; gap:0 !important;
+  background:#DDD7C9; overflow:hidden;
+}
+body.theme-king:has(.form-wrapper[style*="block"]) .progress-steps::after {
+  content:""; position:absolute; left:0; top:0; bottom:0;
+  width:calc(var(--kob-prog, 0.08) * 100%);
+  background:var(--accent);
+  transition:width .46s cubic-bezier(.36,.66,.32,1);
+}
+body.theme-king:has(.form-wrapper[style*="block"]) .progress-step { display:none !important; }
+body.theme-king:has(.form-wrapper[style*="block"]) .progress-step-label,
+body.theme-king:has(.form-wrapper[style*="block"]) .progress-skip-link { display:none !important; }
+/* Sobre la lámina oscura el track pasa a blanco translúcido (calco de
+   #king-onb.ko-dark .ko-prog). */
+body.theme-king:has(#kob-inter.kob-show) .progress-steps { background:rgba(255,255,255,.38) !important; }
+body.theme-king .form-wrapper[style*="block"] {
+  position:fixed !important; inset:0; z-index:60;
+  display:flex !important; flex-direction:column;
+  background:var(--kob-cream);
+  margin:0 !important;
+  padding-top:calc(env(safe-area-inset-top,0px) + 34px);
+  padding-left:env(safe-area-inset-left,0px);
+  padding-right:env(safe-area-inset-right,0px);
+  overflow:hidden;
+  font-family:var(--kob-sys);
+}
+/* viewport = el hueco central que scrollea si el paso es alto */
+body.theme-king .form-wrapper[style*="block"] #onb-viewport {
+  flex:1 1 auto; min-height:0; height:auto !important;
+  position:relative; overflow-y:auto; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+}
+body.theme-king .form-wrapper[style*="block"] #onb-track {
+  align-items:stretch !important; min-height:100%;
+}
+
+/* --- Panel = pantalla limpia, sin card, contenido centrado verticalmente.
+   `safe center` centra cuando el paso entra en pantalla y lo alinea arriba
+   (sin cortar) cuando es más alto que el viewport. --- */
+body.theme-king .step-panel {
+  background:none !important; background-color:transparent !important;
+  background-image:none !important;
+  border:none !important; box-shadow:none !important; border-radius:0 !important;
+  -webkit-backdrop-filter:none !important; backdrop-filter:none !important;
+  padding:8px 26px 26px !important;
+  justify-content:safe center;
+}
+body.theme-king .step-panel .section-body,
+body.theme-king .step-panel .section-header {
+  width:100%; max-width:430px; margin-left:auto; margin-right:auto;
+}
+body.theme-king .step-panel .form-group.full { margin-left:auto; margin-right:auto; }
+
+/* Header: sin gradiente, sin número, sin ícono — título grande centrado + sub */
+body.theme-king .step-panel .section-header {
+  background:none !important; border:none !important;
+  padding:6px 0 2px !important; display:block !important;
+  text-align:center; margin-bottom:22px;
+}
+body.theme-king .step-panel .section-header::after,
+body.theme-king .step-panel .section-header::before { display:none !important; }
+body.theme-king .step-panel .section-number,
+body.theme-king .step-panel .section-icon { display:none !important; }
+body.theme-king .step-panel .section-info { text-align:center; }
+body.theme-king .step-panel .section-title {
+  color:var(--kob-ink) !important; font-family:var(--kob-sys) !important;
+  font-size:22px !important; font-weight:700 !important;
+  letter-spacing:-0.01em !important; line-height:1.18 !important;
+  margin-bottom:9px !important;
+  text-transform:none !important;   /* copy en frase natural, no MAYÚSCULAS */
+}
+body.theme-king .step-panel .section-desc {
+  color:var(--kob-muted) !important; font-family:var(--kob-sys) !important;
+  font-size:14.5px !important; font-weight:400 !important; line-height:1.42 !important;
+}
+body.theme-king .step-panel label { color:var(--kob-muted) !important; font-family:var(--kob-sys) !important; }
+
+/* --- Chips → apilados full-width, redondeo 14px (estilo ko-chip) --- */
+body.theme-king .step-panel .chip-group {
+  display:flex !important; flex-direction:column !important; gap:10px !important;
+  flex-wrap:nowrap !important;
+}
+body.theme-king .step-panel .chip {
+  width:100% !important; justify-content:center !important; text-align:center !important;
+  padding:15px 16px !important; border-radius:14px !important;
+  font-size:15px !important; border-width:1.5px !important;
+  font-family:var(--kob-sys) !important;
+}
+
+/* --- Cards de objetivo / nivel → apiladas full-width, SIN emojis --- */
+body.theme-king .step-panel .objetivo-grid,
+body.theme-king .step-panel .level-grid {
+  display:flex !important; flex-direction:column !important; gap:10px !important;
+}
+body.theme-king .step-panel .objetivo-card,
+body.theme-king .step-panel .level-card {
+  width:100% !important; text-align:center !important;
+  padding:16px 18px !important; border-radius:14px !important; border-width:1.5px !important;
+  min-height:0 !important;
+  /* La regla base .onb-track las vuelve grid "44px 1fr" (columna para el
+     emoji). Con el emoji oculto la columna fantasma corría el texto a la
+     derecha → block para que el text-align:center centre de verdad. */
+  display:block !important;
+  grid-template-columns:none !important;
+}
+body.theme-king .step-panel .objetivo-emoji,
+body.theme-king .step-panel .level-emoji { display:none !important; }
+body.theme-king .step-panel .objetivo-title,
+body.theme-king .step-panel .level-title {
+  font-family:var(--kob-sys) !important; font-size:16px !important; font-weight:600 !important;
+}
+body.theme-king .step-panel .objetivo-sub,
+body.theme-king .step-panel .level-desc {
+  font-family:var(--kob-sys) !important; font-size:13px !important;
+}
+
+/* --- Grilla de días (no existe en ko) → prolija sobre crema --- */
+body.theme-king .step-panel .dia-card {
+  background:var(--surface) !important; border:1.5px solid var(--kob-line) !important;
+  color:var(--kob-muted) !important; border-radius:12px !important;
+  font-family:var(--kob-sys) !important;
+}
+body.theme-king .step-panel .dia-card.selected {
+  background:rgba(255,79,123,0.10) !important; border-color:var(--accent) !important;
+  color:var(--accent) !important;
+}
+
+/* --- Nav inferior: botón "›" circular de tinta (ko-next) --- */
+body.theme-king .form-wrapper[style*="block"] .onb-bottom-nav {
+  flex:0 0 auto; justify-content:center; gap:18px;
+  max-width:430px;
+  padding-top:8px;
+  padding-bottom:calc(26px + env(safe-area-inset-bottom,0px)) !important;
+  background:linear-gradient(to top, var(--kob-cream) 62%, rgba(243,241,235,0) 100%);
+}
+body.theme-king .onb-next-btn {
+  flex:0 0 auto !important; width:58px !important; height:58px !important;
+  border-radius:50% !important; padding:0 !important;
+  background:var(--kob-ink) !important; background-image:none !important;
+  color:transparent !important; font-size:0 !important;
+  box-shadow:0 8px 22px rgba(26,25,23,0.30) !important;
+  position:relative; overflow:hidden;
+}
+body.theme-king .onb-next-btn::after {
+  content:"\203A"; /* › */
+  position:absolute; inset:0; margin:auto;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--kob-sys); font-size:30px; font-weight:400; line-height:1;
+  color:#fff !important; padding-bottom:3px;
+}
+body.theme-king .onb-next-btn:disabled {
+  background:rgba(26,25,23,0.28) !important; box-shadow:none !important; opacity:1 !important;
+}
+body.theme-king .onb-back-btn {
+  width:52px !important; height:52px !important; border-radius:50% !important;
+  background:transparent !important; border:1px solid var(--kob-line) !important;
+  color:var(--kob-muted) !important; box-shadow:none !important;
+  font-family:var(--kob-sys) !important;
+}
+
+/* --- Botón final "Comenzar" (panel fotos) → pill de tinta estilo ko-pill --- */
+body.theme-king .step-panel .btn-launch {
+  font-family:var(--kob-sys) !important; border-radius:100px !important;
+  letter-spacing:0 !important;
+  background:var(--kob-ink) !important; background-image:none !important;
+  color:#fff !important;
+  font-size:15.5px !important; font-weight:600 !important;
+  text-transform:none !important;
+  box-shadow:0 8px 22px rgba(26,25,23,0.28) !important;
+}
+body.theme-king .step-panel .btn-launch:disabled {
+  background:rgba(26,25,23,0.28) !important; box-shadow:none !important;
+}
+/* Placeholder de fotos sin el 📷 (queda solo FRENTE / ESPALDA, limpio ko) */
+body.theme-king .onb-track [id^="foto-upload-placeholder"] > div:first-child {
+  display:none !important;
+}
+
+/* --- Android: sin el resaltado azul nativo al tocar (el rectángulo
+   translúcido que Chrome pinta sobre todo lo clickeable — sobre botones
+   circulares queda horrible). Mismo apagado que usa el ko (#king-onb *). --- */
+body.theme-king .form-wrapper,
+body.theme-king .form-wrapper *,
+body.theme-king .progress-bar-container,
+#kob-inter, #kob-inter * {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* --- Tipografía del sistema en todo el onboarding (fuera DM Sans/Bebas) --- */
+body.theme-king .form-wrapper[style*="block"],
+body.theme-king .form-wrapper[style*="block"] input,
+body.theme-king .form-wrapper[style*="block"] select,
+body.theme-king .form-wrapper[style*="block"] textarea,
+body.theme-king .form-wrapper[style*="block"] button {
+  font-family:var(--kob-sys) !important;
+}
+
+/* --- Interstitial a pantalla completa (reusa las clases ko-inter + las
+   fotos king-onb-a/-c que ya viven en /tenants/jesus). --- */
+#kob-inter { position:fixed; inset:0; z-index:120; display:none; }
+#kob-inter .ko-inter { height:100%; }
+#kob-inter.kob-show { display:block; animation:kobInterFade .32s ease; }
+@keyframes kobInterFade { from { opacity:0; } to { opacity:1; } }
 
 /* --- E. Bottom nav (pill) ---
    Pill bg → white; active thumb → coral gradient; inactive icons →
@@ -12998,6 +13244,18 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
 
 </div>
 
+<!-- KING · interstitial full-screen del onboarding clásico. Reusa las clases
+     ko-inter (mismo CSS que el onboarding Método King) + las fotos
+     /tenants/jesus/king-onb-a.jpg y -c.jpg. Se muestra entre bloques de
+     preguntas vía kobShowInter(); tocar en cualquier lado avanza. -->
+<div id="kob-inter" role="button" aria-label="Continuar" onclick="kobHideInter()">
+  <div class="ko-inter">
+    <div class="ko-bg" id="kob-inter-bg"></div><div class="ko-scrim"></div>
+    <div class="ko-mid"><span class="ko-rule"></span><div class="ko-phrase" id="kob-inter-phrase"></div></div>
+    <div class="ko-go">tocá para continuar ›</div>
+  </div>
+</div>
+
 <!-- CHAT -->
 <div class="chat-wrapper" id="chat-wrapper">
   <div class="chat-card">
@@ -14550,6 +14808,34 @@ async function maybeKingOnboarding(email, nombre) {
 // login, con datos mock). El disparo REAL es maybeKingOnboarding() desde el login.
 if (new URLSearchParams(location.search).get('kingonbdemo') === '1') {
   window.addEventListener('load', () => { setTimeout(() => kingOnbOpen('Virginia'), 400); });
+}
+
+// DEV standalone: ?onbdemo=1 fuerza el tema King + abre el onboarding CLÁSICO
+// (el que ven las clientas King que compran la app SIN el Método) para
+// previsualizar el reskin en el teléfono, sin login ni API. Para volver al
+// tema por defecto después: abrir con ?tenant=default.
+if (new URLSearchParams(location.search).get('onbdemo') === '1') {
+  window.addEventListener('load', () => setTimeout(() => {
+    // Aplicar el tema King directo (applySyncTenantTheme puede no existir si el
+    // boot salió temprano por falta de ?tenant). Mismas vars que THEMES.jesus.
+    try {
+      document.body.classList.add('theme-king');
+      const r = document.documentElement, V = {
+        '--bg':'#FAFAFB','--surface':'#FFFFFF','--surface2':'#FFF0F4','--border':'#ECECF1',
+        '--accent':'#FF4F7B','--accent-bright':'#FF6B95','--accent2':'#FF6B95','--accent3':'#E03A6F',
+        '--text':'#1A1A26','--muted':'#6B6B80','--muted2':'#A9A9B8','--success':'#E03A6F'
+      };
+      for (const k in V) r.style.setProperty(k, V[k]);
+    } catch (e) {}
+    const lw = document.getElementById('landing-wrapper'); if (lw) lw.style.display = 'none';
+    const wb = document.getElementById('welcome-back'); if (wb) wb.style.display = 'none';
+    const hs = document.getElementById('hero-section'); if (hs) hs.style.display = 'none';
+    const fw = document.querySelector('.form-wrapper'); if (fw) fw.style.display = 'block';
+    const pb = document.querySelector('.progress-bar-container'); if (pb) pb.style.display = 'block';
+    const cw = document.getElementById('chat-wrapper'); if (cw) cw.style.display = 'none';
+    try { if (typeof wrapKingSelects === 'function') wrapKingSelects(); } catch (e) {}
+    try { if (typeof initOnboardingPanels === 'function') initOnboardingPanels(); } catch (e) {}
+  }, 450));
 }
 
 // ============================
@@ -17747,12 +18033,17 @@ function initOnboardingPanels() {
   }));
   currentPanelIdx = 0;
   currentStep = 1;
+  _kobInterSeen = {};   // KING clásico: reinicia las láminas para esta sesión
   slideOnboardingToPanel(0);
   // KING-only: now that the panels are mounted, wrap each <select> so
   // iOS Safari can't break the border. No-op for non-KING tenants
   // (the .king-select-wrap CSS only renders under body.theme-king).
-  if (document.body.classList.contains('theme-king') && typeof wrapKingSelects === 'function') {
-    try { wrapKingSelects(); } catch (e) {}
+  if (document.body.classList.contains('theme-king')) {
+    if (typeof wrapKingSelects === 'function') { try { wrapKingSelects(); } catch (e) {} }
+    // Copy estilo ko (frase natural, sin emojis) — solo King, con restore.
+    if (typeof kobApplyCopy === 'function') { try { kobApplyCopy(); } catch (e) {} }
+  } else if (typeof kobRestoreCopy === 'function') {
+    try { kobRestoreCopy(); } catch (e) {}
   }
 }
 
@@ -17784,6 +18075,14 @@ function updateOnboardingChrome() {
   const cur = onbPanels[currentPanelIdx];
   const isFirst = currentPanelIdx === 0;
   const isLast = currentPanelIdx === onbPanels.length - 1;
+
+  // KING clásico: la barra continua estilo ko avanza por UNIDAD (panel o
+  // lámina interstitial — ver kobProgressValue). El CSS pinta
+  // width = --kob-prog * 100% en .progress-steps::after.
+  if (document.body.classList.contains('theme-king')) {
+    const pb = document.querySelector('.progress-bar-container');
+    if (pb) pb.style.setProperty('--kob-prog', kobProgressValue().toFixed(4));
+  }
   const isFoto = cur.step === 5 && cur.panel === 2;  // only optional panel
 
   const stepLabel = document.getElementById('progress-step-label');
@@ -17860,6 +18159,130 @@ function morphOnboardingHeight() {
   });
 }
 
+// ===== KING clásico · interstitials full-screen (reusan las clases ko-inter) =====
+// Láminas a pantalla completa entre bloques del onboarding clásico King, con el
+// mismo lenguaje visual que el onboarding del Método King. Foto A (king-onb-a)
+// antes del bloque de entrenamiento (step 3); foto C (king-onb-c) antes del
+// cierre/resumen (step 5). Frases reusadas del Método King. Se muestran una vez
+// por sesión de onboarding (_kobInterSeen se resetea en initOnboardingPanels).
+const KOB_INTERS = {
+  3: { img: 'a', phrase: 'El único mal entrenamiento es el que va sin dirección.' },
+  5: { img: 'c', phrase: 'Los resultados aman la constancia.' }
+};
+
+// Copy estilo ko (frase natural, sin emojis) para el onboarding clásico King.
+// Se aplica por JS SOLO bajo theme-king (el markup base queda intacto para los
+// demás tenants); kobRestoreCopy revierte si el tenant cambia sin recarga.
+const KOB_COPY = {
+  'step1':              { t: ['Empecemos por lo esencial', 'Let’s start with the essentials'], d: ['Con esto calculamos tu punto de partida y tus calorías.', 'We use this to calculate your starting point and calories.'] },
+  'step1-objetivo':     { t: ['¿Cuál es tu objetivo?', 'What’s your goal?'], d: ['Tu coach lo analiza con tus datos y te guía.', 'Your coach analyzes it with your data and guides you.'] },
+  'step2':              { t: ['¿Cuál es tu experiencia?', 'What’s your experience?'], d: ['Elegí lo que mejor te describa hoy.', 'Pick what describes you best today.'] },
+  'step2-actividad':    { t: ['¿Cuánto te movés fuera del gym?', 'How active are you outside the gym?'], d: ['Tu día a día también cuenta.', 'Your daily life counts too.'] },
+  'step3':              { t: ['¿Qué días entrenás?', 'Which days do you train?'], d: ['Tu rutina se arma con exactamente los días que marques acá.', 'Your routine is built with exactly the days you pick here.'] },
+  'step3-limitaciones': { t: ['¿Alguna lesión o limitación?', 'Any injury or limitation?'], d: ['Para adaptar los ejercicios y cuidarte. Si no tenés, seguí.', 'We adapt the exercises to protect you. If none, continue.'] },
+  'step4':              { t: ['¿Alguna restricción alimenticia?', 'Any dietary restriction?'], d: ['Marcá tu estilo. Si no tenés, seguí.', 'Pick your style. If none, continue.'] },
+  'step4-comidas':      { t: ['¿Cuántas comidas hacés al día?', 'How many meals a day?'], d: ['Armamos tu nutrición alrededor de tu día, no al revés.', 'We build your nutrition around your day, not the other way around.'] },
+  'step4-alergias':     { t: ['¿Alguna alergia?', 'Any allergies?'], d: ['Para evitarlas en tu plan.', 'So we avoid them in your plan.'] },
+  'step5':              { t: ['Confirmá tus datos', 'Confirm your details'], d: ['Un último vistazo antes de arrancar.', 'One last look before we start.'] },
+  'step5-foto':         { t: ['Tu punto de inicio', 'Your starting point'], d: ['Dos fotos para ver tu transformación semana a semana.', 'Two photos to see your transformation week by week.'] }
+};
+let _kobCopyStash = null;   // originales para poder revertir
+function kobApplyCopy() {
+  if (_kobCopyStash) return;   // ya aplicado
+  _kobCopyStash = [];
+  const isEn = (typeof lang !== 'undefined' && lang === 'en');
+  const swapText = (el, es, en) => {
+    if (!el) return;
+    _kobCopyStash.push({ el, es: el.dataset.es, en: el.dataset.en, html: el.innerHTML });
+    el.dataset.es = es; el.dataset.en = en; el.textContent = isEn ? en : es;
+  };
+  const swapHtml = (el, htmlEs, htmlEn) => {
+    if (!el) return;
+    _kobCopyStash.push({ el, html: el.innerHTML });
+    el.innerHTML = isEn ? htmlEn : htmlEs;
+  };
+  const hide = (el) => {
+    if (!el) return;
+    _kobCopyStash.push({ el, display: el.style.display });
+    el.style.display = 'none';
+  };
+  for (const id in KOB_COPY) {
+    const card = document.getElementById(id); if (!card) continue;
+    swapText(card.querySelector('.section-title'), KOB_COPY[id].t[0], KOB_COPY[id].t[1]);
+    swapText(card.querySelector('.section-desc'),  KOB_COPY[id].d[0], KOB_COPY[id].d[1]);
+  }
+  // Días: el título ya pregunta — la label interna y el ⚠️ quedan redundantes.
+  const s3 = document.getElementById('step3');
+  if (s3) { hide(s3.querySelector('.form-group label')); hide(s3.querySelector('[data-es^="⚠️"]')); }
+  // Pantalla de fotos: mismo copy sin 📸 / 💡.
+  swapHtml(document.getElementById('foto-inicial-label'),
+    '<strong style="color:var(--text)">Cargá una foto de frente y otra de espalda.</strong><br>Las vamos a comparar con las que te saques cada semana al cerrar.',
+    '<strong style="color:var(--text)">Upload a front and a back photo.</strong><br>We’ll compare them with your weekly check-in photos.');
+  const st = document.getElementById('foto-status');
+  if (st && st.nextElementSibling) swapHtml(st.nextElementSibling,
+    'Ropa cómoda (sin remera o calza/short para que se vean los cambios). Las fotos son <strong style="color:var(--text)">privadas</strong> — solo tu coach las ve.',
+    'Comfortable clothes (no shirt, or leggings/shorts so changes show). Your photos are <strong style="color:var(--text)">private</strong> — only your coach sees them.');
+  swapText(document.getElementById('btn-launch-coach'), 'Comenzar con mi coach', 'Start with my coach');
+}
+function kobRestoreCopy() {
+  if (!_kobCopyStash) return;
+  _kobCopyStash.forEach(s => {
+    if (s.display !== undefined) { s.el.style.display = s.display; return; }
+    if (s.es !== undefined) { s.el.dataset.es = s.es; }
+    if (s.en !== undefined) { s.el.dataset.en = s.en; }
+    if (s.html !== undefined) s.el.innerHTML = s.html;
+  });
+  _kobCopyStash = null;
+}
+let _kobInterSeen = {};
+
+// La barra de progreso cuenta las láminas como unidades propias (igual que el
+// ko, donde son pantallas del carrusel): total = paneles + láminas. Con la
+// lámina visible la barra avanza un tick; al descartarla, otro hasta el panel.
+function kobInterTargets() {
+  return Object.keys(KOB_INTERS)
+    .map(s => onbPanels.findIndex(p => p.step === +s && p.panel === 1))
+    .filter(i => i > 0);
+}
+function kobProgressValue(interTargetIdx) {
+  const targets = kobInterTargets();
+  const total = onbPanels.length + targets.length;
+  if (!total) return 0;
+  if (interTargetIdx != null) {
+    // lámina visible (entra antes del panel interTargetIdx):
+    // unidades = paneles previos + láminas previas + esta lámina
+    const before = targets.filter(t => t < interTargetIdx).length;
+    return (interTargetIdx + before + 1) / total;
+  }
+  const passed = targets.filter(t => t <= currentPanelIdx).length;
+  return (currentPanelIdx + 1 + passed) / total;
+}
+
+function kobShowInter(step) {
+  const data = KOB_INTERS[step];
+  if (!data || _kobInterSeen[step]) return false;
+  const ov = document.getElementById('kob-inter');
+  const bg = document.getElementById('kob-inter-bg');
+  const ph = document.getElementById('kob-inter-phrase');
+  if (!ov || !bg || !ph) return false;
+  _kobInterSeen[step] = true;
+  bg.className = 'ko-bg ko-' + data.img;   // trae la foto vía el CSS ko-a/ko-c
+  ph.textContent = data.phrase;
+  ov.classList.add('kob-show');
+  // La barra marca la unidad de la lámina (pisa el valor que acaba de setear
+  // el slide al panel — mismo frame, así que anima directo al tick correcto).
+  const t = onbPanels.findIndex(p => p.step === +step && p.panel === 1);
+  const pb = document.querySelector('.progress-bar-container');
+  if (pb && t > 0) pb.style.setProperty('--kob-prog', kobProgressValue(t).toFixed(4));
+  return true;
+}
+function kobHideInter() {
+  const ov = document.getElementById('kob-inter');
+  if (ov) ov.classList.remove('kob-show');
+  // Al continuar, la barra avanza de la lámina al panel que espera detrás.
+  try { updateOnboardingChrome(); } catch (e) {}
+}
+
 function nextPanel() {
   if (currentPanelIdx >= onbPanels.length - 1) return;  // last panel: launchCoach handles it
   const cur = onbPanels[currentPanelIdx];
@@ -17891,6 +18314,11 @@ function nextPanel() {
   }
 
   slideOnboardingToPanel(currentPanelIdx + 1);
+
+  // KING clásico: lámina interstitial full-screen al cruzar a un bloque nuevo.
+  if (nxt.step !== cur.step && document.body.classList.contains('theme-king')) {
+    try { kobShowInter(nxt.step); } catch (e) {}
+  }
 
   // When sliding into the fotos panel (5.2), re-evaluate the gate so the
   // floating EMPEZAR button starts disabled and the status text appears
