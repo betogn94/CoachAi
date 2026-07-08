@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260708-2006-deploy">
+<meta name="app-version" content="20260708-2019-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -20601,7 +20601,7 @@ async function renderMiAlimentacion() {
         ? `${v}<span class="suf">g</span>`
         : dash;
       targetInfo.innerHTML = `
-        <div class="alim-target-eyebrow">${isEs ? 'TUS OBJETIVOS DIARIOS' : 'YOUR DAILY TARGETS'}</div>
+        <div class="alim-target-eyebrow">${isEs ? 'TUS OBJETIVOS DIARIOS (APROX.)' : 'YOUR DAILY TARGETS (APPROX.)'}</div>
         <div class="alim-target-stats">
           <div class="stat"><div class="num grad">${fmt(_alimHeader.targetKcal)}</div><div class="label">KCAL</div></div>
           <div class="sep"></div>
