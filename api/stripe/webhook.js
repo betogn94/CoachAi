@@ -203,12 +203,21 @@ async function handleInvoicePaid(invoice, stripe) {
   const lines = invoice.lines?.data || [];
   // Log de diagnóstico (por si la estructura del invoice cambiara con cupones/API).
   try { console.log('[stripe] invoice lines:', JSON.stringify(lines.map(l => ({ price: l && l.price && l.price.id, rec: !!(l && l.price && l.price.recurring), amt: l && l.amount })))); } catch (e) {}
-  // Foundation: PRIMERO por su price one-time ($297) — robusto aunque un cupón lo
-  // deje en $0 (la línea sigue con ese price). Respaldo: cualquier línea sin recurring.
-  const isFoundation = lines.some(l =>
-    (l && l.price && FOUNDATION_PRICE_IDS.has(l.price.id)) ||
-    (l && l.price && !l.price.recurring)
-  );
+  // Foundation, 3 señales (OR):
+  //  1) línea con el price one-time del Foundation (robusto aunque un cupón lo deje en $0).
+  //  2) cualquier línea SIN recurring (el pago único de por vida).
+  //  3) RESPALDO del bundle mode:payment (2026-07): el invoice del día 0 lo genera
+  //     `invoice_creation` en el checkout de Foundation y trae metadata.product=
+  //     'foundation_king' + NO tiene subscription. Así lo cazamos aunque la línea
+  //     venga como "custom" sin el objeto price. Scopeado a invoices SIN subscription
+  //     → jamás pisa un cobro recurrente (esos siempre traen subscription).
+  const _subRef = invoice.subscription || invoice.parent?.subscription_details?.subscription || null;
+  const isFoundation =
+    lines.some(l =>
+      (l && l.price && FOUNDATION_PRICE_IDS.has(l.price.id)) ||
+      (l && l.price && !l.price.recurring)
+    ) ||
+    (!_subRef && (invoice.metadata?.product === 'foundation_king'));
 
   await sb('/tower_revenue', {
     method: 'POST',
