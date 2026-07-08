@@ -162,19 +162,23 @@ async function handleInvoicePaid(invoice, stripe) {
   const stripeId = invoice.id; // único por factura
   const email = invoice.customer_email || null;
 
-  // Fin del período que ESTE pago cubre. Preferimos lines[].period.end del
-  // payload; si no viene expandido en el evento, lo recuperamos de la
-  // subscription. NUNCA usamos invoice.period_end (es el período YA facturado,
-  // pasado, y bloquearía al cliente apenas paga).
-  let periodEnd = invoice.lines?.data?.[0]?.period?.end || null;
-  if (!periodEnd) {
-    const subRef = invoice.subscription || invoice.parent?.subscription_details?.subscription || null;
-    periodEnd = await subPeriodEnd(stripe, subRef);
-    if (!periodEnd) console.warn('[stripe] invoice sin período resoluble; no se extiende acceso:', stripeId);
+  // El acceso se extiende SOLO desde invoices de SUSCRIPCIÓN. La renovación mensual
+  // mueve acceso_hasta al nuevo período (lines[].period.end; si no viene expandido,
+  // lo sacamos de la subscription — NUNCA invoice.period_end, que es el período ya
+  // facturado y bloquearía al cliente).
+  // ⚠️ El invoice one-time del Foundation (mode:payment + invoice_creation) tiene
+  // period.end = AHORA. Si lo usáramos, pisaría el acceso (+1 mes) que ya otorgó
+  // checkout.session.completed → el cliente quedaría bloqueado al instante. Por eso
+  // sólo extendemos cuando hay subscription; el acceso del Foundation lo dan el
+  // checkout (hoy, +1 mes) + la sub de CoachAI (día 30 en adelante).
+  const subRef = invoice.subscription || invoice.parent?.subscription_details?.subscription || null;
+  if (subRef) {
+    let periodEnd = invoice.lines?.data?.[0]?.period?.end || await subPeriodEnd(stripe, subRef);
+    if (!periodEnd) console.warn('[stripe] invoice de sub sin período resoluble:', stripeId);
+    // Extender acceso ANTES del dedup del ingreso (idempotente). Refresca el acceso
+    // en cada cobro recurrente (mes 2+), cuando la fila ya existe.
+    await extendAccess(email, periodEnd);
   }
-  // Extender acceso ANTES del dedup del ingreso (idempotente). Refresca el
-  // acceso en cada cobro recurrente (mes 2+), cuando la fila ya existe.
-  await extendAccess(email, periodEnd);
 
   // Idempotencia del ingreso: si ya registramos esta factura, no duplicar.
   const existing = await sb(`/tower_revenue?stripe_payment_id=eq.${encodeURIComponent(stripeId)}&select=id&limit=1`);
