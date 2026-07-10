@@ -411,13 +411,18 @@
   }), { root: document.getElementById('deck'), threshold: .55 });
   secs.forEach(s => io2.observe(s));
 
-  // Flechas del teclado (modo presentación)
-  let cur = 0;
-  const io3 = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) cur = secs.indexOf(e.target); }), { root: document.getElementById('deck'), threshold: .55 });
-  secs.forEach(s => io3.observe(s));
+  // Flechas del teclado (modo presentación) — por POSICIÓN de scroll, no por visibilidad
+  const deck = document.getElementById('deck');
+  function currentIdx(){
+    const st = deck.scrollTop;
+    let best = 0, bd = Infinity;
+    secs.forEach((s,i)=>{ const d = Math.abs(s.offsetTop - st); if(d < bd){ bd = d; best = i; } });
+    return best;
+  }
+  function goTo(i){ const j = Math.max(0, Math.min(secs.length-1, i)); deck.scrollTo({ top: secs[j].offsetTop, behavior: 'smooth' }); }
   document.addEventListener('keydown', e => {
-    if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); secs[Math.min(cur + 1, secs.length - 1)].scrollIntoView({ behavior: 'smooth' }); }
-    if (e.key === 'ArrowUp' || e.key === 'PageUp') { e.preventDefault(); secs[Math.max(cur - 1, 0)].scrollIntoView({ behavior: 'smooth' }); }
+    if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); goTo(currentIdx() + 1); }
+    if (e.key === 'ArrowUp' || e.key === 'PageUp') { e.preventDefault(); goTo(currentIdx() - 1); }
   });
 </script>
 </body>
