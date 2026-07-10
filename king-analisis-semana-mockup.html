@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Análisis de la semana · contenido</title>
+<style>
+  :root{
+    --bg:#FAFAFB; --card:#FFFFFF; --cell:#F1F1F4; --ink:#17171F; --muted:#8C8C99;
+    --rosa:#FF4F7B; --rosa2:#FF6B95; --rosa-soft:#FCE3EC;
+    --green:#12B886; --green-bg:#E4F7EF; --pill:#ECECEF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#e9e9ee;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;display:flex;justify-content:center;padding:24px 0}
+
+  .screen{
+    width:430px;min-height:931px;background:var(--bg);color:var(--ink);
+    position:relative;overflow:hidden;display:flex;flex-direction:column;
+    box-shadow:0 24px 70px rgba(0,0,0,.22);
+  }
+
+  /* ── Status bar ── */
+  .statusbar{display:flex;justify-content:space-between;align-items:center;padding:16px 26px 6px;font-size:17px;font-weight:600}
+  .sb-right{display:flex;align-items:center;gap:7px}
+  .sb-right svg{display:block}
+
+  /* ── Header ── */
+  .appbar{padding:14px 26px 16px;border-bottom:1px solid #EDEDF0;display:flex;align-items:center;justify-content:space-between}
+  .wordmark{font-size:22px;font-weight:800;letter-spacing:.28em;color:var(--ink)}
+  .appbar .close{width:30px;height:30px;border-radius:50%;background:var(--cell);display:grid;place-items:center;color:var(--muted);font-size:19px;font-weight:600}
+
+  .content{padding:20px 22px 0;display:flex;flex-direction:column;gap:20px;flex:1}
+
+  /* ── Card ── */
+  .card{background:var(--card);border-radius:24px;box-shadow:0 1px 2px rgba(23,23,31,.03),0 10px 30px rgba(255,107,149,.07);padding:22px}
+
+  /* ── Cierre header ── */
+  .cierre-head{display:flex;align-items:center;gap:13px;margin-bottom:20px}
+  .cierre-head .ico{width:44px;height:44px;border-radius:14px;background:var(--rosa-soft);display:grid;place-items:center;flex:0 0 44px}
+  .cierre-head .ico svg{width:22px;height:22px;stroke:var(--rosa);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .cierre-head .t{font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+  .cierre-head .h{font-size:22px;font-weight:800;letter-spacing:-.01em;line-height:1.1;margin-top:3px}
+  .cierre-head .badge{margin-left:auto;align-self:flex-start;background:var(--green-bg);color:var(--green);font-size:12px;font-weight:800;padding:6px 13px;border-radius:999px;letter-spacing:.03em}
+
+  /* ── Stats grid 2x2 ── */
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .stat{background:var(--cell);border-radius:16px;padding:15px 16px;text-align:center}
+  .stat.grad{background:linear-gradient(135deg,var(--rosa-soft),#FFF0F5)}
+  .stat .label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+  .stat .num{font-size:33px;font-weight:800;letter-spacing:-.02em;line-height:1;margin-top:8px}
+  .stat.grad .num{background:linear-gradient(120deg,var(--rosa),var(--rosa2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .stat .num .den{font-size:19px;font-weight:700;color:#b8b8c2;-webkit-text-fill-color:#b8b8c2}
+  .stat .sub{font-size:11.5px;font-weight:600;color:var(--muted);margin-top:7px}
+
+  /* ── Transformación ── */
+  .eyebrow{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--rosa);margin:22px 0 12px}
+  .eyebrow svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+  .transf-stack{display:flex;flex-direction:column;gap:10px}
+  .transf-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .transf-half{position:relative;border-radius:16px;overflow:hidden;aspect-ratio:4/5;background:var(--cell)}
+  .transf-half img{width:100%;height:100%;object-fit:cover;display:block}
+  .ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:
+     repeating-linear-gradient(45deg,#EDEDF1,#EDEDF1 12px,#F4F4F7 12px,#F4F4F7 24px);color:#b6b6c0}
+  .ph svg{width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;opacity:.75}
+  .ph span{font-size:11px;font-weight:700;letter-spacing:.08em}
+  .transf-lbl{position:absolute;bottom:8px;font-size:10.5px;font-weight:800;letter-spacing:.06em;color:#fff;background:rgba(23,23,31,.62);padding:4px 9px;border-radius:999px;backdrop-filter:blur(4px)}
+  .transf-lbl.l{left:8px}
+  .transf-lbl.r{right:8px;background:linear-gradient(120deg,var(--rosa),var(--rosa2))}
+
+  /* ── Análisis IA ── */
+  .analisis{margin-top:22px;padding-top:20px;border-top:1px solid #EEEEF1}
+  .analisis h4{font-size:16px;font-weight:800;color:var(--ink);letter-spacing:-.01em;margin:16px 0 8px}
+  .analisis h4:first-child{margin-top:0}
+  .analisis h4 .em{color:var(--rosa)}
+  .analisis p{font-size:14.5px;line-height:1.62;color:#3a3a46;margin-bottom:12px}
+  .analisis p:last-of-type{margin-bottom:0}
+  .analisis strong{color:var(--ink);font-weight:700}
+  .analisis .arm{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,var(--rosa-soft),#FFF3F7);border-radius:16px;padding:14px 16px;margin:4px 0 16px}
+  .analisis .arm .ring{position:relative;width:52px;height:52px;flex:0 0 52px}
+  .analisis .arm .ring .val{position:absolute;inset:0;display:grid;place-items:center;font-size:16px;font-weight:800;color:var(--rosa)}
+  .analisis .arm .txt .a{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .analisis .arm .txt .b{font-size:15px;font-weight:700;color:var(--ink);margin-top:2px}
+
+  .analisis-footer{display:flex;align-items:center;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid #EEEEF1}
+  .analisis-footer .src{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.02em}
+  .analisis-footer button{background:none;border:1px solid #E2E2E8;color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.08em;padding:8px 14px;border-radius:999px}
+
+  /* ── Bottom nav ── */
+  .nav-wrap{position:sticky;bottom:0;margin-top:auto;padding:12px 18px 8px;background:linear-gradient(180deg,rgba(250,250,251,0),var(--bg) 34%)}
+  .nav{background:#fff;border-radius:999px;box-shadow:0 8px 30px rgba(23,23,31,.10);display:flex;align-items:center;justify-content:space-between;padding:12px 22px}
+  .nav .ni{width:25px;height:25px;stroke:#20202a;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;opacity:.55}
+  .nav .active{background:linear-gradient(120deg,var(--rosa),var(--rosa2));border-radius:999px;padding:11px 24px;box-shadow:0 6px 16px rgba(255,79,123,.34)}
+  .nav .active svg{stroke:#fff;opacity:1}
+  .nav-label{text-align:center;color:var(--rosa);font-size:13px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;padding:6px 0 14px}
+</style>
+</head>
+<body>
+  <div class="screen">
+
+    <!-- Status bar -->
+    <div class="statusbar">
+      <span>6:59</span>
+      <span class="sb-right">
+        <svg width="20" height="14" viewBox="0 0 20 14"><rect x="0" y="9" width="3.4" height="5" rx="1" fill="#17171F"/><rect x="5.3" y="6" width="3.4" height="8" rx="1" fill="#17171F"/><rect x="10.6" y="3" width="3.4" height="11" rx="1" fill="#17171F"/><rect x="15.9" y="0" width="3.4" height="14" rx="1" fill="#17171F"/></svg>
+        <svg width="20" height="14" viewBox="0 0 20 14"><path d="M10 12.6l2.1-2.6a3 3 0 0 0-4.2 0L10 12.6zM4.8 6.3a8 8 0 0 1 10.4 0l1.8-2.2a11 11 0 0 0-14 0l1.8 2.2zM7.3 9.4a4.4 4.4 0 0 1 5.4 0l1.7-2.1a7 7 0 0 0-8.8 0l1.7 2.1z" fill="#17171F"/></svg>
+        <svg width="28" height="14" viewBox="0 0 28 14"><rect x="1" y="1" width="23" height="12" rx="3.4" fill="none" stroke="#17171F" stroke-opacity=".4" stroke-width="1"/><rect x="2.6" y="2.6" width="19.8" height="8.8" rx="2.2" fill="#17171F"/><rect x="25.2" y="4.4" width="2" height="5.2" rx="1" fill="#17171F" fill-opacity=".4"/></svg>
+      </span>
+    </div>
+
+    <!-- App bar -->
+    <div class="appbar">
+      <div class="wordmark">KING</div>
+      <div class="close">×</div>
+    </div>
+
+    <div class="content">
+
+      <div class="card">
+
+        <!-- Cierre header -->
+        <div class="cierre-head">
+          <div class="ico">
+            <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4M16 3v4"/><path d="m9 16 2 2 4-4"/></svg>
+          </div>
+          <div>
+            <div class="t">Cierre de semana</div>
+            <div class="h">Semana 01</div>
+          </div>
+          <div class="badge">CERRADA</div>
+        </div>
+
+        <!-- Stats 2x2 -->
+        <div class="stats">
+          <div class="stat grad">
+            <div class="label">Días entrenados</div>
+            <div class="num">4<span class="den">/4</span></div>
+            <div class="sub">100% adherencia</div>
+          </div>
+          <div class="stat">
+            <div class="label">Kcal · día</div>
+            <div class="num">1.780</div>
+            <div class="sub">prom. semana</div>
+          </div>
+          <div class="stat">
+            <div class="label">Proteína prom</div>
+            <div class="num">118<span class="den">g</span></div>
+            <div class="sub">98% del objetivo</div>
+          </div>
+          <div class="stat">
+            <div class="label">Días registrados</div>
+            <div class="num">7<span class="den">/7</span></div>
+            <div class="sub">semana completa</div>
+          </div>
+        </div>
+
+        <!-- Transformación -->
+        <div class="eyebrow">
+          <svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/></svg>
+          Compará tu evolución
+        </div>
+
+        <div class="transf-stack">
+          <!-- FILA FRENTE -->
+          <div class="transf-row">
+            <div class="transf-half">
+              <!-- REEMPLAZAR: <img src="INICIO_FRENTE" alt="Inicio frente"> -->
+              <div class="ph"><svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/></svg><span>INICIO · FRENTE</span></div>
+              <span class="transf-lbl l">INICIO</span>
+            </div>
+            <div class="transf-half">
+              <!-- REEMPLAZAR: <img src="SEMANA_FRENTE" alt="Semana frente"> -->
+              <div class="ph"><svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/></svg><span>SEM 01 · FRENTE</span></div>
+              <span class="transf-lbl r">SEM 01</span>
+            </div>
+          </div>
+          <!-- FILA ESPALDA -->
+          <div class="transf-row">
+            <div class="transf-half">
+              <!-- REEMPLAZAR: <img src="INICIO_ESPALDA" alt="Inicio espalda"> -->
+              <div class="ph"><svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/></svg><span>INICIO · ESPALDA</span></div>
+              <span class="transf-lbl l">INICIO</span>
+            </div>
+            <div class="transf-half">
+              <!-- REEMPLAZAR: <img src="SEMANA_ESPALDA" alt="Semana espalda"> -->
+              <div class="ph"><svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/></svg><span>SEM 01 · ESPALDA</span></div>
+              <span class="transf-lbl r">SEM 01</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Análisis IA -->
+        <div class="analisis">
+
+          <div class="arm">
+            <div class="ring">
+              <svg width="52" height="52" viewBox="0 0 52 52">
+                <circle cx="26" cy="26" r="22" fill="none" stroke="#F3D7E1" stroke-width="6"/>
+                <circle cx="26" cy="26" r="22" fill="none" stroke="url(#g)" stroke-width="6" stroke-linecap="round"
+                        stroke-dasharray="138.2" stroke-dashoffset="26" transform="rotate(-90 26 26)"/>
+                <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF4F7B"/><stop offset="1" stop-color="#FF6B95"/></linearGradient></defs>
+              </svg>
+              <div class="val">81</div>
+            </div>
+            <div class="txt">
+              <div class="a">Índice de Armonía</div>
+              <div class="b">+6 puntos esta semana</div>
+            </div>
+          </div>
+
+          <h4>Arrancaste <span class="em">impecable</span>, Juli 👏</h4>
+          <p>Primera semana y ya cerraste con <strong>4 de 4 entrenamientos</strong> y los 7 días registrados. Ese nivel de constancia es exactamente lo que el Método necesita para empezar a moverte hacia tu Mapa Estético.</p>
+
+          <h4>Lo nutricional</h4>
+          <p>Te mantuviste en <strong>1.780 kcal</strong> de promedio, muy cerca de tu objetivo, y la proteína quedó en <strong>118g (98%)</strong>. Ese es el combo que protege tu masa muscular mientras definís. Seguí apuntando a cerrar la proteína al 100% los días de entreno.</p>
+
+          <h4>Para la semana que viene</h4>
+          <p>Sumá <strong>10 min de caminata</strong> post-cena en los días de descanso. No cambia tus calorías, pero le da un empujón a tu gasto y ayuda a la digestión. Vamos por la Semana 02 con la misma cabeza. 💪</p>
+
+          <div class="analisis-footer">
+            <span class="src">CoachAI · 7 jul</span>
+            <button>REGENERAR</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom nav -->
+    <div class="nav-wrap">
+      <div class="nav">
+        <svg class="ni" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+        <svg class="ni" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        <div class="active"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="m9 15 2 2 4-4"/></svg></div>
+        <svg class="ni" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="8" r="4"/></svg>
+      </div>
+      <div class="nav-label">Seguimiento</div>
+    </div>
+
+  </div>
+</body>
+</html>
