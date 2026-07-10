@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260710-1629-deploy">
+<meta name="app-version" content="20260710-1701-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -14503,6 +14503,85 @@ function _loadOtpPending() {
     if (Date.now() - (p.ts || 0) > 55 * 60 * 1000) { _clearOtpPending(); return null; }  // vencido
     return p;
   } catch (e) { return null; }
+}
+
+// ============================
+// RECORDATORIO DE NAVEGADOR (Chrome/Safari)
+// ============================
+// Muchas usuarias abren el link DENTRO de WhatsApp/Instagram → navegador
+// embebido efímero: el login por código no persiste y la PWA no se puede
+// instalar (casos Karen, Jenny). Cuando detectamos ese contexto mostramos un
+// recordatorio EN POSITIVO ("la mejor experiencia es en Chrome/Safari"), una
+// vez por día, descartable. En Chrome/Safari o PWA instalada NO aparece.
+const LS_BROWSER_HINT = 'coachai_browser_hint_day';
+
+function isInAppBrowser() {
+  try {
+    const ua = navigator.userAgent || '';
+    // PWA instalada (standalone) = experiencia nativa → nunca molestamos.
+    const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+      || window.navigator.standalone === true;
+    if (standalone) return false;
+    // Firmas explícitas de navegadores embebidos (Android + iOS).
+    if (/\b(FBAN|FBAV|FB_IAB|FBIOS|Instagram|Line|MicroMessenger|WhatsApp|Snapchat|TikTok|Twitter|Pinterest|GSA)\b/i.test(ua)) return true;
+    // Android System WebView (motor de muchos in-app browsers, incl. WhatsApp).
+    if (/;\s*wv\)/.test(ua) || /\bwv\b/.test(ua)) return true;
+    // iOS: Safari real trae "Safari" + "Version/"; los in-app (WKWebView) no.
+    // Chrome/Firefox/Edge de iOS se identifican con CriOS/FxiOS/EdgiOS → OK.
+    if (/iPhone|iPad|iPod/.test(ua)) {
+      const realSafari = /Safari/.test(ua) && /Version\//.test(ua);
+      if (!realSafari && !/(CriOS|FxiOS|EdgiOS)/.test(ua)) return true;
+    }
+    return false;
+  } catch (e) { return false; }
+}
+
+function _browserHintTodayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+function maybeShowBrowserReminder() {
+  try {
+    if (!isInAppBrowser()) return;
+    // Recordatorio DIARIO: si ya lo vio hoy, no lo repetimos (donde el storage
+    // persista; en un in-app efímero puede reaparecer, y está bien — refuerza).
+    if (localStorage.getItem(LS_BROWSER_HINT) === _browserHintTodayKey()) return;
+    const ov = document.getElementById('browser-reminder-overlay');
+    if (!ov) return;
+    const steps = document.getElementById('br-steps');
+    if (steps) {
+      steps.innerHTML = /iPhone|iPad|iPod/.test(navigator.userAgent || '')
+        ? 'Tocá el botón <strong>Compartir</strong> (el cuadrado con la flecha ↑) y elegí <strong>"Abrir en Safari"</strong>.'
+        : 'Tocá los <strong>⋮</strong> (arriba a la derecha) y elegí <strong>"Abrir en Chrome"</strong>.';
+    }
+    ov.style.display = 'flex';
+  } catch (e) {}
+}
+
+function dismissBrowserReminder() {
+  try { localStorage.setItem(LS_BROWSER_HINT, _browserHintTodayKey()); } catch (e) {}
+  const ov = document.getElementById('browser-reminder-overlay');
+  if (ov) ov.style.display = 'none';
+}
+
+async function copyAppLink(btn) {
+  const url = window.location.origin || 'https://king.coachaipro.ai';
+  let ok = false;
+  try { await navigator.clipboard.writeText(url); ok = true; }
+  catch (e) {
+    try {
+      const t = document.createElement('textarea');
+      t.value = url; t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.focus(); t.select();
+      ok = document.execCommand('copy'); document.body.removeChild(t);
+    } catch (e2) {}
+  }
+  if (btn) {
+    const orig = btn.textContent;
+    btn.textContent = ok ? '¡Enlace copiado! ✓' : url;
+    setTimeout(() => { btn.textContent = orig; }, 2200);
+  }
 }
 
 // ============================
@@ -30740,6 +30819,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     try { hideAppSplash(); } catch (e) {}
   }
 
+  // Recordatorio "usá Chrome/Safari" — solo si corre dentro de un navegador
+  // embebido (WhatsApp/IG/etc.), una vez por día. No-op en Chrome/Safari/PWA.
+  try { maybeShowBrowserReminder(); } catch (e) {}
+
   // Funnel de stores: si ?stores=1, muestra la vidriera de coaches en el landing
   // (no-op sin el flag). Va después de tryAutoLogin para que una usuaria con
   // sesión entre directo y no vea la vidriera.
@@ -31450,6 +31533,32 @@ async function forceAppUpdate() {
       <div class="email-login-loading" id="otp-loading">Verificando...</div>
       <button class="otp-resend" id="otp-resend" onclick="resendOtp()">Reenviar código</button>
       <button class="otp-back" onclick="hideOtpScreen()">← Cambiar email</button>
+    </div>
+  </div>
+
+  <!-- ── Recordatorio de navegador — aparece SOLO dentro de navegadores
+       embebidos (WhatsApp/IG/etc.), una vez por día, en positivo. En Chrome/
+       Safari o PWA instalada no aparece. Ver maybeShowBrowserReminder(). ── -->
+  <style>
+    .br-overlay { position:fixed; inset:0; z-index:6100; display:none; align-items:center; justify-content:center; padding:26px; background:var(--bg,#0f0f15); }
+    .br-card { width:100%; max-width:360px; text-align:center; }
+    .br-icon { font-size:44px; line-height:1; margin-bottom:14px; }
+    .br-title { font-size:23px; font-weight:800; margin:0 0 10px; color:var(--text,#fff); }
+    .br-sub { font-size:14px; line-height:1.6; color:var(--muted,#9a9aa8); margin:0 0 22px; }
+    .br-sub strong { color:var(--text,#fff); }
+    .br-copy { width:100%; padding:15px 12px; border-radius:14px; border:none; background:var(--accent,#FF4F7B); color:#fff; font-size:16px; font-weight:700; cursor:pointer; font-family:inherit; box-sizing:border-box; }
+    .br-steps { font-size:13px; line-height:1.6; color:var(--muted,#9a9aa8); margin:16px 6px 0; }
+    .br-steps strong { color:var(--text,#fff); }
+    .br-continue { background:none; border:none; color:var(--muted,#9a9aa8); font-size:13px; font-weight:600; cursor:pointer; padding:11px; margin-top:16px; display:block; width:100%; font-family:inherit; text-decoration:underline; }
+  </style>
+  <div class="br-overlay" id="browser-reminder-overlay">
+    <div class="br-card">
+      <div class="br-icon">✨</div>
+      <div class="br-title">Viví la mejor experiencia</div>
+      <div class="br-sub">CoachAI funciona de forma óptima en <strong>Google Chrome</strong> o <strong>Safari</strong>. Abrila ahí para que todo ande perfecto: tu sesión, tus registros y las notificaciones.</div>
+      <button class="br-copy" id="br-copy-btn" onclick="copyAppLink(this)">📋 Copiar enlace</button>
+      <div class="br-steps" id="br-steps"></div>
+      <button class="br-continue" onclick="dismissBrowserReminder()">Continuar igual</button>
     </div>
   </div>
 
