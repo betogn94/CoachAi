@@ -52,6 +52,13 @@
   .hero .lead{font-size:clamp(16px,2.4vw,19px);color:var(--sec);max-width:600px;margin:18px auto 0}
   .hero .kicker{display:inline-flex;gap:8px;align-items:center;margin-top:26px;font-size:12.5px;font-weight:600;color:var(--sec);background:var(--card);border:1px solid var(--line);border-radius:100px;padding:8px 16px;box-shadow:var(--shadow)}
   .hero .kicker b{color:var(--accent)}
+  .app-logo{width:88px;height:88px;object-fit:contain;display:block;margin:0 auto 22px;filter:drop-shadow(0 14px 28px rgba(124,106,255,.30))}
+  .hero .wordmark{height:26px;width:auto;display:block;margin:20px auto 0;opacity:.9}
+
+  /* término del glosario */
+  .term{font-weight:700;color:var(--accent-2);border-bottom:2px dotted rgba(124,106,255,.45);cursor:help}
+  .gloss{display:block;margin:10px 0 20px;font-size:14px;color:var(--sec);background:var(--card);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:0 12px 12px 0;padding:12px 15px;line-height:1.55}
+  .gloss b{color:var(--accent-2)}
 
   /* ─── índice ─── */
   .toc{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:26px 24px;margin:34px 0}
@@ -63,6 +70,9 @@
   @media(max-width:640px){.toc-list{grid-template-columns:1fr}}
   .toc-list a{display:flex;gap:11px;align-items:center;text-decoration:none;color:var(--ink);font-size:14.5px;font-weight:500;padding:11px 13px;border-radius:13px;border:1px solid transparent;transition:all .18s}
   .toc-list a:hover{background:var(--accent-soft);border-color:rgba(124,106,255,.2)}
+  .toc-list a:active{transform:scale(.97)}
+  .toc-list a.active{background:var(--accent-soft);border-color:rgba(124,106,255,.35)}
+  .toc-list a.active .n{background:var(--accent);color:#fff}
   .toc-list a .n{flex:0 0 26px;width:26px;height:26px;border-radius:8px;background:var(--accent-soft);color:var(--accent);font-family:var(--mono);font-size:12px;font-weight:700;display:grid;place-items:center}
 
   /* ─── secciones ─── */
@@ -159,8 +169,10 @@
 
   <!-- HERO -->
   <header class="hero">
+    <img class="app-logo rv" src="/logo-icon.png" alt="CoachAI" width="88" height="88">
     <div class="eyebrow rv">Guía completa · Studio + la app</div>
     <h1 class="rv">Manual del Coach</h1>
+    <img class="wordmark rv" src="/logo.png" alt="CoachAI Pro">
     <p class="lead rv">Todo lo que necesitás para llevar a tus alumnos con CoachAI: cómo manejar <b>Studio</b> de punta a punta y cómo guiarlos dentro de la app, explicado simple.</p>
     <div class="kicker rv">👑 &nbsp;Vos sos el coach. <b>&nbsp;La IA trabaja para vos.</b></div>
   </header>
@@ -203,12 +215,13 @@
       <p class="sec-intro rv">Antes de tocar nada, entendé el recorrido completo. Es simple y siempre es el mismo.</p>
       <ol class="steps rv">
         <li><b>Invitás</b> a tu alumno desde Studio (con su email).</li>
-        <li>El alumno entra y hace un <b>onboarding</b> corto: cuenta su objetivo, sus días, sus gustos.</li>
+        <li>El alumno entra y hace un <span class="term">onboarding</span> corto: cuenta su objetivo, sus días, sus gustos.</li>
         <li>Recibe su <b>dieta y su rutina</b> — creadas por la IA al instante, o los planes que vos le migraste.</li>
         <li>Registra su <b>día a día</b>: comidas cumplidas, entrenamientos, pesos, fotos.</li>
         <li>Al terminar la semana, <b>cierra</b> y recibe un <b>análisis</b> de cómo le fue.</li>
         <li>La semana <b>se repite</b>, progresando. Y vos <b>supervisás todo</b> desde Studio.</li>
       </ol>
+      <div class="gloss rv"><b>¿Onboarding?</b> Es la primera vez que el alumno entra: un cuestionario corto de bienvenida donde cuenta quién es, para que la app arme su plan a medida.</div>
       <div class="callout info rv"><span class="ci">💡</span><div>Pensalo así: <b>CoachAI es tu servicio de coaching potenciado con IA</b>. La IA arma, acompaña y mide las 24 horas; vos ponés el criterio y tomás las decisiones. El alumno siente que lo llevás vos — porque es así.</div></div>
     </section>
 
@@ -217,10 +230,11 @@
       <div class="sec-head rv"><span class="sec-num">2</span><h2>Paso 1 — Entrá a Studio</h2></div>
       <p class="sec-intro rv">Studio es tu panel de control. Se abre desde el navegador, en tu propia dirección.</p>
       <ol class="steps rv">
-        <li>Entrá a <b>tu-tenant.coachaipro.ai/studio</b> — por ejemplo <span class="accent">king.coachaipro.ai/studio</span>. Es tu dirección propia (whitelabel).</li>
+        <li>Entrá a <b>tu-<span class="term">tenant</span>.coachaipro.ai/studio</b> — por ejemplo <span class="accent">king.coachaipro.ai/studio</span>. Es tu dirección propia (<span class="term">whitelabel</span>).</li>
         <li>Ingresá con <b>tu email</b>. Te llega un <b>código al mail</b>, lo escribís y entrás. Sin contraseñas que recordar.</li>
         <li>Solo entran los <b>coaches con permiso de administrador</b> de tu tenant. Tus alumnos nunca ven Studio.</li>
       </ol>
+      <div class="gloss rv"><b>¿Tenant?</b> Es tu espacio propio dentro de CoachAI — tu marca, tu dirección y tus alumnos, separados de los de cualquier otro coach. &nbsp;<b>¿Whitelabel?</b> Significa que la app lleva <i>tu</i> marca (tu nombre, tu logo, tus colores), no la de CoachAI: tus alumnos sienten que es <i>tu</i> app.</div>
       <p class="rv">Ya adentro, a la izquierda tenés el menú, dividido en dos:</p>
       <ul class="feat rv">
         <li><span class="ic">📊</span><div class="tx"><b>General</b>Dashboard (el resumen) y Clientes (todos tus alumnos).</div></li>
@@ -350,8 +364,9 @@
       <p class="sec-intro rv">La primera impresión importa. Que arranque con el pie derecho.</p>
       <ul class="feat rv">
         <li><span class="ic">🌐</span><div class="tx"><b>Que abra el link en Chrome o Safari</b>Chrome en Android, Safari en iPhone. Es lo que asegura la mejor experiencia.</div></li>
-        <li><span class="ic teal">📲</span><div class="tx"><b>Que instale la app (PWA)</b>Desde el navegador, "Agregar a pantalla de inicio". Así queda como una app nativa: pantalla completa, ícono propio y — clave — <b>recibe las notificaciones</b> que la mantienen enganchada.</div></li>
+        <li><span class="ic teal">📲</span><div class="tx"><b>Que instale la app (<span class="term">PWA</span>)</b>Desde el navegador, "Agregar a pantalla de inicio". Así queda como una app nativa: pantalla completa, ícono propio y — clave — <b>recibe las notificaciones</b> que la mantienen enganchada.</div></li>
       </ul>
+      <div class="gloss rv"><b>¿PWA?</b> Es la app en sí: se instala directo desde el navegador (sin App Store ni Play Store) y queda con su ícono en el celular, igual que cualquier otra app.</div>
       <div class="callout ok rv"><span class="ci">✅</span><div>Decíle esto tal cual: <i>"Abrí el link que te mandé en Chrome (o Safari), y cuando te pregunte, tocá 'Agregar a inicio' para instalar la app."</i></div></div>
       <div class="shot rv"><div class="shot-ic">📷</div><div class="shot-t">Screenshot</div><div class="shot-d">La pantalla de "Instalá la app" / agregar a inicio, como la ve el alumno en el celu.</div></div>
     </section>
@@ -456,6 +471,24 @@
   window.addEventListener('scroll', function(){
     if (window.scrollY > 600) tt.classList.add('on'); else tt.classList.remove('on');
   }, { passive:true });
+
+  // scroll-spy: resalta en el índice la sección visible
+  var tocLinks = {};
+  document.querySelectorAll('.toc-list a').forEach(function(a){
+    var id = a.getAttribute('href').slice(1);
+    tocLinks[id] = a;
+  });
+  var spy = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      var a = tocLinks[e.target.id];
+      if (!a) return;
+      if (e.isIntersecting){
+        Object.values(tocLinks).forEach(function(x){ x.classList.remove('active'); });
+        a.classList.add('active');
+      }
+    });
+  }, { rootMargin:'-45% 0px -50% 0px', threshold:0 });
+  document.querySelectorAll('section.doc').forEach(function(s){ spy.observe(s); });
 </script>
 </body>
 </html>
