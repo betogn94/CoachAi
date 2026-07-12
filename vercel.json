@@ -29,6 +29,10 @@
       "destination": "/guia.html"
     },
     {
+      "source": "/manual-coach",
+      "destination": "/manual-coach.html"
+    },
+    {
       "source": "/jesus",
       "destination": "/index.html"
     },

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CoachAI Pro · Manual del Coach</title>
+<meta name="description" content="Cómo usar Studio de punta a punta: invitar alumnos, migrar planes, monitorear y guiar a tus alumnos dentro de la app. El manual completo del coach.">
+<meta name="theme-color" content="#7c6aff">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CoachAI Pro">
+<meta property="og:title" content="CoachAI Pro · Manual del Coach">
+<meta property="og:description" content="Studio de punta a punta: invitar, migrar planes, monitorear y guiar a tus alumnos. El manual completo del coach.">
+<meta property="og:locale" content="es_AR">
+<style>
+  :root{
+    --bg:#F5F5F7; --card:#FFFFFF; --ink:#16161A; --sec:#8A8A90; --line:#ECECF0;
+    --accent:#7c6aff; --accent-2:#6a55ff; --accent-soft:rgba(124,106,255,.1); --teal:#2ecfb5;
+    --shadow:0 6px 22px -12px rgba(26,26,28,.12);
+    --shadow-lg:0 18px 44px -18px rgba(26,26,28,.22);
+    --danger:#e5484d; --danger-soft:rgba(229,72,77,.1); --ok:#16a34a; --ok-soft:rgba(22,163,74,.1);
+    --amber:#e0a300; --amber-soft:rgba(224,163,0,.12);
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;scroll-padding-top:76px}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; line-height:1.6; padding-bottom:80px;
+  }
+
+  /* ─── top bar ─── */
+  .topbar{
+    position:sticky; top:0; z-index:40; background:rgba(245,245,247,.82);
+    backdrop-filter:saturate(180%) blur(18px); -webkit-backdrop-filter:saturate(180%) blur(18px);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar .tb-in{max-width:900px;margin:0 auto;padding:12px 22px;display:flex;align-items:center;gap:10px}
+  .tb-mark{font-weight:700;letter-spacing:.14em;font-size:14px}
+  .tb-mark span{color:var(--accent)}
+  .tb-badge{font-size:9.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:4px 9px;border-radius:100px}
+  .tb-spacer{flex:1}
+  .tb-link{font-size:12.5px;font-weight:600;color:var(--sec);text-decoration:none}
+  @media(max-width:560px){.tb-link{display:none}}
+
+  .wrap{max-width:900px;margin:0 auto;padding:0 22px}
+
+  /* ─── hero ─── */
+  .hero{text-align:center;padding:64px 22px 30px}
+  .eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.32em;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
+  .hero h1{font-size:clamp(36px,7vw,60px);font-weight:800;letter-spacing:-.03em;line-height:1.04}
+  .hero .lead{font-size:clamp(16px,2.4vw,19px);color:var(--sec);max-width:600px;margin:18px auto 0}
+  .hero .kicker{display:inline-flex;gap:8px;align-items:center;margin-top:26px;font-size:12.5px;font-weight:600;color:var(--sec);background:var(--card);border:1px solid var(--line);border-radius:100px;padding:8px 16px;box-shadow:var(--shadow)}
+  .hero .kicker b{color:var(--accent)}
+
+  /* ─── índice ─── */
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:26px 24px;margin:34px 0}
+  .toc h2{font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--sec);margin-bottom:6px}
+  .toc .toc-sub{font-size:13px;color:var(--sec);margin-bottom:18px}
+  .toc-group{margin-top:18px}
+  .toc-group > .g-label{font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .toc-list{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  @media(max-width:640px){.toc-list{grid-template-columns:1fr}}
+  .toc-list a{display:flex;gap:11px;align-items:center;text-decoration:none;color:var(--ink);font-size:14.5px;font-weight:500;padding:11px 13px;border-radius:13px;border:1px solid transparent;transition:all .18s}
+  .toc-list a:hover{background:var(--accent-soft);border-color:rgba(124,106,255,.2)}
+  .toc-list a .n{flex:0 0 26px;width:26px;height:26px;border-radius:8px;background:var(--accent-soft);color:var(--accent);font-family:var(--mono);font-size:12px;font-weight:700;display:grid;place-items:center}
+
+  /* ─── secciones ─── */
+  section.doc{padding:40px 0 8px;border-top:1px solid var(--line);scroll-margin-top:76px}
+  section.doc:first-of-type{border-top:none}
+  .sec-head{display:flex;gap:15px;align-items:flex-start;margin-bottom:8px}
+  .sec-num{flex:0 0 auto;font-family:var(--mono);font-size:13px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent-2));width:34px;height:34px;border-radius:11px;display:grid;place-items:center;box-shadow:0 6px 16px -6px rgba(124,106,255,.6);margin-top:3px}
+  .sec-head h2{font-size:clamp(24px,4vw,34px);font-weight:800;letter-spacing:-.025em;line-height:1.12}
+  .sec-intro{font-size:16.5px;color:#3c3c46;margin:6px 0 22px;max-width:660px}
+  section.doc p{font-size:16px;color:#3c3c46;margin:0 0 15px}
+  section.doc p b, section.doc li b{color:var(--ink);font-weight:700}
+  .accent{color:var(--accent);font-weight:600}
+
+  /* ─── steps ─── */
+  ol.steps{list-style:none;counter-reset:st;display:flex;flex-direction:column;gap:14px;margin:8px 0 22px}
+  ol.steps li{position:relative;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:17px 18px 17px 58px;font-size:15.5px;color:#3c3c46}
+  ol.steps li::before{counter-increment:st;content:counter(st);position:absolute;left:16px;top:16px;width:28px;height:28px;border-radius:9px;background:var(--accent-soft);color:var(--accent);font-family:var(--mono);font-weight:700;font-size:13px;display:grid;place-items:center}
+  ol.steps li b{color:var(--ink)}
+
+  /* ─── feature cards / listas ─── */
+  ul.feat{list-style:none;display:flex;flex-direction:column;gap:11px;margin:6px 0 22px}
+  ul.feat li{background:var(--card);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow);padding:15px 17px;display:flex;gap:13px;align-items:flex-start;font-size:15px;color:#3c3c46}
+  ul.feat li .ic{flex:0 0 30px;width:30px;height:30px;border-radius:9px;background:var(--accent-soft);display:grid;place-items:center;font-size:15px;margin-top:1px}
+  ul.feat li .ic.teal{background:rgba(46,207,181,.14)}
+  ul.feat li .tx b{display:block;color:var(--ink);font-weight:700;margin-bottom:2px;font-size:15.5px}
+
+  /* ─── callouts ─── */
+  .callout{border-radius:16px;padding:17px 19px;margin:6px 0 22px;font-size:15px;display:flex;gap:13px;align-items:flex-start;line-height:1.55}
+  .callout .ci{flex:0 0 auto;font-size:19px;margin-top:1px}
+  .callout.info{background:var(--accent-soft);border:1px solid rgba(124,106,255,.22);color:#33306a}
+  .callout.info b{color:var(--accent-2)}
+  .callout.warn{background:var(--amber-soft);border:1px solid rgba(224,163,0,.3);color:#6b5200}
+  .callout.warn b{color:#8a6a00}
+  .callout.ok{background:var(--ok-soft);border:1px solid rgba(22,163,74,.25);color:#14532d}
+  .callout.danger{background:var(--danger-soft);border:1px solid rgba(229,72,77,.28);color:#7a1f22}
+
+  /* ─── regla de oro ─── */
+  .goldrule{background:linear-gradient(135deg,#1c1830,#241d44);color:#fff;border-radius:24px;padding:36px 30px;text-align:center;box-shadow:var(--shadow-lg);margin:10px 0 24px}
+  .goldrule .gr-ic{font-size:34px}
+  .goldrule h3{font-size:clamp(22px,3.5vw,30px);font-weight:800;letter-spacing:-.02em;margin:12px 0 12px;line-height:1.15}
+  .goldrule p{color:#c9c4e6;font-size:16px;max-width:520px;margin:0 auto}
+  .goldrule .gr-accent{color:#b7abff;font-weight:700}
+
+  /* ─── screenshot slot ─── */
+  .shot{margin:8px 0 24px;border-radius:18px;overflow:hidden;border:1.5px dashed rgba(124,106,255,.35);background:linear-gradient(135deg,rgba(124,106,255,.05),rgba(46,207,181,.04));min-height:170px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:30px 20px;color:var(--sec)}
+  .shot .shot-ic{width:44px;height:44px;border-radius:12px;background:var(--accent-soft);display:grid;place-items:center;font-size:20px}
+  .shot .shot-t{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .shot .shot-d{font-size:13.5px;color:var(--sec);max-width:420px}
+  .shot img{width:100%;height:auto;display:block;border-radius:16px}
+  .shot.has-img{border:1px solid var(--line);padding:0;background:none;box-shadow:var(--shadow)}
+
+  /* ─── code / formato ─── */
+  .fmt{background:#1c1b2e;color:#e7e5f5;border-radius:16px;padding:18px 18px;margin:8px 0 18px;font-family:var(--mono);font-size:12.5px;line-height:1.7;overflow-x:auto;white-space:pre;box-shadow:var(--shadow)}
+  .fmt .c-day{color:#b7abff;font-weight:700}
+  .fmt .c-key{color:#5fe3c8}
+  .fmt .c-dim{color:#8f8bb0}
+  .legend{display:flex;flex-direction:column;gap:8px;margin:0 0 18px}
+  .legend .lg{display:flex;gap:10px;align-items:baseline;font-size:14.5px;color:#3c3c46}
+  .legend .lg code{font-family:var(--mono);font-size:13px;background:var(--accent-soft);color:var(--accent-2);padding:2px 7px;border-radius:6px;font-weight:700}
+
+  .subhead{font-size:18px;font-weight:800;letter-spacing:-.01em;margin:26px 0 10px;color:var(--ink);display:flex;align-items:center;gap:9px}
+  .subhead .dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+
+  /* ─── nav interna app (chips) ─── */
+  .navchips{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 20px}
+  .navchips span{font-size:13px;font-weight:600;background:var(--card);border:1px solid var(--line);border-radius:100px;padding:7px 14px;box-shadow:var(--shadow);color:#3c3c46}
+  .navchips span b{color:var(--accent)}
+
+  /* ─── footer ─── */
+  footer{max-width:900px;margin:60px auto 0;padding:34px 22px 0;border-top:1px solid var(--line);text-align:center;color:var(--sec);font-size:13.5px}
+  footer .fmark{font-weight:700;letter-spacing:.14em;color:var(--ink)}
+  footer .fmark span{color:var(--accent)}
+  footer a{color:var(--accent);text-decoration:none;font-weight:600}
+
+  /* back to top */
+  .totop{position:fixed;right:18px;bottom:18px;z-index:45;width:44px;height:44px;border-radius:50%;background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow-lg);display:grid;place-items:center;color:var(--accent);cursor:pointer;opacity:0;transform:translateY(10px);transition:all .25s;text-decoration:none}
+  .totop.on{opacity:1;transform:none}
+
+  /* reveal */
+  .rv{opacity:0;transform:translateY(16px);transition:opacity .6s cubic-bezier(.2,.8,.2,1),transform .6s cubic-bezier(.2,.8,.2,1)}
+  .rv.in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="tb-in">
+      <span class="tb-mark">COACH<span>AI</span></span>
+      <span class="tb-badge">Manual del Coach</span>
+      <span class="tb-spacer"></span>
+      <a class="tb-link" href="#indice">Índice</a>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="eyebrow rv">Guía completa · Studio + la app</div>
+    <h1 class="rv">Manual del Coach</h1>
+    <p class="lead rv">Todo lo que necesitás para llevar a tus alumnos con CoachAI: cómo manejar <b>Studio</b> de punta a punta y cómo guiarlos dentro de la app, explicado simple.</p>
+    <div class="kicker rv">👑 &nbsp;Vos sos el coach. <b>&nbsp;La IA trabaja para vos.</b></div>
+  </header>
+
+  <div class="wrap">
+
+    <!-- ÍNDICE -->
+    <nav class="toc rv" id="indice">
+      <h2>Índice</h2>
+      <div class="toc-sub">Tocá cualquier punto para saltar directo.</div>
+
+      <div class="toc-group">
+        <div class="g-label">🖥️ Tu panel · Studio</div>
+        <ul class="toc-list">
+          <li><a href="#s1"><span class="n">1</span> El ciclo en una mirada</a></li>
+          <li><a href="#s2"><span class="n">2</span> Entrá a Studio</a></li>
+          <li><a href="#s3"><span class="n">3</span> Invitá a tu alumno</a></li>
+          <li><a href="#s4"><span class="n">4</span> Dashboard: tus métricas</a></li>
+          <li><a href="#s5"><span class="n">5</span> Clientes: la ficha de cada uno</a></li>
+          <li><a href="#s6"><span class="n">6</span> Feedback · Capacidad · Perfil</a></li>
+        </ul>
+      </div>
+
+      <div class="toc-group">
+        <div class="g-label">📱 Tu alumno en la app</div>
+        <ul class="toc-list">
+          <li><a href="#s7"><span class="n">7</span> Cómo introducirlo bien</a></li>
+          <li><a href="#s8"><span class="n">8</span> El onboarding, paso a paso</a></li>
+          <li><a href="#s9"><span class="n">9</span> La app, sección por sección</a></li>
+          <li><a href="#s10"><span class="n">10</span> El cierre semanal</a></li>
+          <li><a href="#s11"><span class="n">11</span> La regla de oro</a></li>
+          <li><a href="#s12"><span class="n">12</span> Soporte</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- ═══════════ 1 · EL CICLO ═══════════ -->
+    <section class="doc" id="s1">
+      <div class="sec-head rv"><span class="sec-num">1</span><h2>El ciclo, en una mirada</h2></div>
+      <p class="sec-intro rv">Antes de tocar nada, entendé el recorrido completo. Es simple y siempre es el mismo.</p>
+      <ol class="steps rv">
+        <li><b>Invitás</b> a tu alumno desde Studio (con su email).</li>
+        <li>El alumno entra y hace un <b>onboarding</b> corto: cuenta su objetivo, sus días, sus gustos.</li>
+        <li>Recibe su <b>dieta y su rutina</b> — creadas por la IA al instante, o los planes que vos le migraste.</li>
+        <li>Registra su <b>día a día</b>: comidas cumplidas, entrenamientos, pesos, fotos.</li>
+        <li>Al terminar la semana, <b>cierra</b> y recibe un <b>análisis</b> de cómo le fue.</li>
+        <li>La semana <b>se repite</b>, progresando. Y vos <b>supervisás todo</b> desde Studio.</li>
+      </ol>
+      <div class="callout info rv"><span class="ci">💡</span><div>Pensalo así: <b>CoachAI es tu servicio de coaching potenciado con IA</b>. La IA arma, acompaña y mide las 24 horas; vos ponés el criterio y tomás las decisiones. El alumno siente que lo llevás vos — porque es así.</div></div>
+    </section>
+
+    <!-- ═══════════ 2 · ENTRAR A STUDIO ═══════════ -->
+    <section class="doc" id="s2">
+      <div class="sec-head rv"><span class="sec-num">2</span><h2>Paso 1 — Entrá a Studio</h2></div>
+      <p class="sec-intro rv">Studio es tu panel de control. Se abre desde el navegador, en tu propia dirección.</p>
+      <ol class="steps rv">
+        <li>Entrá a <b>tu-tenant.coachaipro.ai/studio</b> — por ejemplo <span class="accent">king.coachaipro.ai/studio</span>. Es tu dirección propia (whitelabel).</li>
+        <li>Ingresá con <b>tu email</b>. Te llega un <b>código al mail</b>, lo escribís y entrás. Sin contraseñas que recordar.</li>
+        <li>Solo entran los <b>coaches con permiso de administrador</b> de tu tenant. Tus alumnos nunca ven Studio.</li>
+      </ol>
+      <p class="rv">Ya adentro, a la izquierda tenés el menú, dividido en dos:</p>
+      <ul class="feat rv">
+        <li><span class="ic">📊</span><div class="tx"><b>General</b>Dashboard (el resumen) y Clientes (todos tus alumnos).</div></li>
+        <li><span class="ic teal">⚙️</span><div class="tx"><b>Gestión</b>Invitar, Feedback, Capacidad y tu Perfil.</div></li>
+      </ul>
+      <div class="shot rv"><div class="shot-ic">📷</div><div class="shot-t">Screenshot</div><div class="shot-d">Pantalla de login de Studio (el tenant, pidiendo el email) y la vista general con el menú lateral.</div></div>
+    </section>
+
+    <!-- ═══════════ 3 · INVITAR ═══════════ -->
+    <section class="doc" id="s3">
+      <div class="sec-head rv"><span class="sec-num">3</span><h2>Paso 2 — Invitá a tu alumno</h2></div>
+      <p class="sec-intro rv">Andá a <span class="accent">Gestión → Invitar</span>. Sumar a alguien es cuestión de segundos.</p>
+      <ol class="steps rv">
+        <li>Escribí el <b>Email</b> del alumno (obligatorio) y su <b>Nombre</b> (opcional, pero recomendado — personaliza el mail).</li>
+        <li>Elegí cómo va a tener su plan (ver abajo las dos vías).</li>
+        <li>Tocá <b>Invitar</b>. Le llega un mail con el link para entrar.</li>
+      </ol>
+      <div class="callout warn rv"><span class="ci">📲</span><div>El mail a veces cae en <b>spam</b>. Lo más seguro es <b>mandarle también el link por WhatsApp</b> para que entre sin vueltas.</div></div>
+
+      <h3 class="subhead rv"><span class="dot"></span>Las dos vías para el plan</h3>
+      <ul class="feat rv">
+        <li><span class="ic">🤖</span><div class="tx"><b>Vía A — La IA le crea el plan</b>Dejás el interruptor apagado. Cuando el alumno termina su onboarding, la IA le genera una <b>dieta y una rutina personalizadas al instante</b>, según lo que respondió. Ideal para alumnos nuevos.</div></li>
+        <li><span class="ic teal">📋</span><div class="tx"><b>Vía B — Migrás tu plan existente</b>Activás <b>"Tiene plan previo para precargar"</b> y pegás la <b>rutina</b> y la <b>dieta</b> actuales del alumno. Las ve apenas entra. Ideal para alumnos que ya venías llevando.</div></li>
+      </ul>
+      <div class="shot rv"><div class="shot-ic">📷</div><div class="shot-t">Screenshot</div><div class="shot-d">Sección Invitar con el formulario: email, nombre y el interruptor "Tiene plan previo" desplegado con los dos campos.</div></div>
+
+      <h3 class="subhead rv"><span class="dot"></span>Para que la IA lea tus planes a la PERFECCIÓN</h3>
+      <p class="rv">Cuando migrás un plan (Vía B) podés pegarlo en <b>cualquier formato</b>: al guardar, la IA lo reordena solita al formato de la app. Pero si querés que la lectura sea <b>impecable</b>, seguí este formato — es el que usamos nosotros y garantiza que cada día, cada ejercicio y cada comida se lean perfecto.</p>
+
+      <h4 class="subhead rv" style="font-size:15px;margin-top:18px"><span class="dot"></span>Rutina</h4>
+      <div class="fmt rv"><span class="c-day">Día 1 · Pecho / Tríceps</span>
+1. Press inclinado mancuernas — 4×10 · 22kg · desc 90s
+   <span class="c-dim">Bajada controlada 3 segundos, pecho activo.</span>
+2. Aperturas en polea — 3×12 · desc 60s
+3. Fondos en paralelas — 3×10 · desc 60s
+
+<span class="c-day">Día 2 · Espalda / Bíceps</span>
+1. Dominadas asistidas — 4×8 · desc 90s
+2. Remo con barra — 4×10 · 30kg · desc 60s
+
+<span class="c-key">Descanso:</span> Martes, Jueves y Domingo — caminata 30 min
+🏃 <span class="c-key">Cardio:</span> 25 min de caminata post-entreno los días de pesas</div>
+      <ul class="feat rv">
+        <li><span class="ic">✅</span><div class="tx"><b>Cada ejercicio empieza con número</b>Formato: <code style="font-family:var(--mono);font-size:12px">1. Nombre — series×reps · peso · desc Xs</code></div></li>
+        <li><span class="ic">✅</span><div class="tx"><b>La nota va debajo, sin número</b>Cualquier aclaración de técnica en la línea siguiente (sin numerar).</div></li>
+        <li><span class="ic">✅</span><div class="tx"><b>Cerrá con "Descanso:"</b>Una sola línea al final con los días de descanso. Si hay cardio, en su propia línea.</div></li>
+      </ul>
+
+      <h4 class="subhead rv" style="font-size:15px;margin-top:18px"><span class="dot"></span>Dieta</h4>
+      <div class="fmt rv"><span class="c-day">LUNES</span> <span class="c-dim">| Target: 1.500 kcal/día | P:130g C:150g G:45g</span>
+<span class="c-key">Desayuno:</span>
+- 3 claras + 1 huevo entero
+- 40g de avena / 1 fruta
+<span class="c-key">Almuerzo:</span>
+- 150g de pechuga de pollo
+- 150g de arroz (pesado cocido)
+- ensalada libre
+<span class="c-key">Merienda:</span>
+- 200g de yogur
+<span class="c-key">Cena:</span>
+- 180g de pescado
+- verduras al horno</div>
+      <div class="legend rv">
+        <div class="lg"><code>/</code><div><b>Opción alternativa</b> — el alumno elige UNA. Ej: <i>avena <b>o</b> una fruta</i>.</div></div>
+        <div class="lg"><code>+</code><div><b>Van juntos</b> en esa comida. Ej: <i>claras <b>y</b> huevo entero</i>.</div></div>
+        <div class="lg"><code>Target:</code><div>En el encabezado del día, enciende el card de objetivos y el gráfico de calorías.</div></div>
+      </div>
+      <div class="callout info rv"><span class="ci">🧩</span><div><b>Regla de oro del formato:</b> traducí, no reinventes. Las comidas, ejercicios y cantidades que vos definiste quedan <b>tal cual</b>. Solo cambiás la forma de escribirlo. Si te falta un dato, dejalo — no inventes números.</div></div>
+    </section>
+
+    <!-- ═══════════ 4 · DASHBOARD ═══════════ -->
+    <section class="doc" id="s4">
+      <div class="sec-head rv"><span class="sec-num">4</span><h2>El Dashboard: tus métricas</h2></div>
+      <p class="sec-intro rv">La primera pantalla al entrar. De un vistazo, cómo viene tu tenant.</p>
+      <ul class="feat rv">
+        <li><span class="ic">👥</span><div class="tx"><b>Clientes activos</b>Cuántos alumnos ya entraron y están usando la app.</div></li>
+        <li><span class="ic">⏳</span><div class="tx"><b>Pendientes</b>Los que invitaste pero <b>todavía no completaron el onboarding</b>. Ojo con estos: capaz les tenés que reenviar el link.</div></li>
+        <li><span class="ic teal">🔥</span><div class="tx"><b>Activos últimos 7 días</b>Cuántos estuvieron activos esta semana — tu termómetro de enganche.</div></li>
+        <li><span class="ic">💬</span><div class="tx"><b>Mensajes para vos</b>Reportes o mensajes de tus alumnos sin responder.</div></li>
+      </ul>
+      <div class="callout info rv"><span class="ci">🚦</span><div><b>El semáforo:</b> abajo ves cuántos alumnos están en <span style="color:var(--ok);font-weight:700">verde</span> (al día), <span style="color:var(--amber);font-weight:700">amarillo</span> (aflojando), <span style="color:var(--danger);font-weight:700">rojo</span> (desenganchados) y <span style="color:var(--sec);font-weight:700">gris</span> (sin datos aún). Tocá cualquier alumno para ver su detalle.</div></div>
+      <div class="shot rv"><div class="shot-ic">📷</div><div class="shot-t">Screenshot</div><div class="shot-d">El Dashboard completo con las 4 tarjetas de métricas y la barra del semáforo abajo.</div></div>
+    </section>
+
+    <!-- ═══════════ 5 · CLIENTES ═══════════ -->
+    <section class="doc" id="s5">
+      <div class="sec-head rv"><span class="sec-num">5</span><h2>Clientes: la ficha de cada alumno</h2></div>
+      <p class="sec-intro rv">En <span class="accent">Clientes</span> tenés la lista de todos tus alumnos, con buscador. Tocá a uno para entrar a su ficha completa — desde acá controlás y ajustás todo.</p>
+
+      <p class="rv">Dentro de la ficha de un alumno vas a encontrar:</p>
+      <ul class="feat rv">
+        <li><span class="ic">🪪</span><div class="tx"><b>Datos personales</b>Objetivo, nivel, peso, altura, edad, días de entreno. Podés editarlos con el botón <b>✏️ Editar</b>.</div></li>
+        <li><span class="ic teal">📈</span><div class="tx"><b>Actividad en la app</b>Cuándo entró por última vez, cuántas sesiones, cómo viene su racha.</div></li>
+        <li><span class="ic">🥗</span><div class="tx"><b>Dieta activa</b>Su dieta de la semana. Tocás <b>Editar</b>, ajustás y guardás — la IA la reordena sola al guardar.</div></li>
+        <li><span class="ic">🏋️</span><div class="tx"><b>Rutina activa</b>Igual que la dieta: la ves completa y la editás cuando quieras.</div></li>
+        <li><span class="ic teal">🧠</span><div class="tx"><b>Último análisis semanal</b>El resumen de cómo le fue en su última semana cerrada.</div></li>
+        <li><span class="ic">📸</span><div class="tx"><b>Transformación visual</b>Las fotos de progreso que sube en cada cierre, en línea de tiempo.</div></li>
+        <li><span class="ic">💬</span><div class="tx"><b>Mensajes del cliente</b>Notas que te deja el alumno.</div></li>
+        <li><span class="ic">🐞</span><div class="tx"><b>Bugs reportados</b>Problemas técnicos que te reportó.</div></li>
+      </ul>
+      <div class="callout warn rv"><span class="ci">⚠️</span><div>Al fondo está la <b>Zona peligrosa</b> para eliminar al alumno. Borra <b>todos sus datos para siempre</b> (planes, cierres, fotos, progreso). Pide que confirmes tipeando su email. Usala solo si estás 100% seguro.</div></div>
+      <div class="shot rv"><div class="shot-ic">📷</div><div class="shot-t">Screenshots</div><div class="shot-d">1) La lista de Clientes con el buscador. &nbsp;2) La ficha de un alumno abierta. &nbsp;3) El editor de dieta/rutina abierto.</div></div>
+    </section>
+
+    <!-- ═══════════ 6 · FEEDBACK / CAPACIDAD / PERFIL ═══════════ -->
+    <section class="doc" id="s6">
+      <div class="sec-head rv"><span class="sec-num">6</span><h2>Feedback · Capacidad · Perfil</h2></div>
+      <p class="sec-intro rv">Las tres secciones de gestión que completan tu panel.</p>
+      <ul class="feat rv">
+        <li><span class="ic">📨</span><div class="tx"><b>Feedback</b>Todos los reportes y mensajes de tus alumnos juntos, en un solo lugar.</div></li>
+        <li><span class="ic teal">📦</span><div class="tx"><b>Capacidad</b>El cupo de alumnos de tu paquete: <b>activos</b>, <b>cupo total</b> y <b>lugares libres</b>. Cuando lo llenás, desde acá pedís <b>Ampliar mi paquete</b>.</div></li>
+        <li><span class="ic">🪪</span><div class="tx"><b>Perfil</b>Tus datos como coach.</div></li>
+      </ul>
+      <div class="shot rv"><div class="shot-ic">📷</div><div class="shot-t">Screenshots</div><div class="shot-d">Feedback, Capacidad (con la barra de cupo) y Perfil del coach.</div></div>
+    </section>
+
+    <!-- divider -->
+    <div style="text-align:center;margin:52px 0 20px" class="rv">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--accent)">Segunda parte</div>
+      <h2 style="font-size:clamp(26px,4.5vw,38px);font-weight:800;letter-spacing:-.025em;margin-top:10px">Tu alumno en la app</h2>
+      <p style="color:var(--sec);max-width:560px;margin:12px auto 0;font-size:16px">Lo que sigue es <b>exactamente lo que vive tu alumno</b>. Conocelo de memoria: es lo que le vas a enseñar para que le saque el jugo.</p>
+    </div>
+
+    <!-- ═══════════ 7 · INTRODUCIRLO ═══════════ -->
+    <section class="doc" id="s7">
+      <div class="sec-head rv"><span class="sec-num">7</span><h2>Cómo introducirlo bien</h2></div>
+      <p class="sec-intro rv">La primera impresión importa. Que arranque con el pie derecho.</p>
+      <ul class="feat rv">
+        <li><span class="ic">🌐</span><div class="tx"><b>Que abra el link en Chrome o Safari</b>Chrome en Android, Safari en iPhone. Es lo que asegura la mejor experiencia.</div></li>
+        <li><span class="ic teal">📲</span><div class="tx"><b>Que instale la app (PWA)</b>Desde el navegador, "Agregar a pantalla de inicio". Así queda como una app nativa: pantalla completa, ícono propio y — clave — <b>recibe las notificaciones</b> que la mantienen enganchada.</div></li>
+      </ul>
+      <div class="callout ok rv"><span class="ci">✅</span><div>Decíle esto tal cual: <i>"Abrí el link que te mandé en Chrome (o Safari), y cuando te pregunte, tocá 'Agregar a inicio' para instalar la app."</i></div></div>
+      <div class="shot rv"><div class="shot-ic">📷</div><div class="shot-t">Screenshot</div><div class="shot-d">La pantalla de "Instalá la app" / agregar a inicio, como la ve el alumno en el celu.</div></div>
+    </section>
+
+    <!-- ═══════════ 8 · ONBOARDING ═══════════ -->
+    <section class="doc" id="s8">
+      <div class="sec-head rv"><span class="sec-num">8</span><h2>El onboarding, paso a paso</h2></div>
+      <p class="sec-intro rv">La primera vez que entra, el alumno completa un cuestionario corto. Con esas respuestas la IA arma su plan — por eso importa tomárselo en serio.</p>
+      <p class="rv">Arranca con su <b>mail y su nombre</b>, y después responde:</p>
+      <ol class="steps rv">
+        <li><b>¿Cuál es tu objetivo?</b> — definir, mantener o ganar músculo.</li>
+        <li><b>¿Cuál es tu experiencia?</b> — su nivel entrenando.</li>
+        <li><b>¿Cuánto te movés fuera del gym?</b> — su actividad diaria (calibra las calorías).</li>
+        <li><b>¿Qué días entrenás?</b> — los días arma la cantidad de entrenamientos.</li>
+        <li><b>¿Alguna lesión o limitación?</b> — para evitar ejercicios que le hagan mal.</li>
+        <li><b>¿Alguna restricción alimenticia?</b> — vegetariano, sin lácteos, etc.</li>
+        <li><b>¿Cuántas comidas hacés al día?</b> — estructura su dieta.</li>
+        <li><b>¿Alguna alergia?</b> — para no incluirla nunca.</li>
+      </ol>
+      <div class="callout warn rv"><span class="ci">🎯</span><div><b>Por qué hay que tomárselo en serio:</b> la IA arma la dieta y la rutina con estas respuestas. Datos flojos o al apuro = plan flojo. Contarle bien quién es = un plan que le queda perfecto desde el día uno.</div></div>
+      <div class="shot rv"><div class="shot-ic">📷</div><div class="shot-t">Screenshots</div><div class="shot-d">3-4 pantallas del onboarding: mail + nombre, objetivo, días de entreno y restricciones.</div></div>
+    </section>
+
+    <!-- ═══════════ 9 · SECCIONES DE LA APP ═══════════ -->
+    <section class="doc" id="s9">
+      <div class="sec-head rv"><span class="sec-num">9</span><h2>La app, sección por sección</h2></div>
+      <p class="sec-intro rv">Abajo tiene siempre estas secciones. Esto es lo que hace cada una y cómo se usa bien.</p>
+      <div class="navchips rv"><span><b>Inicio</b></span><span><b>Coach</b> (chat)</span><span><b>Mi Entreno</b></span><span><b>Mi Alimentación</b></span><span><b>Perfil</b></span></div>
+
+      <h3 class="subhead rv"><span class="dot"></span>Inicio — su tablero del día</h3>
+      <p class="rv">Lo primero que ve. Un resumen vivo: el saludo, su <b>racha 🔥</b> (días seguidos cumpliendo — la engancha a no aflojar), el resumen de <b>calorías</b>, su <b>peso</b> y el aviso de <b>cierre de semana</b> cuando corresponde.</p>
+
+      <h3 class="subhead rv"><span class="dot"></span>Mi Alimentación — su dieta</h3>
+      <p class="rv">Su dieta de la semana, día por día. Va <b>tildando cada comida</b> a medida que la cumple. Así se registra su alimentación y suma a la racha.</p>
+
+      <h3 class="subhead rv"><span class="dot"></span>Mi Entreno — su rutina</h3>
+      <p class="rv">Su rutina por día. Marca el <b>entrenamiento hecho</b> y <b>anota los pesos</b> de cada serie. Eso es clave: la semana siguiente busca <b>superar esos pesos</b> — así progresa.</p>
+
+      <h3 class="subhead rv"><span class="dot"></span>Coach (chat) — solo para consultas</h3>
+      <div class="callout danger rv"><span class="ci">⚠️</span><div><b>La regla más importante de todo el manual.</b> El chat es una <b>herramienta de consulta</b>: dudas de un ejercicio, cómo hacer bien un movimiento, una sustitución puntual de un alimento. <b>NO se le piden cambios de plan a la IA.</b> Todo cambio de dieta o de rutina lo hacés <b>vos, el coach</b>, desde Studio. La IA no reemplaza tu criterio: acompaña y responde, nada más.</div></div>
+      <p class="rv">Explicáselo a tu alumno con esta frase: <i>"El chat es para sacarte dudas al toque. Si querés cambiar algo de tu plan, me lo decís a mí — los cambios los hago yo."</i></p>
+
+      <h3 class="subhead rv"><span class="dot"></span>Perfil — logros, rachas y su plan</h3>
+      <p class="rv">Su espacio personal: sus <b>medallas y logros</b>, su <b>racha</b>, y su <b>plan completo</b> (dieta y rutina) para consultar cuando quiera.</p>
+      <div class="shot rv"><div class="shot-ic">📷</div><div class="shot-t">Screenshots</div><div class="shot-d">Inicio, Mi Alimentación, Mi Entreno, el chat (Coach) y Perfil con logros/rachas.</div></div>
+    </section>
+
+    <!-- ═══════════ 10 · CIERRE ═══════════ -->
+    <section class="doc" id="s10">
+      <div class="sec-head rv"><span class="sec-num">10</span><h2>El cierre semanal</h2></div>
+      <p class="sec-intro rv">El momento más importante de la semana — donde el ciclo se cierra y se reinicia.</p>
+      <ol class="steps rv">
+        <li>Al terminar la semana, la app le <b>pide cerrarla</b> (no la deja seguir sin hacerlo).</li>
+        <li>Completa los <b>días que le faltaron</b> registrar y sube sus <b>fotos de progreso</b>.</li>
+        <li>Recibe un <b>análisis de su semana</b>: cómo cumplió, su peso, qué mejorar.</li>
+        <li>La <b>semana nueva arranca sola</b>: la misma rutina (para superar los pesos) y la dieta ajustada. Sin tocar botones.</li>
+      </ol>
+      <div class="callout info rv"><span class="ci">🔁</span><div>Y así el ciclo se repite, semana a semana, con el alumno progresando y vos supervisando desde Studio. Ese es el corazón de CoachAI.</div></div>
+      <div class="shot rv"><div class="shot-ic">📷</div><div class="shot-t">Screenshots</div><div class="shot-d">El aviso de cierre de semana y la pantalla del análisis semanal.</div></div>
+    </section>
+
+    <!-- ═══════════ 11 · REGLA DE ORO ═══════════ -->
+    <section class="doc" id="s11">
+      <div class="sec-head rv"><span class="sec-num">11</span><h2>La regla de oro</h2></div>
+      <div class="goldrule rv">
+        <div class="gr-ic">👑</div>
+        <h3>El coach manda.<br>La IA acompaña.</h3>
+        <p><span class="gr-accent">Todo cambio de plan pasa por vos.</span> La IA arma, mide y responde consultas las 24 horas — pero las decisiones sobre la dieta y la rutina de cada alumno son <span class="gr-accent">tuyas y solo tuyas</span>. Esa es la diferencia entre un chatbot y un servicio de coaching de verdad: vos.</p>
+      </div>
+    </section>
+
+    <!-- ═══════════ 12 · SOPORTE ═══════════ -->
+    <section class="doc" id="s12">
+      <div class="sec-head rv"><span class="sec-num">12</span><h2>Soporte</h2></div>
+      <p class="sec-intro rv">¿Algo no anda o tenés una duda? Estamos para ayudarte.</p>
+      <ul class="feat rv">
+        <li><span class="ic">✉️</span><div class="tx"><b>Escribinos</b>support.coachaipro@gmail.com</div></li>
+        <li><span class="ic teal">💬</span><div class="tx"><b>WhatsApp</b>Escribinos por el canal que ya tenés con el equipo.</div></li>
+      </ul>
+    </section>
+
+  </div>
+
+  <footer>
+    <div class="fmark">COACH<span>AI</span> PRO</div>
+    <p style="margin-top:10px">Manual del Coach · Tu servicio de coaching, potenciado con IA.</p>
+  </footer>
+
+  <a href="#" class="totop" id="totop" aria-label="Volver arriba">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+  </a>
+
+<script>
+  // reveal on scroll
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold:.12, rootMargin:'0px 0px -40px 0px' });
+  document.querySelectorAll('.rv').forEach(function(el){ io.observe(el); });
+
+  // back to top
+  var tt = document.getElementById('totop');
+  window.addEventListener('scroll', function(){
+    if (window.scrollY > 600) tt.classList.add('on'); else tt.classList.remove('on');
+  }, { passive:true });
+</script>
+</body>
+</html>
