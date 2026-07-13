@@ -131,6 +131,12 @@
   figure.fig .zoom-hint{position:absolute;top:11px;right:11px;background:rgba(18,18,26,.72);color:#fff;font-size:11px;font-weight:600;letter-spacing:.02em;padding:5px 10px;border-radius:100px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:inline-flex;align-items:center;gap:5px;pointer-events:none;opacity:.9}
   .fig-pair{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
   @media(max-width:640px){.fig-pair{grid-template-columns:1fr;gap:8px}}
+  figure.fig.phone{max-width:340px;margin-left:auto;margin-right:auto}
+  .fig-quad{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:12px 0 6px}
+  @media(max-width:640px){.fig-quad{grid-template-columns:repeat(2,1fr);gap:12px}}
+  .fig-quad figure.fig{margin:0}
+  .fig-quad figcaption{font-size:12px;margin-top:8px;font-weight:600;color:#3c3c46}
+  .fig-quad .zoom-hint{display:none}
 
   /* ─── lightbox ─── */
   .lightbox{position:fixed;inset:0;z-index:300;background:rgba(12,12,16,.94);display:none;overflow:auto;-webkit-overflow-scrolling:touch;padding:18px}
@@ -409,7 +415,11 @@
       </ul>
       <div class="gloss rv"><b>¿PWA?</b> Es la app en sí: se instala directo desde el navegador (sin App Store ni Play Store) y queda con su ícono en el celular, igual que cualquier otra app.</div>
       <div class="callout ok rv"><span class="ci">✅</span><div>Decíle esto tal cual: <i>"Abrí el link que te mandé en Chrome (o Safari), y cuando te pregunte, tocá 'Agregar a inicio' para instalar la app."</i></div></div>
-      <div class="shot rv"><div class="shot-ic">📷</div><div class="shot-t">Screenshot</div><div class="shot-d">La pantalla de "Instalá la app" / agregar a inicio, como la ve el alumno en el celu.</div></div>
+      <figure class="fig phone rv" onclick="openLB(this.querySelector('img').src)">
+        <span class="zoom-hint">🔍 Ampliar</span>
+        <img src="/manual-img/app-login-instalar.jpg" alt="Pantalla de ingreso: nombre, email y botón Instalar CoachAI" loading="lazy">
+        <figcaption>La pantalla de entrada: nombre, email y el botón <b>Instalar CoachAI</b> para dejar la app en el celular.</figcaption>
+      </figure>
     </section>
 
     <!-- ═══════════ 8 · ONBOARDING ═══════════ -->
@@ -428,7 +438,13 @@
         <li><b>¿Alguna alergia?</b> — para no incluirla nunca.</li>
       </ol>
       <div class="callout warn rv"><span class="ci">🎯</span><div><b>Por qué hay que tomárselo en serio:</b> la IA arma la dieta y la rutina con estas respuestas. Datos flojos o al apuro = plan flojo. Contarle bien quién es = un plan que le queda perfecto desde el día uno.</div></div>
-      <div class="shot rv"><div class="shot-ic">📷</div><div class="shot-t">Screenshots</div><div class="shot-d">3-4 pantallas del onboarding: mail + nombre, objetivo, días de entreno y restricciones.</div></div>
+      <div class="fig-quad rv">
+        <figure class="fig" onclick="openLB(this.querySelector('img').src)"><img src="/manual-img/onb-objetivo.jpg" alt="Onboarding: elegí tu objetivo" loading="lazy"><figcaption>Objetivo</figcaption></figure>
+        <figure class="fig" onclick="openLB(this.querySelector('img').src)"><img src="/manual-img/onb-experiencia.jpg" alt="Onboarding: tu experiencia" loading="lazy"><figcaption>Experiencia</figcaption></figure>
+        <figure class="fig" onclick="openLB(this.querySelector('img').src)"><img src="/manual-img/onb-restricciones.jpg" alt="Onboarding: restricciones alimenticias" loading="lazy"><figcaption>Restricciones</figcaption></figure>
+        <figure class="fig" onclick="openLB(this.querySelector('img').src)"><img src="/manual-img/onb-comidas.jpg" alt="Onboarding: comidas por día" loading="lazy"><figcaption>Comidas por día</figcaption></figure>
+      </div>
+      <p class="rv" style="text-align:center;font-size:13px;color:var(--sec);margin-top:2px">Tocá cualquier pantalla para verla en grande.</p>
     </section>
 
     <!-- ═══════════ 9 · SECCIONES DE LA APP ═══════════ -->
@@ -439,20 +455,39 @@
 
       <h3 class="subhead rv"><span class="dot"></span>Inicio — su tablero del día</h3>
       <p class="rv">Lo primero que ve. Un resumen vivo: el saludo, su <b>racha 🔥</b> (días seguidos cumpliendo — la engancha a no aflojar), el resumen de <b>calorías</b>, su <b>peso</b> y el aviso de <b>cierre de semana</b> cuando corresponde.</p>
+      <figure class="fig phone rv" onclick="openLB(this.querySelector('img').src)">
+        <span class="zoom-hint">🔍 Ampliar</span>
+        <img src="/manual-img/app-inicio.jpg" alt="Pantalla de Inicio: entrenamientos de la semana, próxima comida, calorías y Coach AI" loading="lazy">
+        <figcaption>Inicio — el tablero del día: entrenamientos de la semana, próxima comida, calorías y acceso al chat.</figcaption>
+      </figure>
 
       <h3 class="subhead rv"><span class="dot"></span>Mi Alimentación — su dieta</h3>
       <p class="rv">Su dieta de la semana, día por día. Va <b>tildando cada comida</b> a medida que la cumple. Así se registra su alimentación y suma a la racha.</p>
+      <figure class="fig phone rv" onclick="openLB(this.querySelector('img').src)">
+        <span class="zoom-hint">🔍 Ampliar</span>
+        <img src="/manual-img/app-mi-alimentacion.jpg" alt="Mi Alimentación: objetivos diarios, comidas cumplidas y el detalle de cada comida" loading="lazy">
+        <figcaption>Mi Alimentación — objetivos del día, comidas cumplidas y el detalle de cada comida con sus macros.</figcaption>
+      </figure>
 
       <h3 class="subhead rv"><span class="dot"></span>Mi Entreno — su rutina</h3>
       <p class="rv">Su rutina por día. Marca el <b>entrenamiento hecho</b> y <b>anota los pesos</b> de cada serie. Eso es clave: la semana siguiente busca <b>superar esos pesos</b> — así progresa.</p>
+      <figure class="fig phone rv" onclick="openLB(this.querySelector('img').src)">
+        <span class="zoom-hint">🔍 Ampliar</span>
+        <img src="/manual-img/app-mi-entreno.jpg" alt="Mi Entreno: día de rutina, ejercicios, cómo se hace y peso por serie" loading="lazy">
+        <figcaption>Mi Entreno — el día de rutina con cada ejercicio, el botón "Cómo se hace" y el registro de peso por serie.</figcaption>
+      </figure>
 
       <h3 class="subhead rv"><span class="dot"></span>Coach (chat) — solo para consultas</h3>
       <div class="callout danger rv"><span class="ci">⚠️</span><div><b>La regla más importante de todo el manual.</b> El chat es una <b>herramienta de consulta</b>: dudas de un ejercicio, cómo hacer bien un movimiento, una sustitución puntual de un alimento. <b>NO se le piden cambios de plan a la IA.</b> Todo cambio de dieta o de rutina lo hacés <b>vos, el coach</b>, desde Studio. La IA no reemplaza tu criterio: acompaña y responde, nada más.</div></div>
       <p class="rv">Explicáselo a tu alumno con esta frase: <i>"El chat es para sacarte dudas al toque. Si querés cambiar algo de tu plan, me lo decís a mí — los cambios los hago yo."</i></p>
 
       <h3 class="subhead rv"><span class="dot"></span>Perfil — logros, rachas y su plan</h3>
-      <p class="rv">Su espacio personal: sus <b>medallas y logros</b>, su <b>racha</b>, y su <b>plan completo</b> (dieta y rutina) para consultar cuando quiera.</p>
-      <div class="shot rv"><div class="shot-ic">📷</div><div class="shot-t">Screenshots</div><div class="shot-d">Inicio, Mi Alimentación, Mi Entreno, el chat (Coach) y Perfil con logros/rachas.</div></div>
+      <p class="rv">Su espacio personal: su <b>peso y su evolución</b>, su <b>adherencia</b>, su <b>racha</b>, sus <b>medallas y logros</b>, y su <b>plan completo</b> (dieta y rutina) para consultar cuando quiera.</p>
+      <figure class="fig phone rv" onclick="openLB(this.querySelector('img').src)">
+        <span class="zoom-hint">🔍 Ampliar</span>
+        <img src="/manual-img/app-perfil.jpg" alt="Perfil: peso actual, evolución, adherencia, racha y transformación visual" loading="lazy">
+        <figcaption>Perfil — peso actual, evolución de la semana, adherencia, racha y la transformación visual con fotos.</figcaption>
+      </figure>
     </section>
 
     <!-- ═══════════ 10 · CIERRE ═══════════ -->
