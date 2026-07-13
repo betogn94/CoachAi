@@ -1,0 +1,25 @@
+<!-- ============================================================
+     PLANTILLA NEUTRA DEL MAIL DE CÓDIGO (OTP) — Supabase Auth
+     ============================================================
+     Dónde se pega: supabase.com/dashboard → proyecto CoachAI →
+     Authentication → Email Templates → pestañas "Magic Link" Y
+     "Confirm signup" (Supabase usa una u otra según si el email ya
+     existe en auth.users — actualizar LAS DOS con este mismo HTML).
+
+     Asunto sugerido:  Tu código de acceso: {{ .Token }}
+     (con el código en el asunto se puede ver desde la notificación,
+     sin abrir el mail — menos fricción en el login)
+
+     Por qué neutra: la plantilla es UNA para todo el proyecto (la
+     comparten King, default y futuros tenants) → sin color de marca
+     no desentona con ninguno. Ver memoria theme-light-default.
+     ============================================================ -->
+<div style="background:#f6f6f8;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:420px;margin:0 auto;background:#ffffff;border:1px solid #e8e8ee;border-radius:16px;padding:36px 28px;text-align:center;">
+    <div style="font-size:12px;letter-spacing:2.5px;color:#8a8a99;text-transform:uppercase;margin-bottom:14px;">C&oacute;digo de verificaci&oacute;n</div>
+    <div style="font-size:15px;color:#3a3a48;line-height:1.5;margin-bottom:26px;">Us&aacute; este c&oacute;digo para entrar a tu cuenta:</div>
+    <div style="font-size:40px;font-weight:800;letter-spacing:10px;color:#16161f;margin-bottom:26px;">{{ .Token }}</div>
+    <div style="font-size:13px;color:#8a8a99;line-height:1.6;">El c&oacute;digo vence en 1 hora.<br>Si no lo pediste vos, ignor&aacute; este mensaje.</div>
+  </div>
+  <div style="max-width:420px;margin:14px auto 0;text-align:center;font-size:11px;color:#b0b0bc;">Enviado autom&aacute;ticamente &mdash; no respondas a este correo.</div>
+</div>
