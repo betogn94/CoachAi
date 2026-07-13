@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260713-2029-deploy">
+<meta name="app-version" content="20260713-2045-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -14054,12 +14054,22 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   try {
     var LS_PREVIEW_TENANT = 'coachai_preview_tenant_v1';
     var params = new URLSearchParams(window.location.search);
-    // ?light=1 → tema claro del tenant DEFAULT (proyecto por etapas). Persist en
-    // localStorage; ?light=0 lo apaga. Se aplica SOLO en los caminos "default"
-    // de abajo (sin tenant de marca) para no chocar con theme-king u otros.
+    // TEMA CLARO = EL DEFAULT (switch 2026-07-13). El tenant default (y todo
+    // camino sin tenant de marca) arranca en claro violeta. ?light=0 es el
+    // interruptor de emergencia (persistido) que vuelve al dark viejo;
+    // ?light=1 lo re-enciende. Los tenants de marca (King) no pasan por acá.
     var _lp = params.get('light');
-    if (_lp === '1') { try { localStorage.setItem('coachai_theme_light', '1'); } catch (e) {} }
-    else if (_lp === '0') { try { localStorage.removeItem('coachai_theme_light'); } catch (e) {} }
+    if (_lp === '1') { try { localStorage.removeItem('coachai_theme_light'); } catch (e) {} }
+    else if (_lp === '0') { try { localStorage.setItem('coachai_theme_light', '0'); } catch (e) {} }
+    var applyLightDefault = function(){
+      try {
+        if (localStorage.getItem('coachai_theme_light') === '0') return;   // opt-out explícito
+        document.body.classList.add('theme-light');
+        // Barra del navegador/PWA a claro (los meta vienen dark/violeta del HTML).
+        var metas = document.querySelectorAll('meta[name="theme-color"]');
+        for (var mi = 0; mi < metas.length; mi++) metas[mi].setAttribute('content', '#FAFAFF');
+      } catch (e) {}
+    };
     // 0) HOSTNAME-BASED tenant detection — the canonical Phase C route.
     //    iOS strips path/query/hash from URLs at PWA install time, BUT it
     //    preserves the ORIGIN (scheme + hostname). A user installing the
@@ -14127,7 +14137,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     // CoachAI default during testing.
     if (slug === 'clear' || slug === 'default' || slug === 'coachai-default') {
       try { localStorage.removeItem(LS_PREVIEW_TENANT); } catch (e) {}
-      try { if (localStorage.getItem('coachai_theme_light') === '1') document.body.classList.add('theme-light'); } catch (e) {}
+      applyLightDefault();
       return;
     }
     // No slug → fall through (CoachAI default). The post-login path
@@ -14141,7 +14151,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     // a default-themed app. Better to only apply KING when we're
     // CERTAIN the visitor is on a whitelabel.)
     if (!slug) {
-      try { if (localStorage.getItem('coachai_theme_light') === '1') document.body.classList.add('theme-light'); } catch (e) {}
+      applyLightDefault();
       return;
     }
     // Hardcoded synchronous palettes for each whitelabel. Must match the
@@ -14197,6 +14207,9 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     window.applySyncTenantTheme = function(slugArg) {
       var theme = THEMES[slugArg];
       if (!theme) return false;
+      // Un tema de marca pisa el claro default (caso: en coachaipro.ai el boot
+      // aplicó theme-light y el fallback del email detecta una clienta King).
+      document.body.classList.remove('theme-light');
       if (theme.bodyClass) document.body.classList.add(theme.bodyClass);
       if (theme.vars) {
         var root = document.documentElement;
@@ -17147,9 +17160,12 @@ if (new URLSearchParams(location.search).get('kingonbdemo') === '1') {
 if (new URLSearchParams(location.search).get('onbdemo') === '1') {
   window.addEventListener('load', () => setTimeout(() => {
     try {
-      const wantLight = new URLSearchParams(location.search).get('light') === '1'
-        || localStorage.getItem('coachai_theme_light') === '1'
-        || document.body.classList.contains('theme-light');
+      // Claro = default: el demo abre en violeta salvo contexto King (host
+      // king.* / ?tenant=jesus ya aplicó theme-king) u opt-out ?light=0.
+      const _olp = new URLSearchParams(location.search).get('light');
+      const wantLight = _olp === '1' || (_olp !== '0'
+        && !document.body.classList.contains('theme-king')
+        && localStorage.getItem('coachai_theme_light') !== '0');
       if (wantLight) {
         // Tema claro default: la clase alcanza (las vars violeta/blanco vienen
         // del propio bloque body.theme-light, sin overrides de :root).
@@ -19762,6 +19778,9 @@ function applyTenantBranding(tenant) {
   // visual changes (light theme, soft cards, custom shadow recipes) on top
   // of the same DOM without touching the default theme.
   if (b.bodyClass) {
+    // Tema de marca (King/whitelabel) → fuera el claro default para que no
+    // convivan las dos capas de tema en el mismo body.
+    document.body.classList.remove('theme-light');
     document.body.classList.add(b.bodyClass);
     _lastTenantBodyClass = b.bodyClass;
     // KING-specific runtime: wrap onboarding selects so iOS Safari can't
@@ -19782,6 +19801,10 @@ function applyTenantBranding(tenant) {
     // Beto saw the morning after the night force-KING rollout.
     // Keep SYNC_VARS in sync with the THEMES object in that script.
     document.body.classList.remove('theme-king');
+    // Tema claro = el default: si el switch de tenant pasa en caliente (sin
+    // recarga, p.ej. QA saliendo de un preview King), el boot no re-corre →
+    // reponemos el claro acá. Respeta el opt-out ?light=0.
+    try { if (localStorage.getItem('coachai_theme_light') !== '0') document.body.classList.add('theme-light'); } catch (e) {}
     var SYNC_VARS = [
       '--bg','--surface','--surface2','--border',
       '--accent','--accent-bright','--accent2','--accent3',
