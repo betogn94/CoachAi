@@ -40,8 +40,16 @@ export default function middleware(request) {
     const host = (request.headers.get('host') || '').toLowerCase();
     const base = 'https://' + (host || 'coachaipro.ai') + '/';
     const isKing = /^king\./.test(host);
+    const isCom = /(^|\.)coachaipro\.com$/.test(host);   // landing B2B (coaches y gimnasios)
 
-    const html = isKing
+    const html = isCom
+      ? ogHtml({
+          title: 'CoachAI Pro — Tu propia app con IA para coaches y gimnasios',
+          desc: 'Nutrición, entrenamiento y seguimiento diario con IA, bajo tu marca. Vos supervisás; la IA hace el trabajo pesado.',
+          image: 'https://coachaipro.ai/icon-512.png',
+          url: base,
+        })
+      : isKing
       ? ogHtml({
           title: 'Método King · CoachAI Pro',
           desc: 'Del Mapa Estético a tu transformación: tu plan, tu progreso y tu Índice de Armonía, todo en un solo lugar.',

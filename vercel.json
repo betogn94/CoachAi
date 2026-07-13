@@ -2,15 +2,9 @@
   "redirects": [
     {
       "source": "/(.*)",
-      "has": [{ "type": "host", "value": "coachaipro.com" }],
-      "destination": "https://coachaipro.ai/$1",
-      "permanent": true
-    },
-    {
-      "source": "/(.*)",
       "has": [{ "type": "host", "value": "www.coachaipro.com" }],
-      "destination": "https://coachaipro.ai/$1",
-      "permanent": true
+      "destination": "https://coachaipro.com/$1",
+      "permanent": false
     },
     {
       "source": "/",
@@ -20,6 +14,11 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "coachaipro.com" }],
+      "destination": "/index-landing.html"
+    },
     {
       "source": "/.well-known/assetlinks.json",
       "destination": "/assetlinks.json"
