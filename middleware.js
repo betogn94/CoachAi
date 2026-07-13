@@ -35,12 +35,22 @@ function ogHtml({ title, desc, image, url }) {
 export default function middleware(request) {
   try {
     const ua = request.headers.get('user-agent') || '';
-    if (!PREVIEW_BOTS.test(ua)) return;   // usuario real → passthrough (la app de siempre)
-
     const host = (request.headers.get('host') || '').toLowerCase();
     const base = 'https://' + (host || 'coachaipro.ai') + '/';
     const isKing = /^king\./.test(host);
     const isCom = /(^|\.)coachaipro\.com$/.test(host);   // landing B2B (coaches y gimnasios)
+
+    if (!PREVIEW_BOTS.test(ua)) {
+      // Usuario real. En coachaipro.com la raíz sirve la LANDING (index-landing.html).
+      // Hace falta rewrite acá en el middleware: los rewrites de vercel.json corren
+      // DESPUÉS del filesystem, y "/" ya matchea index.html (la app) → nunca aplicarían.
+      if (isCom) {
+        return new Response(null, {
+          headers: { 'x-middleware-rewrite': new URL('/index-landing.html', request.url).toString() },
+        });
+      }
+      return;   // resto de hosts → passthrough (la app de siempre)
+    }
 
     const html = isCom
       ? ogHtml({
