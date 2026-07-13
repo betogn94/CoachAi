@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260713-1959-deploy">
+<meta name="app-version" content="20260713-2014-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -284,6 +284,22 @@ body.theme-light .email-login-input:focus {
 body.theme-light .landing-footer-text,
 body.theme-light footer { color: var(--muted) !important; }
 
+/* Modal "Instalar en iPhone/Android": los chips numerados y el botón Entendido
+   usan gradiente accent→accent2, y --accent2 es coral-rojo (#ff6b6b, se mantiene
+   para errores) → en claro se veían rosados. Violeta puro acá. */
+body.theme-light .pwa-modal-body ol li::before,
+body.theme-light .pwa-modal-ok {
+  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 100%) !important;
+}
+
+/* Anillo del "escribiendo…" del chat en violeta (gemelo de typingPulseKing,
+   que trae el coral hardcodeado en el keyframe — no se scopean por tema). */
+@keyframes typingPulseLight {
+  0%   { box-shadow: 0 0 0 0 rgba(124,106,255,0.6),  0 0 10px rgba(124,106,255,0.55); }
+  70%  { box-shadow: 0 0 0 10px rgba(124,106,255,0), 0 0 10px rgba(124,106,255,0.55); }
+  100% { box-shadow: 0 0 0 0 rgba(124,106,255,0),    0 0 10px rgba(124,106,255,0.55); }
+}
+
 /* ============================================================
    DEFAULT LIGHT THEME · reglas generadas desde theme-king (violeta)
    Autogenerado por scripts/gen-theme-light — NO editar a mano.
@@ -403,7 +419,10 @@ body.theme-light .landing-tagline {
   color: var(--muted) !important;
 }
 body.theme-light .landing-login-icon {
-  animation: landingIconGlowKING 3s ease-in-out infinite,
+  /* landingIconGlow = el glow ORIGINAL del repo (violeta/teal). La copia
+     generada apuntaba a landingIconGlowKING (coral) — los @keyframes no se
+     scopean por tema, así que el coral se colaba en el tema claro. */
+  animation: landingIconGlow 3s ease-in-out infinite,
              landingIconBeat 3s ease-in-out infinite !important;
 }
 body.theme-light .progress-step,
@@ -1477,7 +1496,7 @@ body.theme-light .msg.coach .msg-bubble a {
 body.theme-light .typing-pulse {
   background: var(--accent) !important;
   box-shadow: 0 0 0 0 rgba(124, 106, 255,0.55), 0 0 10px rgba(124, 106, 255,0.55) !important;
-  animation: typingPulseKing 1.6s ease-out infinite !important;
+  animation: typingPulseLight 1.6s ease-out infinite !important;
 }
 body.theme-light .typing-label {
   color: var(--muted) !important;
@@ -28424,7 +28443,10 @@ function drawShareCanvas(ctx, W, H, photo, medal, t){
   ctx.fillStyle='#fff'; ctx.font="800 "+tfs+"px 'DM Sans',sans-serif";
   for(let i=titleLines.length-1;i>=0;i--){ ctx.fillText(titleLines[i], tx, yy); yy-=titleLH; }
   yy-=Math.round(W*0.012);
-  ctx.fillStyle='#FF8AA6'; ctx.font="800 "+Math.round(W*0.030)+"px 'DM Sans',sans-serif"; _shLS(ctx,W*0.005);
+  // Eyebrow (★ fecha / logro): rosa de marca en King y en el dark actual;
+  // violeta bajo el tema claro default para que la story matchee la app.
+  ctx.fillStyle = document.body.classList.contains('theme-light') ? '#B4A7FF' : '#FF8AA6';
+  ctx.font="800 "+Math.round(W*0.030)+"px 'DM Sans',sans-serif"; _shLS(ctx,W*0.005);
   ctx.fillText((t.eyebrow!=null ? t.eyebrow : '★ LOGRO DESBLOQUEADO'), tx, yy); _shLS(ctx,0);
   ctx.restore();
 }

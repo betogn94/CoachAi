@@ -35,6 +35,11 @@ function transformColors(txt) {
   for (const [from, to] of Object.entries(hexMap)) {
     s = s.replace(new RegExp('#' + from, 'gi'), '#' + to);
   }
+  // Animation-names de King → equivalentes violeta. Los @keyframes NO se
+  // scopean por tema: si la regla light apunta a un keyframe *KING (coral),
+  // el coral se cuela en el tema claro (pasó con el glow del logo del login).
+  s = s.replace(/landingIconGlowKING/g, 'landingIconGlow');
+  s = s.replace(/typingPulseKing/g, 'typingPulseLight');   // keyframe violeta definido a mano en el bloque Etapa 1
   return s;
 }
 
