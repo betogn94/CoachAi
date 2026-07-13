@@ -2833,8 +2833,9 @@
   }
 
   function renderDatosPersonales(c) {
-    // Privacy-conscious: we deliberately skip peso/altura/cuello/cintura/cadera.
-    // The coach sees objetivo/nivel/dias to evaluate plan fit, not body data.
+    // Mostramos peso inicial + actual (el coach necesita ver la evolución de peso).
+    // Seguimos ocultando altura/cuello/cintura/cadera: datos corporales finos que
+    // no aportan a la supervisión del plan.
     const SEXO_LABEL    = { femenino: 'Femenino', masculino: 'Masculino', otro: 'Otro' };
     const OBJETIVO_LABEL = { definir: '🔥 Definir', volumen: '💪 Volumen', ganar_musculo: '💪 Ganar músculo', mantener: '⚖️ Mantener', mantenimiento: '⚖️ Mantenimiento' };
     const NIVEL_LABEL    = { principiante: 'Principiante', intermedio: 'Intermedio', avanzado: 'Avanzado' };
@@ -2853,17 +2854,17 @@
     return cancelBadge + `<dl class="kv-grid">
       ${dimOrVal('Sexo',       SEXO_LABEL[c.sexo] || c.sexo)}
       ${dimOrVal('Edad',       c.edad ? c.edad + ' años' : null)}
+      ${dimOrVal('Peso inicial', c.peso_inicial != null ? c.peso_inicial + ' kg' : null)}
+      ${dimOrVal('Peso actual',  c.peso != null ? c.peso + ' kg' : null)}
       ${dimOrVal('Objetivo',   OBJETIVO_LABEL[c.objetivo] || c.objetivo)}
       ${dimOrVal('Nivel',      NIVEL_LABEL[c.nivel] || c.nivel)}
       ${dimOrVal('Días',       dias)}
-      ${dimOrVal('Duración',   c.duracion_sesion ? c.duracion_sesion + ' min' : null)}
       ${dimOrVal('Lugar',      LUGAR_LABEL[c.lugar_entreno] || c.lugar_entreno)}
       ${dimOrVal('Actividad',  ACTIVIDAD_LABEL[c.actividad] || c.actividad)}
       ${dimOrVal('Comidas/día', c.comidas_dia)}
       ${dimOrVal('Restricciones', Array.isArray(c.restricciones_dieta) && c.restricciones_dieta.length ? c.restricciones_dieta.join(', ') : null)}
       ${dimOrVal('Alergias',   Array.isArray(c.alergias) && c.alergias.length ? c.alergias.join(', ') : null)}
       ${dimOrVal('Lesiones',   Array.isArray(c.lesiones) && c.lesiones.length ? c.lesiones.join(', ') : null)}
-      ${dimOrVal('No le gusta', c.no_le_gusta)}
       ${dimOrVal('Teléfono',   c.telefono)}
     </dl>`;
   }
