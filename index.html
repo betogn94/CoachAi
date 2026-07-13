@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260713-2014-deploy">
+<meta name="app-version" content="20260713-2029-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -290,6 +290,14 @@ body.theme-light footer { color: var(--muted) !important; }
 body.theme-light .pwa-modal-body ol li::before,
 body.theme-light .pwa-modal-ok {
   background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 100%) !important;
+}
+
+/* Lámina A del onboarding claro: hombre en vez de mujer (el default es
+   unisex; la mujer queda para King). Mismos degradados de respaldo. */
+body.theme-light .ko-inter .ko-bg.ko-a {
+  background-image: url('/tenants/default/onb-a.jpg'),
+    radial-gradient(130% 70% at 50% 8%, #cfeaf1 0%, transparent 58%),
+    linear-gradient(180deg,#a6d4e6 0%,#79c2d2 38%,#cfe0cf 58%,#ecdfbf 100%);
 }
 
 /* Anillo del "escribiendo…" del chat en violeta (gemelo de typingPulseKing,
@@ -20377,7 +20385,12 @@ function initOnboardingPanels() {
     // Precarga de las fotos de las láminas: sin esto, la primera lámina muestra
     // un microsegundo el degradado de respaldo de .ko-a/.ko-c mientras el JPG
     // baja. Precargadas acá (arranque del onboarding), llegan calientes.
-    try { ['a', 'c'].forEach(k => { const im = new Image(); im.src = '/tenants/jesus/king-onb-' + k + '.jpg'; }); } catch (e) {}
+    // Lámina A según tema: default claro = hombre; King = mujer.
+    try {
+      const _lamA = document.body.classList.contains('theme-light')
+        ? '/tenants/default/onb-a.jpg' : '/tenants/jesus/king-onb-a.jpg';
+      [_lamA, '/tenants/jesus/king-onb-c.jpg'].forEach(s => { const im = new Image(); im.src = s; });
+    } catch (e) {}
   } else if (typeof kobRestoreCopy === 'function') {
     try { kobRestoreCopy(); } catch (e) {}
   }
