@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260713-0131-deploy">
+<meta name="app-version" content="20260713-1910-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -192,6 +192,97 @@
 #chat-wrapper.chat-swipe-anim .chat-input-row {
   transition: transform var(--mo-dur) var(--mo-ease);
 }
+
+/* ============================================================
+   DEFAULT LIGHT THEME  (body.theme-light)  ·  ETAPA 1
+   Lleva el tenant default de oscuro → fondo blanco luminoso, MANTENIENDO
+   el acento violeta (#7c6aff). Reusa el molde del theme-king (misma
+   estructura de "app en claro") pero con paleta violeta en vez de coral.
+   NO toca theme-king (King queda intacto). Gateado por ?light=1 mientras
+   se construye por etapas; el switch al default real es un paso aparte.
+   Etapas siguientes: afinar componente por componente (home, chat, alim,
+   entreno, perfil, cierre) donde queden restos oscuros o acentos coral-vs.
+   ============================================================ */
+body.theme-light {
+  --bg:            #FAFAFF;
+  --surface:       #FFFFFF;
+  --surface2:      #F3F2FE;
+  --border:        #E9E7F5;
+  --accent:        #7c6aff;
+  --accent-bright: #9d8dff;
+  --accent2:       #ff6b6b;   /* se mantienen (coral/teal de acento secundario) */
+  --accent3:       #2ecfb5;
+  --text:          #1A1A2E;
+  --muted:         #6B6B80;
+  --muted2:        #A9A9C0;
+  --success:       #17b39a;
+  --warning:       #E0912B;
+  background: var(--bg);
+  color: var(--text);
+}
+/* Mata el vignette oscuro que pinta body::after en el tema dark. */
+body.theme-light::after { display: none !important; }
+body.theme-light:has(:is(.form-wrapper, #home-wrapper, #diario-wrapper, #dashboard-wrapper, #perfil-wrapper, #wl-wrapper, #mi-entreno-wrapper)[style*="block"])::after {
+  display: none !important; background: transparent !important;
+}
+
+/* Card chrome universal: el dark usa vidrio oscuro rgba(20,20,32,.55) + blur +
+   sombra negra hardcodeados (no cambian con las vars). Los reseteamos a
+   superficie blanca + borde suave violeta + sombra tenue. Misma lista que el
+   theme-king (cubre ~95% de las superficies). */
+body.theme-light .coach-card,
+body.theme-light .chart-card,
+body.theme-light .cai-alim-summary,
+body.theme-light .alim-target-card,
+body.theme-light .cai-ent-summary,
+body.theme-light .cai-ent-hero,
+body.theme-light .cai-home-hero,
+body.theme-light .cai-home-card,
+body.theme-light .cai-home-semanas,
+body.theme-light .cai-home-semanas .semana-card,
+body.theme-light .cai-home-semanas .semana-analisis,
+body.theme-light .cai-perfil-plan,
+body.theme-light .cierre-card,
+body.theme-light .alim-day,
+body.theme-light .cai-ent-day-card,
+body.theme-light .cai-ent-hero-other,
+body.theme-light .qbtn-card,
+body.theme-light .typing-bubble {
+  background: var(--surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 1px 2px rgba(26,26,46,0.04), 0 4px 14px rgba(124,106,255,0.10) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Texto: el dark usa muchos #fff/color claro literal → sobre blanco hay que
+   volverlos oscuros. Base amplia (como theme-king); los casos con color
+   inline hardcodeado se afinan por sección en etapas siguientes. */
+body.theme-light,
+body.theme-light p,
+body.theme-light span,
+body.theme-light div { color: var(--text); }
+
+/* --- Landing / Login (verificable sin datos) --- */
+body.theme-light .landing-login-card {
+  background: var(--surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 4px 24px rgba(124,106,255,0.12), 0 1px 2px rgba(26,26,46,0.04) !important;
+}
+body.theme-light .email-login-input {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+}
+body.theme-light .email-login-input::placeholder { color: var(--muted) !important; }
+body.theme-light .email-login-input:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(124,106,255,0.14) !important;
+}
+body.theme-light .landing-footer-text,
+body.theme-light footer { color: var(--muted) !important; }
 
 /* ============================================================
    KING WHITELABEL OVERLAY (Jesús)
@@ -11819,6 +11910,12 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   try {
     var LS_PREVIEW_TENANT = 'coachai_preview_tenant_v1';
     var params = new URLSearchParams(window.location.search);
+    // ?light=1 → tema claro del tenant DEFAULT (proyecto por etapas). Persist en
+    // localStorage; ?light=0 lo apaga. Se aplica SOLO en los caminos "default"
+    // de abajo (sin tenant de marca) para no chocar con theme-king u otros.
+    var _lp = params.get('light');
+    if (_lp === '1') { try { localStorage.setItem('coachai_theme_light', '1'); } catch (e) {} }
+    else if (_lp === '0') { try { localStorage.removeItem('coachai_theme_light'); } catch (e) {} }
     // 0) HOSTNAME-BASED tenant detection — the canonical Phase C route.
     //    iOS strips path/query/hash from URLs at PWA install time, BUT it
     //    preserves the ORIGIN (scheme + hostname). A user installing the
@@ -11886,6 +11983,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     // CoachAI default during testing.
     if (slug === 'clear' || slug === 'default' || slug === 'coachai-default') {
       try { localStorage.removeItem(LS_PREVIEW_TENANT); } catch (e) {}
+      try { if (localStorage.getItem('coachai_theme_light') === '1') document.body.classList.add('theme-light'); } catch (e) {}
       return;
     }
     // No slug → fall through (CoachAI default). The post-login path
@@ -11898,7 +11996,10 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     // MutationObserver had already done — leaving coral logos on top of
     // a default-themed app. Better to only apply KING when we're
     // CERTAIN the visitor is on a whitelabel.)
-    if (!slug) return;
+    if (!slug) {
+      try { if (localStorage.getItem('coachai_theme_light') === '1') document.body.classList.add('theme-light'); } catch (e) {}
+      return;
+    }
     // Hardcoded synchronous palettes for each whitelabel. Must match the
     // colors in the tenant's branding_config so the post-fetch overlay is
     // a no-op (or just adds the logos / manifest / etc.). Bonus: when the
