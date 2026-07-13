@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260713-1934-deploy">
+<meta name="app-version" content="20260713-1959-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -17113,22 +17113,32 @@ if (new URLSearchParams(location.search).get('kingonbdemo') === '1') {
   window.addEventListener('load', () => { setTimeout(() => kingOnbOpen('Virginia'), 400); });
 }
 
-// DEV standalone: ?onbdemo=1 fuerza el tema King + abre el onboarding CLÁSICO
-// (el que ven las clientas King que compran la app SIN el Método) para
-// previsualizar el reskin en el teléfono, sin login ni API. Para volver al
-// tema por defecto después: abrir con ?tenant=default.
+// DEV standalone: ?onbdemo=1 abre el onboarding CLÁSICO sin login ni API, para
+// previsualizarlo en el teléfono. Tema según flag: con theme-light activo
+// (?light=1 o persistido) muestra el look claro VIOLETA del default; si no,
+// fuerza King (coral) como siempre. Volver al tema normal: ?tenant=default.
 if (new URLSearchParams(location.search).get('onbdemo') === '1') {
   window.addEventListener('load', () => setTimeout(() => {
-    // Aplicar el tema King directo (applySyncTenantTheme puede no existir si el
-    // boot salió temprano por falta de ?tenant). Mismas vars que THEMES.jesus.
     try {
-      document.body.classList.add('theme-king');
-      const r = document.documentElement, V = {
-        '--bg':'#FAFAFB','--surface':'#FFFFFF','--surface2':'#FFF0F4','--border':'#ECECF1',
-        '--accent':'#FF4F7B','--accent-bright':'#FF6B95','--accent2':'#FF6B95','--accent3':'#E03A6F',
-        '--text':'#1A1A26','--muted':'#6B6B80','--muted2':'#A9A9B8','--success':'#E03A6F'
-      };
-      for (const k in V) r.style.setProperty(k, V[k]);
+      const wantLight = new URLSearchParams(location.search).get('light') === '1'
+        || localStorage.getItem('coachai_theme_light') === '1'
+        || document.body.classList.contains('theme-light');
+      if (wantLight) {
+        // Tema claro default: la clase alcanza (las vars violeta/blanco vienen
+        // del propio bloque body.theme-light, sin overrides de :root).
+        document.body.classList.remove('theme-king');
+        document.body.classList.add('theme-light');
+      } else {
+        // Tema King directo (applySyncTenantTheme puede no existir si el boot
+        // salió temprano por falta de ?tenant). Mismas vars que THEMES.jesus.
+        document.body.classList.add('theme-king');
+        const r = document.documentElement, V = {
+          '--bg':'#FAFAFB','--surface':'#FFFFFF','--surface2':'#FFF0F4','--border':'#ECECF1',
+          '--accent':'#FF4F7B','--accent-bright':'#FF6B95','--accent2':'#FF6B95','--accent3':'#E03A6F',
+          '--text':'#1A1A26','--muted':'#6B6B80','--muted2':'#A9A9B8','--success':'#E03A6F'
+        };
+        for (const k in V) r.style.setProperty(k, V[k]);
+      }
     } catch (e) {}
     const lw = document.getElementById('landing-wrapper'); if (lw) lw.style.display = 'none';
     const wb = document.getElementById('welcome-back'); if (wb) wb.style.display = 'none';
