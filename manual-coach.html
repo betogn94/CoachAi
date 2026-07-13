@@ -124,6 +124,20 @@
   .shot img{width:100%;height:auto;display:block;border-radius:16px}
   .shot.has-img{border:1px solid var(--line);padding:0;background:none;box-shadow:var(--shadow)}
 
+  /* ─── figura real (screenshot) con zoom ─── */
+  figure.fig{margin:10px 0 24px;cursor:zoom-in;position:relative}
+  figure.fig img{width:100%;height:auto;display:block;border-radius:16px;border:1px solid var(--line);box-shadow:var(--shadow);background:#0f0f1a}
+  figure.fig figcaption{margin-top:10px;font-size:13.5px;color:var(--sec);text-align:center;line-height:1.5}
+  figure.fig .zoom-hint{position:absolute;top:11px;right:11px;background:rgba(18,18,26,.72);color:#fff;font-size:11px;font-weight:600;letter-spacing:.02em;padding:5px 10px;border-radius:100px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:inline-flex;align-items:center;gap:5px;pointer-events:none;opacity:.9}
+  .fig-pair{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+  @media(max-width:640px){.fig-pair{grid-template-columns:1fr;gap:8px}}
+
+  /* ─── lightbox ─── */
+  .lightbox{position:fixed;inset:0;z-index:300;background:rgba(12,12,16,.94);display:none;overflow:auto;-webkit-overflow-scrolling:touch;padding:18px}
+  .lightbox.open{display:flex;justify-content:safe center;align-items:safe center}
+  .lightbox img{width:min(960px,94vw);height:auto;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .lb-close{position:fixed;top:12px;right:14px;z-index:310;width:44px;height:44px;border-radius:50%;border:none;background:rgba(255,255,255,.16);color:#fff;font-size:20px;cursor:pointer;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+
   /* ─── code / formato ─── */
   .fmt{background:#1c1b2e;color:#e7e5f5;border-radius:16px;padding:18px 18px;margin:8px 0 18px;font-family:var(--mono);font-size:12.5px;line-height:1.7;overflow-x:auto;white-space:pre;box-shadow:var(--shadow)}
   .fmt .c-day{color:#b7abff;font-weight:700}
@@ -240,7 +254,11 @@
         <li><span class="ic">📊</span><div class="tx"><b>General</b>Dashboard (el resumen) y Clientes (todos tus alumnos).</div></li>
         <li><span class="ic teal">⚙️</span><div class="tx"><b>Gestión</b>Invitar, Feedback, Capacidad y tu Perfil.</div></li>
       </ul>
-      <div class="shot rv"><div class="shot-ic">📷</div><div class="shot-t">Screenshot</div><div class="shot-d">Pantalla de login de Studio (el tenant, pidiendo el email) y la vista general con el menú lateral.</div></div>
+      <figure class="fig rv" onclick="openLB(this.querySelector('img').src)">
+        <span class="zoom-hint">🔍 Ampliar</span>
+        <img src="/manual-img/post-login-coach.png" alt="Post-login: elegí entrar a Studio o usar la app como usuario" loading="lazy">
+        <figcaption>Al ingresar con tu email, la app detecta que sos coach y te deja elegir: <b>Abrir Studio</b> (tu panel) o <b>Continuar como usuario</b> (usar la app como un alumno más).</figcaption>
+      </figure>
     </section>
 
     <!-- ═══════════ 3 · INVITAR ═══════════ -->
@@ -259,7 +277,18 @@
         <li><span class="ic">🤖</span><div class="tx"><b>Vía A — La IA le crea el plan</b>Dejás el interruptor apagado. Cuando el alumno termina su onboarding, la IA le genera una <b>dieta y una rutina personalizadas al instante</b>, según lo que respondió. Ideal para alumnos nuevos.</div></li>
         <li><span class="ic teal">📋</span><div class="tx"><b>Vía B — Migrás tu plan existente</b>Activás <b>"Tiene plan previo para precargar"</b> y pegás la <b>rutina</b> y la <b>dieta</b> actuales del alumno. Las ve apenas entra. Ideal para alumnos que ya venías llevando.</div></li>
       </ul>
-      <div class="shot rv"><div class="shot-ic">📷</div><div class="shot-t">Screenshot</div><div class="shot-d">Sección Invitar con el formulario: email, nombre y el interruptor "Tiene plan previo" desplegado con los dos campos.</div></div>
+      <div class="fig-pair">
+        <figure class="fig rv" onclick="openLB(this.querySelector('img').src)">
+          <span class="zoom-hint">🔍 Ampliar</span>
+          <img src="/manual-img/invitar.png" alt="Sección Invitar: email, nombre y el interruptor de plan previo" loading="lazy">
+          <figcaption><b>Vía A.</b> Email + nombre y listo — la IA le arma el plan al entrar.</figcaption>
+        </figure>
+        <figure class="fig rv" onclick="openLB(this.querySelector('img').src)">
+          <span class="zoom-hint">🔍 Ampliar</span>
+          <img src="/manual-img/invitar-plan-previo.png" alt="Invitar con el interruptor de plan previo activado, mostrando los campos de rutina y dieta existentes" loading="lazy">
+          <figcaption><b>Vía B.</b> Activás el interruptor y pegás su rutina y dieta actuales.</figcaption>
+        </figure>
+      </div>
 
       <h3 class="subhead rv"><span class="dot"></span>Para que la IA lea tus planes a la PERFECCIÓN</h3>
       <p class="rv">Cuando migrás un plan (Vía B) podés pegarlo en <b>cualquier formato</b>: al guardar, la IA lo reordena solita al formato de la app. Pero si querés que la lectura sea <b>impecable</b>, seguí este formato — es el que usamos nosotros y garantiza que cada día, cada ejercicio y cada comida se lean perfecto.</p>
@@ -455,6 +484,11 @@
     <p style="margin-top:10px">Manual del Coach · Tu servicio de coaching, potenciado con IA.</p>
   </footer>
 
+  <div class="lightbox" id="lightbox" onclick="closeLB(event)">
+    <button class="lb-close" onclick="closeLB()" aria-label="Cerrar">✕</button>
+    <img id="lbimg" src="" alt="Captura ampliada">
+  </div>
+
   <a href="#" class="totop" id="totop" aria-label="Volver arriba">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
   </a>
@@ -489,6 +523,12 @@
     });
   }, { rootMargin:'-45% 0px -50% 0px', threshold:0 });
   document.querySelectorAll('section.doc').forEach(function(s){ spy.observe(s); });
+
+  // lightbox (zoom de capturas)
+  function openLB(src){ var lb=document.getElementById('lightbox'); document.getElementById('lbimg').src=src; lb.classList.add('open'); document.body.style.overflow='hidden'; }
+  function closeLB(e){ if(e&&e.target&&e.target.id==='lbimg')return; document.getElementById('lightbox').classList.remove('open'); document.body.style.overflow=''; }
+  window.openLB=openLB; window.closeLB=closeLB;
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeLB(); });
 </script>
 </body>
 </html>
