@@ -244,6 +244,16 @@
   .st-table .nm2{font-weight:700;color:var(--ink)}
   .st-table td.mono{font-family:var(--mono);font-size:10px;color:var(--sec)}
   @media(max-width:560px){.st-table th:nth-child(3),.st-table td:nth-child(3){display:none}}
+  .st-wide{max-width:1000px;margin:22px auto 0}
+  .st-an-top{display:grid;grid-template-columns:1fr 1.15fr;gap:14px;margin:4px 0 14px}
+  @media(max-width:720px){.st-an-top{grid-template-columns:1fr}}
+  .st-stats.g2{grid-template-columns:1fr 1fr;margin-bottom:0}
+  .st-chipdone{font-size:8px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#16a34a;background:rgba(22,163,74,.12);border-radius:100px;padding:3px 9px;margin-left:9px;vertical-align:2px}
+  .st-ai{background:var(--accent-soft);border:1px solid rgba(124,106,255,.22);border-radius:11px;padding:12px 14px;font-size:11px;line-height:1.65;color:#33306a}
+  .st-ai small{display:block;margin-top:8px;font-size:9px;color:var(--accent-2);font-weight:700}
+  .st-photos{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+  @media(max-width:720px){.st-photos{grid-template-columns:repeat(2,1fr)}}
+  .st-photos img{width:100%;border-radius:10px;display:block;border:1px solid var(--line);aspect-ratio:167/260;object-fit:cover}
   .st-feats{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:26px}
   .st-feats span{font-size:13px;font-weight:700;background:var(--card);border:1px solid var(--line);border-radius:100px;padding:9px 17px;box-shadow:var(--shadow);color:var(--ink)}
 
@@ -695,6 +705,38 @@
     </div>
     </div>
 
+    <div class="st-wide">
+    <div class="st-window">
+      <div class="st-bar">
+        <span class="st-dots"><i></i><i></i><i></i></span>
+        <span class="st-url">tumarca.coachaipro.ai/studio</span>
+        <span class="sp"></span>
+      </div>
+      <div class="st-body">
+        <div class="st-crumb">Clientes / <b>Sofía P.</b> / Análisis semanal</div>
+        <div class="st-hi">Semana 1<span class="st-chipdone">Completa</span></div>
+        <div class="st-sub">27 ene – 2 feb</div>
+        <div class="st-an-top">
+          <div class="st-stats g2">
+            <div class="st-stat"><small>Entrenamientos</small><b>4/4 ✓</b></div>
+            <div class="st-stat"><small>Calorías prom.</small><b>1.780</b></div>
+            <div class="st-stat"><small>Duración total</small><b>118 min</b></div>
+            <div class="st-stat"><small>Racha</small><b>🔥 7</b></div>
+          </div>
+          <div class="st-ai">Semana superada, ¡así se hace! 🔥 Completaste el 100% de tus entrenamientos, mantuviste un excelente promedio de calorías y tu racha sigue creciendo. ¡Vas por el camino correcto!<small>— Análisis de la IA en el cierre semanal</small></div>
+        </div>
+        <div class="dx-lbl" style="margin:0 0 8px">📸 Compará tu progreso</div>
+        <div class="st-photos">
+          <img src="/manual-img/an-inicio-frente.jpg" alt="Punto de inicio — frente">
+          <img src="/manual-img/an-inicio-espalda.jpg" alt="Punto de inicio — espalda">
+          <img src="/manual-img/an-sem1-frente.jpg" alt="Semana 1 — frente">
+          <img src="/manual-img/an-sem1-espalda.jpg" alt="Semana 1 — espalda">
+        </div>
+      </div>
+    </div>
+    <div class="st-capw" data-k="stCap3">El análisis semanal: cada cierre, la IA evalúa la semana y las fotos muestran el progreso real.</div>
+    </div>
+
     <div class="st-feats">
       <span data-k="stF1">⚡ Invitás alumnos en segundos</span>
       <span data-k="stF2">🚦 Semáforo de seguimiento</span>
@@ -824,6 +866,7 @@ var I18N = {
     stF1:'⚡ Invitás alumnos en segundos', stF2:'🚦 Semáforo de seguimiento', stF3:'📝 Editás dieta y rutina', stF4:'💬 Mensajes y notas de tus alumnos',
     stCap1:'El tablero: todos tus alumnos de un vistazo.',
     stCap2:'El perfil: un click sobre un alumno y ves todo — plan, actividad y adherencia.',
+    stCap3:'El análisis semanal: cada cierre, la IA evalúa la semana y las fotos muestran el progreso real.',
     priceEyebrow:'Planes mensuales', priceTitle:'Pagás por cupo de alumnos. <span class="g">Simple.</span>',
     per:'/mes', perClient:'por alumno', entArs:'Cotización personalizada', entUsdPre:'Desde ', entPa:'Hablemos', popTag:'EL MÁS ELEGIDO',
     noteArs:'Precios en pesos argentinos, referenciados al dólar del día · Cuanto más crecés, menos pagás por alumno · Cambiás de plan cuando quieras',
@@ -878,6 +921,7 @@ var I18N = {
     stF1:'⚡ Invite clients in seconds', stF2:'🚦 Follow-up traffic light', stF3:'📝 Edit diet and training', stF4:'💬 Client messages and notes',
     stCap1:'The board: all your clients at a glance.',
     stCap2:'The profile: one click on a client and you see everything — plan, activity and adherence.',
+    stCap3:'The weekly analysis: at every check-in, AI reviews the week and the photos show real progress.',
     priceEyebrow:'Monthly plans', priceTitle:'You pay per client capacity. <span class="g">Simple.</span>',
     per:'/mo', perClient:'per client', entArs:'Custom quote', entUsdPre:'From ', entPa:'Let’s talk', popTag:'MOST POPULAR',
     noteArs:'Prices in Argentine pesos, referenced to the daily USD rate · The more you grow, the less you pay per client · Change plan anytime',
