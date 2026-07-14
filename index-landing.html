@@ -251,9 +251,12 @@
   .st-chipdone{font-size:8px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#16a34a;background:rgba(22,163,74,.12);border-radius:100px;padding:3px 9px;margin-left:9px;vertical-align:2px}
   .st-ai{background:var(--accent-soft);border:1px solid rgba(124,106,255,.22);border-radius:11px;padding:12px 14px;font-size:11px;line-height:1.65;color:#33306a}
   .st-ai small{display:block;margin-top:8px;font-size:9px;color:var(--accent-2);font-weight:700}
-  .st-photos{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;max-width:740px;margin:0 auto}
+  .st-photos{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
   @media(max-width:720px){.st-photos{grid-template-columns:repeat(2,1fr)}}
   .st-photos img{width:100%;border-radius:10px;display:block;border:1px solid var(--line);aspect-ratio:167/260;object-fit:cover}
+  .st-ph{position:relative}
+  .st-ph .ptag{position:absolute;top:9px;left:9px;font-size:8.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:rgba(63,63,70,.92);padding:4px 10px;border-radius:8px}
+  .st-ph .ptag.pink{background:#ec4899}
   .st-feats{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:26px}
   .st-feats span{font-size:13px;font-weight:700;background:var(--card);border:1px solid var(--line);border-radius:100px;padding:9px 17px;box-shadow:var(--shadow);color:var(--ink)}
 
@@ -727,10 +730,10 @@
         </div>
         <div class="dx-lbl" style="margin:0 0 8px">📸 Compará tu progreso</div>
         <div class="st-photos">
-          <img src="/manual-img/an-inicio-frente.jpg" alt="Punto de inicio — frente">
-          <img src="/manual-img/an-inicio-espalda.jpg" alt="Punto de inicio — espalda">
-          <img src="/manual-img/an-sem1-frente.jpg" alt="Semana 1 — frente">
-          <img src="/manual-img/an-sem1-espalda.jpg" alt="Semana 1 — espalda">
+          <span class="st-ph"><img src="/manual-img/an-inicio-frente.jpg" alt="Punto de inicio — frente"><span class="ptag">Inicio</span></span>
+          <span class="st-ph"><img src="/manual-img/an-inicio-espalda.jpg" alt="Punto de inicio — espalda"><span class="ptag">Inicio</span></span>
+          <span class="st-ph"><img src="/manual-img/an-sem1-frente.jpg" alt="Semana 1 — frente"><span class="ptag pink">Sem 1</span></span>
+          <span class="st-ph"><img src="/manual-img/an-sem1-espalda.jpg" alt="Semana 1 — espalda"><span class="ptag pink">Sem 1</span></span>
         </div>
       </div>
     </div>
