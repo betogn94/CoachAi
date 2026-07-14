@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260713-2133-deploy">
+<meta name="app-version" content="20260714-1402-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -19062,12 +19062,24 @@ async function loadRecentDiario(days = 90) {
   if (!sbClient || !currentUser) return [];
   const from = new Date();
   from.setDate(from.getDate() - days);
-  const { data } = await sbClient.from('progreso_diario')
-    .select('fecha,desayuno,almuerzo,merienda,cena,calorias_consumidas,proteinas_g,carbos_g,grasas_g,entreno,ejercicios_realizados,notas_entreno')
-    .eq('usuario_id', currentUser.id)
-    .gte('fecha', formatLocalDate(from))
-    .order('fecha', { ascending: true });
-  return data || [];
+  const fromStr = formatLocalDate(from);
+  // Cargamos progreso_diario Y dias_entrenados en paralelo. dias_entrenados es
+  // la fuente de verdad del entreno (Mi Entreno la escribe primero); la usamos
+  // para que computeWeekStats no subcuente si el mirror a progreso_diario.entreno
+  // se perdió por sync (una tabla llegó y la otra no).
+  const [diarioRes, trainedRes] = await Promise.all([
+    sbClient.from('progreso_diario')
+      .select('fecha,desayuno,almuerzo,merienda,cena,calorias_consumidas,proteinas_g,carbos_g,grasas_g,entreno,ejercicios_realizados,notas_entreno')
+      .eq('usuario_id', currentUser.id)
+      .gte('fecha', fromStr)
+      .order('fecha', { ascending: true }),
+    sbClient.from('dias_entrenados')
+      .select('fecha')
+      .eq('usuario_id', currentUser.id)
+      .gte('fecha', fromStr),
+  ]);
+  _trainedDatesSet = new Set((trainedRes.data || []).map(r => r.fecha));
+  return diarioRes.data || [];
 }
 
 async function loadRecentChatHistory(days = 7) {
@@ -19637,6 +19649,11 @@ let todayConversation = [];        // today's role/content turns, persisted to h
 let recentChatHistory = [];        // last 7 days, used to build the system-prompt history summary
 let allChatHistory = [];           // full chronological list of historial_chat rows for this user
 let recentDiario = [];
+// Fuente de verdad de los ENTRENOS (la escribe Mi Entreno en dias_entrenados).
+// computeWeekStats cuenta la unión de esto + progreso_diario.entreno para que el
+// cierre no subcuente cuando el mirror a progreso_diario se pierde por un fallo
+// de sync (divergencia de fuentes — caso Bárbara). Se refresca en loadRecentDiario.
+let _trainedDatesSet = new Set();
 let weeklyPlans = { dieta: null, rutina: null };  // current ISO-week plans for this user
 let pendingPlanDelivery = null;    // 'dieta' | 'rutina' — set when user requests a plan, consumed when AI responds
 // Set of plan tipos the user tapped from the chat quick-buttons this session.
@@ -24589,7 +24606,15 @@ function formatDateShort(dateStr) {
 
 function computeWeekStats(logs, range) {
   const wLogs = logs.filter(l => l.fecha >= range.start && l.fecha <= range.end);
-  const trained = wLogs.filter(l => l.entreno === true).length;
+  // Entrenos = unión de progreso_diario.entreno y dias_entrenados (fuente de
+  // verdad), contando FECHAS distintas para no duplicar si un día está en ambas.
+  // Sin esto, un día que solo llegó a dias_entrenados (mirror a progreso_diario
+  // perdido) no se contaba y el cierre subcontaba la adherencia (caso Bárbara).
+  const trainedDates = new Set(wLogs.filter(l => l.entreno === true).map(l => l.fecha));
+  for (const f of _trainedDatesSet) {
+    if (f >= range.start && f <= range.end) trainedDates.add(f);
+  }
+  const trained = trainedDates.size;
   const avg = (field) => {
     const rows = wLogs.filter(l => l[field] > 0);
     return rows.length ? Math.round(rows.reduce((s, l) => s + l[field], 0) / rows.length) : null;
