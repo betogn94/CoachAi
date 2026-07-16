@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260714-1447-deploy">
+<meta name="app-version" content="20260716-2136-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -25680,6 +25680,17 @@ async function ejecutarCierreSemana() {
       // plan de la semana nueva sin recargar.
       try {
         weeklyPlans = await loadCurrentWeekPlans();
+        // Entregar el plan de la semana NUEVA en caliente — lo mismo que hace
+        // launchCoach al abrir la app. Sin esto, autoRepeatPlans solo corría en
+        // el próximo load: el usuario cerraba, se quedaba en la app y NO le
+        // llegaba dieta/rutina hasta reabrir (caso Beto 2026-07-16). Ahora que el
+        // reload de arriba dejó los planes con closed=true, autoRepeatPlans clona
+        // el plan cerrado a la semana ISO actual y lo deja ACTIVO. Recargamos
+        // weeklyPlans para que las secciones muestren el plan nuevo sin recargar.
+        try {
+          const didRepeat = await autoRepeatPlans();
+          if (didRepeat) weeklyPlans = await loadCurrentWeekPlans();
+        } catch (eR) { console.warn('[cierre] auto-repeat post-cierre falló:', eR?.message || eR); }
         dismissedPlanButtons.clear();
         if (typeof refreshQuickButtons === 'function') refreshQuickButtons();
       } catch (e2) {
