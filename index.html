@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260721-1927-deploy">
+<meta name="app-version" content="20260721-1937-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -16557,7 +16557,8 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   <details class="alim-tips-card" id="alim-tips-card" style="display:none">
     <summary class="alim-tips-title"><span>📋 Cómo leer tu plan</span><span class="alim-tips-chev">▾</span></summary>
     <div class="alim-tips-body">
-      <div class="alim-tips-item"><span class="ti-ic">🔀</span><span>La barra <b>"/"</b> separa <b>opciones</b>: elegís <b>UNA</b>, no comés todo el ítem.</span></div>
+      <div class="alim-tips-item"><span class="ti-ic">🔀</span><span>Cuando ves <b>"o"</b> entre dos alimentos, <b>elegí uno</b> — no comés los dos.</span></div>
+      <div class="alim-tips-item"><span class="ti-ic">➕</span><span><b>"///"</b> significa que esos alimentos van <b>juntos</b> en la misma comida.</span></div>
       <div class="alim-tips-item"><span class="ti-ic">⚖️</span><span>Todos los alimentos se pesan <b>cocidos</b>.</span></div>
       <div class="alim-tips-item"><span class="ti-ic">🥗</span><span>En ensaladas podés usar vinagres, salsas 0 cal, sal a gusto (sin exagerar) y cualquier condimento. <b>Evitá los aceites</b> si no están incluidos en esa comida.</span></div>
       <!-- Notas generales del plan (dinámicas, extraídas por parseDietaContenido) -->
@@ -23234,7 +23235,13 @@ async function renderMiAlimentacion() {
   // " + " for " /// " purely at render time — separates ingredients
   // into visually distinct chunks without losing the meaning. The
   // raw text in DB stays as the coach pasted it.
-  const _displayMealContent = (txt) => (txt || '').replace(/\s\+\s/g, ' /// ');
+  // " / " = alternativas (elegí una) → lo mostramos como " o " (imposible de leer
+  // como "y"). " + " = combinados (van juntos) → " /// ". El orden importa:
+  // convertimos "/" ANTES de crear los "///" (que contienen "/") para no pisarlos.
+  // Solo display — el texto en la base queda como lo pegó el coach.
+  const _displayMealContent = (txt) => (txt || '')
+    .replace(/\s\/\s/g, ' o ')
+    .replace(/\s\+\s/g, ' /// ');
   // Las dietas migradas estilo Jesús separan los GRUPOS de una comida con " · "
   // (proteína · carbo · grasa · infusión) y dentro de cada grupo las opciones con
   // "/". En una columna angosta todo eso se renderiza como UNA línea corrida →
