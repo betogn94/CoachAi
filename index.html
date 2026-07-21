@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260716-2136-deploy">
+<meta name="app-version" content="20260721-1503-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -17227,6 +17227,29 @@ async function sendOtpCode(email) {
   if (error) throw error;
 }
 
+// ── ACCESO DE REVISOR (Google Play / App Store) ──────────────────────────────
+// La política de review de Google exige, para apps con OTP/2FA, "credenciales de
+// acceso reutilizables que puedan saltear esos requisitos". Esta es esa cuenta:
+// para ESTE email exacto la app NO manda mail — muestra la misma pantalla de
+// código (UX segura), pero el código tipeado se valida como CONTRASEÑA
+// (signInWithPassword). El código NO vive en el bundle: lo tipea el revisor (se
+// le da por Play Console → App access). El resto del login es idéntico
+// (proceedAfterAuth → auth_resolve_session). La cuenta tiene acceso permanente en
+// el tenant `coachaipro` (beta_invitados, sembrado 2026-07-10). Cambiar SOLO para
+// las usuarias reales queda intacto: la rama se activa únicamente con este email.
+const REVIEW_LOGIN_EMAIL = 'review@coachaipro.ai';
+function isReviewLogin(email) {
+  return String(email || '').trim().toLowerCase() === REVIEW_LOGIN_EMAIL;
+}
+// Verifica al revisor: el "código" que tipeó es la contraseña de la cuenta de
+// prueba. Devuelve el auth.uid() igual que verifyOtpCode → el flujo sigue idéntico.
+async function reviewSignIn(email, code) {
+  if (!sbClient) initSupabase();
+  const { data, error } = await sbClient.auth.signInWithPassword({ email, password: code });
+  if (error) throw error;
+  return data?.user?.id || null;
+}
+
 // Verify the typed code. On success returns the auth.users id (auth.uid()).
 async function verifyOtpCode(email, code) {
   if (!sbClient) initSupabase();
@@ -17243,14 +17266,24 @@ function _otpReadCode() {
 function showOtpScreen(email) {
   const ov = document.getElementById('otp-overlay');
   if (!ov) return;
+  const review = isReviewLogin(email);
   const lbl = document.getElementById('otp-email-label'); if (lbl) lbl.textContent = email;
   const code = document.getElementById('otp-code'); if (code) code.value = '';
   const err = document.getElementById('otp-error'); if (err) err.textContent = '';
   const ld = document.getElementById('otp-loading'); if (ld) ld.style.display = 'none';
   const vb = document.getElementById('otp-verify-btn'); if (vb) vb.disabled = false;
+  // Revisor: no se mandó mail → título/subtítulo de "acceso" y sin botón de reenvío.
+  const titleEl = document.querySelector('.otp-title');
+  const subEl = document.querySelector('.otp-sub');
+  const resendEl = document.getElementById('otp-resend');
+  if (titleEl) titleEl.textContent = review ? 'Acceso de revisión' : 'Revisá tu email';
+  if (subEl) subEl.innerHTML = review
+    ? 'Ingresá el código de acceso para<br><strong>' + email + '</strong>'
+    : 'Te enviamos un código de 6 dígitos a<br><strong id="otp-email-label">' + email + '</strong>';
+  if (resendEl) resendEl.style.display = review ? 'none' : '';
   ov.style.display = 'flex';
   setTimeout(() => { try { document.getElementById('otp-code').focus(); } catch (e) {} }, 120);
-  _otpResendCooldown(document.getElementById('otp-resend'));   // we just sent → start 60s cooldown
+  if (!review) _otpResendCooldown(document.getElementById('otp-resend'));   // we just sent → start 60s cooldown
 }
 
 function hideOtpScreen() {
@@ -17292,7 +17325,11 @@ async function submitOtpCode() {
   const ld = document.getElementById('otp-loading');
   if (vb) vb.disabled = true; if (err) err.textContent = ''; if (ld) ld.style.display = 'block';
   try {
-    const authUid = await verifyOtpCode(_otpPending.email, code);
+    // Revisor: el código tipeado es la contraseña (bypass OTP, sin mail). Se detecta
+    // por el email mismo (robusto ante relanzamiento de la PWA, no depende de flags).
+    const authUid = isReviewLogin(_otpPending.email)
+      ? await reviewSignIn(_otpPending.email, code)
+      : await verifyOtpCode(_otpPending.email, code);
     _clearOtpPending();   // código consumido (no reutilizable) → no lo restauramos más
     // Identity confirmed → run the real login, now authenticated.
     await proceedAfterAuth(_otpPending.email, _otpPending.nombre, authUid);
@@ -19240,6 +19277,15 @@ async function handleEmailLogin() {
           return;
         }
       } catch (e) { /* sin sesión → flujo OTP normal */ }
+      // Acceso de revisor: NO se manda mail. Se muestra la pantalla de código (misma
+      // UX segura) y el código tipeado se valida como contraseña (ver reviewSignIn).
+      if (isReviewLogin(email)) {
+        _otpPending = { email, nombre };
+        _saveOtpPending(email, nombre);
+        showOtpScreen(email);
+        btn.disabled = false; loading.style.display = 'none';
+        return;
+      }
       await sendOtpCode(email);
       _otpPending = { email, nombre };
       _saveOtpPending(email, nombre);   // sobrevive el relanzamiento de la PWA (ir al mail y volver)
