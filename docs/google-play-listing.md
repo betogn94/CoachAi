@@ -71,21 +71,45 @@ CoachAI Pro es una herramienta de acompañamiento para fitness y bienestar gener
 ## 4. App access — instrucciones para el revisor ⚠️ CRÍTICO
 
 > Play Console → App content → **App access**. Elegir "All or some functionality is restricted".
-> Pegar esto para que el revisor pueda entrar (el login es por código OTP y el revisor NO lo recibe):
+> El login normal es por código OTP al email → le damos al revisor una **cuenta de prueba
+> reutilizable que saltea el OTP** (lo que Google exige para apps con OTP/2FA).
+> Credencial: email `review@coachaipro.ai` + código de acceso **`720194`** (= la contraseña
+> que se setea en Supabase; ver sección 4b). El código NO vive en la app: lo tipea el revisor.
 
 **Instrucciones (pegar en el campo, en inglés — el revisor suele ser de habla inglesa):**
 ```
 This app is used by fitness coaches to deliver personalized plans to their clients.
-Regular users sign in with an email one-time code (OTP).
+Users normally sign in with an email one-time code (OTP).
 
-To review the full app WITHOUT needing an email code, please use Guest access:
-1. Open the app (it launches on the coach directory / guest entry screen).
+We have provided a REUSABLE test account that bypasses the one-time code,
+as required by Google's sign-in guidance for OTP apps.
+
+To access the full app:
+1. Open the app (it launches on the coach directory screen).
 2. Tap "Ingresar como invitado" (Enter as guest).
-3. This starts a 14-day free trial with a sample experience — no login required.
+3. In the name field ("Tu nombre") enter any name (e.g. Reviewer).
+4. In the email field enter:  review@coachaipro.ai
+5. Tap "INGRESAR".
+6. On the next screen ("Acceso de revisión"), enter this access code:  720194
+7. You now have full access: personalized workout plan, nutrition plan,
+   AI coach chat, daily logging, weekly review and progress tracking.
 
-You will see the full app: personalized workout, nutrition plan, daily logging,
-AI coach chat, weekly review and progress tracking.
+Notes:
+- This test account bypasses the email OTP — no email code is sent for it.
+- The email, code and account are reusable and valid at all times.
 ```
+
+## 4b. Cómo se creó esa credencial (referencia técnica — NO va a Play)
+
+- **DB (hecho):** fila en `beta_invitados` (`review@coachaipro.ai`, tenant `coachaipro`,
+  `acceso_hasta` 2099) → acceso permanente. Sembrado 2026-07-10.
+- **Código (hecho):** rama en `index.html` (`isReviewLogin` / `reviewSignIn`) — para ese email
+  la app no manda mail y valida el código como contraseña (`signInWithPassword`).
+- **Auth user (lo hace Beto en Supabase):** Authentication → Users → Add user →
+  email `review@coachaipro.ai`, password **`720194`**, ✅ Auto Confirm User.
+  ⚠️ El password DEBE ser exactamente `720194` (= el código de la sección 4) o cambiar ambos a la par.
+- **QA obligatorio antes de enviar:** entrar en la app instalada con ese email + código →
+  confirmar que loguea, que un código incorrecto falla, y que es reutilizable (logout/login).
 
 ---
 
