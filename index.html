@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260721-1503-deploy">
+<meta name="app-version" content="20260721-1927-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -23235,6 +23235,17 @@ async function renderMiAlimentacion() {
   // into visually distinct chunks without losing the meaning. The
   // raw text in DB stays as the coach pasted it.
   const _displayMealContent = (txt) => (txt || '').replace(/\s\+\s/g, ' /// ');
+  // Las dietas migradas estilo Jesús separan los GRUPOS de una comida con " · "
+  // (proteína · carbo · grasa · infusión) y dentro de cada grupo las opciones con
+  // "/". En una columna angosta todo eso se renderiza como UNA línea corrida →
+  // parece "llenísima de comida" cuando en realidad es un menú (elegís una opción
+  // por grupo). Partimos cada grupo a su propia línea para que se lea como menú.
+  // No-op para dietas de IA (no usan " · " en el contenido de la comida).
+  const _mealDetailHtml = (txt) => _displayMealContent(txt)
+    .split(/\s·\s/)
+    .map(g => _esc(g.trim()))
+    .filter(Boolean)
+    .join('<br>');
   mealsList.innerHTML = day.meals.map((m, j) => {
     const st = estado[`d${i}m${j}`] || {};
     const cumplido = !!st.cumplido;
@@ -23268,7 +23279,7 @@ async function renderMiAlimentacion() {
               ${macrosLine}
             </div>
           </div>
-          <div class="cai-meal-detail">${_esc(showText)}${st.customText ? ' <em style="opacity:.7;font-style:normal">· editada</em>' : ''}</div>
+          <div class="cai-meal-detail">${_mealDetailHtml(st.customText || m.content)}${st.customText ? ' <em style="opacity:.7;font-style:normal">· editada</em>' : ''}</div>
           <button class="cai-meal-edit" onclick="event.stopPropagation();editAlimComida(${i},${j})" type="button">${EDIT_SVG}<span>${lang==='es'?'Editar':'Edit'}</span></button>
         </div>
       </div>`;
