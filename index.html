@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260723-1956-deploy">
+<meta name="app-version" content="20260723-2004-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -5024,6 +5024,17 @@ body:has(.form-wrapper[style*="block"]) .home-wrapper { display: none !important
    que eran lo que empujaba la página unos px más allá del viewport. */
 body:has(.form-wrapper[style*="block"]) > footer { display: none !important; }
 body:has(.form-wrapper[style*="block"]) .form-wrapper { margin-bottom: 0 !important; }
+
+/* --- Fallback para motores SIN :has() (ej. Chrome/WebView < 105): el reskin del
+   onboarding oculta header + navbar con body.theme-X:has(.form-wrapper[style*="block"]).
+   En navegadores sin :has() esas reglas no aplican → el header y la navbar quedaban
+   visibles (tapando el "Continuar"). onbOpenFallback() setea body.onb-open por JS
+   espejando ese estado, y acá duplicamos las ocultaciones críticas con esa clase
+   (funciona en todo motor). Con :has() presente son idempotentes. --- */
+body.theme-light.onb-open #main-header,
+body.theme-king.onb-open #main-header { display: none !important; }
+body.theme-light.onb-open .cai-bottom-nav,
+body.theme-king.onb-open .cai-bottom-nav { display: none !important; }
 
 /* Floating bottom nav — single shared element OUTSIDE the panels. Respects
    iOS safe-area-inset-bottom so the button row doesn't touch the home
@@ -17603,6 +17614,23 @@ async function perfilLogout() {
   try { localStorage.removeItem(LS_SESSION); } catch (e) {}
   window.location.reload();
 }
+// Fallback :has() para el onboarding en motores viejos (Chrome/WebView < 105).
+// Espeja body:has(.form-wrapper[style*="block"]) como body.onb-open (por JS, funciona
+// en todo motor); las reglas .onb-open del CSS ocultan header + navbar aun sin :has().
+(function onbOpenFallback(){
+  function sync(){
+    var fw = document.querySelector('.form-wrapper');
+    document.body.classList.toggle('onb-open', !!fw && fw.style.display === 'block');
+  }
+  function start(){
+    var fw = document.querySelector('.form-wrapper');
+    if (!fw) { setTimeout(start, 300); return; }
+    sync();
+    try { new MutationObserver(sync).observe(fw, { attributes:true, attributeFilter:['style'] }); } catch(e){}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();
 function loadSession() {
   try { return JSON.parse(localStorage.getItem(LS_SESSION) || 'null'); } catch (e) { return null; }
 }
