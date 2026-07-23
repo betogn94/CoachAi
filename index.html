@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260721-1937-deploy">
+<meta name="app-version" content="20260723-1956-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -16059,6 +16059,9 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   <div class="cai-perfil-danger">
     <a href="/privacidad.html" target="_blank" rel="noopener" class="cai-perfil-privacy-link" data-es="Política de privacidad" data-en="Privacy policy">Política de privacidad</a>
     <a href="/terminos.html" target="_blank" rel="noopener" class="cai-perfil-privacy-link" data-es="Términos de servicio" data-en="Terms of service">Términos de servicio</a>
+    <button class="cai-logout-btn" onclick="perfilLogout()" type="button"
+      data-es="Cerrar sesión" data-en="Log out"
+      style="width:100%;margin-bottom:10px;padding:12px;border:1.5px solid var(--border,rgba(255,255,255,.16));border-radius:13px;background:var(--surface2,rgba(255,255,255,.05));color:var(--text,#fff);font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">Cerrar sesión</button>
     <button class="cai-delete-account-btn" onclick="openDeleteAccount()" type="button"
       data-es="Eliminar mi cuenta" data-en="Delete my account">Eliminar mi cuenta</button>
   </div>
@@ -17590,6 +17593,15 @@ async function clearSession() {
   // en SU propio storage y tryAutoLogin re-loguea a la usuaria anterior en el
   // próximo boot (logout inefectivo en dispositivo compartido). Best-effort.
   try { if (sbClient && sbClient.auth) await sbClient.auth.signOut({ scope: 'local' }); } catch (e) {}
+}
+// Logout desde Perfil. No borra datos (≠ eliminar cuenta): cierra la sesión y
+// recarga → la persona vuelve a la pantalla de ingreso. `coachai_native` NO se
+// toca (es del wrapper, no de la usuaria). Mismo patrón que el logout de la
+// pantalla de renovación.
+async function perfilLogout() {
+  try { await clearSession(); } catch (e) {}
+  try { localStorage.removeItem(LS_SESSION); } catch (e) {}
+  window.location.reload();
 }
 function loadSession() {
   try { return JSON.parse(localStorage.getItem(LS_SESSION) || 'null'); } catch (e) { return null; }
@@ -21937,8 +21949,11 @@ function isNativeWrapper() {
     const q = new URLSearchParams(location.search);
     if (q.get('native') === '1') { try { localStorage.setItem('coachai_native', '1'); } catch (e) {} return true; }
     if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) return true;
-    if (/CoachAIApp/i.test(navigator.userAgent || '')) return true;
-    if ((document.referrer || '').startsWith('android-app://')) return true;
+    if (/CoachAIApp/i.test(navigator.userAgent || '')) { try { localStorage.setItem('coachai_native', '1'); } catch (e) {} return true; }
+    // El referrer android-app:// SOLO está en la primera carga del TWA; al navegar/
+    // recargar se pierde. Persistimos para que la detección quede "pegajosa" y el
+    // anti-steering (ocultar pago externo) NO se caiga en pantallas posteriores.
+    if ((document.referrer || '').startsWith('android-app://')) { try { localStorage.setItem('coachai_native', '1'); } catch (e) {} return true; }
     if (localStorage.getItem('coachai_native') === '1') return true;
   } catch (e) {}
   return false;
