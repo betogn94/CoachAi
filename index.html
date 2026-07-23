@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260723-2004-deploy">
+<meta name="app-version" content="20260723-2016-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -33580,6 +33580,17 @@ async function subscribeToPush() {
     setStatus('✓ Notificaciones activadas en este dispositivo.');
     if (btn) { btn.textContent = '✓ Activadas'; btn.disabled = true; }
     if (typeof trackEvent === 'function') trackEvent('push_subscribed', null);
+    // Confirmación INMEDIATA: mostramos una notificación local al toque para que la
+    // persona (y el revisor de la store) vea que las notifs funcionan de verdad, sin
+    // esperar a una programada. Es LOCAL (no push) → no necesita el server/VAPID.
+    try {
+      reg.showNotification('¡Notificaciones activadas! 🔔', {
+        body: 'Genial, vas a recibir tus recordatorios por acá.',
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        tag: 'welcome-notif',
+      });
+    } catch (e) {}
     // Mostrar la confirmación un instante y después esconder la card entera,
     // para no dejar un residuo en Perfil una vez activadas.
     const sec = document.getElementById('perfil-notif-section');
