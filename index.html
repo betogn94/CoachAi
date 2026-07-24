@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260723-2036-deploy">
+<meta name="app-version" content="20260724-2313-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15459,7 +15459,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
           <div class="section-number">05</div>
           <div class="section-info">
             <div class="section-title" data-es="TU PUNTO DE INICIO" data-en="YOUR STARTING POINT">TU PUNTO DE INICIO</div>
-            <div class="section-desc" data-es="2 fotos · obligatorias" data-en="2 photos · required">2 fotos · obligatorias</div>
+            <div class="section-desc" data-es="2 fotos · recomendadas" data-en="2 photos · recommended">2 fotos · recomendadas</div>
           </div>
         </div>
         <div class="section-body">
@@ -15498,6 +15498,11 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
             </div>
           </div>
           <button class="btn-launch" id="btn-launch-coach" onclick="launchCoach()" disabled data-es="🚀 COMENZAR CON MI COACH" data-en="🚀 START WITH MY COACH">🚀 COMENZAR CON MI COACH</button>
+          <!-- Saltar fotos (2026-07-24): las fotos de inicio son OPCIONALES (recomendadas).
+               En este panel el perfil ya está completo → launchCoach entra igual sin fotos
+               (uploadFotoInicial no sube nada si no hay). Alinea con el Data Safety
+               (fotos = opcionales) y baja la fricción del onboarding. -->
+          <button type="button" id="onb-skip-fotos" onclick="launchCoach()" data-es="Saltar por ahora" data-en="Skip for now" style="display:block; width:100%; margin-top:10px; background:none; border:none; color:var(--muted,#9a9aa8); font-size:13.5px; font-weight:600; padding:9px; cursor:pointer; font-family:inherit; text-decoration:underline;">Saltar por ahora</button>
         </div>
       </div>
       <div class="step-panel-dots">
@@ -20607,22 +20612,10 @@ function onbNextOrLaunch() {
     // otherwise the floating SIGUIENTE button can sneak past the photo step.
     // Edit-mode users (complete profile already in DB) skip this gate; same
     // rule as refreshFotosInicioReadiness.
-    const isEditingExistingProfile = !!(
-      typeof currentUser !== 'undefined' && currentUser &&
-      currentUser.peso && currentUser.altura && currentUser.edad && currentUser.sexo && currentUser.objetivo
-    );
-    if (!isEditingExistingProfile) {
-      const all2 = ['frente', 'espalda'].every(v => {
-        const el = document.getElementById(`foto-inicial-${v}-input`);
-        return el && el.files && el.files[0];
-      });
-      if (!all2) {
-        // Surface the same helper text the inline status uses so the user
-        // sees exactly what's missing.
-        if (typeof refreshFotosInicioReadiness === 'function') refreshFotosInicioReadiness();
-        return;
-      }
-    }
+    // Fotos de inicio OPCIONALES (2026-07-24): antes el botón flotante bloqueaba el
+    // launch si faltaban las 2 fotos. Ahora son recomendadas, no obligatorias — el
+    // perfil ya está completo en este panel y launchCoach sube las fotos solo si están.
+    // (Alinea con el Data Safety: fotos = opcionales; y baja la fricción del onboarding.)
     launchCoach();
   } else {
     nextPanel();
