@@ -22,7 +22,13 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const VAPID_PUBLIC  = 'BMU0PM_rgcq81HVt8F1Qma0AwbjoHeja5yv6LfadmumHa2Z_IJNmLHuLBsQsrxw13Kso2Krgz7UrU1-ZhsN4WIo';
 const VAPID_SUBJECT = 'mailto:support.coachaipro@gmail.com';
 
-const SB_HEADERS = { apikey: SUPABASE_ANON, Authorization: 'Bearer ' + SUPABASE_ANON, 'Content-Type': 'application/json' };
+// ⚠️ FIX (2026-07-24): post-cutover RLS (2026-06-29) la ANON key ve 0 filas en
+// usuarios/push_subscriptions (quedaron RLS-locked por-usuario) → el cron iteraba
+// sobre [] y no mandaba NADA (falla silenciosa: 200 OK, 0 envíos, ~25 días caído).
+// El cron es un contexto SERVIDOR de confianza → usa la SERVICE-ROLE key (bypassa RLS),
+// igual que la parte del Team. SUPABASE_ANON queda solo por referencia (ya no se usa).
+const SB_SVC_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SB_HEADERS = { apikey: SB_SVC_KEY, Authorization: 'Bearer ' + SB_SVC_KEY, 'Content-Type': 'application/json' };
 
 async function sbGet(path) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: SB_HEADERS });
@@ -176,7 +182,7 @@ function buildLogroNotif(logro) {
 // con el SERVICE-ROLE. Todo el equipo (Beto/Jesús/Juli) está en Argentina, así
 // que la hora de las tareas se interpreta en esa zona.
 const TEAM_TZ = 'America/Argentina/Buenos_Aires';
-const SB_SVC_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// SB_SVC_KEY ya está definido arriba (lo comparten el cron de clientas y el del Team).
 const SB_SVC_HEADERS = () => ({ apikey: SB_SVC_KEY, Authorization: 'Bearer ' + SB_SVC_KEY, 'Content-Type': 'application/json' });
 async function sbSvcGet(path) { const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: SB_SVC_HEADERS() }); return r.json(); }
 async function sbSvcPatch(path, body) { return fetch(`${SUPABASE_URL}/rest/v1/${path}`, { method: 'PATCH', headers: { ...SB_SVC_HEADERS(), Prefer: 'return=minimal' }, body: JSON.stringify(body) }); }
@@ -241,6 +247,9 @@ export default async function handler(req, res) {
   if (!authed && !testSecretOk) return res.status(401).json({ error: 'unauthorized' });
 
   if (!process.env.VAPID_PRIVATE_KEY) return res.status(500).json({ error: 'vapid_not_configured' });
+  // Sin service-role NO se puede leer usuarios/push_subscriptions post-RLS → fallar claro
+  // en vez de "correr" y no mandar nada (la falla silenciosa que tuvimos 25 días).
+  if (!SB_SVC_KEY) return res.status(500).json({ error: 'service_role_not_configured' });
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, process.env.VAPID_PRIVATE_KEY);
 
   const testTipo = req.query && req.query.test;
