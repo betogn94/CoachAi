@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoachAI Pro — Manual de Marca · Theme Light</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FAFAFF; --surface:#FFFFFF; --surface2:#F3F2FE; --border:#E9E7F5;
+  --accent:#7C6AFF; --accent-bright:#9D8DFF; --accent-deep:#5A48E0;
+  --coral:#FF6B6B; --teal:#2ECFB5; --success:#17B39A; --warning:#E0912B;
+  --ink:#1A1A2E; --muted:#6B6B80; --muted2:#A9A9C0;
+  --story-lila:#B4A7FF;
+  --grad:linear-gradient(135deg,var(--accent-bright) 0%,var(--accent) 50%,var(--teal) 100%);
+  --card-shadow:0 1px 2px rgba(26,26,46,.04),0 4px 14px rgba(124,106,255,.10);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:'DM Sans',sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:980px;margin:0 auto;padding:0 24px 100px}
+a{color:var(--accent)}
+
+/* ---------- chrome del manual ---------- */
+.hero{padding:72px 0 56px;text-align:center}
+.hero img.iso{width:84px;margin-bottom:18px;filter:drop-shadow(0 8px 22px rgba(124,106,255,.28))}
+.hero h1{font-size:15px;letter-spacing:5px;font-weight:700;color:var(--accent);text-transform:uppercase;font-family:'JetBrains Mono',monospace}
+.hero .big{font-size:clamp(34px,6vw,54px);font-weight:800;letter-spacing:-.02em;line-height:1.08;margin:14px 0 12px}
+.hero .big em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{color:var(--muted);max-width:560px;margin:0 auto;font-size:16px}
+.vtag{display:inline-block;margin-top:22px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1.5px;color:var(--muted2);border:1px solid var(--border);border-radius:100px;padding:7px 16px;background:var(--surface)}
+
+section{margin-top:74px}
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:2.5px;color:var(--accent);text-transform:uppercase;margin-bottom:10px}
+h2{font-size:30px;font-weight:800;letter-spacing:-.01em;margin-bottom:8px}
+.lead{color:var(--muted);font-size:15.5px;max-width:720px;margin-bottom:28px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:var(--card-shadow);padding:28px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+h3{font-size:16px;font-weight:700;margin-bottom:6px}
+.note{font-size:13px;color:var(--muted)}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* ---------- swatches ---------- */
+.sw{border-radius:16px;overflow:hidden;border:1px solid var(--border);background:var(--surface);box-shadow:var(--card-shadow)}
+.sw .chip{height:92px}
+.sw .info{padding:12px 14px}
+.sw .nm{font-weight:700;font-size:13.5px}
+.sw .hx{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted);letter-spacing:.5px}
+.sw .use{font-size:11.5px;color:var(--muted2);margin-top:3px;line-height:1.4}
+.ratio{display:flex;height:56px;border-radius:14px;overflow:hidden;border:1px solid var(--border);margin-top:18px}
+.ratio div{display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px}
+
+/* ---------- logo section ---------- */
+.logo-stage{display:flex;align-items:center;justify-content:center;min-height:170px;border-radius:16px}
+.logo-stage img{max-width:70%;max-height:110px;object-fit:contain}
+.stage-light{background:var(--bg);border:1px dashed var(--border)}
+.stage-white{background:#fff;border:1px solid var(--border)}
+.stage-dark{background:#101018}
+.stage-violet{background:var(--accent)}
+.donts li{margin:7px 0 7px 18px;font-size:14px;color:var(--muted)}
+.donts b{color:var(--coral);font-weight:700}
+.ok b{color:var(--success)}
+
+/* ---------- type specimens ---------- */
+.spec{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 20px;padding:16px 0;border-bottom:1px solid var(--border)}
+.spec:last-child{border-bottom:none}
+.spec .meta{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted2);letter-spacing:.5px;min-width:210px}
+.t-h1{font-size:28px;font-weight:800;letter-spacing:-.01em}
+.t-h2{font-size:22px;font-weight:700}
+.t-body{font-size:15px;font-weight:400}
+.t-sub{font-size:13.5px;color:var(--muted)}
+.t-eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:2.5px;color:var(--accent);text-transform:uppercase}
+.t-num{font-size:34px;font-weight:800;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.t-bebas{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:2px}
+
+/* ---------- componentes ---------- */
+.comp-row{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.btn-grad{background:var(--grad);color:#fff;border:none;border-radius:12px;padding:13px 26px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;box-shadow:0 6px 18px rgba(124,106,255,.32);cursor:default}
+.btn-ink{background:var(--ink);color:#fff;border:none;border-radius:100px;padding:13px 28px;font-size:15px;font-weight:600;box-shadow:0 8px 22px rgba(26,26,46,.25);cursor:default}
+.btn-circle{width:54px;height:54px;border-radius:50%;background:var(--ink);color:#fff;border:none;font-size:26px;line-height:1;box-shadow:0 8px 22px rgba(26,26,46,.25);cursor:default}
+.chip-d{border:1.5px solid var(--border);background:var(--surface);color:var(--muted);border-radius:14px;padding:13px 22px;font-size:14.5px;cursor:default}
+.chip-d.sel{border-color:var(--accent);color:var(--accent);background:rgba(124,106,255,.10)}
+.pill-tag{border:1px solid var(--border);background:var(--surface2);color:var(--accent);border-radius:100px;padding:5px 13px;font-family:'JetBrains Mono',monospace;font-size:11.5px}
+.prog{height:4px;background:#E3E0F2;border-radius:0;overflow:hidden;flex:1;min-width:170px}
+.prog i{display:block;height:100%;width:46%;background:var(--accent)}
+.input-d{border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:12px 16px;font-family:'DM Sans',sans-serif;font-size:14.5px;color:var(--ink);width:200px}
+.minicard{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--card-shadow);padding:18px 20px;min-width:220px}
+.minicard .ey{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1.6px;color:var(--accent);margin-bottom:8px}
+.minicard .n{font-size:30px;font-weight:800;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.minicard .l{font-size:11px;color:var(--muted);letter-spacing:1px;font-family:'JetBrains Mono',monospace}
+
+/* ---------- story ---------- */
+.story{width:250px;aspect-ratio:9/16;border-radius:22px;overflow:hidden;position:relative;background:#181820 url('/tenants/default/onb-a.jpg') center/cover;box-shadow:0 18px 44px rgba(26,26,46,.30);flex-shrink:0}
+.story::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(0,0,0,.66) 100%)}
+.story .medal{position:absolute;top:9%;right:7%;width:34%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFB566,#C9581E 70%);display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;box-shadow:0 6px 16px rgba(0,0,0,.4);z-index:2}
+.story .txt{position:absolute;left:9%;right:9%;bottom:7%;z-index:2;color:#fff}
+.story .ey{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--story-lila);font-weight:700;margin-bottom:6px}
+.story .ti{font-size:21px;font-weight:800;line-height:1.1;margin-bottom:4px}
+.story .su{font-size:11px;opacity:.9}
+.story .hd{position:absolute;right:8%;bottom:3.5%;font-size:8px;letter-spacing:1px;color:rgba(255,255,255,.65);font-family:'JetBrains Mono',monospace;z-index:2}
+
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1.5px;color:var(--muted2);text-transform:uppercase;padding:10px 12px;border-bottom:1px solid var(--border)}
+td{padding:11px 12px;border-bottom:1px solid var(--border);color:var(--muted)}
+td b{color:var(--ink)}
+tr:last-child td{border-bottom:none}
+
+footer{margin-top:90px;text-align:center;color:var(--muted2);font-size:12px;font-family:'JetBrains Mono',monospace;letter-spacing:1px}
+@media (max-width:640px){ .spec .meta{min-width:100%} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ============ PORTADA ============ -->
+<div class="hero">
+  <img class="iso" src="/logo-icon.png" alt="Isotipo CoachAI Pro">
+  <h1>Manual de Marca · v1</h1>
+  <div class="big">CoachAI <em>Pro</em></div>
+  <p>Sistema de identidad visual del tema claro (theme-light). La marca de un coach con IA que se siente <b>premium, luminoso y humano</b> — pensada para verse impecable en la app, en una story y en un screenshot compartido.</p>
+  <div class="vtag">THEME-LIGHT · 2026 · coachaipro.ai</div>
+</div>
+
+<!-- ============ 01 ESENCIA ============ -->
+<section>
+  <div class="eyebrow">01 · Esencia</div>
+  <h2>Personalidad de marca</h2>
+  <p class="lead">Todo lo visual sale de estas cinco palabras. Si una pieza no las respira, no es CoachAI Pro.</p>
+  <div class="grid g3">
+    <div class="card"><h3>Luminosa</h3><p class="note">Fondo blanco-violeta, aire, sombras suaves. La app se siente liviana, nunca "pantalla negra de gimnasio".</p></div>
+    <div class="card"><h3>Precisa</h3><p class="note">Números protagonistas en monospace, datos claros, cero adorno gratuito. La IA se nota en el orden, no en el ruido.</p></div>
+    <div class="card"><h3>Cercana</h3><p class="note">Voseo rioplatense, frases naturales ("Empecemos por lo esencial"), nunca burocracia ni GRITOS en mayúsculas.</p></div>
+    <div class="card"><h3>Cinematográfica</h3><p class="note">El contraste deliberado: producto claro + fotografía de gimnasio oscura y dramática en láminas y stories.</p></div>
+    <div class="card"><h3>Nativa</h3><p class="note">Se comporta como app de iOS/Android de primera línea: gestos, animación snappy, componentes que se sienten del sistema.</p></div>
+  </div>
+</section>
+
+<!-- ============ 02 LOGO ============ -->
+<section>
+  <div class="eyebrow">02 · Logo</div>
+  <h2>Wordmark e isotipo</h2>
+  <p class="lead">Dos piezas: el <b>wordmark</b> COACHAI PRO (uso principal en pantallas y piezas horizontales) y el <b>isotipo</b> — la pesa rusa con "AI" — para avatares, favicon, ícono de app y espacios cuadrados.</p>
+  <div class="grid g2">
+    <div class="sw"><div class="logo-stage stage-light"><img src="/logo.png" alt="wordmark sobre claro"></div><div class="info"><div class="nm">Wordmark · fondo claro</div><div class="use">Uso principal en theme-light. Siempre sobre --bg o blanco.</div></div></div>
+    <div class="sw"><div class="logo-stage stage-white"><img src="/logo-icon.png" style="max-height:96px" alt="isotipo"></div><div class="info"><div class="nm">Isotipo · la pesa AI</div><div class="use">Avatar de redes, ícono de app, favicon, sello en piezas chicas.</div></div></div>
+    <div class="sw"><div class="logo-stage stage-dark"><img src="/logo.png" alt="wordmark sobre oscuro"></div><div class="info"><div class="nm">Sobre fotografía / fondo oscuro</div><div class="use">Permitido en stories y láminas. Si el contraste no alcanza, usar la versión con halo suave o subir el scrim de la foto.</div></div></div>
+    <div class="sw"><div class="logo-stage stage-violet"><img src="/logo-icon.png" style="max-height:90px" alt="isotipo sobre violeta"></div><div class="info"><div class="nm">Sobre violeta pleno</div><div class="use">Solo el isotipo. El wordmark degradado NUNCA sobre violeta (se funde).</div></div></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <h3>Reglas de oro</h3>
+    <ul class="donts ok">
+      <li><b>SÍ</b> — área de respeto: dejar libre alrededor del logo al menos la altura de la letra "C" del wordmark.</li>
+      <li><b>SÍ</b> — tamaño mínimo: wordmark 110 px de ancho en digital; isotipo 24 px.</li>
+    </ul>
+    <ul class="donts">
+      <li><b>NO</b> estirarlo, inclinarlo ni cambiarle la proporción.</li>
+      <li><b>NO</b> recolorearlo (el coral es de KING, el violeta es nuestro — no se mezclan).</li>
+      <li><b>NO</b> ponerle sombras duras, bordes ni contornos.</li>
+      <li><b>NO</b> apoyarlo sobre foto sin scrim (velo oscuro) que garantice contraste.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 03 COLOR ============ -->
+<section>
+  <div class="eyebrow">03 · Color</div>
+  <h2>Paleta theme-light</h2>
+  <p class="lead">Base blanca-violeta con un solo acento protagonista. Regla <b>60 / 30 / 10</b>: 60% neutros claros, 30% tinta y grises, 10% violeta (y el gradiente solo para el CTA principal y números héroe).</p>
+
+  <h3 style="margin-bottom:10px">Primarios</h3>
+  <div class="grid g4">
+    <div class="sw"><div class="chip" style="background:#7C6AFF"></div><div class="info"><div class="nm">Violeta CoachAI</div><div class="hx">#7C6AFF · accent</div><div class="use">CTA, links, selección, íconos activos, barra de progreso.</div></div></div>
+    <div class="sw"><div class="chip" style="background:#9D8DFF"></div><div class="info"><div class="nm">Violeta Bright</div><div class="hx">#9D8DFF · accent-bright</div><div class="use">Inicio de gradientes, hovers, acentos secundarios.</div></div></div>
+    <div class="sw"><div class="chip" style="background:#5A48E0"></div><div class="info"><div class="nm">Violeta Deep</div><div class="hx">#5A48E0</div><div class="use">Estados presionados, cierres de gradiente, énfasis.</div></div></div>
+    <div class="sw"><div class="chip" style="background:#1A1A2E"></div><div class="info"><div class="nm">Tinta</div><div class="hx">#1A1A2E · text/ink</div><div class="use">Texto principal y los botones "tinta" del onboarding.</div></div></div>
+  </div>
+
+  <h3 style="margin:22px 0 10px">Neutros (el 60%)</h3>
+  <div class="grid g4">
+    <div class="sw"><div class="chip" style="background:#FAFAFF;border-bottom:1px solid var(--border)"></div><div class="info"><div class="nm">Fondo</div><div class="hx">#FAFAFF · bg</div><div class="use">El lienzo de toda la app.</div></div></div>
+    <div class="sw"><div class="chip" style="background:#FFFFFF;border-bottom:1px solid var(--border)"></div><div class="info"><div class="nm">Superficie</div><div class="hx">#FFFFFF · surface</div><div class="use">Cards, inputs, modales.</div></div></div>
+    <div class="sw"><div class="chip" style="background:#F3F2FE"></div><div class="info"><div class="nm">Superficie 2</div><div class="hx">#F3F2FE · surface2</div><div class="use">Tintes suaves, fondos de tags.</div></div></div>
+    <div class="sw"><div class="chip" style="background:#E9E7F5"></div><div class="info"><div class="nm">Borde</div><div class="hx">#E9E7F5 · border</div><div class="use">Líneas de 1px, divisores.</div></div></div>
+    <div class="sw"><div class="chip" style="background:#6B6B80"></div><div class="info"><div class="nm">Muted</div><div class="hx">#6B6B80 · muted</div><div class="use">Texto secundario, labels.</div></div></div>
+    <div class="sw"><div class="chip" style="background:#A9A9C0"></div><div class="info"><div class="nm">Muted 2</div><div class="hx">#A9A9C0</div><div class="use">Placeholders, pies, metadata.</div></div></div>
+  </div>
+
+  <h3 style="margin:22px 0 10px">Funcionales y de apoyo</h3>
+  <div class="grid g4">
+    <div class="sw"><div class="chip" style="background:#2ECFB5"></div><div class="info"><div class="nm">Teal</div><div class="hx">#2ECFB5 · accent3</div><div class="use">Cierre del gradiente CTA, toques frescos. Nunca solo como CTA.</div></div></div>
+    <div class="sw"><div class="chip" style="background:#17B39A"></div><div class="info"><div class="nm">Éxito</div><div class="hx">#17B39A</div><div class="use">Checks, metas cumplidas, deltas positivos.</div></div></div>
+    <div class="sw"><div class="chip" style="background:#E0912B"></div><div class="info"><div class="nm">Alerta</div><div class="hx">#E0912B</div><div class="use">Avisos no críticos.</div></div></div>
+    <div class="sw"><div class="chip" style="background:#FF6B6B"></div><div class="info"><div class="nm">Error / Coral</div><div class="hx">#FF6B6B · accent2</div><div class="use">SOLO errores y destructivo. Jamás decorativo (el coral es territorio KING).</div></div></div>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <h3>El gradiente CoachAI</h3>
+    <p class="note" style="margin-bottom:12px">Violeta Bright → Violeta → Teal, 135°. Reservado para el CTA principal de cada pantalla y los números héroe. Si todo brilla, nada brilla: <b>un solo gradiente por pantalla</b>.</p>
+    <div style="height:58px;border-radius:14px;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:1.5px">linear-gradient(135deg, #9D8DFF 0%, #7C6AFF 50%, #2ECFB5 100%)</div>
+    <div class="ratio">
+      <div style="flex:6;background:#FAFAFF;color:#6B6B80">60% neutros</div>
+      <div style="flex:3;background:#1A1A2E;color:#fff">30% tinta</div>
+      <div style="flex:1;background:var(--accent);color:#fff">10%</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 04 TIPOGRAFÍA ============ -->
+<section>
+  <div class="eyebrow">04 · Tipografía</div>
+  <h2>Sistema tipográfico</h2>
+  <p class="lead"><b>DM Sans</b> es la voz de la marca (todo el cuerpo y los títulos). <b>JetBrains Mono</b> es el idioma de los datos (eyebrows, labels, números de contexto). <b>Bebas Neue</b> es el grito de impacto — solo display, nunca párrafos. En el onboarding se usa la fuente del sistema (SF Pro / Roboto) a propósito: sensación 100% nativa.</p>
+  <div class="card">
+    <div class="spec"><span class="meta">DM Sans 800 · 28-54px · -0.01em</span><span class="t-h1">Título héroe — Empecemos por lo esencial</span></div>
+    <div class="spec"><span class="meta">DM Sans 700 · 20-24px</span><span class="t-h2">Subtítulo de sección</span></div>
+    <div class="spec"><span class="meta">DM Sans 400 · 14-16px</span><span class="t-body">Cuerpo de texto: claro, directo, en voseo. Una idea por oración.</span></div>
+    <div class="spec"><span class="meta">DM Sans 400 · 13.5px · muted</span><span class="t-sub">Texto de apoyo, siempre en --muted, nunca gris genérico.</span></div>
+    <div class="spec"><span class="meta">JetBrains Mono 500 · 10-12px · +2.5px</span><span class="t-eyebrow">Tus objetivos diarios (aprox.)</span></div>
+    <div class="spec"><span class="meta">DM Sans 800 + gradiente</span><span class="t-num">2014</span><span class="t-sub" style="align-self:center">← números héroe (kcal, índice, racha)</span></div>
+    <div class="spec"><span class="meta">Bebas Neue 400 · +2px · solo display</span><span class="t-bebas">Siguiente · Mi Entreno</span></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <h3>Reglas</h3>
+    <ul class="donts ok">
+      <li><b>SÍ</b> — títulos en frase natural ("¿Cuál es tu objetivo?"). Las MAYÚSCULAS solo en eyebrows mono y botones Bebas.</li>
+      <li><b>SÍ</b> — números importantes SIEMPRE más grandes que su label.</li>
+    </ul>
+    <ul class="donts">
+      <li><b>NO</b> usar Bebas Neue en párrafos ni en textos largos.</li>
+      <li><b>NO</b> mezclar más de 2 familias en una misma pieza de redes.</li>
+      <li><b>NO</b> usar tipografías nuevas sin actualizar este manual.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 05 COMPONENTES ============ -->
+<section>
+  <div class="eyebrow">05 · Elementos gráficos</div>
+  <h2>Componentes de la identidad</h2>
+  <p class="lead">Los bloques que hacen reconocible a CoachAI Pro en cualquier pantalla o mockup. Radios generosos, sombras violeta suaves, aire.</p>
+  <div class="card">
+    <h3 style="margin-bottom:14px">Botones</h3>
+    <div class="comp-row">
+      <button class="btn-grad">Ingresar →</button>
+      <button class="btn-ink">Comenzar con mi coach</button>
+      <button class="btn-circle">›</button>
+      <span class="note">Gradiente = CTA principal · Pill tinta = acciones del onboarding · Circular "›" = avanzar</span>
+    </div>
+    <h3 style="margin:26px 0 14px">Chips de selección (estilo onboarding)</h3>
+    <div class="comp-row">
+      <button class="chip-d">Vegetariana</button>
+      <button class="chip-d sel">Sin gluten</button>
+      <button class="chip-d">Sin lactosa</button>
+      <span class="note">Apilados full-width en la app; seleccionado = borde + tinte violeta al 10%</span>
+    </div>
+    <h3 style="margin:26px 0 14px">Cards de datos, tags, progreso e inputs</h3>
+    <div class="comp-row">
+      <div class="minicard"><div class="ey">ESTA SEMANA</div><div class="n">3/4</div><div class="l">DÍAS ENTRENADOS</div></div>
+      <span class="pill-tag">503 kcal</span>
+      <div class="prog"><i></i></div>
+      <input class="input-d" value="Ej: Matías" readonly>
+    </div>
+    <div style="margin-top:22px;overflow-x:auto"><table>
+      <tr><th>Elemento</th><th>Radio</th><th>Sombra</th></tr>
+      <tr><td><b>Cards</b></td><td>16–20 px</td><td class="mono" style="font-size:12px">0 1px 2px rgba(26,26,46,.04) + 0 4px 14px rgba(124,106,255,.10)</td></tr>
+      <tr><td><b>Botones / inputs</b></td><td>12–14 px</td><td>Solo el CTA lleva glow violeta (rgba(124,106,255,.32))</td></tr>
+      <tr><td><b>Pills / tags / botón tinta</b></td><td>100 px</td><td>Tinta: rgba(26,26,46,.25)</td></tr>
+      <tr><td><b>Barra de progreso</b></td><td>0 (edge-to-edge, 4 px alto)</td><td>—</td></tr>
+    </table></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <h3>Motion — personalidad "Snappy"</h3>
+    <p class="note">Animación estilo iOS: <span class="mono">280ms · cubic-bezier(.32,.72,0,1)</span> para todo; <span class="mono">420ms</span> en piezas grandes (sheets, expandir); micro-rebote <span class="mono">cubic-bezier(.34,1.30,.5,1)</span> solo en confirmaciones. Nada de fades lentos ni bounces exagerados: la marca se mueve rápido, sólida y sin mareo. Respetar siempre <span class="mono">prefers-reduced-motion</span>.</p>
+  </div>
+</section>
+
+<!-- ============ 06 FOTOGRAFÍA ============ -->
+<section>
+  <div class="eyebrow">06 · Fotografía</div>
+  <h2>El contraste que nos define</h2>
+  <p class="lead">La firma visual de CoachAI Pro es un juego de opuestos: <b>producto claro y aireado</b> + <b>fotografía de gimnasio oscura y cinematográfica</b>. Ese golpe de contraste es lo que para el scroll en redes.</p>
+  <div class="grid g2">
+    <div class="card">
+      <h3>La foto CoachAI</h3>
+      <ul class="donts ok">
+        <li><b>SÍ</b> — gimnasio real, luz dura y dirigida, fondos profundos casi negros.</li>
+        <li><b>SÍ</b> — personas en acción o en pausa con intención (perfil, espalda, manos en la barra). Esfuerzo real, no pose de stock.</li>
+        <li><b>SÍ</b> — scrim (velo negro degradado) abajo cuando lleva texto encima.</li>
+        <li><b>SÍ</b> — paridad de género en el default: si la lámina 1 es un hombre, que la campaña también muestre mujeres.</li>
+      </ul>
+      <ul class="donts">
+        <li><b>NO</b> stock genérico con sonrisas falsas y gimnasios iluminados como oficina.</li>
+        <li><b>NO</b> filtros de color que tiñan la piel (el violeta va en la UI, no en la foto).</li>
+        <li><b>NO</b> texto sobre foto sin scrim.</li>
+      </ul>
+    </div>
+    <div class="card" style="display:flex;align-items:center;justify-content:center;background:#101018;border-color:#101018">
+      <div class="story" style="box-shadow:none">
+        <div class="txt" style="bottom:10%">
+          <div class="ey">★ LÁMINA / INTERSTITIAL</div>
+          <div class="ti">El único mal entrenamiento es el que va sin dirección.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 07 REDES ============ -->
+<section>
+  <div class="eyebrow">07 · Redes Sociales</div>
+  <h2>La marca en el feed</h2>
+  <p class="lead">La pieza estrella es la <b>story de logro</b> que la app genera sola (1080×1920): foto real de la clienta + medalla + textos. Es contenido generado por usuarias con la marca puesta — nuestro mejor canal de crecimiento orgánico.</p>
+  <div class="grid g2">
+    <div class="card" style="display:flex;gap:22px;align-items:center;flex-wrap:wrap">
+      <div class="story">
+        <div class="medal">🏋️</div>
+        <div class="txt">
+          <div class="ey">★ 13 DE JULIO</div>
+          <div class="ti">¡Entreno completado!</div>
+          <div class="su">Entreno #12</div>
+        </div>
+        <div class="hd">coachaipro.ai</div>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <h3>Anatomía de la story</h3>
+        <ul class="donts ok" style="font-size:13.5px">
+          <li><b>1.</b> Foto de la usuaria a sangre (9:16).</li>
+          <li><b>2.</b> Medalla arriba a la derecha (zona de fondo despejado).</li>
+          <li><b>3.</b> Scrim negro inferior.</li>
+          <li><b>4.</b> Eyebrow mono en <span class="mono" style="color:var(--story-lila)">#B4A7FF</span> (lila sobre foto — versión legible del violeta).</li>
+          <li><b>5.</b> Título DM Sans 800 blanco, máx. 2 líneas.</li>
+          <li><b>6.</b> Handle <b>coachaipro.ai</b> abajo a la derecha, siempre.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Reglas del feed</h3>
+      <ul class="donts ok">
+        <li><b>SÍ</b> — posts de producto: screenshot real de la app en claro sobre fondo <span class="mono">#FAFAFF</span> o violeta pleno, con UNA frase corta.</li>
+        <li><b>SÍ</b> — datos como protagonistas: "−4,2 kg en 6 semanas" en gradiente + eyebrow mono.</li>
+        <li><b>SÍ</b> — mockups en teléfono con la sombra violeta suave de marca.</li>
+        <li><b>SÍ</b> — carruseles: alternar slide clara (producto) / oscura (foto) — el patrón del contraste.</li>
+      </ul>
+      <ul class="donts">
+        <li><b>NO</b> rosa/coral decorativo (es KING) ni verde flúo genérico de fitness.</li>
+        <li><b>NO</b> más de un gradiente por pieza.</li>
+        <li><b>NO</b> screenshots del tema oscuro viejo — la marca hoy es clara.</li>
+        <li><b>NO</b> tipografías ajenas al sistema en piezas oficiales.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 08 VOZ ============ -->
+<section>
+  <div class="eyebrow">08 · Voz y tono</div>
+  <h2>Cómo habla CoachAI Pro</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h3>La voz</h3>
+      <p class="note" style="margin-bottom:10px">Un coach que sabe, no un manual que ordena. <b>Voseo rioplatense</b>, frases cortas, cero jerga médica innecesaria.</p>
+      <table>
+        <tr><th>Decimos</th><th>No decimos</th></tr>
+        <tr><td><b>Empecemos por lo esencial</b></td><td>COMPLETE SUS DATOS BÁSICOS</td></tr>
+        <tr><td><b>¿Qué días entrenás?</b></td><td>Seleccione frecuencia semanal</td></tr>
+        <tr><td><b>Tus objetivos diarios (aprox.)</b></td><td>Metas calóricas exactas</td></tr>
+        <tr><td><b>Los resultados aman la constancia.</b></td><td>¡¡NO TE RINDAS!! 💪🔥😤</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3>Reglas rápidas</h3>
+      <ul class="donts ok">
+        <li><b>SÍ</b> — motivar con verdades tranquilas (constancia, dirección, proceso).</li>
+        <li><b>SÍ</b> — celebrar logros con datos reales ("4/4 esta semana").</li>
+        <li><b>SÍ</b> — emojis: máximo uno, y solo en celebraciones o chat.</li>
+      </ul>
+      <ul class="donts">
+        <li><b>NO</b> gritar en mayúsculas fuera de eyebrows/botones display.</li>
+        <li><b>NO</b> promesas médicas ni "quemá grasa YA".</li>
+        <li><b>NO</b> culpar a la usuaria ("fallaste") — la marca acompaña, no castiga.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  COACHAI PRO · MANUAL DE MARCA THEME-LIGHT · V1 — JUL 2026<br>
+  Fuente de verdad de los valores: index.html (body.theme-light) · Cambios de identidad → actualizar este manual
+</footer>
+
+</div>
+</body>
+</html>
