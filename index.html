@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260724-2313-deploy">
+<meta name="app-version" content="20260803-2223-cancelar-suscripcion-in-app">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -16078,6 +16078,40 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     .da-confirm:disabled { opacity:.45; cursor:default; }
     .da-cancel { width:100%; margin-top:8px; background:none; border:none; color:var(--muted,#9a9aa8); font-size:13.5px; font-weight:600; padding:9px; cursor:pointer; font-family:inherit; }
   </style>
+  <!-- ── Suscripción (gestión in-app: ver plan + cancelar — requisito de stores) ── -->
+  <style>
+    .cai-suscripcion { margin:22px 18px 0; }
+    body:has(#impersonate-banner) .cai-suscripcion { display:none !important; }
+    .susc-card { background:var(--surface,rgba(255,255,255,.04)); border:1px solid var(--border,rgba(255,255,255,.12)); border-radius:16px; padding:16px 18px; }
+    .susc-head { display:flex; align-items:center; gap:9px; font-size:15px; font-weight:800; color:var(--text,#fff); }
+    .susc-head .susc-ico { font-size:17px; }
+    .susc-badge { margin-left:auto; font-size:10.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; padding:4px 10px; border-radius:100px; background:var(--surface2,rgba(255,255,255,.06)); color:var(--muted,#9a9aa8); }
+    .susc-badge.premium { background:rgba(124,106,255,.15); color:var(--accent,#7c6aff); }
+    .susc-body { font-size:13px; color:var(--muted,#9a9aa8); margin-top:9px; line-height:1.55; }
+    .susc-body b { color:var(--text,#fff); font-weight:700; }
+    .susc-cancel-btn { margin-top:14px; width:100%; padding:11px; border:1.5px solid rgba(227,93,106,.4); border-radius:12px; background:transparent; color:#e35d6a; font-weight:700; font-size:13.5px; cursor:pointer; font-family:inherit; }
+    .susc-cancel-btn:hover { background:rgba(227,93,106,.08); }
+    .cancel-sub-overlay { position:fixed; inset:0; z-index:6350; display:none; align-items:center; justify-content:center; padding:24px; background:rgba(0,0,0,.55); }
+  </style>
+  <div class="cai-suscripcion" id="cai-suscripcion" style="display:none">
+    <div class="susc-card">
+      <div class="susc-head"><span class="susc-ico">💳</span><span>Suscripción</span><span class="susc-badge" id="susc-badge">—</span></div>
+      <div class="susc-body" id="susc-body">Cargando…</div>
+      <button class="susc-cancel-btn" id="susc-cancel-btn" style="display:none" onclick="openCancelSub()" type="button">Cancelar suscripción</button>
+    </div>
+  </div>
+
+  <div class="cancel-sub-overlay" id="cancel-sub-overlay">
+    <div class="da-card">
+      <div class="da-icon">💳</div>
+      <div class="da-title">Cancelar tu suscripción</div>
+      <div class="da-sub">Vas a cancelar la renovación automática. <b style="color:var(--text,#fff)">Mantenés tu acceso hasta el final del período que ya pagaste</b>, y después no se te cobra más.</div>
+      <div class="da-error" id="cancel-sub-error"></div>
+      <button class="da-confirm" id="cancel-sub-confirm" onclick="confirmCancelSub()" type="button" style="background:#e24b4a">Sí, cancelar suscripción</button>
+      <button class="da-cancel" onclick="closeCancelSub()" type="button">No, mantener mi suscripción</button>
+    </div>
+  </div>
+
   <div class="cai-perfil-danger">
     <a href="/privacidad.html" target="_blank" rel="noopener" class="cai-perfil-privacy-link" data-es="Política de privacidad" data-en="Privacy policy">Política de privacidad</a>
     <a href="/terminos.html" target="_blank" rel="noopener" class="cai-perfil-privacy-link" data-es="Términos de servicio" data-en="Terms of service">Términos de servicio</a>
@@ -26524,6 +26558,91 @@ async function saveMedida() {
 // BORRAR CUENTA (requisito Apple 5.1.1v / Google). Disponible para toda clienta;
 // oculto cuando el coach impersona (no borrar la cuenta de un cliente desde su vista).
 // ============================
+// ── Suscripción: estado (ver plan) + cancelar (gestión in-app, requisito stores) ──
+let _subStatusCache = null;
+async function loadSubscriptionStatus(force) {
+  const wrap = document.getElementById('cai-suscripcion');
+  if (!wrap) return;
+  if (document.getElementById('impersonate-banner')) { wrap.style.display = 'none'; return; }  // nunca en modo coach
+  const bodyEl = document.getElementById('susc-body');
+  const badge = document.getElementById('susc-badge');
+  const cancelBtn = document.getElementById('susc-cancel-btn');
+  let token = null;
+  try { const { data } = await sbClient.auth.getSession(); token = data?.session?.access_token || null; } catch (e) {}
+  if (!token) { wrap.style.display = 'none'; return; }   // sin sesión OTP → sin gestión de suscripción
+  wrap.style.display = 'block';
+
+  const paint = (d) => {
+    if (d && d.plan === 'premium') {
+      const fecha = d.renovacion ? new Date(d.renovacion).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }) : null;
+      if (d.cancelAtPeriodEnd) {
+        badge.textContent = 'Cancelada'; badge.className = 'susc-badge';
+        bodyEl.innerHTML = 'Tu suscripción está cancelada. Mantenés el acceso hasta el <b>' + (fecha || 'fin del período') + '</b> y después no se te cobra más.';
+        cancelBtn.style.display = 'none';
+      } else {
+        badge.textContent = 'Premium'; badge.className = 'susc-badge premium';
+        bodyEl.innerHTML = (d.trialing ? 'Estás en tu período incluido. ' : 'Tu suscripción está activa. ') + 'Próxima renovación: <b>' + (fecha || '—') + '</b>.';
+        cancelBtn.style.display = 'block';
+      }
+    } else {
+      cancelBtn.style.display = 'none';
+      const acc = (currentUser && currentUser.acceso_hasta) ? new Date(currentUser.acceso_hasta) : null;
+      if (acc && acc > new Date()) {
+        badge.textContent = 'Activo'; badge.className = 'susc-badge';
+        bodyEl.innerHTML = 'Tu acceso está activo hasta el <b>' + acc.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }) + '</b>.';
+      } else {
+        badge.textContent = 'Free'; badge.className = 'susc-badge';
+        bodyEl.textContent = 'Estás en el plan gratuito.';
+      }
+    }
+  };
+
+  if (_subStatusCache && !force) { paint(_subStatusCache); return; }
+  bodyEl.textContent = 'Cargando…'; badge.textContent = '—'; badge.className = 'susc-badge'; cancelBtn.style.display = 'none';
+  try {
+    const r = await fetch('/api/stripe/subscription-status', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+    });
+    const d = await r.json();
+    _subStatusCache = d;
+    paint(d);
+  } catch (e) {
+    console.warn('[susc] status', e);
+    bodyEl.textContent = 'No se pudo cargar el estado de tu suscripción.';
+    badge.textContent = '—'; badge.className = 'susc-badge'; cancelBtn.style.display = 'none';
+  }
+}
+function openCancelSub() {
+  const ov = document.getElementById('cancel-sub-overlay'); if (ov) ov.style.display = 'flex';
+  const err = document.getElementById('cancel-sub-error'); if (err) err.textContent = '';
+}
+function closeCancelSub() {
+  const ov = document.getElementById('cancel-sub-overlay'); if (ov) ov.style.display = 'none';
+}
+async function confirmCancelSub() {
+  const btn = document.getElementById('cancel-sub-confirm');
+  const err = document.getElementById('cancel-sub-error');
+  const old = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Cancelando…'; err.textContent = '';
+  try {
+    const { data } = await sbClient.auth.getSession();
+    const token = data?.session?.access_token;
+    if (!token) throw new Error('no_session');
+    const r = await fetch('/api/stripe/cancel-subscription', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+    });
+    const d = await r.json();
+    if (!r.ok || !d.ok) throw new Error(d.error || 'error');
+    closeCancelSub();
+    _subStatusCache = null;
+    await loadSubscriptionStatus(true);
+  } catch (e) {
+    console.error('[susc] cancel', e);
+    err.textContent = 'No se pudo cancelar. Probá de nuevo o escribinos a soporte.';
+    btn.disabled = false; btn.textContent = old;
+  }
+}
+
 function openDeleteAccount() {
   if (typeof _getImpersonateUid === 'function' && _getImpersonateUid()) {
     alert('No disponible en modo coach (estás viendo la cuenta de un cliente).');
@@ -27361,6 +27480,7 @@ const _BACK_OVERLAYS = [
   { id: 'peso-prompt-overlay',  close: () => dismissPesoPrompt() },
   { id: 'perfil-datos-overlay', close: () => closePerfilDatos() },
   { id: 'delete-account-overlay', close: () => closeDeleteAccount() },
+  { id: 'cancel-sub-overlay', close: () => closeCancelSub() },
 ];
 function _overlayVisible(el) {
   if (!el) return false;
@@ -28126,6 +28246,7 @@ async function renderPerfil() {
   if (!currentUser) return;
   // Render the header subtitle immediately from currentUser (no network needed)
   renderPerfilHeaderSub();
+  loadSubscriptionStatus().catch(() => {});   // sección Suscripción (ver plan + cancelar)
   // King (Índice): reemplaza el héroe de peso por el del Índice de Armonía —
   // cohorte metodo_king (o flag dev). Clásica/no-King → Perfil IDÉNTICO.
   if (typeof kingUiActiva === 'function' && kingUiActiva()) {
