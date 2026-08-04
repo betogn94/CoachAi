@@ -735,6 +735,9 @@
       gap: 16px;
       margin-bottom: 24px;
     }
+    .susc-cancel-mini { border:1px solid rgba(220,38,38,.3); background:transparent; color:#dc2626; font-size:11px; font-weight:700; border-radius:7px; padding:4px 9px; cursor:pointer; font-family:inherit; white-space:nowrap; }
+    .susc-cancel-mini:hover { background:rgba(220,38,38,.08); }
+    .susc-cancel-mini:disabled { opacity:.5; cursor:default; }
     .drill-title { display: flex; align-items: center; gap: 10px; }
     .drill-title .swatch {
       width: 28px; height: 28px; border-radius: 6px;
@@ -1818,6 +1821,7 @@
               <th class="cell-right">Entrenó (30d)</th>
               <th class="cell-right">Sesiones</th>
               <th class="cell-right">Bugs</th>
+              <th class="cell-right">Suscripción</th>
             </tr></thead>
             <tbody>
               ${users.map(u => `
@@ -1834,6 +1838,9 @@
                   <td class="cell-right">
                     ${u.stats.openBugs > 0 ? `<span class="badge badge-danger">${u.stats.openBugs}</span>` : '<span class="cell-dim">0</span>'}
                   </td>
+                  <td class="cell-right">
+                    <button class="susc-cancel-mini" data-email="${escapeHtml(u.email)}" data-name="${escapeHtml(u.nombre || u.email)}" title="Cancelar suscripción">Cancelar</button>
+                  </td>
                 </tr>
               `).join('')}
             </tbody>
@@ -1842,6 +1849,30 @@
         ${renderBugsBlock(users)}
       `;
       document.getElementById('backBtn').addEventListener('click', () => { currentTenantSlug = null; route('tenants'); });
+      // Cancelar suscripción por usuario (baja de clienta desde el admin).
+      contentEl.querySelectorAll('.susc-cancel-mini').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const email = btn.dataset.email, name = btn.dataset.name;
+          if (!confirm(`¿Cancelar la suscripción de ${name}?\n\nMantiene el acceso hasta el fin del período que ya pagó y no se le cobra más.`)) return;
+          btn.disabled = true; const old = btn.textContent; btn.textContent = '…';
+          try {
+            const { ok, data } = await api('/api/tower/cancel_subscription', { method: 'POST', body: JSON.stringify({ email }) });
+            if (ok && data?.ok && data.cancelled) {
+              const f = data.accesoHasta ? new Date(data.accesoHasta).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }) : null;
+              btn.textContent = '✓ Cancelada'; btn.style.color = '#16a34a'; btn.style.borderColor = 'rgba(22,163,74,.4)';
+              alert(`Suscripción de ${name} cancelada.` + (f ? ` Mantiene acceso hasta el ${f}.` : ''));
+            } else if (ok && data?.ok && !data.cancelled) {
+              btn.textContent = 'sin sub'; btn.disabled = true; btn.style.opacity = '.5';
+              alert(`${name} no tiene una suscripción recurrente activa en Stripe — no hay nada que cancelar (quizás paga manual por link, o ya no tiene sub).`);
+            } else { throw new Error(data?.error || 'error'); }
+          } catch (err) {
+            console.error('[tower] cancel sub', err);
+            btn.disabled = false; btn.textContent = old;
+            alert('No se pudo cancelar. Probá de nuevo o revisá la consola.');
+          }
+        });
+      });
       const suspendBtn = document.getElementById('toggleSuspendBtn');
       if (suspendBtn) suspendBtn.addEventListener('click', async () => {
         const suspending = !isSuspended;
