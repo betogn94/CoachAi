@@ -24,6 +24,7 @@ export default withAuth(async (req, res, session) => {
     const found = await findUserSubscription(stripe, email);
     if (!found) {
       // No tiene suscripción recurrente en Stripe → nada que cancelar (ej. paga manual por link).
+      console.log('[tower/cancel_subscription] sin sub para', email, '(ni por email ni por tower_revenue)');
       return res.status(200).json({ ok: true, cancelled: false, reason: 'no_subscription' });
     }
     const s = found.sub;
