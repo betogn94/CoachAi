@@ -1810,6 +1810,16 @@
           </div>
           ${isProtected ? '' : `<button id="toggleSuspendBtn" type="button" style="flex:none;border:0;border-radius:8px;padding:9px 16px;font-weight:700;font-size:12.5px;cursor:pointer;color:#fff;background:${isSuspended ? '#16a34a' : '#dc2626'};">${isSuspended ? '▶ Reactivar acceso' : '⏸ Suspender acceso'}</button>`}
         </div>
+        <div style="margin:6px 0 18px;padding:12px 14px;border:1px solid var(--border,rgba(0,0,0,.08));border-radius:10px;background:rgba(0,0,0,.02);">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;font-weight:600;">
+            Cancelar suscripción por email <span style="font-weight:400;">— para subs huérfanas o cuentas ya eliminadas que no aparecen en la lista</span>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input id="orphanEmail" type="email" placeholder="email@cliente.com" autocomplete="off" spellcheck="false" style="flex:1;min-width:220px;padding:8px 11px;border:1px solid var(--border,rgba(0,0,0,.15));border-radius:8px;font-size:13px;font-family:inherit;background:var(--bg,#fff);color:var(--text,#111);">
+            <button id="orphanCancelBtn" type="button" style="flex:none;border:0;border-radius:8px;padding:9px 16px;font-weight:700;font-size:12.5px;cursor:pointer;color:#fff;background:#dc2626;">Cancelar sub</button>
+          </div>
+          <div id="orphanMsg" style="font-size:12px;margin-top:8px;color:var(--text-muted);"></div>
+        </div>
         <div class="table-wrap">
           ${users.length === 0 ? '<div class="placeholder">Sin usuarios todavía.</div>' : `
           <table class="data-table">
@@ -1871,6 +1881,37 @@
             alert('No se pudo cancelar. Probá de nuevo o revisá la consola.');
           }
         });
+      });
+      // Cancelar suscripción por EMAIL — subs huérfanas: cuentas ya eliminadas
+      // (delete-account) que siguen con una sub viva en Stripe. Reusa el mismo
+      // endpoint + su fallback vía tower_revenue (la halla aunque no exista la cuenta).
+      const orphanBtn = document.getElementById('orphanCancelBtn');
+      if (orphanBtn) orphanBtn.addEventListener('click', async () => {
+        const input = document.getElementById('orphanEmail');
+        const msg = document.getElementById('orphanMsg');
+        const email = String(input.value || '').trim().toLowerCase();
+        if (!email || !email.includes('@')) { msg.style.color = '#dc2626'; msg.textContent = 'Poné un email válido.'; return; }
+        if (!confirm(`¿Cancelar la suscripción de ${email}?\n\nSe cancela en Stripe (deja de cobrar). Si la cuenta todavía existe, mantiene acceso hasta el fin del período pagado.`)) return;
+        orphanBtn.disabled = true; const old = orphanBtn.textContent; orphanBtn.textContent = '…';
+        msg.style.color = 'var(--text-muted)'; msg.textContent = 'Buscando y cancelando en Stripe…';
+        try {
+          const { ok, data } = await api('/api/tower/cancel_subscription', { method: 'POST', body: JSON.stringify({ email }) });
+          if (ok && data?.ok && data.cancelled) {
+            const f = data.accesoHasta ? new Date(data.accesoHasta).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }) : null;
+            msg.style.color = '#16a34a';
+            msg.textContent = `✓ Suscripción de ${email} cancelada.` + (f ? ` No se le cobra más; acceso hasta el ${f}.` : '') + (data.alreadyCancelled ? ' (ya estaba marcada para cancelar)' : '');
+            input.value = '';
+          } else if (ok && data?.ok && !data.cancelled) {
+            msg.style.color = '#b45309';
+            msg.textContent = `${email} no tiene una suscripción recurrente activa en Stripe — no hay nada que cancelar.`;
+          } else { throw new Error(data?.error || 'error'); }
+        } catch (err) {
+          console.error('[tower] cancel sub by email', err);
+          msg.style.color = '#dc2626';
+          msg.textContent = 'No se pudo cancelar. Probá de nuevo o revisá la consola.';
+        } finally {
+          orphanBtn.disabled = false; orphanBtn.textContent = old;
+        }
       });
       const suspendBtn = document.getElementById('toggleSuspendBtn');
       if (suspendBtn) suspendBtn.addEventListener('click', async () => {
