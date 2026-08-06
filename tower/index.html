@@ -3336,21 +3336,136 @@
     const _REV_CONCEPT_LABEL = { suscripcion: 'Suscripción', mapa_estetico: 'Mapa Estético', foundation: 'Foundation', paquete: 'Paquete', whitelabel: 'Whitelabel', otro: 'Otro' };
     const _REV_PERIOD_LABEL  = { mensual: 'Mensual', anual: 'Anual', unico: 'Único' };
 
+    // ---------- Facturación por mes ----------
+    const FIN_MES_ABBR = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const FIN_MES_FULL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    let _finMonthly = [], _finMes = null, _finCurMes = '', _finMrr = {};
+    function finMonthLabel(mes) { const [y, m] = mes.split('-'); return `${FIN_MES_FULL[+m - 1]} ${y}`; }
+
+    const FIN_STYLE = `<style>
+      .fin-monthnav{margin-bottom:16px}
+      .fin-yearnav{display:flex;gap:6px;margin-bottom:10px}
+      .fin-year{background:var(--bg-elev);border:1px solid var(--border);color:var(--text-muted);border-radius:8px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer}
+      .fin-year.on{background:var(--accent);border-color:var(--accent);color:#fff}
+      .fin-chips{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+      .fin-chip{display:flex;flex-direction:column;align-items:flex-start;gap:3px;background:var(--bg-elev);border:1px solid var(--border);border-radius:10px;padding:9px 11px;cursor:pointer;text-align:left}
+      .fin-chip:hover{border-color:var(--text-muted)}
+      .fin-chip.on{border-color:var(--accent);background:var(--accent-soft)}
+      .fin-chip.empty{opacity:.45}
+      .fin-chip.cur .fin-chip-mes:after{content:' •';color:var(--accent)}
+      .fin-chip-mes{font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.04em}
+      .fin-chip-amt{font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+      .fin-chip.on .fin-chip-amt{color:var(--accent)}
+      .fin-detail{background:var(--bg-elev);border:1px solid var(--border);border-radius:14px;padding:20px}
+      .fin-detail-head{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+      .fin-detail-head h2{margin:0;font-size:22px;color:var(--text)}
+      .fin-badge-cur{font-size:11px;font-weight:700;color:var(--warning);background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.4);padding:2px 9px;border-radius:20px}
+      .fin-detail-top{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+      .fin-big{background:var(--bg-elev-2);border:1px solid var(--border);border-radius:12px;padding:16px}
+      .fin-big-n{font-size:26px;font-weight:800;color:var(--text);line-height:1;font-variant-numeric:tabular-nums}
+      .fin-big.alt .fin-big-n{color:var(--text-muted);font-size:22px}
+      .fin-big-l{font-size:12px;color:var(--text-muted);margin-top:6px}
+      .fin-segs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+      .fin-seg{font-size:13px;font-weight:600;padding:6px 12px;border-radius:20px;border:1px solid var(--border);background:var(--bg-elev-2);color:var(--text)}
+      .fin-seg-rec{color:#5B8DEF;border-color:rgba(91,141,239,.4);background:rgba(91,141,239,.12)}
+      .fin-seg-new{color:#22C55E;border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.12)}
+      .fin-seg-sub{font-weight:400;color:var(--text-muted);font-size:11px}
+      .fin-concepts{margin-top:4px}
+      .fin-mrr{margin-top:14px;font-size:12px;color:var(--text-muted)}
+      .fin-registros{margin-top:24px}
+      .fin-registros>summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--text-muted);padding:8px 0;user-select:none}
+      @media(max-width:700px){.fin-chips{grid-template-columns:repeat(3,1fr)}.fin-detail-top{grid-template-columns:1fr}}
+    </style>`;
+
     async function renderFinanciero(el) {
-      el.innerHTML = `
+      el.innerHTML = FIN_STYLE + `
         <div class="page-header">
           <div>
             <h1 class="page-title">Facturación</h1>
-            <p class="page-sub">Ingresos: suscripciones de clientas, paquetes de coaches/gyms y whitelabel. Los pagos no se borran desde acá (solo manualmente en la base, bajo orden).</p>
+            <p class="page-sub">Lo que se factura mes a mes: usuarios recurrentes (vienen del mes anterior) + nuevos. Entrá a un mes para ver el detalle.</p>
           </div>
           <button class="btn btn-primary-sm" id="addRevBtn">+ Nuevo ingreso</button>
         </div>
-        <div id="revTotals" class="cards-grid"></div>
-        <div id="revToolbar" class="list-toolbar" style="display:none; margin-top:8px;"></div>
-        <div id="revTable" class="table-wrap"><div class="placeholder"><span class="spinner"></span> &nbsp; Cargando…</div></div>
+        <div id="finMonthNav" class="fin-monthnav"></div>
+        <div id="finMonthDetail"></div>
+        <details class="fin-registros">
+          <summary>Todos los registros (detalle)</summary>
+          <div id="revToolbar" class="list-toolbar" style="display:none; margin-top:10px;"></div>
+          <div id="revTable" class="table-wrap"><div class="placeholder"><span class="spinner"></span> &nbsp; Cargando…</div></div>
+        </details>
       `;
       document.getElementById('addRevBtn').addEventListener('click', openAddRevenueModal);
       await loadRevenueTable();
+    }
+
+    function finRenderMonthNav() {
+      const nav = document.getElementById('finMonthNav'); if (!nav) return;
+      const byMes = {}; _finMonthly.forEach(m => { byMes[m.mes] = m; });
+      let years = [...new Set(_finMonthly.map(m => m.mes.slice(0, 4)))];
+      if (!years.length) years.push(String(new Date().getFullYear()));
+      years.sort().reverse();
+      const selYear = (_finMes || _finCurMes || (years[0] + '-01')).slice(0, 4);
+      const chips = FIN_MES_ABBR.map((ab, i) => {
+        const mes = `${selYear}-${String(i + 1).padStart(2, '0')}`;
+        const row = byMes[mes];
+        const cls = ['fin-chip'];
+        if (mes === _finMes) cls.push('on');
+        if (!row) cls.push('empty');
+        if (mes === _finCurMes) cls.push('cur');
+        return `<button class="${cls.join(' ')}" data-mes="${mes}">
+          <span class="fin-chip-mes">${ab}</span>
+          <span class="fin-chip-amt">${row ? fmtMoney(row.bruto.USD || 0, 'USD') : '—'}</span>
+        </button>`;
+      }).join('');
+      const yearNav = years.length > 1
+        ? `<div class="fin-yearnav">${years.map(y => `<button class="fin-year${y === selYear ? ' on' : ''}" data-year="${y}">${y}</button>`).join('')}</div>`
+        : `<div class="fin-yearnav"><span class="fin-year on" style="pointer-events:none">${selYear}</span></div>`;
+      nav.innerHTML = yearNav + `<div class="fin-chips">${chips}</div>`;
+      nav.querySelectorAll('[data-mes]').forEach(b => b.addEventListener('click', () => { _finMes = b.dataset.mes; finRenderMonthNav(); finRenderMonthDetail(); }));
+      nav.querySelectorAll('[data-year]').forEach(b => b.addEventListener('click', () => {
+        const y = b.dataset.year;
+        const inYear = _finMonthly.filter(m => m.mes.slice(0, 4) === y).map(m => m.mes).sort();
+        _finMes = inYear.length ? inYear[inYear.length - 1] : `${y}-01`;
+        finRenderMonthNav(); finRenderMonthDetail();
+      }));
+    }
+
+    function finRenderMonthDetail() {
+      const el = document.getElementById('finMonthDetail'); if (!el) return;
+      const m = _finMonthly.find(x => x.mes === _finMes);
+      const enCurso = _finMes === _finCurMes;
+      const curBadge = enCurso ? '<span class="fin-badge-cur">en curso · al día de hoy</span>' : '';
+      if (!m) {
+        el.innerHTML = `<div class="fin-detail"><div class="fin-detail-head"><h2>${finMonthLabel(_finMes)}</h2>${curBadge}</div><div class="placeholder">Sin ingresos registrados en ${finMonthLabel(_finMes)}.</div></div>`;
+        return;
+      }
+      const s = m.subs;
+      const conceptRows = Object.entries(m.by_concept)
+        .sort((a, b) => (b[1].amount.USD || 0) - (a[1].amount.USD || 0))
+        .map(([c, v]) => `<tr><td>${escapeHtml(_REV_CONCEPT_LABEL[c] || c)}</td><td class="cell-right">${fmtInt(v.n)}</td><td class="cell-right cell-mono">${fmtMoney(v.amount.USD || 0, 'USD')}</td></tr>`).join('');
+      const bajasChip = enCurso
+        ? `<span class="fin-seg" title="En el mes en curso todavía faltan renovar; las bajas se saben al cerrar el mes">↓ bajas: se define al cerrar el mes</span>`
+        : `<span class="fin-seg" style="color:var(--text-muted)">↓ ${fmtInt(s.bajas)} bajas</span>`;
+      const mrr = _finMrr.USD ? _finMrr.USD.mrr : null;
+      el.innerHTML = `
+        <div class="fin-detail">
+          <div class="fin-detail-head"><h2>${finMonthLabel(m.mes)}</h2>${curBadge}</div>
+          <div class="fin-detail-top">
+            <div class="fin-big"><div class="fin-big-n">${fmtMoney(m.bruto.USD || 0, 'USD')}</div><div class="fin-big-l">facturado en el mes</div></div>
+            <div class="fin-big alt"><div class="fin-big-n">${fmtMoney(m.neto.USD || 0, 'USD')}</div><div class="fin-big-l">neto (después de Stripe)</div></div>
+            <div class="fin-big alt"><div class="fin-big-n">${fmtInt(s.total)}</div><div class="fin-big-l">usuarios en suscripción</div></div>
+          </div>
+          <div class="fin-segs">
+            <span class="fin-seg fin-seg-rec">🔁 ${fmtInt(s.recurrentes)} recurrentes${s.prev_total ? ` <span class="fin-seg-sub">de ${fmtInt(s.prev_total)} el mes anterior</span>` : ''}</span>
+            <span class="fin-seg fin-seg-new">✨ ${fmtInt(s.nuevos)} nuevos</span>
+            ${bajasChip}
+          </div>
+          <table class="data-table fin-concepts">
+            <thead><tr><th>Concepto</th><th class="cell-right">Pagos</th><th class="cell-right">Ingreso</th></tr></thead>
+            <tbody>${conceptRows}</tbody>
+          </table>
+          ${mrr != null ? `<div class="fin-mrr">MRR actual (ingreso recurrente): ${fmtMoney(mrr, 'USD')}/mes · Neto ${fmtMoney(_finMrr.USD.net_mrr || 0, 'USD')}</div>` : ''}
+        </div>`;
     }
 
     // Texto buscable de un ingreso: nombre del pagador (cliente o coach/gym) +
@@ -3390,31 +3505,28 @@
 
     async function loadRevenueTable() {
       const wrap = document.getElementById('revTable');
-      const totalsEl = document.getElementById('revTotals');
       const { ok, data } = await api('/api/tower/revenue');
       if (!ok || !data?.ok) {
-        wrap.innerHTML = `<div class="placeholder"><strong>Error</strong>${escapeHtml(data?.detail || data?.error || 'No se pudo cargar')}</div>`;
+        if (wrap) wrap.innerHTML = `<div class="placeholder"><strong>Error</strong>${escapeHtml(data?.detail || data?.error || 'No se pudo cargar')}</div>`;
         return;
       }
       const rows = data.revenue;
-      const byCur = data.totals.by_currency || {};
-      const curs = Object.keys(byCur);
-      let cards = '';
-      if (!curs.length) {
-        cards = statCard('Ingresos del mes', '$0', 'Sin ingresos cargados');
-      } else {
-        for (const cur of curs) {
-          cards += statCard(`Este mes (${cur})`, fmtMoney(byCur[cur].month, cur), `Neto ${fmtMoney(byCur[cur].net_month || 0, cur)} · después de Stripe`);
-          cards += statCard(`MRR (${cur})`, fmtMoney(byCur[cur].mrr, cur), `Neto ${fmtMoney(byCur[cur].net_mrr || 0, cur)} · recurrente`);
-        }
-      }
-      cards += statCard('Registros', fmtInt(data.totals.count), 'Ingresos totales cargados');
-      totalsEl.innerHTML = cards;
 
+      // --- Facturación por mes (lo principal) ---
+      _finMonthly = data.monthly || [];
+      _finCurMes = `${data.current_month.year}-${String(data.current_month.month).padStart(2, '0')}`;
+      _finMrr = data.totals.by_currency || {};
+      if (!_finMes || !_finMonthly.some(m => m.mes === _finMes)) {
+        _finMes = (_finMonthly[0] && _finMonthly[0].mes) || _finCurMes;
+      }
+      finRenderMonthNav();
+      finRenderMonthDetail();
+
+      // --- Registros detallados (colapsable) ---
       const toolbar = document.getElementById('revToolbar');
       if (!rows.length) {
         if (toolbar) toolbar.style.display = 'none';
-        wrap.innerHTML = `<div class="placeholder"><strong>Sin ingresos cargados</strong>Cargá el primero con el botón "+ Nuevo ingreso".</div>`;
+        if (wrap) wrap.innerHTML = `<div class="placeholder"><strong>Sin ingresos cargados</strong>Cargá el primero con el botón "+ Nuevo ingreso".</div>`;
         return;
       }
 

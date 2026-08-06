@@ -86,6 +86,68 @@ async function list(req, res) {
     revenue: rows,
     current_month: { year: y, month: m },
     totals: { by_currency: byCurrency, by_method: byMethod, count: rows.length },
+    monthly: buildMonthly(rows),
+  });
+}
+
+// ---------- Facturación POR MES ----------
+// El "mes de facturación" = el mes en que ENTRÓ la plata. Para Stripe usamos
+// created_at (fecha real del pago); para cargas manuales usamos period_start (el
+// mes que el admin quiso imputar). Motivo: en las renovaciones de Stripe el
+// period_start quedó pegado al mes original, así que no sirve para agrupar.
+function billingMonthKey(r) {
+  const d = (r.source === 'stripe' ? r.created_at : (r.period_start || r.created_at)) || r.created_at || '';
+  return String(d).slice(0, 7); // 'YYYY-MM'
+}
+function prevMonthKey(k) {
+  let [y, m] = k.split('-').map(Number);
+  m -= 1; if (m === 0) { m = 12; y -= 1; }
+  return `${y}-${String(m).padStart(2, '0')}`;
+}
+function roundObj(o) { const r = {}; for (const k in o) r[k] = round2(o[k]); return r; }
+
+// Devuelve un array (más nuevo primero) con, por mes: usuarios de suscripción
+// (total / recurrentes del mes anterior / nuevos / bajas), ingreso bruto y neto
+// por moneda, y desglose por concepto. Ignora filas en 0 (tests).
+function buildMonthly(rows) {
+  const months = {};
+  const ensureM = (k) => (months[k] = months[k] || { mes: k, subsUsers: new Set(), bruto: {}, neto: {}, by_concept: {} });
+
+  for (const r of rows) {
+    const amt = Number(r.amount || 0);
+    if (amt <= 0) continue;
+    const k = billingMonthKey(r);
+    if (!/^\d{4}-\d{2}$/.test(k)) continue;
+    const cur = r.currency || 'USD';
+    const m = ensureM(k);
+    m.bruto[cur] = (m.bruto[cur] || 0) + amt;
+    m.neto[cur] = (m.neto[cur] || 0) + (amt - Number(r.stripe_fee || 0));
+    const c = r.concept || 'otro';
+    m.by_concept[c] = m.by_concept[c] || { n: 0, amount: {} };
+    m.by_concept[c].n += 1;
+    m.by_concept[c].amount[cur] = (m.by_concept[c].amount[cur] || 0) + amt;
+    if (c === 'suscripcion') {
+      const uid = r.usuario_id || (r.cliente_nombre ? r.cliente_nombre.toLowerCase().trim() : 'row-' + r.id);
+      m.subsUsers.add(uid);
+    }
+  }
+
+  return Object.keys(months).sort().reverse().map((k) => {
+    const m = months[k];
+    const prev = months[prevMonthKey(k)];
+    const prevSet = prev ? prev.subsUsers : new Set();
+    let recurrentes = 0, nuevos = 0;
+    for (const u of m.subsUsers) { if (prevSet.has(u)) recurrentes += 1; else nuevos += 1; }
+    let bajas = 0; for (const u of prevSet) { if (!m.subsUsers.has(u)) bajas += 1; }
+    const by_concept = {};
+    for (const c in m.by_concept) by_concept[c] = { n: m.by_concept[c].n, amount: roundObj(m.by_concept[c].amount) };
+    return {
+      mes: k,
+      subs: { total: m.subsUsers.size, recurrentes, nuevos, bajas, prev_total: prevSet.size },
+      bruto: roundObj(m.bruto),
+      neto: roundObj(m.neto),
+      by_concept,
+    };
   });
 }
 
