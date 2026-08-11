@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260811-1409-deploy">
+<meta name="app-version" content="20260811-1428-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -17462,6 +17462,12 @@ async function loginOrRegister(email, nombre, authUid = null) {
         }
       } catch (e) { entrySlug = 'coachai-default'; }
     }
+    // Revisor de Google Play: forzamos SIEMPRE su tenant propio (coachaipro). Sin esto,
+    // si el revisor entra por un coach (ej. KING) en vez de "Ingresar como invitado", el
+    // entrySlug queda 'jesus' y el server lo rebota por cross-tenant ("tu cuenta está en
+    // otro sitio · Contactá a tu coach") → fue el MOTIVO REAL del rechazo 2026-08
+    // (ver screenshot IN_APP_EXPERIENCE-2055). Así entra por donde entre, con botón o a mano.
+    if (isReviewLogin(email)) entrySlug = 'coachaipro';
     const isTrial = (typeof STORES_FUNNEL_ENABLED !== 'undefined' && STORES_FUNNEL_ENABLED && typeof isStoresTrial === 'function' && isStoresTrial());
     const { data, error } = await sbClient.rpc('auth_resolve_session', {
       p_email: email, p_nombre: nombre, p_entry_tenant_slug: entrySlug, p_is_trial: isTrial,
