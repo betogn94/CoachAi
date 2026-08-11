@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260811-1428-deploy">
+<meta name="app-version" content="20260811-1822-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -26617,7 +26617,12 @@ async function loadSubscriptionStatus(force) {
     } else {
       cancelBtn.style.display = 'none';
       const acc = (currentUser && currentUser.acceso_hasta) ? new Date(currentUser.acceso_hasta) : null;
-      if (acc && acc > new Date()) {
+      if (currentUser && isReviewLogin(currentUser.email)) {
+        // Cuenta demo de Google Play: su acceso_hasta es 2099 (permanente) → no
+        // mostramos la fecha para que no cante que es una cuenta especial al revisor.
+        badge.textContent = 'Activo'; badge.className = 'susc-badge';
+        bodyEl.textContent = 'Tu acceso está activo.';
+      } else if (acc && acc > new Date()) {
         badge.textContent = 'Activo'; badge.className = 'susc-badge';
         bodyEl.innerHTML = 'Tu acceso está activo hasta el <b>' + acc.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }) + '</b>.';
       } else {
