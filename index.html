@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260803-2223-cancelar-suscripcion-in-app">
+<meta name="app-version" content="20260811-1358-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -27162,6 +27162,10 @@ function applyCierreGate(navId) {
   if (!ov) return;
   // No gatear a coaches/admins (solo clientes). Si por algo está abierto, lo cerramos.
   if (currentUser && currentUser.role && currentUser.role !== 'user') { ov.classList.remove('open'); return; }
+  // Cuenta de revisión (Google Play): es una cuenta viva que envejece → si pasa el tiempo
+  // entre envío y revisión, dispara este gate de cierre y el revisor cae en un muro en vez
+  // de la app (motivo del rechazo 2026-08). El revisor debe ver SIEMPRE la app funcional.
+  if (currentUser && isReviewLogin(currentUser.email)) { ov.classList.remove('open'); return; }
   if (navId == null) navId = _currentNavId();
   // No pisar los modales del flujo de cierre (análisis, aviso de días faltantes,
   // o el panel de completar un día) — el gate no debe aparecer encima de ellos.
