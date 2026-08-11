@@ -79,24 +79,27 @@ CoachAI Pro es una herramienta de acompañamiento para fitness y bienestar gener
 **Instrucciones (pegar en el campo, en inglés — el revisor suele ser de habla inglesa):**
 ```
 This app is used by fitness coaches to deliver personalized plans to their clients.
-Users normally sign in with an email one-time code (OTP).
+Users normally sign in with an email one-time code (OTP). For your review we added
+a ONE-TAP reviewer button that signs you straight into a demo account — no typing,
+no email code needed.
 
-We have provided a REUSABLE test account that bypasses the one-time code,
-as required by Google's sign-in guidance for OTP apps.
-
-To access the full app:
+To access the full app (2 taps, nothing to type):
 1. Open the app (it launches on the coach directory screen).
 2. Tap "Ingresar como invitado" (Enter as guest).
-3. In the name field ("Tu nombre") enter any name (e.g. Reviewer).
-4. In the email field enter:  review@coachaipro.ai
-5. Tap "INGRESAR".
-6. On the next screen ("Acceso de revisión"), enter this access code:  720194
-7. You now have full access: personalized workout plan, nutrition plan,
+3. Tap the button "🔓 Acceso de revisión · Google Play" at the bottom of that screen.
+4. You are now fully signed in: personalized workout plan, nutrition plan,
    AI coach chat, daily logging, weekly review and progress tracking.
 
+You can log out (Perfil → "Cerrar sesión") and sign back in with the same button
+as many times as you want.
+
+Fallback (if the button ever fails): tap "Ingresar como invitado", type any name,
+enter email  review@coachaipro.ai , tap INGRESAR, then on the "Acceso de revisión"
+screen enter access code  720194 .
+
 Notes:
-- This test account bypasses the email OTP — no email code is sent for it.
-- The email, code and account are reusable and valid at all times.
+- This demo account bypasses the email OTP — no email code is sent for it.
+- The button, email, code and account are reusable and valid at all times.
 ```
 
 ## 4b. Cómo se creó esa credencial (referencia técnica — NO va a Play)
