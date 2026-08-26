@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260811-1822-deploy">
+<meta name="app-version" content="20260826-1331-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -17309,29 +17309,11 @@ async function reviewSignIn(email, code) {
   return data?.user?.id || null;
 }
 
-// Acceso de un toque para el revisor de Google Play. Autentica la cuenta demo
-// (email + código fijos) sin tipear nada y entra directo a la app. Reduce la
-// fricción del login a cero → el revisor no puede fallar el flujo (motivo del
-// rechazo 2026-08 "login credentials"). El código es el mismo que documentamos
-// en App access. Se esconde el botón tras la aprobación (y conviene rotar la
-// contraseña de la cuenta demo entonces).
-const REVIEW_LOGIN_CODE = '720194';
-async function reviewOneTap() {
-  const btn = document.getElementById('review-onetap-btn');
-  const orig = btn ? btn.textContent : '';
-  if (btn) { btn.disabled = true; btn.textContent = 'Ingresando…'; }
-  try {
-    const email = REVIEW_LOGIN_EMAIL;
-    const nombre = 'Google Reviewer';
-    _otpPending = { email, nombre };
-    const authUid = await reviewSignIn(email, REVIEW_LOGIN_CODE);
-    await proceedAfterAuth(email, nombre, authUid);
-  } catch (e) {
-    console.error('[review one-tap]', e);
-    if (btn) { btn.disabled = false; btn.textContent = orig || 'Acceso de revisión · Google Play'; }
-    try { alert('No se pudo iniciar el acceso de revisión. Reintentá en unos segundos.'); } catch (_) {}
-  }
-}
+// [Botón de acceso de un toque del revisor: RETIRADO 2026-08-21 tras aprobar la
+// v3 en Play. El login del revisor sigue funcionando por el flujo TIPEADO
+// (isReviewLogin/reviewSignIn: email review@coachaipro.ai + código 720194 como
+// password), que se mantiene para que las actualizaciones futuras pasen la
+// revisión. Instrucciones de App access actualizadas al flujo tipeado.]
 
 // Verify the typed code. On success returns the auth.users id (auth.uid()).
 async function verifyOtpCode(email, code) {
@@ -34116,12 +34098,6 @@ async function forceAppUpdate() {
     <p style="margin:12px 6px 0; font-size:11.5px; line-height:1.5; text-align:center; color:var(--muted,#9a9aa8);">
       Al continuar aceptás los <a href="/terminos.html" target="_blank" rel="noopener" style="color:inherit; text-decoration:underline;">Términos de Servicio</a> y la <a href="/privacidad.html" target="_blank" rel="noopener" style="color:inherit; text-decoration:underline;">Política de Privacidad</a>.
     </p>
-    <!-- Acceso de un toque para el revisor de Google Play (bypass OTP, entra a la
-         cuenta demo directo). Se esconde tras la aprobación. Ver reviewOneTap(). -->
-    <button type="button" id="review-onetap-btn" onclick="reviewOneTap()"
-      style="margin:18px auto 0; display:block; width:100%; max-width:340px; padding:12px 14px; border-radius:12px; border:1.5px solid rgba(128,128,140,.34); background:transparent; color:var(--muted,#9a9aa8); font-size:13px; font-weight:600; font-family:inherit; cursor:pointer;">
-      🔓 Acceso de revisión · Google Play
-    </button>
   </div>
 
   <!-- ── Fase B (OTP) — pantalla del código. Overlay full-screen sobre el landing;
