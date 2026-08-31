@@ -3845,9 +3845,17 @@ PROHIBIDO ABSOLUTO: cambiar, agregar, quitar o inventar comidas, cantidades, cal
 Agrupá por día (LUNES, MARTES, ... o "Día 1, Día 2" si así viene) y dentro de cada día las comidas (Desayuno, Almuerzo, Merienda, Cena u las que haya), una por línea. Sin introducción ni comentarios. Respondé SOLO con la dieta formateada.`;
 
     try {
+      // Token de sesión del coach para /api/chat (Fase 2 del blindaje: el
+      // server identifica al usuario para el tope diario y el auth futuro).
+      const headers = { 'Content-Type': 'application/json' };
+      try {
+        const { data } = await sb.auth.getSession();
+        const t = data && data.session && data.session.access_token;
+        if (t) headers['Authorization'] = 'Bearer ' + t;
+      } catch (e) { /* sin sesión → el server decide según su modo */ }
       const resp = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ system, messages: [{ role: 'user', content: raw }] }),
       });
       if (!resp.ok) return null;

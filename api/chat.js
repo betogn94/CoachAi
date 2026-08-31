@@ -20,6 +20,63 @@ const MODELS = {
   sonnet: 'claude-sonnet-4-6',
 };
 
+// ── Fase 2 del blindaje: identidad + tope diario ────────────────────────────
+// AUTH_MODE:
+//   'shadow'  → verifica el token si viene y LOGUEA los requests sin token,
+//               pero nunca bloquea por auth. Necesario mientras las PWAs
+//               viejas (que no mandan Authorization) siguen vivas en clientes.
+//   'enforce' → sin token válido = 401. Flipear recién cuando los logs de
+//               Vercel muestren que ya no llegan requests legítimos sin token
+//               (buscar "[chat-auth]" en los runtime logs, ~3-4 días de shadow).
+// El TOPE DIARIO sí corre ya en shadow, pero solo para requests autenticados
+// (los clientes nuevos): un usuario logueado que pasa el límite recibe 429.
+const AUTH_MODE = 'shadow';
+const DAILY_LIMIT = Number(process.env.CHAT_DAILY_LIMIT || 120);
+
+// Resuelve el usuario del token de Supabase contra el Auth server (sin
+// verificar JWT a mano: cero criptografía casera). Devuelve { uid, reason }.
+// reason: 'ok' | 'missing' | 'invalid' | 'error' (error de red = indeterminado).
+async function identifyUser(req) {
+  const auth = req.headers.authorization || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  if (!token) return { uid: null, reason: 'missing' };
+  try {
+    const r = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+        authorization: `Bearer ${token}`,
+      },
+    });
+    if (!r.ok) return { uid: null, reason: 'invalid' };
+    const u = await r.json();
+    return u && u.id ? { uid: u.id, reason: 'ok' } : { uid: null, reason: 'invalid' };
+  } catch (e) {
+    return { uid: null, reason: 'error' };
+  }
+}
+
+// Incrementa el contador diario del usuario vía RPC (service role — los
+// clientes no pueden tocar la tabla). Devuelve el total del día, o null si
+// el conteo falló (fail-open: un problema del contador nunca tumba el chat).
+async function bumpDailyUsage(uid) {
+  try {
+    const r = await fetch(`${process.env.SUPABASE_URL}/rest/v1/rpc/chat_uso_incrementa`, {
+      method: 'POST',
+      headers: {
+        apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+        authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ p_uid: uid }),
+    });
+    if (!r.ok) return null;
+    const n = await r.json();
+    return Number.isFinite(Number(n)) ? Number(n) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -31,6 +88,24 @@ export default async function handler(req, res) {
   // No es retryable: un 403 corta, no reintenta.
   if (!isAllowedOrigin(req)) {
     return res.status(403).json({ error: 'forbidden_origin' });
+  }
+
+  // Identidad + tope diario (ver comentario de AUTH_MODE arriba).
+  const ident = await identifyUser(req);
+  if (!ident.uid) {
+    // Sin usuario resuelto. En shadow solo lo dejamos registrado en los logs
+    // de Vercel; 'error' (red caída hacia Supabase Auth) es fail-open SIEMPRE
+    // para que una caída de Supabase no tumbe el chat de todos.
+    console.warn('[chat-auth]', ident.reason, '- origin:', req.headers.origin || '(none)');
+    if (AUTH_MODE === 'enforce' && ident.reason !== 'error') {
+      return res.status(401).json({ error: 'auth_required', retryable: false });
+    }
+  } else {
+    const used = await bumpDailyUsage(ident.uid);
+    if (used !== null && used > DAILY_LIMIT) {
+      console.warn('[chat-limit] uid', ident.uid, 'superó el tope diario:', used);
+      return res.status(429).json({ error: 'daily_limit', retryable: false });
+    }
   }
 
   try {

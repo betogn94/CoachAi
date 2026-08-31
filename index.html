@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260831-1708-deploy">
+<meta name="app-version" content="20260831-1728-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -18543,7 +18543,7 @@ ${diet}
 """`;
   try {
     const resp = await fetch('/api/chat', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: await aiAuthHeaders(),
       body: JSON.stringify({ system, messages: [{ role: 'user', content: user }], model: 'haiku' }),
     });
     if (!resp.ok) return null;
@@ -22511,13 +22511,29 @@ function formatResponse(text) {
 function _chatBackoff(attempt) {
   return new Promise(r => setTimeout(r, 700 * (attempt + 1)));
 }
+// Headers para /api/chat (Fase 2 del blindaje): manda el token de sesión de
+// Supabase para que el server identifique al usuario (tope diario + auth).
+// Si no hay sesión todavía, va sin Authorization y el server decide según su
+// modo (shadow: pasa y queda logueado; enforce: 401).
+async function aiAuthHeaders() {
+  const h = { 'Content-Type': 'application/json' };
+  try {
+    if (sbClient) {
+      const { data } = await sbClient.auth.getSession();
+      const t = data && data.session && data.session.access_token;
+      if (t) h['Authorization'] = 'Bearer ' + t;
+    }
+  } catch (e) { /* sin sesión → header ausente; el server resuelve */ }
+  return h;
+}
+
 async function callChatAPI(payload, retries = 2) {
   for (let attempt = 0; ; attempt++) {
     let res;
     try {
       res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await aiAuthHeaders(),
         body: JSON.stringify(payload),
       });
     } catch (netErr) {
@@ -22530,6 +22546,7 @@ async function callChatAPI(payload, retries = 2) {
     if (errData.retryable && attempt < retries) { await _chatBackoff(attempt); continue; }
     const e = new Error(errData.error || `HTTP ${res.status}`);
     e.retryable = !!errData.retryable;
+    e.dailyLimit = (errData.error === 'daily_limit');   // tope diario del server (Fase 2)
     throw e;
   }
 }
@@ -22766,7 +22783,9 @@ async function sendToAI(userMessage, isFirst = false) {
   } catch (err) {
     console.error('[CoachAI] sendToAI error:', err?.message || err);
     removeTyping();
-    const errMsg = err?.retryable
+    const errMsg = err?.dailyLimit
+      ? (lang === 'es' ? '🛑 Llegaste al límite de mensajes de hoy. Mañana el chat se renueva — mientras tanto tu plan y tu registro siguen disponibles en Mi Alimentación y Mi Entreno.' : '🛑 You reached today\'s message limit. The chat resets tomorrow — your plan and daily log are still available in My Day and My Training.')
+      : err?.retryable
       ? (lang === 'es' ? '⏳ Estamos con mucha demanda en este momento. Probá de nuevo en unos segundos.' : '⏳ High demand right now — please try again in a few seconds.')
       : (lang === 'es' ? '❌ Error de conexión. Intentá de nuevo.' : '❌ Connection error. Please try again.');
     addMessage(errMsg, 'coach');
@@ -23621,7 +23640,7 @@ async function estimateMealNutrition(mealText) {
   try {
     const resp = await fetch('/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await aiAuthHeaders(),
       body: JSON.stringify({
         system: `Sos un nutricionista experto. Calculás kcal + macros (P/C/G en gramos) de UNA comida descrita en lenguaje natural por una clienta.
 
@@ -23812,7 +23831,7 @@ async function estimateMacros(desayuno, almuerzo, merienda, cena) {
 
   const resp = await fetch('/api/chat', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await aiAuthHeaders(),
     body: JSON.stringify({
       system: 'Sos un nutricionista experto. Analizás comidas en lenguaje natural y estimás macronutrientes totales del día. Respondés SOLO con un JSON válido, sin texto adicional.',
       messages: [{ role: 'user', content: `Estimá los macronutrientes totales de estas comidas:\n${meals}\n\nRespondé SOLO con este JSON: {"kcal":número,"proteina":número,"carbos":número,"grasa":número}` }]
@@ -26169,7 +26188,7 @@ CALIBRATE TONE TO THE WEEK: good week (high adherence/logging) → celebrate str
   // caller's catch path runs and the user sees a real error.
   const response = await fetch('/api/chat', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await aiAuthHeaders(),
     body: JSON.stringify({
       system: systemPrompt,
       messages: [{ role: 'user', content: messageContent }],
@@ -26470,7 +26489,7 @@ async function kingCheckpointVisual(photos) {
   const system = 'Sos el ojo experto de un coach de estética corporal femenina (Método King: progreso hacia la silueta reloj de arena). Comparás fotos de INICIO vs ACTUALES de una clienta y das UN veredicto de progreso visual. Respondés ÚNICAMENTE una de estas tres palabras exactas: mejora_clara | mejora_sutil | igual. Nada más — sin explicación. Criterios: cintura más definida, cadera y glúteos con más forma, hombros más marcados, mejor postura, proporción global más cercana al reloj de arena. Sé conservador: si dudás entre dos veredictos, elegí el menor. Si se ve igual o la diferencia puede ser luz/pose/ropa, respondé: igual.';
   const text = 'Fotos adjuntas en orden: ' + imgs.map(i => i.label).join(', ') + '. Compará INICIO vs ACTUAL y respondé el veredicto (una sola palabra).';
   const resp = await fetch('/api/chat', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers: await aiAuthHeaders(),
     body: JSON.stringify({
       system,
       messages: [{ role: 'user', content: [...imgs.map(i => ({ type: 'image', source: { type: 'url', url: i.url } })), { type: 'text', text }] }],
@@ -32997,7 +33016,7 @@ Agrupá por día (LUNES, MARTES, ... o "Día 1, Día 2" si así viene) y dentro 
 
   try {
     const resp = await fetch('/api/chat', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: await aiAuthHeaders(),
       body: JSON.stringify({ system, messages: [{ role: 'user', content: raw }] })
     });
     if (!resp.ok) return null;
