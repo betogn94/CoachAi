@@ -32,6 +32,10 @@ const MODELS = {
 // (los clientes nuevos): un usuario logueado que pasa el límite recibe 429.
 const AUTH_MODE = 'shadow';
 const DAILY_LIMIT = Number(process.env.CHAT_DAILY_LIMIT || 120);
+// Mismo fallback que api/tower/_db.js: SUPABASE_URL NO está seteada como env
+// var en Vercel (solo la service key lo está) — sin esto la URL queda
+// "undefined/auth/v1/user" y el fetch explota → identidad 'error' siempre.
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://vmvhlgzwufkardaruutt.supabase.co';
 
 // Resuelve el usuario del token de Supabase contra el Auth server (sin
 // verificar JWT a mano: cero criptografía casera). Devuelve { uid, reason }.
@@ -41,7 +45,7 @@ async function identifyUser(req) {
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
   if (!token) return { uid: null, reason: 'missing' };
   try {
-    const r = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
       headers: {
         apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
         authorization: `Bearer ${token}`,
@@ -60,7 +64,7 @@ async function identifyUser(req) {
 // el conteo falló (fail-open: un problema del contador nunca tumba el chat).
 async function bumpDailyUsage(uid) {
   try {
-    const r = await fetch(`${process.env.SUPABASE_URL}/rest/v1/rpc/chat_uso_incrementa`, {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/chat_uso_incrementa`, {
       method: 'POST',
       headers: {
         apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
