@@ -92,6 +92,10 @@ export default async function handler(req, res) {
 
   // Identidad + tope diario (ver comentario de AUTH_MODE arriba).
   const ident = await identifyUser(req);
+  // Diagnóstico observable sin logs: qué resolvió la identidad y cuántas
+  // llamadas lleva el usuario hoy. No expone datos (solo un enum y un número
+  // del propio usuario que hace el request).
+  res.setHeader('x-chat-ident', ident.reason);
   if (!ident.uid) {
     // Sin usuario resuelto. En shadow solo lo dejamos registrado en los logs
     // de Vercel; 'error' (red caída hacia Supabase Auth) es fail-open SIEMPRE
@@ -102,6 +106,7 @@ export default async function handler(req, res) {
     }
   } else {
     const used = await bumpDailyUsage(ident.uid);
+    res.setHeader('x-chat-used', used === null ? 'fail' : String(used));
     if (used !== null && used > DAILY_LIMIT) {
       console.warn('[chat-limit] uid', ident.uid, 'superó el tope diario:', used);
       return res.status(429).json({ error: 'daily_limit', retryable: false });
