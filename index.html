@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260826-1331-deploy">
+<meta name="app-version" content="20260831-1708-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -21544,6 +21544,12 @@ REGLAS DE PLANES SEMANALES (IMPORTANTÍSIMO):
 - Si un plan está ACTIVO, NUNCA lo regeneres ni preguntes si lo quiere otra vez. Esa planificación ya es la del cliente. Si pregunta por "la dieta" o "la rutina", referenciá la activa y respondé puntualmente (un día, un ejercicio, una sustitución).
 - Si un plan está CERRADO o NUNCA SE ENTREGÓ y el cliente pide la dieta/rutina de la semana, GENERÁ UN PLAN NUEVO completo de 7 días. El cliente ya cerró el ciclo anterior y arranca uno nuevo.
 - En tu mensaje, ofrecé proactivamente sólo los planes que NO están actualmente activos (cerrados o nunca entregados).
+
+EL TARGET ES LA CONSTITUCIÓN (regla suprema para pedidos de cambio, mientras el plan está ACTIVO):
+- Las kcal y macros objetivo del plan (el "Target" del header) son INTOCABLES desde el chat. Todo pedido de cambio del cliente se evalúa contra ese número.
+- PROHIBIDO escribir un plan nuevo completo (varios días de dieta o rutina) en el chat mientras el plan está ACTIVO, aunque el cliente lo pida, insista o argumente. La app NO guarda planes generados por chat cuando ya hay uno activo — solo generarías confusión.
+- Pedido puntual que CUADRA con el target (cambiar una comida por otra equivalente en macros, un ejercicio por otro del mismo músculo, hoy no puede entrenar lo planificado): validáselo con ganas, dale 1-2 opciones concretas equivalentes, y recordale registrar lo que realmente hizo en Mi Alimentación / Mi Entreno. El plan escrito no cambia; su registro del día refleja la realidad.
+- Pedido que SE SALE del target o cambia la estructura del plan (más calorías, comidas extra permanentes, sumar o sacar días, rearmar la dieta o la rutina): NO lo valides ni lo hagas. Explicale con calidez y sin culpa que eso se sale de su plan y de su objetivo: los cambios de fondo los define su coach si tiene uno, o se ajustan solos al cerrar su semana con sus datos reales. Si igual va a comer algo fuera del plan, que lo registre en Mi Alimentación — el seguimiento honesto vale más que la perfección.
 ${(dietaPlan && !dietaPlan.closed) ? `\nCONTENIDO DE LA DIETA ACTIVA (vigente):\n"""\n${dietaPlan.contenido}\n"""` : ''}
 ${(rutinaPlan && !rutinaPlan.closed) ? `\nCONTENIDO DE LA RUTINA ACTIVA (vigente):\n"""\n${rutinaPlan.contenido}\n"""` : ''}
 
@@ -21754,6 +21760,12 @@ WEEKLY PLAN RULES (CRITICAL):
 - If a plan is ACTIVE, NEVER regenerate it or ask if they want it again. That planning is theirs. If they ask about "the diet" or "the routine", reference the active one and answer specifically (a single day, a specific exercise, a substitution).
 - If a plan is CLOSED or has NEVER been delivered and the client asks for the weekly diet/routine, GENERATE A FULL NEW 7-day plan. The client closed the previous cycle and is starting a new one.
 - In your messages, only proactively offer the plans that are NOT currently active (closed or never delivered).
+
+THE TARGET IS THE CONSTITUTION (supreme rule for change requests while a plan is ACTIVE):
+- The plan's target kcal and macros (the header "Target") are UNTOUCHABLE from chat. Evaluate every change request against that number.
+- FORBIDDEN: writing a full new multi-day plan (diet or routine) in chat while a plan is ACTIVE, even if the client asks, insists or argues. The app does NOT save chat-generated plans when one is already active — you would only create confusion.
+- One-off request that FITS the target (swapping a meal for a macro-equivalent one, an exercise for another for the same muscle, can't train as planned today): approve it warmly, give 1-2 concrete equivalent options, and remind them to log what they actually did in My Day / My Training. The written plan does not change; their daily log reflects reality.
+- Request that BREAKS the target or restructures the plan (more calories, permanent extra meals, adding/removing days, full rewrite): do NOT validate or do it. Kindly and guilt-free explain it goes outside their plan and goal: deep changes are defined by their coach if they have one, or auto-adjusted when they close their week from real data. If they eat off-plan anyway, they should still log it in My Day — honest tracking beats perfection.
 ${(dietaPlan && !dietaPlan.closed) ? `\nCONTENT OF THE ACTIVE DIET (current):\n"""\n${dietaPlan.contenido}\n"""` : ''}
 ${(rutinaPlan && !rutinaPlan.closed) ? `\nCONTENT OF THE ACTIVE ROUTINE (current):\n"""\n${rutinaPlan.contenido}\n"""` : ''}
 
@@ -22632,8 +22644,20 @@ async function sendToAI(userMessage, isFirst = false) {
     // (pendingPlanDelivery) wins over keyword detection — detectPlanInReply
     // can false-positive on a rutina reply that mentions "desayuno" in
     // pre-workout timing advice, which would clobber the dieta slot.
+    let _planPersisted = false;  // un plan quedó realmente guardado en ESTE turno
+    let _planBlocked = false;    // el candado frenó un intento de pisar el plan activo
     if (isPlanDelivery) {
       const tipo = pendingPlanDelivery || tipoFromReply;
+
+      // CANDADO DEL PLAN (2026-08-31): el chat solo puede guardar un plan cuando
+      // el slot está LIBRE — no existe plan de este tipo, o el existente ya fue
+      // cerrado con el análisis semanal. Un plan ACTIVO es intocable desde el
+      // chat: lo cambia el coach (Studio) o los flujos del sistema (onboarding,
+      // auto-repeat/adjust del cierre). Antes había un bypass (|| tipoFromReply
+      // en la condición de guardado) que persistía cualquier respuesta con forma
+      // de plan PISANDO el activo — por ahí las clientas que chateaban mucho
+      // terminaban rompiendo su propio plan (caso Roxana).
+      const slotOpen = !!tipo && (!weeklyPlans[tipo] || weeklyPlans[tipo].closed);
 
       if (pendingPlanDelivery && tipoFromReply && pendingPlanDelivery !== tipoFromReply) {
         console.warn('[CoachAI] plan-type mismatch — user asked', pendingPlanDelivery,
@@ -22664,7 +22688,9 @@ async function sendToAI(userMessage, isFirst = false) {
       // used in Studio) and re-check. If it now parses, save the canonical
       // version. Only fires when the original failed, so zero cost in the
       // common path. Never invents content (reformat-only prompt).
-      if (!replyHasStructure) {
+      // (solo con el slot libre: si el candado va a frenar el guardado igual,
+      // normalizar sería quemar un llamado de IA sin destino)
+      if (!replyHasStructure && slotOpen) {
         console.info('[CoachAI] reply for', tipo, 'lacks structure — trying AI reformat fallback before giving up');
         showTyping(); // el reformateo es un 2do llamado a la IA (segundos) — mantené el chat "pensando"
         try {
@@ -22683,7 +22709,7 @@ async function sendToAI(userMessage, isFirst = false) {
         removeTyping();
       }
 
-      if (tipo && replyHasStructure && (!weeklyPlans[tipo] || weeklyPlans[tipo].closed || tipoFromReply)) {
+      if (slotOpen && replyHasStructure) {
         pendingPlanDelivery = null;
         const saved = await saveWeeklyPlan(tipo, planTextToSave);
         if (!saved && typeof trackEvent === 'function') trackEvent('plan_save_failed', { tipo, reason: 'db' });
@@ -22694,18 +22720,25 @@ async function sendToAI(userMessage, isFirst = false) {
           semana_iso: getISOWeekKey()
         };
         refreshQuickButtons();
+        _planPersisted = true;
+      } else if (!slotOpen && replyHasStructure) {
+        // Intento de reescritura de un plan ACTIVO → bloqueado por el candado.
+        // Queda en beta_eventos (lo lee Tower): pedidos de cambio repetidos son
+        // señal para el coach de que el plan le incomoda a la clienta — o de
+        // una Roxana en formación.
+        _planBlocked = true;
+        if (typeof trackEvent === 'function') trackEvent('plan_change_blocked', { tipo });
+        console.info('[CoachAI] candado: respuesta con forma de plan de', tipo, 'pero el plan está ACTIVO — no se guarda');
       }
     }
 
     // HONEST DISPLAY — decide the visible coach message AFTER the save attempt.
     // Show the "plan listo" notification (que manda a Mi Entreno / Mi
-    // Alimentación) SOLO si un plan parseable realmente quedó en
-    // weeklyPlans[tipo] — guardado ahora, reformateado por el fallback, o un
-    // plan bueno pre-existente que preservamos. Si no, NO mentimos: registramos
-    // la falla (telemetría → beta_eventos) y mostramos el reply crudo, así el
-    // usuario al menos tiene el contenido en el chat en vez de un "andá a Mi
-    // Entreno" vacío.
-    const _planAvail = _planTipoForDisplay
+    // Alimentación) SOLO si un plan parseable quedó guardado EN ESTE TURNO
+    // (directo o vía el reformat fallback). Si el candado bloqueó el guardado,
+    // o la entrega falló, NO mentimos: mostramos el reply crudo (la respuesta
+    // real de la IA) en vez de anunciar un "plan listo" que no cambió nada.
+    const _planAvail = _planPersisted && _planTipoForDisplay
       && weeklyPlans[_planTipoForDisplay] && weeklyPlans[_planTipoForDisplay].contenido
       && planReplyHasStructure(_planTipoForDisplay, weeklyPlans[_planTipoForDisplay].contenido);
     if (_planAvail) {
@@ -22713,7 +22746,7 @@ async function sendToAI(userMessage, isFirst = false) {
       // plan: autoGenerateFirstPlans emite UN solo mensaje (unificado) al final.
       if (!_autoGenInFlight) addMessage(buildPlanReadyNotification(_planTipoForDisplay), 'coach');
     } else {
-      if (isPlanDelivery) {
+      if (isPlanDelivery && !_planBlocked) {
         if (typeof trackEvent === 'function') trackEvent('plan_save_failed', { tipo: _planTipoForDisplay, reason: 'unparseable' });
         console.error('[CoachAI] plan_save_failed (unparseable) —', _planTipoForDisplay, '— mostrando reply crudo al usuario');
       }
