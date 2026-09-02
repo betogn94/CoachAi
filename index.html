@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260831-1734-deploy">
+<meta name="app-version" content="20260902-1739-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -18581,6 +18581,26 @@ async function autoAdjustDiet(semanaIso) {
       return;
     }
     if (adjusted.trim() === plan.contenido.trim()) return; // sin cambios (regla de oro: por default igual)
+
+    // CLAMP DE KCAL (Fase 3, 2026-09-02): el ajuste de la IA no puede ALEJAR
+    // la dieta del target vigente. La referencia es el Target del header del
+    // plan ACTUAL — en las migradas ese número lo puso el COACH, no Mifflin —
+    // o, si falta, el promedio real de sus días. Si la versión ajustada se va
+    // más de ±15%, NO se guarda: queda el clon de la semana pasada (la regla
+    // de oro del ajuste ya es "ante la duda, igual"). Fail-open: si no se
+    // puede medir alguno de los dos lados, el ajuste pasa como siempre.
+    try {
+      const _prevP = parseDietaContenido(plan.contenido);
+      const _refK = (_prevP && _prevP.header && _prevP.header.targetKcal) || dietaAvgDayKcal(_prevP);
+      const _adjP = parseDietaContenido(adjusted);
+      const _adjK = dietaAvgDayKcal(_adjP) || (_adjP && _adjP.header && _adjP.header.targetKcal);
+      if (_refK && _adjK && Math.abs(_adjK - _refK) / _refK > 0.15) {
+        if (typeof trackEvent === 'function') trackEvent('diet_adjust_clamped', { semana: semanaIso, refK: _refK, adjK: _adjK });
+        console.warn('[CoachAI] auto-ajuste CLAMPEADO:', _adjK, 'kcal vs target vigente', _refK, '— se mantiene el clon');
+        return;
+      }
+    } catch (e) { console.warn('[clamp] autoAdjustDiet:', e); }
+
     const { error } = await sbClient.from('planes_semanales')
       .update({ contenido: adjusted, updated_at: new Date().toISOString() })
       .eq('usuario_id', currentUser.id).eq('tipo', 'dieta').eq('semana_iso', semanaIso);
@@ -18728,6 +18748,21 @@ function computeDietTarget(p) {
   return { kcal, prot, carbs, fat, floor };
 }
 
+// Promedio real de kcal/día de una dieta PARSEADA: suma las comidas con kcal
+// de cada día y promedia los días que tienen datos. null si ninguno los tiene.
+// Es la medida que usa el clamp de la Fase 3 — lo que la clienta COME según
+// las comidas escritas, no lo que el header declama.
+function dietaAvgDayKcal(parsed) {
+  const days = (parsed && parsed.days) || [];
+  const totals = [];
+  for (const d of days) {
+    let k = 0, has = false;
+    for (const m of (d.meals || [])) if (m.kcal != null) { k += m.kcal; has = true; }
+    if (has) totals.push(k);
+  }
+  return totals.length ? Math.round(totals.reduce((a, b) => a + b, 0) / totals.length) : null;
+}
+
 // VARA DE CALIDAD: juzga si un plan está a la altura (no solo si parsea). { ok, reasons }.
 // Acepta los 2 formatos de dieta: kcal por comida (IA) O Target en el header (Jesús).
 // Umbrales calibrados contra los 22 planes reales de Jesús (ver scripts/check-quality.mjs).
@@ -18848,6 +18883,10 @@ async function prefetchPlan(tipo) {
       peso: currentUser && currentUser.peso, altura: currentUser && currentUser.altura,
       edad: currentUser && currentUser.edad, sexo: currentUser && currentUser.sexo,
       objetivo: currentUser && currentUser.objetivo,
+      // actividad incluida (fix 2026-09-02): sin ella computeDietTarget cae al
+      // factor default (moderado) y la vara mide contra un target distinto del
+      // que el prompt le exigió a la IA (que sí usa la actividad real).
+      actividad: currentUser && currentUser.actividad,
     };
     const _target = computeDietTarget(_profile);
     const _expDays = (typeof getWeeklyTrainingTarget === 'function') ? getWeeklyTrainingTarget() : 0;
@@ -22728,6 +22767,34 @@ async function sendToAI(userMessage, isFirst = false) {
 
       if (slotOpen && replyHasStructure) {
         pendingPlanDelivery = null;
+
+        // CLAMP DE KCAL (Fase 3, 2026-09-02) — misma vara y misma red que la
+        // generación del onboarding (prefetchPlan): antes de guardar una dieta
+        // generada por chat, se mide contra el target determinístico del perfil
+        // (evaluatePlanQuality: kcal ±15%, proteína ≥85%, 7 días). Si no llega
+        // al estándar, se reemplaza por la plantilla de Jesús al target del
+        // usuario. Fail-open en cada paso: sin perfil completo, sin plantilla
+        // o ante cualquier error, se guarda lo generado (comportamiento de
+        // siempre) — el clamp solo puede MEJORAR lo que se persiste.
+        if (tipo === 'dieta') {
+          try {
+            const _t = computeDietTarget({
+              peso: currentUser && currentUser.peso, altura: currentUser && currentUser.altura,
+              edad: currentUser && currentUser.edad, sexo: currentUser && currentUser.sexo,
+              objetivo: currentUser && currentUser.objetivo, actividad: currentUser && currentUser.actividad,
+            });
+            if (_t) {
+              const _q = evaluatePlanQuality('dieta', planTextToSave, { target: _t });
+              if (!_q.ok) {
+                if (typeof trackEvent === 'function') trackEvent('plan_quality_fallback', { tipo, reasons: _q.reasons.join(' | '), origen: 'chat' });
+                console.warn('[clamp] dieta del chat no pasa la vara (', _q.reasons.join(' | '), ') — intentando plantilla');
+                const _backup = await getBackupPlan('dieta', _t);
+                if (_backup) planTextToSave = _backup;
+              }
+            }
+          } catch (e) { console.warn('[clamp] dieta chat:', e); }
+        }
+
         const saved = await saveWeeklyPlan(tipo, planTextToSave);
         if (!saved && typeof trackEvent === 'function') trackEvent('plan_save_failed', { tipo, reason: 'db' });
         weeklyPlans[tipo] = saved || {
