@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260902-1739-deploy">
+<meta name="app-version" content="20260902-1756-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -18763,6 +18763,35 @@ function dietaAvgDayKcal(parsed) {
   return totals.length ? Math.round(totals.reduce((a, b) => a + b, 0) / totals.length) : null;
 }
 
+// RESPALDO POR CÓDIGO del método King (Fase 4, 2026-09-02): detecta si una
+// rutina ENTRENA pecho. La regla King es "no pecho a mujeres" salvo pedido
+// explícito — así que esto se usa SOLO en generación proactiva (onboarding)
+// de mujeres King. OJO con los falsos positivos: los ejercicios de ESPALDA
+// que llevan "pecho" en el nombre (jalón al pecho, remo pecho apoyado) NO son
+// pecho; "pecho arriba" es un cue de postura. Por eso detectamos:
+//   1) el TÍTULO del día nombra "pecho" como músculo (caso Roxana exacto:
+//      "Día 5 · Pecho/Hombros"), y
+//   2) ejercicios INEQUÍVOCOS de pecho (press de banca/plano/inclinado,
+//      aperturas, pec deck, crossover), excluyendo cualquier jalón/remo (espalda).
+// Fail-open: ante cualquier error devuelve false (no bloquea).
+function rutinaEntrenaPecho(contenido) {
+  try {
+    const days = (typeof parseRutinaContenido === 'function' ? parseRutinaContenido(contenido) : []) || [];
+    const norm = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const PECHO_EJ = /\b(press de banca|press plano|press inclinado|apertura|pec deck|peck deck|crossover|press pectoral|press de pecho)\b/;
+    for (const d of days) {
+      if (!d || d.isRest) continue;
+      if (/\bpecho\b/.test(norm(d.label))) return true;              // día titulado con pecho
+      for (const e of (d.exercises || [])) {
+        const n = norm(e && e.name);
+        if (/\b(jalon|remo)\b/.test(n)) continue;                    // espalda con "pecho" en el nombre → NO cuenta
+        if (PECHO_EJ.test(n)) return true;
+      }
+    }
+    return false;
+  } catch (e) { return false; }
+}
+
 // VARA DE CALIDAD: juzga si un plan está a la altura (no solo si parsea). { ok, reasons }.
 // Acepta los 2 formatos de dieta: kcal por comida (IA) O Target en el header (Jesús).
 // Umbrales calibrados contra los 22 planes reales de Jesús (ver scripts/check-quality.mjs).
@@ -18801,6 +18830,10 @@ function evaluatePlanQuality(tipo, contenido, opts) {
       if (trainDays.length && trainDays.reduce((a, d) => a + d.exercises.length, 0) / trainDays.length < 4) reasons.push('promedio bajo de ejercicios');
       if (!/cardio/i.test(contenido)) reasons.push('falta cardio');
       if (!/descanso/i.test(contenido)) reasons.push('falta descanso');
+      // Método King (Fase 4): en generación proactiva de mujer King, entrenar
+      // pecho viola el método → cae al backup (plantilla King, sin pecho). El
+      // caller pasa opts.noChest sólo cuando corresponde (mujer + cohorte King).
+      if (opts.noChest && rutinaEntrenaPecho(contenido)) reasons.push('pecho proactivo (metodo King)');
     }
   } catch (e) { reasons.push('error al parsear'); }
   return { ok: reasons.length === 0, reasons };
@@ -18890,10 +18923,14 @@ async function prefetchPlan(tipo) {
     };
     const _target = computeDietTarget(_profile);
     const _expDays = (typeof getWeeklyTrainingTarget === 'function') ? getWeeklyTrainingTarget() : 0;
+    // Método King (Fase 4): mujer de cohorte King → la rutina proactiva NO
+    // entrena pecho. Si la IA lo mete igual, la vara la manda al backup.
+    const _noChest = (currentUser && currentUser.sexo === 'femenino')
+      && (typeof kingEsCohorte === 'function' && kingEsCohorte());
     let _useBackup = false, _reasons = [];
     if (!planText) { _useBackup = true; _reasons = ['no se genero']; }
     else {
-      const q = evaluatePlanQuality(tipo, planText, { target: _target, expectedDays: _expDays });
+      const q = evaluatePlanQuality(tipo, planText, { target: _target, expectedDays: _expDays, noChest: _noChest });
       if (!q.ok) { _useBackup = true; _reasons = q.reasons; }
     }
     if (_useBackup) {
@@ -21432,7 +21469,31 @@ TONO:
 Sonar como Daniel Babot — profesional, técnico pero entendible, directo, sin frases genéricas ("entrena duro", "haz buena forma"). Usá indicaciones específicas: "controlá la fase excéntrica", "pausá en la contracción máxima", "la intención es sentir el pectoral/dorsal/lateral del hombro, no mover el peso por moverlo", "si perdés conexión muscular, bajá el peso", "no ensanches la cintura — evitá oblicuos cargados".
 `;
 
+// Override del método King para MUJERES (Fase 4, 2026-09-02). Se inyecta SOLO
+// para cohorte King femenina, DESPUÉS del método Reloj de Arena, para corregir
+// una contradicción del propio método (listaba Pecho/Hombros como combinación
+// y lo sugería para 5 días → de ahí salió el "Día 5 · Pecho" de Roxana, que
+// ella no pidió). Regla real del método: no ENTRENAR pecho proactivamente.
+const REGLAS_KING_MUJER_ES = `
+REGLA KING OBLIGATORIA — MUJERES (tiene PRIORIDAD sobre las combinaciones de arriba):
+- NO armes proactivamente días ni ejercicios de PECHO. Ignorá "Pecho", "Pecho/Hombros" y "Pecho/Tríceps" como opciones: para 5-6 días usá combinaciones SIN pecho (ej: Glúteos/Isquios, Espalda/Hombros, Hombros/Bíceps, Bíceps/Tríceps, Glúteos/Cuádriceps). El foco estético es glúteos, hombros y espalda.
+- NO uses estos ejercicios de pecho: press de banca/plano/inclinado, aperturas, pec deck, crossover, fondos con foco pecho.
+- SÍ podés usar ejercicios de ESPALDA que llevan "pecho" en el nombre (jalón al pecho, remo pecho apoyado) y el cue de postura "pecho arriba" — eso NO es entrenar pecho.
+- ÚNICA excepción: si la clienta PIDE explícitamente entrenar pecho, dáselo. No lo ofrezcas vos.`;
+
+// Preferencia de estilo de dieta King (Fase 4). Ajuste ligero de estilo — NO
+// toca la estructura de kcal/macros ni la validación (formato idéntico).
+const REGLAS_KING_DIETA_ES = `
+ESTILO DE DIETA KING (preferencia, no rompe el formato ni el target):
+- Priorizá el set de alimentos del método: pollo, carne roja magra, pescado, huevos, yogur griego, avena, arroz, camote/batata, yautía, palta/aguacate, frutos secos, arándanos/fresas.
+- Ofrecé opciones alternativas dentro de cada comida con "/" (ej: "pollo/pescado/huevos 150g", "arroz/camote 150g"). La clienta elige una — mantené las kcal/macros de la comida coherentes con la opción base.
+- 4 comidas por día. Nada de comidas exóticas ni snacks ultraprocesados.`;
+
 function buildSystemPrompt() {
+  // Cohorte King (Fase 4): en el onboarding King, metodo_king ya está estampado
+  // ANTES de generar el plan (ver handoff King ~17109), así que kingEsCohorte()
+  // es confiable acá. Gatea los overrides del método (pecho) y el estilo de dieta.
+  const esKing = (typeof kingEsCohorte === 'function') && kingEsCohorte();
   // Trim defensively — a whitespace-only name leaks into the AI greeting otherwise.
   const nombre = document.getElementById('f-nombre').value.trim();
   const edad = document.getElementById('f-edad').value;
@@ -21711,8 +21772,10 @@ ${_dietTarget ? `- TARGET (ya calculado para este cliente — NO recalcules el T
 - Cantidades en gramos/ml. Solo alimentos de supermercado latinoamericano.
 - Respetá restricciones, alergias y lo que no le gusta al 100%.
 - Total del día dentro de ±80kcal del target. Variá menús entre días.
+${esKing ? REGLAS_KING_DIETA_ES : ''}
 
 ${sexo === 'femenino' ? METODO_RELOJ_ARENA_ES : METODO_V_MASCULINO_ES}
+${(esKing && sexo === 'femenino') ? REGLAS_KING_MUJER_ES : ''}
 
 EJEMPLO DE REFERENCIA — formato y nivel de detalle de una rutina bien hecha (adaptá los ejercicios, el énfasis y la cantidad de días al perfil de ESTE cliente; NO la copies literal):
 
