@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260902-1756-deploy">
+<meta name="app-version" content="20260904-1941-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -22179,6 +22179,126 @@ function showRenewScreen(user) {
   });
 }
 
+// ======= Paywall de suscripción (Google Play, invitado self-serve en Android) =======
+// El invitado directo (self_serve) en el wrapper nativo se suscribe con Google Play:
+// 14 días gratis (los da Play) → $9.99/mes. En web NO aplica (sigue Stripe). El pago
+// dispara la compra vía Digital Goods API + PaymentRequest; el server la verifica
+// (/api/play/verify) y setea acceso_hasta. Los clientes de coach/King/revisor NO son
+// self_serve → nunca ven esto.
+const PLAY_BILLING_METHOD = 'https://play.google.com/billing';
+const PAYWALL_SKU = 'coachai_pro_monthly';   // ID de la suscripción; Play aplica solo la oferta de 14 días a clientes nuevos
+
+// ¿Tiene una suscripción de Google que le dé acceso AHORA?
+function hasActiveGoogleSub(user) {
+  const st = user && user.play_sub_state;
+  if (st === 'active' || st === 'in_grace') return true;
+  // Cancelada pero todavía dentro del período pagado = sigue con acceso hasta expiry.
+  if (st === 'canceled' && user && user.acceso_hasta && new Date(user.acceso_hasta) > new Date()) return true;
+  return false;
+}
+// Disponibilidad del billing de Play. CRÍTICO: la app SIN billing (prod v3) también
+// tiene el funnel de invitado → si mostráramos el paywall ahí, el botón fallaría y el
+// invitado quedaría trapped. Por eso el paywall SOLO aparece si el billing existe de
+// verdad (el build con billing lo trae). null = sin probar; true/false = resultado.
+let _playBillingAvailable = null;
+async function probePlayBilling() {
+  try {
+    if (!('getDigitalGoodsService' in window) || typeof PaymentRequest === 'undefined') { _playBillingAvailable = false; return false; }
+    await window.getDigitalGoodsService(PLAY_BILLING_METHOD);
+    _playBillingAvailable = true;
+  } catch (e) { _playBillingAvailable = false; }
+  return _playBillingAvailable;
+}
+
+// ¿Mostrar el paywall? Solo invitado directo (self_serve) en Android, con billing
+// realmente disponible, y sin sub activa.
+function needsGooglePaywall(user) {
+  if (!user || !user.self_serve) return false;
+  if (!isNativeWrapper()) return false;            // solo Android
+  if (isReviewLogin(user.email)) return false;     // doble seguro (el revisor no es self_serve)
+  if (_playBillingAvailable !== true) return false; // solo si el build trae billing (si no, flujo normal)
+  return !hasActiveGoogleSub(user);
+}
+
+// Verifica la compra en el server → devuelve true si otorgó acceso.
+async function verifyGooglePurchase(purchaseToken) {
+  if (!purchaseToken) return false;
+  try {
+    let token = null;
+    try { const { data } = await sbClient.auth.getSession(); token = data?.session?.access_token || null; } catch (e) {}
+    if (!token) return false;
+    const r = await fetch('/api/play/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ purchaseToken }),
+    });
+    const d = await r.json().catch(() => ({}));
+    return !!(d && d.ok && d.granted);
+  } catch (e) { console.error('[paywall] verify:', e && e.message); return false; }
+}
+
+async function startGooglePurchase(btn) {
+  const label = (btn && btn.dataset.label) || 'Empezar 14 días gratis';
+  const setBusy = (t) => { if (btn) { btn.disabled = !!t; btn.textContent = t || label; } };
+  const errEl = document.getElementById('paywall-error');
+  if (errEl) errEl.textContent = '';
+  try {
+    if (!('getDigitalGoodsService' in window) || typeof PaymentRequest === 'undefined') {
+      throw new Error('billing_unavailable');
+    }
+    setBusy('Abriendo Google…');
+    // Abre el servicio de Play Billing (solo existe dentro del TWA instalado desde Play).
+    await window.getDigitalGoodsService(PLAY_BILLING_METHOD);
+    const methodData = [{ supportedMethods: PLAY_BILLING_METHOD, data: { sku: PAYWALL_SKU } }];
+    const details = { total: { label: 'CoachAI Pro', amount: { currency: 'USD', value: '9.99' } } };
+    const request = new PaymentRequest(methodData, details);
+    const response = await request.show();
+    // El purchaseToken viene en response.details (formato de Play Billing).
+    const purchaseToken = response.details && (response.details.token || response.details.purchaseToken);
+    setBusy('Confirmando…');
+    const ok = await verifyGooglePurchase(purchaseToken);
+    try { await response.complete(ok ? 'success' : 'fail'); } catch (e) {}
+    if (ok) { try { location.reload(); } catch (e) {} return; }
+    throw new Error('verify_failed');
+  } catch (e) {
+    console.error('[paywall] purchase:', e && e.message);
+    setBusy(null);
+    if (errEl) {
+      errEl.textContent = (e && e.message === 'billing_unavailable')
+        ? 'La compra no está disponible en esta versión. Actualizá la app desde Google Play.'
+        : (e && e.name === 'AbortError')
+          ? ''  // el usuario cerró la ventana de Google → sin error
+          : 'No se pudo completar la suscripción. Probá de nuevo.';
+    }
+  }
+}
+
+function showGooglePaywall(user) {
+  if (document.getElementById('paywall-overlay')) return;
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent-bright').trim() || '#7c5cff';
+  const ov = document.createElement('div');
+  ov.id = 'paywall-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0a0a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;font-family:inherit;gap:15px';
+  ov.innerHTML =
+    `<div style="font-size:46px">🏋️</div>` +
+    `<div style="font-size:23px;font-weight:800;letter-spacing:.01em">Activá CoachAI Pro</div>` +
+    `<div style="opacity:.8;font-size:15px;line-height:1.6;max-width:360px">Tu coach de IA, tu plan de entrenamiento y nutrición, chat 24/7 y seguimiento — todo en un solo lugar.</div>` +
+    `<div style="font-size:15.5px;font-weight:700;margin-top:2px">14 días gratis, después $9.99/mes</div>` +
+    `<div style="opacity:.6;font-size:12.5px;max-width:340px;line-height:1.5">Se renueva sola salvo que la canceles. Podés cancelar cuando quieras desde Google Play.</div>` +
+    `<button id="paywall-cta" type="button" data-label="Empezar 14 días gratis" style="margin-top:8px;background:${accent};color:#fff;border:0;font-weight:700;padding:15px 28px;border-radius:12px;font-size:16px;cursor:pointer;font-family:inherit;max-width:340px;width:100%">Empezar 14 días gratis</button>` +
+    `<div id="paywall-error" style="color:#ff6b6b;font-size:13px;min-height:16px;max-width:340px;line-height:1.4"></div>` +
+    `<button id="paywall-logout" type="button" style="background:transparent;color:#888;border:0;margin-top:2px;cursor:pointer;font-family:inherit;font-size:13px;text-decoration:underline">Cerrar sesión</button>`;
+  document.body.appendChild(ov);
+  const cta = document.getElementById('paywall-cta');
+  if (cta) cta.addEventListener('click', () => startGooglePurchase(cta));
+  const lo = document.getElementById('paywall-logout');
+  if (lo) lo.addEventListener('click', async () => {
+    await clearSession();
+    try { localStorage.removeItem(LS_SESSION); } catch (e) {}
+    window.location.reload();
+  });
+}
+
 // ---- Kill-switch del tenant (#3) ----
 // Si el tenant entero está 'suspended' (el coach dejó de pagar a CoachAI), TODOS
 // sus usuarios ven una pantalla de pausa. Es distinto del gate de suscripción:
@@ -22207,6 +22327,21 @@ function showTenantSuspendedScreen() {
 }
 
 async function launchCoach() {
+  // Paywall del invitado directo (self_serve) en Android: se suscribe con Google Play
+  // ANTES de entrar (14 días gratis → $9.99). Va primero que el gate de acceso porque
+  // el invitado nuevo tiene acceso_hasta de trial, pero igual debe pasar por el paywall.
+  // Web / clientes de coach / King / revisor NO son self_serve → no lo ven. Antes de
+  // decidir, aseguramos el probe de billing (si la app no trae billing → NO paywall,
+  // cae al flujo normal, así no atrapa a nadie en la app vieja sin billing).
+  if (!_getImpersonateUid() && currentUser && currentUser.self_serve && isNativeWrapper()
+      && !isReviewLogin(currentUser.email) && !hasActiveGoogleSub(currentUser)
+      && _playBillingAvailable === null) {
+    try { await probePlayBilling(); } catch (e) {}
+  }
+  if (!_getImpersonateUid() && needsGooglePaywall(currentUser)) {
+    showGooglePaywall(currentUser);
+    return;
+  }
   // Gate de suscripción: si el acceso del cliente venció, mostramos la pantalla
   // de renovación en vez de la app. Excluye el preview ?as= del coach (impersonate)
   // y, vía isAccessBlocked(), a coaches/admins. Ver showRenewScreen().
