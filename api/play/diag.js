@@ -8,6 +8,12 @@ export default async function handler(req, res) {
   if (!expected || got !== expected) return res.status(403).json({ ok: false });
 
   const out = { hasSAEnv: !!process.env.GOOGLE_PLAY_SERVICE_ACCOUNT };
+  // Email/proyecto de la cuenta que usa la llave (para comparar con la invitada en Play).
+  try {
+    const j = JSON.parse(process.env.GOOGLE_PLAY_SERVICE_ACCOUNT || '{}');
+    out.saEmail = j.client_email || null;
+    out.saProject = j.project_id || null;
+  } catch (e) { out.saParse = 'fail'; }
   try {
     const token = await getGoogleAccessToken();
     out.googleAuth = token ? 'ok' : 'no_token';
