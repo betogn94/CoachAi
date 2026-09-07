@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260904-1941-deploy">
+<meta name="app-version" content="20260907-1834-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -22220,21 +22220,21 @@ function needsGooglePaywall(user) {
   return !hasActiveGoogleSub(user);
 }
 
-// Verifica la compra en el server → devuelve true si otorgó acceso.
+// Verifica la compra en el server → devuelve el resultado ({ok, granted, acceso_hasta}) o null.
 async function verifyGooglePurchase(purchaseToken) {
-  if (!purchaseToken) return false;
+  if (!purchaseToken) return null;
   try {
     let token = null;
     try { const { data } = await sbClient.auth.getSession(); token = data?.session?.access_token || null; } catch (e) {}
-    if (!token) return false;
+    if (!token) return null;
     const r = await fetch('/api/play/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ purchaseToken }),
     });
     const d = await r.json().catch(() => ({}));
-    return !!(d && d.ok && d.granted);
-  } catch (e) { console.error('[paywall] verify:', e && e.message); return false; }
+    return (d && d.ok) ? d : null;
+  } catch (e) { console.error('[paywall] verify:', e && e.message); return null; }
 }
 
 async function startGooglePurchase(btn) {
@@ -22256,9 +22256,22 @@ async function startGooglePurchase(btn) {
     // El purchaseToken viene en response.details (formato de Play Billing).
     const purchaseToken = response.details && (response.details.token || response.details.purchaseToken);
     setBusy('Confirmando…');
-    const ok = await verifyGooglePurchase(purchaseToken);
+    const result = await verifyGooglePurchase(purchaseToken);
+    const ok = !!(result && result.granted);
     try { await response.complete(ok ? 'success' : 'fail'); } catch (e) {}
-    if (ok) { try { location.reload(); } catch (e) {} return; }
+    if (ok) {
+      // Entrar SIN recargar: actualizamos el usuario en memoria y re-entramos a la app.
+      // (El reload reiniciaba todo y repetía el onboarding ya hecho.)
+      try {
+        if (currentUser) {
+          currentUser.play_sub_state = 'active';
+          if (result.acceso_hasta) currentUser.acceso_hasta = result.acceso_hasta;
+        }
+      } catch (e) {}
+      const ov = document.getElementById('paywall-overlay'); if (ov) ov.remove();
+      try { launchCoach(); } catch (e) { try { location.reload(); } catch (e2) {} }
+      return;
+    }
     throw new Error('verify_failed');
   } catch (e) {
     console.error('[paywall] purchase:', e && e.message);
@@ -22281,10 +22294,10 @@ function showGooglePaywall(user) {
   ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0a0a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;font-family:inherit;gap:15px';
   ov.innerHTML =
     `<div style="font-size:46px">🏋️</div>` +
-    `<div style="font-size:23px;font-weight:800;letter-spacing:.01em">Activá CoachAI Pro</div>` +
-    `<div style="opacity:.8;font-size:15px;line-height:1.6;max-width:360px">Tu coach de IA, tu plan de entrenamiento y nutrición, chat 24/7 y seguimiento — todo en un solo lugar.</div>` +
-    `<div style="font-size:15.5px;font-weight:700;margin-top:2px">14 días gratis, después $9.99/mes</div>` +
-    `<div style="opacity:.6;font-size:12.5px;max-width:340px;line-height:1.5">Se renueva sola salvo que la canceles. Podés cancelar cuando quieras desde Google Play.</div>` +
+    `<div style="color:#fff;font-size:23px;font-weight:800;letter-spacing:.01em">Activá CoachAI Pro</div>` +
+    `<div style="color:rgba(255,255,255,.82);font-size:15px;line-height:1.6;max-width:360px">Tu coach de IA, tu plan de entrenamiento y nutrición, chat 24/7 y seguimiento — todo en un solo lugar.</div>` +
+    `<div style="color:#fff;font-size:15.5px;font-weight:700;margin-top:2px">14 días gratis, después $9.99/mes</div>` +
+    `<div style="color:rgba(255,255,255,.6);font-size:12.5px;max-width:340px;line-height:1.5">Se renueva sola salvo que la canceles. Podés cancelar cuando quieras desde Google Play.</div>` +
     `<button id="paywall-cta" type="button" data-label="Empezar 14 días gratis" style="margin-top:8px;background:${accent};color:#fff;border:0;font-weight:700;padding:15px 28px;border-radius:12px;font-size:16px;cursor:pointer;font-family:inherit;max-width:340px;width:100%">Empezar 14 días gratis</button>` +
     `<div id="paywall-error" style="color:#ff6b6b;font-size:13px;min-height:16px;max-width:340px;line-height:1.4"></div>` +
     `<button id="paywall-logout" type="button" style="background:transparent;color:#888;border:0;margin-top:2px;cursor:pointer;font-family:inherit;font-size:13px;text-decoration:underline">Cerrar sesión</button>`;
