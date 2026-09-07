@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260907-1834-deploy">
+<meta name="app-version" content="20260907-1906-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -22237,6 +22237,25 @@ async function verifyGooglePurchase(purchaseToken) {
   } catch (e) { console.error('[paywall] verify:', e && e.message); return null; }
 }
 
+// Refresca el estado de la sub de Play (renovaciones/cancelaciones) al abrir la app.
+// Actualiza currentUser en memoria; el gate de launchCoach lo usa a continuación.
+async function refreshGoogleSub() {
+  try {
+    let token = null;
+    try { const { data } = await sbClient.auth.getSession(); token = data?.session?.access_token || null; } catch (e) {}
+    if (!token) return;
+    const r = await fetch('/api/play/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+    });
+    const d = await r.json().catch(() => ({}));
+    if (d && d.ok && d.hasSub && currentUser) {
+      currentUser.play_sub_state = d.state;
+      if (d.acceso_hasta) currentUser.acceso_hasta = d.acceso_hasta;
+    }
+  } catch (e) { console.warn('[paywall] refresh:', e && e.message); }
+}
+
 async function startGooglePurchase(btn) {
   const label = (btn && btn.dataset.label) || 'Empezar 14 días gratis';
   const setBusy = (t) => { if (btn) { btn.disabled = !!t; btn.textContent = t || label; } };
@@ -22340,6 +22359,18 @@ function showTenantSuspendedScreen() {
 }
 
 async function launchCoach() {
+  // Renovaciones/cancelaciones de Play SIN webhooks: si el usuario es suscriptor
+  // self-serve y su acceso está por vencer o venció, re-consultamos a Google al abrir
+  // (extiende el acceso si renovó; lo corta si canceló/venció). Actualiza currentUser
+  // antes de evaluar los gates de abajo.
+  try {
+    if (currentUser && currentUser.self_serve && currentUser.play_sub_state && isNativeWrapper()) {
+      const acc = currentUser.acceso_hasta ? new Date(currentUser.acceso_hasta).getTime() : 0;
+      if (!acc || acc <= Date.now() + 2 * 24 * 3600 * 1000) {
+        await refreshGoogleSub();
+      }
+    }
+  } catch (e) {}
   // Paywall del invitado directo (self_serve) en Android: se suscribe con Google Play
   // ANTES de entrar (14 días gratis → $9.99). Va primero que el gate de acceso porque
   // el invitado nuevo tiene acceso_hasta de trial, pero igual debe pasar por el paywall.
