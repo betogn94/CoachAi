@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260907-1906-deploy">
+<meta name="app-version" content="20260907-1917-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -22190,11 +22190,15 @@ const PAYWALL_SKU = 'coachai_pro_monthly';   // ID de la suscripción; Play apli
 
 // ¿Tiene una suscripción de Google que le dé acceso AHORA?
 function hasActiveGoogleSub(user) {
-  const st = user && user.play_sub_state;
-  if (st === 'active' || st === 'in_grace') return true;
-  // Cancelada pero todavía dentro del período pagado = sigue con acceso hasta expiry.
-  if (st === 'canceled' && user && user.acceso_hasta && new Date(user.acceso_hasta) > new Date()) return true;
-  return false;
+  if (!user) return false;
+  // Exigimos acceso vigente (acceso_hasta futuro) para TODOS los estados: así un
+  // 'active' quedado sin actualizar (p.ej. si el refresh falló) con fecha ya vencida
+  // NO cuenta como sub activa → cae al paywall, no a la pantalla neutra de renovación.
+  const vigente = user.acceso_hasta && new Date(user.acceso_hasta) > new Date();
+  if (!vigente) return false;
+  const st = user.play_sub_state;
+  // active/in_grace = al día; canceled = canceló pero sigue dentro del período pagado.
+  return st === 'active' || st === 'in_grace' || st === 'canceled';
 }
 // Disponibilidad del billing de Play. CRÍTICO: la app SIN billing (prod v3) también
 // tiene el funnel de invitado → si mostráramos el paywall ahí, el botón fallaría y el
