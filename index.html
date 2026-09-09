@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260907-1917-deploy">
+<meta name="app-version" content="20260909-1738-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6139,6 +6139,49 @@ body.theme-king .cai-meal-macros {
   }
 }
 .cai-ent-serie-input:focus { border-color: var(--accent); }
+/* ESPECIFICIDAD: el genérico `input[type="text"]` (0,1,1) le gana a
+   `.cai-ent-serie-input` (0,1,0) y a la regla táctil de arriba → el padding real
+   era 12px 16px. En 375px el campo de reps queda con ~6px de contenido y muestra
+   UN dígito aunque escribas "12" (el "solo entra un dígito" de Carina). Con
+   `.cai-ent-serie-row` adelante (0,2,0) gana esta. Mantenemos la ALTURA actual
+   (padding vertical igual) y solo achicamos el horizontal para que entren
+   "12" reps y "42.5" kg. */
+.cai-ent-serie-row .cai-ent-serie-input { padding: 12px 5px; }
+@media (hover: none) and (pointer: coarse) {
+  .cai-ent-serie-row .cai-ent-serie-input { padding: 10px 4px; }
+}
+/* Arrastre de pesos (ENT_REF_ENABLED): el peso/reps de la última semana con
+   datos se muestra como SUGERENCIA (placeholder violeta, itálica) en los campos
+   vacíos — no es un valor guardado. "Repetir semana pasada" los copia de verdad. */
+.cai-ent-serie-input.has-ref::placeholder,
+body.theme-light .cai-ent-serie-input.has-ref::placeholder,
+body.theme-king .cai-ent-serie-input.has-ref::placeholder {
+  color: var(--accent) !important; opacity: 0.8 !important; font-style: italic;
+}
+.cai-ent-ref-hint {
+  font-weight: 400; letter-spacing: 0.3px; font-style: italic; white-space: nowrap;
+  color: var(--accent); opacity: 0.8; text-transform: none;
+}
+.cai-ent-series-title:has(.cai-ent-ref-hint) {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+}
+.cai-ent-ref-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; margin: 0 0 10px;
+  padding: 9px 12px;
+  background: rgba(124,106,255,0.08);
+  border: 1px solid rgba(124,106,255,0.25);
+  border-radius: 10px;
+  color: var(--accent-bright);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.cai-ent-ref-btn svg { width: 14px; height: 14px; flex: none; }
+.cai-ent-ref-btn:active { transform: scale(0.98); }
+body.theme-light .cai-ent-ref-btn { color: var(--accent) !important; background: rgba(124,106,255,0.08) !important; }
+body.theme-king .cai-ent-ref-btn { color: var(--accent) !important; background: rgba(250,181,173,0.12) !important; border-color: rgba(250,181,173,0.4) !important; }
 .cai-ent-serie-unit {
   font-family: 'JetBrains Mono', monospace;
   font-size: 9.5px; color: var(--muted2);
@@ -30432,11 +30475,144 @@ function writeEntrenoLocal(state) {
   catch (e) { console.error('Entreno local save failed:', e); }
 }
 
+// ---- Arrastre de pesos semana a semana ----
+// Capa 1 (SIEMPRE, todos los usuarios): junto con los pesos guardamos un
+// snapshot `estado.ex` = { "d{dia}e{ej}": { n: nombre, s: series } } de la
+// rutina que se estaba mostrando. Sin esto las keys son puramente posicionales
+// y no hay forma de saber, la semana siguiente, si "d1e0" sigue siendo el mismo
+// ejercicio (el coach pudo reordenar/swapear). Inofensivo: nadie más lee estado.
+// Capa 2 (gated ?pesos=1 hasta que lo liberemos): al abrir Mi Entreno se trae
+// la última semana anterior CON pesos y se ofrece como referencia editable
+// (placeholder en los campos vacíos + botón "Repetir semana pasada" por día).
+// NUNCA se copian solos: solo con el tap de la usuaria (sin pesos fantasma).
+const ENT_REF_ENABLED = (() => {
+  try {
+    const v = new URLSearchParams(window.location.search).get('pesos');
+    if (v === '1') { try { localStorage.setItem('coachai_ent_ref', '1'); } catch {} return true; }
+    if (v === '0') { try { localStorage.removeItem('coachai_ent_ref'); } catch {} return false; }
+    return localStorage.getItem('coachai_ent_ref') === '1';
+  } catch { return false; }
+})();
+
+function buildEntrenoExSnapshot() {
+  try {
+    if (typeof buildTrainingDayMapping !== 'function') return null;
+    const mapping = buildTrainingDayMapping();
+    if (!mapping || !Array.isArray(mapping.days)) return null;
+    const ex = {};
+    mapping.days.forEach((day, di) => {
+      if (!day || day.isRest) return;
+      (day.exercises || []).forEach((e, j) => {
+        ex[`d${di}e${j}`] = { n: String((e && e.name) || '').slice(0, 80), s: parseSeriesCount(e && e.detail) };
+      });
+    });
+    return Object.keys(ex).length ? ex : null;
+  } catch (e) { return null; }
+}
+
+// Referencia cargada para (usuario, semana actual). null = no se buscó / no hay.
+let _entrenoRef = null;
+async function loadEntrenoRef() {
+  if (!ENT_REF_ENABLED || !sbClient || !currentUser) return;
+  const uid = currentUser.id;
+  const wk = entrenoWeekKey();
+  try {
+    // Última semana ANTERIOR con pesos (no solo "la anterior": si se salteó una
+    // semana por vacaciones/enfermedad igual encuentra referencia). semana_iso
+    // es "YYYY-Www" zero-padded → ordena bien como texto.
+    const { data, error } = await sbClient.from('entreno_semanal')
+      .select('semana_iso, estado').eq('usuario_id', uid).lt('semana_iso', wk)
+      .order('semana_iso', { ascending: false }).limit(8);
+    if (error) { console.warn('Entreno ref query failed:', error); return; }
+    if (!currentUser || currentUser.id !== uid) return;
+    const row = (data || []).find(r => r.estado && r.estado.weights && Object.keys(r.estado.weights).length);
+    _entrenoRef = row
+      ? { uid, wk, semana: row.semana_iso, weights: row.estado.weights || {}, reps: row.estado.reps || {},
+          ex: (row.estado.ex && typeof row.estado.ex === 'object') ? row.estado.ex : null, _legacyOk: undefined }
+      : { uid, wk, semana: null, weights: {}, reps: {}, ex: null, _legacyOk: false };
+  } catch (e) { console.warn('Entreno ref failed:', e); }
+}
+
+function _entNormName(n) {
+  return String(n || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ').trim();
+}
+function _entrenoRefActive() {
+  return ENT_REF_ENABLED && _entrenoRef && _entrenoRef.semana && currentUser
+    && _entrenoRef.uid === currentUser.id && _entrenoRef.wk === entrenoWeekKey();
+}
+// Devuelve el slot "d?e?" de la semana de referencia que corresponde al
+// ejercicio actual, o null si no hay match seguro.
+//  - Con snapshot (semanas guardadas post-deploy): match por NOMBRE normalizado.
+//    Primero el mismo slot, después cualquier slot con ese nombre. Si el
+//    ejercicio cambió → null → arranca en blanco.
+//  - Sin snapshot (semanas viejas): posicional, PERO solo si TODA la semana vieja
+//    calza en la estructura actual (misma "huella" de días/ejercicios/series que
+//    la receta manual). Una sola key fuera de estructura → sin referencia.
+function entrenoRefSlot(mapping, displayIdx, exIdx, exName, nSeries) {
+  if (!_entrenoRefActive()) return null;
+  const ref = _entrenoRef;
+  const cur = `d${displayIdx}e${exIdx}`;
+  if (ref.ex) {
+    const want = _entNormName(exName);
+    if (!want) return null;
+    if (ref.ex[cur] && _entNormName(ref.ex[cur].n) === want) return cur;
+    const k = Object.keys(ref.ex).find(k => ref.ex[k] && _entNormName(ref.ex[k].n) === want);
+    return k || null;
+  }
+  if (ref._legacyOk === undefined) {
+    ref._legacyOk = (() => {
+      if (!mapping || !Array.isArray(mapping.days)) return false;
+      const keys = Object.keys(ref.weights).concat(Object.keys(ref.reps));
+      return keys.every(k => {
+        const m = k.match(/^d(\d+)e(\d+)s(\d+)$/);
+        if (!m) return false;
+        const day = mapping.days[+m[1]];
+        if (!day || day.isRest) return false;
+        const ex = (day.exercises || [])[+m[2]];
+        if (!ex) return false;
+        return +m[3] >= 1 && +m[3] <= parseSeriesCount(ex.detail);
+      });
+    })();
+  }
+  return ref._legacyOk ? cur : null;
+}
+
+// Tap en "Repetir pesos de la semana pasada": copia pesos+reps de referencia a
+// los campos VACÍOS del día (no pisa lo que la usuaria ya escribió) y guarda.
+function applyEntrenoRef(displayIdx) {
+  if (!_entrenoRefActive()) return;
+  const mapping = buildTrainingDayMapping();
+  const day = mapping && mapping.days[displayIdx];
+  if (!day || day.isRest) return;
+  const state = getEntrenoWeekState();
+  let n = 0;
+  (day.exercises || []).forEach((ex, j) => {
+    const nSeries = parseSeriesCount(ex.detail);
+    const slot = entrenoRefSlot(mapping, displayIdx, j, ex.name, nSeries);
+    if (!slot) return;
+    for (let s = 1; s <= nSeries; s++) {
+      const k = serieKey(displayIdx, j, s);
+      const rw = sanitizeWeight(_entrenoRef.weights[`${slot}s${s}`] || '');
+      const rr = sanitizeReps(_entrenoRef.reps[`${slot}s${s}`] || '');
+      if (rw && !state.weights[k]) { state.weights[k] = rw; n++; }
+      if (rr && !state.reps[k]) { state.reps[k] = rr; n++; }
+    }
+  });
+  if (!n) return;
+  saveEntrenoWeekState(state);
+  _entHeroOpen[displayIdx] = true;
+  try { trackEvent('entreno_ref_apply', { dia: displayIdx, campos: n, desde: _entrenoRef.semana }); } catch (e) {}
+  renderMiEntreno();
+}
+
 let _entrenoSyncTimer = null;
 // Persist to localStorage immediately (instant UI) + debounced upsert to
 // Supabase so the coach sees it cross-device and it survives a cache wipe.
 function saveEntrenoWeekState(state) {
   if (!currentUser) return;
+  const snap = buildEntrenoExSnapshot();
+  if (snap) state.ex = snap;
   writeEntrenoLocal(state);
   const uid = currentUser.id;
   const wk = entrenoWeekKey();
@@ -30455,9 +30631,13 @@ async function hydrateEntrenoFromSupabase() {
   if (!sbClient || !currentUser) return;
   const uid = currentUser.id;
   const wk = entrenoWeekKey();
+  // Referencia de la semana anterior en paralelo (no bloquea ni afecta el
+  // hydrate: si falla, simplemente no hay sugerencias).
+  const refPromise = loadEntrenoRef().catch(() => {});
   try {
     const { data, error } = await sbClient.from('entreno_semanal')
       .select('estado').eq('usuario_id', uid).eq('semana_iso', wk).maybeSingle();
+    await refPromise;
     if (error || !data || !data.estado) return;
     if (!currentUser || currentUser.id !== uid) return; // session switched mid-fetch
     const remote = data.estado;
@@ -30957,21 +31137,32 @@ function renderMiEntreno() {
         </div>
       `;
     } else {
+      // Arrastre de pesos: cuántos campos vacíos del día tienen sugerencia de la
+      // semana de referencia (para mostrar el botón "Repetir semana pasada").
+      let dayRefPending = 0;
       const exHtml = day.exercises.map((ex, j) => {
         const nSeries = parseSeriesCount(ex.detail);
+        const refSlot = entrenoRefSlot(mapping, displayIdx, j, ex.name, nSeries);
+        let exHasRef = false;
         const seriesRows = [];
         for (let s = 1; s <= nSeries; s++) {
           const sk = serieKey(displayIdx, j, s);
           const sv = state.weights[sk] || '';
           const sr = state.reps[sk] || '';
+          const rw = refSlot ? sanitizeWeight(_entrenoRef.weights[`${refSlot}s${s}`] || '') : '';
+          const rr = refSlot ? sanitizeReps(_entrenoRef.reps[`${refSlot}s${s}`] || '') : '';
+          const wRef = !!(rw && !sv), rRef = !!(rr && !sr);
+          if (wRef) dayRefPending++;
+          if (rRef) dayRefPending++;
+          if (wRef || rRef) exHasRef = true;
           // Dual-input row: [reps] × [peso] kg ✓ — sharing the space that
           // used to hold a single weight input. Both fields share the same
           // ews-{sk} indicator since they belong to the same serie.
           seriesRows.push(`<div class="cai-ent-serie-row">
             <span class="cai-ent-serie-label">${lang === 'es' ? 'Serie' : 'Set'} ${s}</span>
             <span class="cai-ent-serie-field">
-              <input class="cai-ent-serie-input" type="text" inputmode="numeric"
-                     value="${esc(sr)}" placeholder="0"
+              <input class="cai-ent-serie-input${rRef ? ' has-ref' : ''}" type="text" inputmode="numeric"
+                     value="${esc(sr)}" placeholder="${rRef ? esc(rr) : '0'}"
                      oninput="onEntrenoReps(${displayIdx},${j},${s},this)"
                      onblur="cleanEntrenoFieldOnBlur(this,'reps')"
                      aria-label="${lang === 'es' ? 'Repeticiones serie' : 'Set reps'} ${s} — ${esc(ex.name)}">
@@ -30979,8 +31170,8 @@ function renderMiEntreno() {
             </span>
             <span class="cai-ent-serie-times">×</span>
             <span class="cai-ent-serie-field">
-              <input class="cai-ent-serie-input" type="text" inputmode="decimal"
-                     value="${esc(sv)}" placeholder="0"
+              <input class="cai-ent-serie-input${wRef ? ' has-ref' : ''}" type="text" inputmode="decimal"
+                     value="${esc(sv)}" placeholder="${wRef ? esc(rw) : '0'}"
                      oninput="onEntrenoWeight(${displayIdx},${j},${s},this)"
                      onblur="cleanEntrenoFieldOnBlur(this,'weight')"
                      aria-label="${lang === 'es' ? 'Peso serie' : 'Set weight'} ${s} — ${esc(ex.name)}">
@@ -30989,6 +31180,9 @@ function renderMiEntreno() {
             <span class="cai-ent-serie-saved" id="ews-${sk}">✓</span>
           </div>`);
         }
+        const refHint = exHasRef
+          ? `<span class="cai-ent-ref-hint">${lang === 'es' ? 'sem. pasada' : 'last week'}</span>`
+          : '';
         // Partimos el detail en DATO (series×reps → chip) + INDICACIÓN (técnica → cue suave).
         // Así un intensificador largo no infla el chip coral (se veía saturado): queda un chip
         // chico con el número + una nota prolija debajo. El primer " · " separa ambos.
@@ -31007,7 +31201,7 @@ function renderMiEntreno() {
           <button class="cai-ent-ex-info-btn" onclick="event.stopPropagation();showEjercicioModal('${exNameSafe}')" type="button"><svg class="cai-ent-ex-info-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z" fill="currentColor" stroke="none"/></svg>${lang === 'es' ? 'Cómo se hace' : 'How to do it'}</button>
           ${ex.note ? `<div class="cai-ent-ex-note">${esc(ex.note)}</div>` : ''}
           <div class="cai-ent-series">
-            <div class="cai-ent-series-title">${lang === 'es' ? `PESO POR SERIE (${nSeries})` : `WEIGHT PER SET (${nSeries})`}</div>
+            <div class="cai-ent-series-title">${lang === 'es' ? `PESO POR SERIE (${nSeries})` : `WEIGHT PER SET (${nSeries})`}${refHint}</div>
             ${seriesRows.join('')}
           </div>
         </div>`;
@@ -31052,6 +31246,10 @@ function renderMiEntreno() {
             </div>
           </div>
           <div class="cai-ent-hero-body-wrap">
+            ${dayRefPending > 0 ? `<button class="cai-ent-ref-btn" type="button" onclick="event.stopPropagation();applyEntrenoRef(${displayIdx})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+              ${lang === 'es' ? 'Repetir pesos de la semana pasada' : 'Repeat last week\'s weights'}
+            </button>` : ''}
             <div class="cai-ent-hero-ex-list">${exHtml}</div>
             ${_buildCardioChipHtml({ isRestDay: false })}
           </div>
