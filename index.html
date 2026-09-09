@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260909-1826-deploy">
+<meta name="app-version" content="20260909-1833-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6229,6 +6229,41 @@ body.theme-king .cai-intens-badge { background: rgba(255,79,123,0.12) !important
 }
 body.theme-king .cai-intens-ej { background: rgba(255,79,123,0.06) !important; }
 .cai-intens-ej b { color: var(--text); font-style: normal; font-weight: 600; }
+.cai-intens-item.focus { animation: cai-intens-focus 1.8s ease-out; border-radius: 10px; }
+@keyframes cai-intens-focus {
+  0% { background: rgba(124,106,255,0.16); box-shadow: 0 0 0 6px rgba(124,106,255,0.16); }
+  100% { background: transparent; box-shadow: 0 0 0 6px transparent; }
+}
+body.theme-king .cai-intens-item.focus { animation-name: cai-intens-focus-king; }
+@keyframes cai-intens-focus-king {
+  0% { background: rgba(255,79,123,0.14); box-shadow: 0 0 0 6px rgba(255,79,123,0.14); }
+  100% { background: transparent; box-shadow: 0 0 0 6px transparent; }
+}
+/* Intensificador dentro de la card del ejercicio: chip tocable "Negativa lenta ·
+   serie 3" (abre la guía en ese ítem) + la ejecución en una línea. Reemplaza el
+   texto "Intens set 3: …" del prompt, que era jerga para la usuaria. */
+.cai-ent-intens { margin-top: 8px; }
+.cai-ent-intens-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 9px 4px 7px;
+  background: rgba(124,106,255,0.10);
+  border: 1px solid rgba(124,106,255,0.28);
+  border-radius: 999px;
+  color: var(--accent-bright);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.2px;
+  cursor: pointer; text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+.cai-ent-intens-chip svg { width: 13px; height: 13px; flex: none; }
+.cai-ent-intens-chip:active { transform: scale(0.97); }
+body.theme-light .cai-ent-intens-chip { color: var(--accent) !important; background: rgba(124,106,255,0.10) !important; border-color: rgba(124,106,255,0.28) !important; }
+body.theme-king .cai-ent-intens-chip { color: var(--accent) !important; background: rgba(255,79,123,0.10) !important; border-color: rgba(255,79,123,0.32) !important; }
+.cai-ent-intens-txt {
+  font-size: 11.5px; color: var(--muted); line-height: 1.45;
+  margin-top: 5px; padding-left: 2px;
+}
+body.theme-light .cai-ent-intens-txt, body.theme-king .cai-ent-intens-txt { color: var(--muted) !important; }
 .cai-ent-serie-unit {
   font-family: 'JetBrains Mono', monospace;
   font-size: 9.5px; color: var(--muted2);
@@ -25125,7 +25160,50 @@ const INTENSIFICADORES = [
       ej: '<b>E.g.:</b> Smith squat + jump squat. Lateral raises + partial laterals.' } },
 ];
 
-function showIntensModal() {
+// Detecta qué intensificador del catálogo nombra un texto ("negativa lenta de 4s…").
+function _intensKeyFor(text) {
+  const it = INTENSIFICADORES.find(i => i.match.test(text || ''));
+  return it ? it.key : null;
+}
+// Nota del ejercicio → HTML. La nota es "cue técnica • Intens set 3: negativa
+// lenta de 4s — cómo ejecutarla". El prefijo "Intens set 3:" es jerga del
+// prompt: lo reemplazamos por un chip tocable "Negativa lenta · serie 3" (abre
+// la guía en ese intensificador) + la explicación en una línea. Las cues que
+// no son intensificador quedan como nota en cursiva, igual que antes.
+function _renderEntNote(note, esc) {
+  const es = lang === 'es';
+  const segs = String(note || '').split(/\s+•\s+/).map(s => s.trim()).filter(Boolean);
+  const plain = [], intens = [];
+  segs.forEach(seg => {
+    const m = seg.match(/^intens(?:ificador)?[\s.]*(?:set\s*(\d+))?\s*[:.]\s*(.+)$/i);
+    if (!m) { plain.push(seg); return; }
+    const setN = m[1] ? parseInt(m[1], 10) : null;
+    const rest = m[2].trim();
+    const sep = rest.search(/\s[—–-]\s/);
+    const head = sep === -1 ? rest : rest.slice(0, sep).trim();
+    const tail = sep === -1 ? '' : rest.slice(sep + 3).trim();
+    const key = _intensKeyFor(head) || _intensKeyFor(rest);
+    const cat = key ? INTENSIFICADORES.find(i => i.key === key) : null;
+    const name = cat ? (es ? cat.es.name : cat.en.name) : (head.charAt(0).toUpperCase() + head.slice(1));
+    const label = setN ? `${name} · ${es ? 'serie' : 'set'} ${setN}` : name;
+    // Texto: la ejecución. Si no hay " — ", mostramos el head entero salvo que
+    // sea solo el nombre (ya está en el chip).
+    const txt = tail || (cat && _entNormName(head) === _entNormName(name) ? '' : head);
+    intens.push({ key, label, txt });
+  });
+  let html = plain.length ? `<div class="cai-ent-ex-note">${esc(plain.join(' • '))}</div>` : '';
+  html += intens.map(x => `<div class="cai-ent-intens">
+      <button class="cai-ent-intens-chip" type="button" onclick="event.stopPropagation();showIntensModal(${x.key ? `'${x.key}'` : 'null'})"
+              aria-label="${es ? 'Ver cómo se hace' : 'See how to do it'}: ${esc(x.label)}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.6" fill="currentColor"/></svg>
+        ${esc(x.label)}
+      </button>
+      ${x.txt ? `<div class="cai-ent-intens-txt">${esc(x.txt)}</div>` : ''}
+    </div>`).join('');
+  return html;
+}
+
+function showIntensModal(focusKey) {
   const modal = document.getElementById('intens-modal');
   const list = document.getElementById('intens-modal-list');
   if (!modal || !list) return;
@@ -25142,8 +25220,8 @@ function showIntensModal() {
     ? 'Técnicas que suman estímulo al ejercicio. Van solo en el último o anteúltimo set, cuando la rutina lo indica. La técnica perfecta manda: si se rompe la forma, el set termina ahí.'
     : 'Techniques that add stimulus to an exercise. Use them only on the last or second-to-last set, when your plan says so. Perfect form rules: if form breaks, the set is over.';
 
-  list.innerHTML = items.map(({ t, inRutina }) => `
-    <div class="cai-intens-item">
+  list.innerHTML = items.map(({ it, t, inRutina }) => `
+    <div class="cai-intens-item" data-key="${it.key}">
       <div class="cai-intens-head">
         <span class="cai-intens-name">${esc(t.name)}</span>
         ${inRutina ? `<span class="cai-intens-badge">${es ? 'en tu rutina' : 'in your plan'}</span>` : ''}
@@ -25156,7 +25234,20 @@ function showIntensModal() {
   modal.classList.add('open');
   const card = modal.querySelector('.ej-modal-card');
   if (card) card.scrollTop = 0;
-  try { trackEvent('intens_open', { en_rutina: nIn }); } catch (e) {}
+  // Abierto desde el chip de un ejercicio: scrollear a ese intensificador y
+  // resaltarlo un instante para que la usuaria vea dónde cayó.
+  if (focusKey && card) {
+    const target = list.querySelector(`.cai-intens-item[data-key="${focusKey}"]`);
+    if (target) {
+      target.classList.add('focus');
+      requestAnimationFrame(() => {
+        // offsetTop es relativo a la card (position: relative), no al overlay.
+        card.scrollTop = Math.max(0, target.offsetTop - 12);
+      });
+      setTimeout(() => target.classList.remove('focus'), 1800);
+    }
+  }
+  try { trackEvent('intens_open', { en_rutina: nIn, desde: focusKey || 'chip' }); } catch (e) {}
 }
 
 function closeIntensModal(event) {
@@ -31408,7 +31499,7 @@ function renderMiEntreno() {
           </div>
           ${exCue ? `<div class="cai-ent-ex-cue">${esc(exCue)}</div>` : ''}
           <button class="cai-ent-ex-info-btn" onclick="event.stopPropagation();showEjercicioModal('${exNameSafe}')" type="button"><svg class="cai-ent-ex-info-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z" fill="currentColor" stroke="none"/></svg>${lang === 'es' ? 'Cómo se hace' : 'How to do it'}</button>
-          ${ex.note ? `<div class="cai-ent-ex-note">${esc(ex.note)}</div>` : ''}
+          ${ex.note ? _renderEntNote(ex.note, esc) : ''}
           <div class="cai-ent-series">
             <div class="cai-ent-series-title">${lang === 'es' ? `PESO POR SERIE (${nSeries})` : `WEIGHT PER SET (${nSeries})`}${refHint}</div>
             ${seriesRows.join('')}
