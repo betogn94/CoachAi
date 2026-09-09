@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260909-1833-deploy">
+<meta name="app-version" content="20260909-1836-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6165,6 +6165,9 @@ body.theme-king .cai-ent-serie-input.has-ref::placeholder {
 .cai-ent-series-title:has(.cai-ent-ref-hint) {
   display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
 }
+/* Sin el título "PESO POR SERIE (N)" (Beto lo sacó: no se entendía y no aporta),
+   la leyenda "sem. pasada" queda sola, a la derecha, solo cuando hay sugerencias. */
+.cai-ent-series-title.cai-ent-series-title--hint { justify-content: flex-end; }
 .cai-ent-ref-btn {
   display: flex; align-items: center; justify-content: center; gap: 6px;
   width: 100%; margin: 0 0 10px;
@@ -31501,7 +31504,7 @@ function renderMiEntreno() {
           <button class="cai-ent-ex-info-btn" onclick="event.stopPropagation();showEjercicioModal('${exNameSafe}')" type="button"><svg class="cai-ent-ex-info-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z" fill="currentColor" stroke="none"/></svg>${lang === 'es' ? 'Cómo se hace' : 'How to do it'}</button>
           ${ex.note ? _renderEntNote(ex.note, esc) : ''}
           <div class="cai-ent-series">
-            <div class="cai-ent-series-title">${lang === 'es' ? `PESO POR SERIE (${nSeries})` : `WEIGHT PER SET (${nSeries})`}${refHint}</div>
+            ${refHint ? `<div class="cai-ent-series-title cai-ent-series-title--hint">${refHint}</div>` : ''}
             ${seriesRows.join('')}
           </div>
         </div>`;
