@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260909-1836-deploy">
+<meta name="app-version" content="20260909-1854-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -19205,11 +19205,11 @@ function postNativeWelcome() {
     ? `${nombreCliente ? '¡Hola ' + nombreCliente + '!' : '¡Hola!'} 👋 Ya te armé tu <strong>rutina</strong> y tu <strong>dieta</strong> de esta semana según tus objetivos. Las tenés acá:<br><br>` +
       `💪 <a href="#" onclick="showMiEntreno();return false" style="color:var(--accent-bright)">Mi Entreno</a> — tu rutina de la semana día por día<br>` +
       `🥗 <a href="#" onclick="showDiario();return false" style="color:var(--accent-bright)">Mi Alimentación</a> — las comidas de hoy (semana completa en tu <a href="#" onclick="showPerfil();return false" style="color:var(--accent-bright)">Perfil</a>)<br><br>` +
-      `Cuando quieras ajustar algo o tengas dudas, escribime acá nomás. ¡Vamos por todo! 🚀`
+      `Tu plan se ajusta solo cada semana con tus resultados reales — vos no tenés que tocar nada. Y para el día a día contás conmigo: reemplazar una comida, cambiar un ejercicio que no te va, o cualquier duda que tengas, escribime acá. ¡Vamos por todo! 🚀`
     : `${nombreCliente ? 'Hi ' + nombreCliente + '!' : 'Hi!'} 👋 I've built your <strong>routine</strong> and <strong>meal plan</strong> for this week based on your goals. They're here:<br><br>` +
       `💪 <a href="#" onclick="showMiEntreno();return false" style="color:var(--accent-bright)">My Training</a> — your weekly routine day by day<br>` +
       `🥗 <a href="#" onclick="showDiario();return false" style="color:var(--accent-bright)">My Nutrition</a> — today's meals (full week in your <a href="#" onclick="showPerfil();return false" style="color:var(--accent-bright)">Profile</a>)<br><br>` +
-      `Whenever you want to adjust something or have questions, just write here. Let's go! 🚀`;
+      `Your plan adjusts itself every week from your real results — you don't have to change a thing. And for the day-to-day I've got you: swapping a meal, replacing an exercise that doesn't work for you, or any question — just write here. Let's go! 🚀`;
   try { addMessage(html, 'coach', false); } catch (e) { return; }
   try { saveChatToSupabase(chatMessages, todayConversation).catch(() => {}); } catch (e) {}
 }
@@ -21780,7 +21780,8 @@ Tu primer mensaje debe ser conciso, cálido y personalizado — máximo 5-6 lín
    - IMC < 18.5 queriendo definir → sugerí ganar masa primero con entusiasmo
    - Principiante con objetivo agresivo → proponé construir base sólida primero
    - Datos coherentes con el objetivo → validá directamente sin rodeos
-4. Terminá invitándolo a elegir por dónde arrancar: su dieta o su rutina de la semana (1 línea)
+4. Repartí los roles en 1 línea: una vez entregado, su plan se ajusta solo cada semana con sus datos reales — vos lo acompañás en el día a día (reemplazos de comidas, alternativas de ejercicios, dudas). NUNCA prometas "ajustar", "cambiar" o "modificar" su plan desde el chat.
+5. Terminá invitándolo a elegir por dónde arrancar: su dieta o su rutina de la semana (1 línea)
 NO calculés macros ni TDEE en el mensaje de bienvenida — eso va en el plan.
 
 PLANES SEMANALES:
@@ -21797,6 +21798,7 @@ EL TARGET ES LA CONSTITUCIÓN (regla suprema para pedidos de cambio, mientras el
 - PROHIBIDO escribir un plan nuevo completo (varios días de dieta o rutina) en el chat mientras el plan está ACTIVO, aunque el cliente lo pida, insista o argumente. La app NO guarda planes generados por chat cuando ya hay uno activo — solo generarías confusión.
 - Pedido puntual que CUADRA con el target (cambiar una comida por otra equivalente en macros, un ejercicio por otro del mismo músculo, hoy no puede entrenar lo planificado): validáselo con ganas, dale 1-2 opciones concretas equivalentes, y recordale registrar lo que realmente hizo en Mi Alimentación / Mi Entreno. El plan escrito no cambia; su registro del día refleja la realidad.
 - Pedido que SE SALE del target o cambia la estructura del plan (más calorías, comidas extra permanentes, sumar o sacar días, rearmar la dieta o la rutina): NO lo valides ni lo hagas. Explicale con calidez y sin culpa que eso se sale de su plan y de su objetivo: los cambios de fondo los define su coach si tiene uno, o se ajustan solos al cerrar su semana con sus datos reales. Si igual va a comer algo fuera del plan, que lo registre en Mi Alimentación — el seguimiento honesto vale más que la perfección.
+- TRANSPARENCIA DE ROL: cuando un pedido toque el plan (cambiarlo, regenerarlo, pedir "otra dieta/rutina"), aclarale en UNA línea el reparto de roles: vos lo ayudás con la flexibilidad del día a día (reemplazos equivalentes, alternativas de ejercicios, registro de lo real en Mi Alimentación / Mi Entreno), y el plan de la app NO se modifica desde el chat — se ajusta solo al cerrar la semana con sus datos, o lo maneja su entrenador si tiene uno. Decilo en positivo (qué SÍ podés hacer por él ahora), sin sonar a reto ni repetirlo en cada mensaje.
 ${(dietaPlan && !dietaPlan.closed) ? `\nCONTENIDO DE LA DIETA ACTIVA (vigente):\n"""\n${dietaPlan.contenido}\n"""` : ''}
 ${(rutinaPlan && !rutinaPlan.closed) ? `\nCONTENIDO DE LA RUTINA ACTIVA (vigente):\n"""\n${rutinaPlan.contenido}\n"""` : ''}
 
@@ -21998,7 +22000,8 @@ Your first message must be concise, warm and personalized — maximum 5-6 lines.
    - BMI < 18.5 wanting to cut → suggest building mass first with enthusiasm
    - Beginner with aggressive goal → propose building a solid foundation first
    - Coherent data and goal → validate directly without hesitation
-4. End by inviting them to choose where to start: their weekly diet or their weekly routine (1 line)
+4. Split the roles in 1 line: once delivered, their plan auto-adjusts every week from their real data — you support them in the day-to-day (meal swaps, exercise alternatives, questions). NEVER promise to "adjust", "change" or "modify" their plan from chat.
+5. End by inviting them to choose where to start: their weekly diet or their weekly routine (1 line)
 Do NOT calculate macros or TDEE in the welcome message — that goes in the plan.
 
 WEEKLY PLANS:
@@ -22015,6 +22018,7 @@ THE TARGET IS THE CONSTITUTION (supreme rule for change requests while a plan is
 - FORBIDDEN: writing a full new multi-day plan (diet or routine) in chat while a plan is ACTIVE, even if the client asks, insists or argues. The app does NOT save chat-generated plans when one is already active — you would only create confusion.
 - One-off request that FITS the target (swapping a meal for a macro-equivalent one, an exercise for another for the same muscle, can't train as planned today): approve it warmly, give 1-2 concrete equivalent options, and remind them to log what they actually did in My Day / My Training. The written plan does not change; their daily log reflects reality.
 - Request that BREAKS the target or restructures the plan (more calories, permanent extra meals, adding/removing days, full rewrite): do NOT validate or do it. Kindly and guilt-free explain it goes outside their plan and goal: deep changes are defined by their coach if they have one, or auto-adjusted when they close their week from real data. If they eat off-plan anyway, they should still log it in My Day — honest tracking beats perfection.
+- ROLE TRANSPARENCY: when a request touches the plan (changing it, regenerating it, asking for "another diet/routine"), clarify the role split in ONE line: you help with day-to-day flexibility (equivalent swaps, exercise alternatives, logging reality in My Day / My Training), and the app's plan is NOT modified from chat — it auto-adjusts at the weekly close from their data, or their coach manages it if they have one. Say it positively (what you CAN do for them right now), never scolding, and don't repeat it in every message.
 ${(dietaPlan && !dietaPlan.closed) ? `\nCONTENT OF THE ACTIVE DIET (current):\n"""\n${dietaPlan.contenido}\n"""` : ''}
 ${(rutinaPlan && !rutinaPlan.closed) ? `\nCONTENT OF THE ACTIVE ROUTINE (current):\n"""\n${rutinaPlan.contenido}\n"""` : ''}
 
@@ -22772,11 +22776,11 @@ async function launchCoach() {
         ? `${nombreCliente ? '¡Hola ' + nombreCliente + '!' : '¡Hola!'} 👋 <strong>${coach}</strong> ya te dejó cargadas tu rutina + dieta de esta semana. Las podés revisar acá:<br><br>` +
           `💪 <a href="#" onclick="showMiEntreno();return false" style="color:var(--accent-bright)">Mi Entreno</a> — tu rutina de la semana día por día<br>` +
           `🥗 <a href="#" onclick="showDiario();return false" style="color:var(--accent-bright)">Mi Alimentación</a> — las comidas de hoy (semana completa en tu <a href="#" onclick="showPerfil();return false" style="color:var(--accent-bright)">Perfil</a>)<br><br>` +
-          `Cuando tengas dudas, quieras ajustar algo, o necesites mi ayuda, escribime acá nomás. ¡Vamos por todo! 🚀`
+          `Tu plan lo maneja tu entrenador y se va ajustando con tus resultados. Yo estoy acá para el día a día: reemplazos de comidas, alternativas de ejercicios y todas tus dudas. Escribime cuando quieras. ¡Vamos por todo! 🚀`
         : `${nombreCliente ? 'Hi ' + nombreCliente + '!' : 'Hi!'} 👋 <strong>${coach}</strong> has already loaded your routine + diet for this week. You can review them here:<br><br>` +
           `💪 <a href="#" onclick="showMiEntreno();return false" style="color:var(--accent-bright)">My Training</a> — your weekly routine day by day<br>` +
           `🥗 <a href="#" onclick="showDiario();return false" style="color:var(--accent-bright)">My Nutrition</a> — today's meals (full week in your <a href="#" onclick="showPerfil();return false" style="color:var(--accent-bright)">Profile</a>)<br><br>` +
-          `When you have questions, want to adjust anything, or need my help — just write here. Let's go! 🚀`;
+          `Your plan is managed by your coach and evolves with your results. I'm here for the day-to-day: meal swaps, exercise alternatives, and any questions you have. Write me anytime. Let's go! 🚀`;
       addMessage(welcomeHtml, 'coach', false);
       window._migrationCoach = null;  // one-shot
       // PERSIST IMMEDIATELY. The previous version called addMessage but never
