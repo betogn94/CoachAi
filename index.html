@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260909-1758-deploy">
+<meta name="app-version" content="20260909-1826-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6182,6 +6182,53 @@ body.theme-king .cai-ent-serie-input.has-ref::placeholder {
 .cai-ent-ref-btn:active { transform: scale(0.98); }
 body.theme-light .cai-ent-ref-btn { color: var(--accent) !important; background: rgba(124,106,255,0.08) !important; }
 body.theme-king .cai-ent-ref-btn { color: var(--accent) !important; background: rgba(250,181,173,0.12) !important; border-color: rgba(250,181,173,0.4) !important; }
+
+/* ── Guía de intensificadores: chip en el header de Mi Entreno + lista del modal ── */
+.cai-intens-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  flex: none; align-self: flex-start; margin-top: 4px;
+  padding: 6px 10px 6px 8px;
+  background: rgba(124,106,255,0.08);
+  border: 1px solid rgba(124,106,255,0.25);
+  border-radius: 999px;
+  color: var(--accent-bright);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.2px;
+  cursor: pointer; white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.cai-intens-chip svg { width: 14px; height: 14px; flex: none; }
+.cai-intens-chip:active { transform: scale(0.97); }
+body.theme-light .cai-intens-chip { color: var(--accent) !important; background: rgba(124,106,255,0.08) !important; border-color: rgba(124,106,255,0.25) !important; }
+body.theme-king .cai-intens-chip { color: var(--accent) !important; background: rgba(255,79,123,0.08) !important; border-color: rgba(255,79,123,0.3) !important; }
+.cai-intens-card { max-width: 480px; }
+.cai-intens-intro {
+  font-size: 12.5px; line-height: 1.5; color: var(--muted);
+  margin: -6px 0 14px;
+}
+.cai-intens-item {
+  padding: 12px 0; border-top: 1px solid var(--border);
+}
+.cai-intens-item:last-child { padding-bottom: 2px; }
+.cai-intens-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.cai-intens-name { font-size: 14px; font-weight: 700; color: var(--text); }
+.cai-intens-badge {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.8px;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 999px;
+  background: rgba(124,106,255,0.12); color: var(--accent-bright);
+}
+body.theme-light .cai-intens-badge { color: var(--accent) !important; }
+body.theme-king .cai-intens-badge { background: rgba(255,79,123,0.12) !important; color: var(--accent) !important; }
+.cai-intens-what { font-size: 13px; line-height: 1.5; color: var(--text); margin-bottom: 6px; }
+.cai-intens-how { margin: 0 0 6px; padding-left: 18px; font-size: 13px; line-height: 1.55; color: var(--text); }
+.cai-intens-how li { margin-bottom: 2px; }
+.cai-intens-ej {
+  font-size: 12.5px; line-height: 1.5; color: var(--muted); font-style: italic;
+  padding: 6px 10px; border-left: 3px solid var(--accent);
+  background: rgba(124,106,255,0.06); border-radius: 0 8px 8px 0;
+}
+body.theme-king .cai-intens-ej { background: rgba(255,79,123,0.06) !important; }
+.cai-intens-ej b { color: var(--text); font-style: normal; font-weight: 600; }
 .cai-ent-serie-unit {
   font-family: 'JetBrains Mono', monospace;
   font-size: 9.5px; color: var(--muted2);
@@ -16208,6 +16255,13 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       </div>
       <div class="cai-alim-header-sub" id="ent-header-sub">—</div>
     </div>
+    <!-- Guía de intensificadores: chip aparte del título (es contenido de
+         referencia, no del día). Abre el modal #intens-modal. -->
+    <button class="cai-intens-chip" type="button" onclick="showIntensModal()"
+            aria-label="Guía de intensificadores">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.6" fill="currentColor"/></svg>
+      <span id="intens-chip-label">Intensificadores</span>
+    </button>
   </div>
 
   <!-- Hero summary card (ESTA SEMANA · X/N días + adherencia bar) -->
@@ -16305,6 +16359,18 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       <img id="ej-modal-gif" src="" alt="Demostración del ejercicio">
     </div>
     <div class="ej-modal-desc" id="ej-modal-desc"></div>
+  </div>
+</div>
+
+<!-- GUÍA DE INTENSIFICADORES — reusa la cáscara del modal "Cómo se hace" (mismas
+     clases → hereda light/King). Contenido estático en INTENSIFICADORES (JS). -->
+<div class="ej-modal-overlay" id="intens-modal" onclick="closeIntensModal(event)" role="dialog" aria-modal="true" aria-label="Guía de intensificadores">
+  <div class="ej-modal-card cai-intens-card" onclick="event.stopPropagation()">
+    <button class="ej-modal-close" onclick="closeIntensModal()" aria-label="Cerrar">×</button>
+    <div class="ej-modal-title" id="intens-modal-title">Intensificadores</div>
+    <div class="ej-modal-muscle" id="intens-modal-sub"></div>
+    <div class="cai-intens-intro" id="intens-modal-intro"></div>
+    <div id="intens-modal-list"></div>
   </div>
 </div>
 
@@ -24960,6 +25026,145 @@ function closeEjercicioModal(event) {
   if (gif) gif.removeAttribute('src');
 }
 
+// ===== Guía de intensificadores (chip en Mi Entreno) =====
+// Los 7 intensificadores que el prompt de rutina permite (mismos para todas las
+// cohortes). Textos: qué es, cómo se ejecuta (pasos) y ejemplo en el tono del
+// coach. `match` detecta si aparece en la rutina activa → badge "en tu rutina"
+// y se ordena primero. Solo lectura: no toca datos ni guardado.
+const INTENSIFICADORES = [
+  { key: 'tut', match: /tiempo bajo tensi[oó]n|\bTUT\b|aguant[aá][^.\n]{0,30}contracci|time under tension/i,
+    es: { name: 'Tiempo bajo tensión',
+      what: 'Mantener la contracción máxima unos segundos para que el músculo trabaje más tiempo con el mismo peso.',
+      how: ['Hacé las repeticiones normales, con el peso de siempre o apenas menos.',
+            'En la repetición que indique la rutina (o cada N reps), frená en el punto de máxima contracción y apretá el músculo 5 segundos, sin soltar la tensión ni cambiar la postura.',
+            'Después completá las repeticiones que faltan a ritmo normal.'],
+      ej: '<b>Ej.:</b> 10 reps comunes, en la 10 aguantá la contracción 5 segundos y completá 5 reps más. O cada 3 reps, aguantá 5 segundos.' },
+    en: { name: 'Time under tension',
+      what: 'Hold the peak contraction for a few seconds so the muscle works longer with the same weight.',
+      how: ['Do your normal reps with your usual weight or slightly less.',
+            'On the rep your plan indicates (or every N reps), stop at peak contraction and squeeze for 5 seconds without losing tension or changing position.',
+            'Then finish the remaining reps at a normal pace.'],
+      ej: '<b>E.g.:</b> 10 regular reps, on the 10th hold the squeeze for 5 seconds, then do 5 more.' } },
+  { key: 'negativa', match: /negativa lenta|negativa de \d|negativas? (lenta|de \d)|slow negative|eccentric/i,
+    es: { name: 'Negativa lenta',
+      what: 'La fase de bajada (cuando el músculo se estira) se hace en 4 segundos contados, en vez de dejar caer el peso.',
+      how: ['Subí a ritmo normal.',
+            'Bajá contando 4 segundos, con control total hasta el estiramiento, sin rebotar ni soltar el peso.',
+            'El peso suele ser un poco menor que el habitual: lo que importa es el control.'],
+      ej: '<b>Ej.:</b> 15 reps con negativa de 4 segundos. O 10 reps con negativa de 4 segundos y 5 reps comunes.' },
+    en: { name: 'Slow negative',
+      what: 'The lowering phase (when the muscle stretches) takes a full 4 seconds instead of dropping the weight.',
+      how: ['Lift at a normal pace.',
+            'Lower while counting 4 seconds, in full control all the way to the stretch, no bouncing.',
+            'Use slightly less weight than usual: control is what matters.'],
+      ej: '<b>E.g.:</b> 15 reps with a 4-second negative. Or 10 reps with a 4-second negative plus 5 regular reps.' } },
+  { key: 'pausa', match: /pausa muerta|pausa de \d ?s(eg)?|dead pause|paused rep/i,
+    es: { name: 'Pausa muerta',
+      what: 'Frenar 2 segundos en el punto más difícil o de mayor estiramiento, para eliminar el rebote y que el músculo haga todo el trabajo.',
+      how: ['Bajá controlado hasta el fondo del movimiento (sentadilla abajo, prensa abajo, barra cerca del pecho en un press).',
+            'Quedate quieta 2 segundos ahí, sin perder la tensión ni apoyar el peso.',
+            'Subí con fuerza. Si la rutina lo indica, las últimas reps van sin pausa.'],
+      ej: '<b>Ej.:</b> 12 reps con pausa muerta de 2 segundos en el fondo. O 10 reps con pausa y las 4 siguientes sin pausa.' },
+    en: { name: 'Dead pause',
+      what: 'Stop for 2 seconds at the hardest or most stretched point, removing any bounce so the muscle does all the work.',
+      how: ['Lower under control to the bottom of the movement (squat down, leg press down, bar near the chest on a press).',
+            'Hold still for 2 seconds without losing tension or resting the weight.',
+            'Drive up strongly. If your plan says so, the last reps go without the pause.'],
+      ej: '<b>E.g.:</b> 12 reps with a 2-second dead pause at the bottom. Or 10 paused reps followed by 4 without the pause.' } },
+  { key: 'dropset', match: /drop ?sets?|baj[aá] (un )?\d{2} ?%/i,
+    es: { name: 'Drop set',
+      what: 'Llegar al fallo y seguir bajando el peso sin descansar, para exprimir el músculo al final del ejercicio.',
+      how: ['Usá el peso más alto que te permita llegar al fallo técnico: no sale otra rep con buena forma.',
+            'Bajá el peso un 30% de inmediato y volvé a fallar.',
+            'Bajá otro 30% y fallá una vez más. Sin descanso entre caídas: solo el tiempo de cambiar el peso. Ideal en máquinas y poleas.'],
+      ej: '<b>Ej.:</b> 40 kg al fallo → 28 kg al fallo → 20 kg al fallo. Variante: una sola caída del 40%.' },
+    en: { name: 'Drop set',
+      what: 'Reach failure and keep lowering the weight with no rest, to fully exhaust the muscle at the end of the exercise.',
+      how: ['Use the heaviest weight that lets you reach technical failure: no more reps with good form.',
+            'Immediately drop the weight by 30% and go to failure again.',
+            'Drop another 30% and fail once more. No rest between drops, just the time to change the weight. Best on machines and cables.'],
+      ej: '<b>E.g.:</b> 40 kg to failure → 28 kg to failure → 20 kg to failure. Variant: a single 40% drop.' } },
+  { key: 'cluster', match: /cluster/i,
+    es: { name: 'Cluster set',
+      what: 'Una serie pesada partida en mini-bloques con pausas muy cortas, para hacer más repeticiones con un peso alto.',
+      how: ['Con peso pesado, hacé repeticiones hasta llegar cerca del fallo.',
+            'Descansá 10 segundos (podés apoyar el peso) y volvé a hacer reps hasta el fallo.',
+            'Descansá 15 segundos y fallá una vez más con el mismo peso. Las pausas pueden variar según lo que indique tu rutina.'],
+      ej: '<b>Ej.:</b> hip thrust pesado: cerca del fallo · 10 s · al fallo · 15 s · al fallo, siempre con el mismo peso.' },
+    en: { name: 'Cluster set',
+      what: 'One heavy set split into mini-blocks with very short pauses, so you get more reps with a heavy weight.',
+      how: ['With a heavy weight, do reps until you are close to failure.',
+            'Rest 10 seconds (you can rack the weight) and do reps to failure again.',
+            'Rest 15 seconds and fail one more time with the same weight. Pauses may vary depending on your plan.'],
+      ej: '<b>E.g.:</b> heavy hip thrust: near failure · 10 s · to failure · 15 s · to failure, same weight throughout.' } },
+  { key: 'restpause', match: /rest[- ]?pause/i,
+    es: { name: 'Rest-pause',
+      what: 'Bloques de 5 repeticiones con 5 segundos de descanso entre bloques, hasta el fallo técnico.',
+      how: ['Usá el peso máximo que uses en ese ejercicio.',
+            'Hacé 5 reps, descansá 5 segundos, hacé 5 más, descansá 5 segundos.',
+            'Repetí hasta que no salga otra rep con buena técnica. Anotá cuántos bloques hiciste: es tu progreso para la semana siguiente.'],
+      ej: '<b>Ej.:</b> 5 reps · 5 s · 5 reps · 5 s · 5 reps · 5 s · 3 reps y fallo. Se cuenta como una sola serie.' },
+    en: { name: 'Rest-pause',
+      what: 'Blocks of 5 reps with 5 seconds of rest between blocks, until technical failure.',
+      how: ['Use your maximum weight for that exercise.',
+            'Do 5 reps, rest 5 seconds, do 5 more, rest 5 seconds.',
+            'Repeat until no more reps come out with good form. Note how many blocks you did: that is your progress for next week.'],
+      ej: '<b>E.g.:</b> 5 reps · 5 s · 5 reps · 5 s · 5 reps · 5 s · 3 reps and failure. Counts as a single set.' } },
+  { key: 'superset', match: /super ?sets?|superseries?|en superserie/i,
+    es: { name: 'Superset',
+      what: 'Dos ejercicios seguidos sin descanso entre ellos. Se descansa recién al terminar los dos.',
+      how: ['Dejá listo el segundo ejercicio antes de empezar (peso cargado, máquina libre).',
+            'Terminá la serie del primer ejercicio y pasá de inmediato al segundo.',
+            'Descansá lo que indique la rutina y repetí la pareja.'],
+      ej: '<b>Ej.:</b> sentadilla Smith + sentadilla con salto. Elevaciones laterales + laterales parciales.' },
+    en: { name: 'Superset',
+      what: 'Two exercises back to back with no rest in between. You rest only after finishing both.',
+      how: ['Set up the second exercise before you start (weight loaded, machine free).',
+            'Finish the set of the first exercise and move immediately to the second.',
+            'Rest as your plan indicates and repeat the pair.'],
+      ej: '<b>E.g.:</b> Smith squat + jump squat. Lateral raises + partial laterals.' } },
+];
+
+function showIntensModal() {
+  const modal = document.getElementById('intens-modal');
+  const list = document.getElementById('intens-modal-list');
+  if (!modal || !list) return;
+  const es = lang === 'es';
+  const esc = (typeof _esc === 'function') ? _esc : (x => String(x));
+  const rutinaTxt = (weeklyPlans && weeklyPlans.rutina && !weeklyPlans.rutina.closed && weeklyPlans.rutina.contenido) || '';
+  const items = INTENSIFICADORES.map(it => ({ it, t: es ? it.es : it.en, inRutina: !!(rutinaTxt && it.match.test(rutinaTxt)) }));
+  items.sort((a, b) => (b.inRutina ? 1 : 0) - (a.inRutina ? 1 : 0));
+  const nIn = items.filter(x => x.inRutina).length;
+
+  document.getElementById('intens-modal-title').textContent = es ? 'Intensificadores' : 'Intensifiers';
+  document.getElementById('intens-modal-sub').textContent = es ? 'Guía de ejecución' : 'How to execute them';
+  document.getElementById('intens-modal-intro').textContent = es
+    ? 'Técnicas que suman estímulo al ejercicio. Van solo en el último o anteúltimo set, cuando la rutina lo indica. La técnica perfecta manda: si se rompe la forma, el set termina ahí.'
+    : 'Techniques that add stimulus to an exercise. Use them only on the last or second-to-last set, when your plan says so. Perfect form rules: if form breaks, the set is over.';
+
+  list.innerHTML = items.map(({ t, inRutina }) => `
+    <div class="cai-intens-item">
+      <div class="cai-intens-head">
+        <span class="cai-intens-name">${esc(t.name)}</span>
+        ${inRutina ? `<span class="cai-intens-badge">${es ? 'en tu rutina' : 'in your plan'}</span>` : ''}
+      </div>
+      <div class="cai-intens-what">${esc(t.what)}</div>
+      <ol class="cai-intens-how">${t.how.map(h => `<li>${esc(h)}</li>`).join('')}</ol>
+      <div class="cai-intens-ej">${t.ej}</div>
+    </div>`).join('');
+
+  modal.classList.add('open');
+  const card = modal.querySelector('.ej-modal-card');
+  if (card) card.scrollTop = 0;
+  try { trackEvent('intens_open', { en_rutina: nIn }); } catch (e) {}
+}
+
+function closeIntensModal(event) {
+  if (event && event.target && event.target.id !== 'intens-modal' && !event.target.classList.contains('ej-modal-close')) return;
+  const modal = document.getElementById('intens-modal');
+  if (modal) modal.classList.remove('open');
+}
+
 function openLightbox(url) {
   // Reset to single-photo mode — clear any prior diptych OR swiper state
   // from a previous open. The single-photo <img> is the lightbox default.
@@ -31006,6 +31211,8 @@ function renderMiEntreno() {
   // Always update the page subtitle ("Lunes · hoy")
   const todayName = new Date().toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', { weekday: 'long' });
   if (headerSub) headerSub.textContent = `${todayName.charAt(0).toUpperCase() + todayName.slice(1)} · ${lang === 'es' ? 'hoy' : 'today'}`;
+  const intensLbl = document.getElementById('intens-chip-label');
+  if (intensLbl) intensLbl.textContent = lang === 'es' ? 'Intensificadores' : 'Intensifiers';
 
   const mapping = buildTrainingDayMapping();
   const esc = (typeof _esc === 'function') ? _esc : (x => String(x));

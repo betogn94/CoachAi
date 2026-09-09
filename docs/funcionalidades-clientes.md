@@ -62,6 +62,8 @@ Así ve, sin esfuerzo, si está comiendo en línea con lo que necesita.
 - Cada ejercicio en una tarjeta clara con **series, repeticiones, peso y descanso**.
 - Puede **tildar cada serie** a medida que la completa, y registrar el peso que usó.
 - Guía **"cómo se hace"** y **notas de técnica** (intensificadores, tempo, etc.) para que entrene bien sin depender de que estés al lado.
+- Chip **"Intensificadores"** en el encabezado: guía de los 7 intensificadores (qué es, cómo se ejecuta paso a paso y ejemplo), marcando los que aparecen en su rutina de la semana.
+- **Arrastre de pesos:** al empezar una semana nueva ve en cursiva los pesos y reps de su última semana cargada, y un botón **"Repetir pesos de la semana pasada"** para copiarlos de un toque (sobrecarga progresiva sin buscar en el historial).
 - Al **marcar un entreno como completado**, aparece un momento de festejo que puede **compartir** (ver punto 8).
 
 ---
