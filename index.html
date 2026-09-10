@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260910-1441-record-personal-live-para-todos--fix-meta-">
+<meta name="app-version" content="20260910-1518-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6339,6 +6339,65 @@ body.theme-king .cai-ent-intens-chip { color: var(--accent) !important; backgrou
   margin-top: 5px; padding-left: 2px;
 }
 body.theme-light .cai-ent-intens-txt, body.theme-king .cai-ent-intens-txt { color: var(--muted) !important; }
+/* ═══ INFO DE SECCIÓN — chip "i" por sección + modal de ayuda contextual ═══
+   Chip circular chico que titila (box-shadow ping) hasta que la usuaria lo abre
+   una vez (persistido en localStorage → deja de titilar pero queda disponible).
+   Reemplaza gradualmente al tutorial de bienvenida. Escape: ?info=0. */
+.cai-info-chip {
+  width: 26px; height: 26px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: none; padding: 0; cursor: pointer; font-family: inherit;
+  color: var(--accent-bright);
+  background: rgba(124,106,255,0.10);
+  border: 1px solid rgba(124,106,255,0.28);
+  -webkit-tap-highlight-color: transparent;
+}
+.cai-info-chip svg { width: 14px; height: 14px; flex: none; }
+.cai-info-chip:active { transform: scale(0.94); }
+body.theme-light .cai-info-chip { color: var(--accent) !important; background: rgba(124,106,255,0.10) !important; border-color: rgba(124,106,255,0.28) !important; }
+body.theme-king .cai-info-chip { color: var(--accent) !important; background: rgba(255,79,123,0.10) !important; border-color: rgba(255,79,123,0.32) !important; }
+/* Pulso suave mientras no fue abierto: anillo que se expande y desvanece. */
+.cai-info-chip.is-new { animation: caiInfoPulse 2.8s ease-out infinite; }
+@keyframes caiInfoPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(124,106,255,0.38); }
+  45%  { box-shadow: 0 0 0 8px rgba(124,106,255,0); }
+  100% { box-shadow: 0 0 0 0 rgba(124,106,255,0); }
+}
+body.theme-king .cai-info-chip.is-new { animation-name: caiInfoPulseKing; }
+@keyframes caiInfoPulseKing {
+  0%   { box-shadow: 0 0 0 0 rgba(255,79,123,0.34); }
+  45%  { box-shadow: 0 0 0 8px rgba(255,79,123,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,79,123,0); }
+}
+@media (prefers-reduced-motion: reduce) { .cai-info-chip.is-new { animation: none; } }
+/* Junto al título de sección (Mi Alimentación): el gap:10px del header ya
+   separa el chip del h2 — no necesita margen propio. En Mi Entreno el chip va
+   en la fila del subtítulo (la columna de chips de la derecha achica el título
+   y en 375px lo partía en dos líneas). */
+.cai-info-subrow { display: flex; align-items: center; gap: 8px; }
+.cai-info-subrow .cai-info-chip { width: 22px; height: 22px; }
+.cai-info-subrow .cai-info-chip svg { width: 12px; height: 12px; }
+/* Fila suelta arriba de Home y Perfil (esas secciones no tienen header visible) */
+.cai-info-row { display: flex; justify-content: flex-end; margin: 8px 18px -2px; }
+/* Chat: flotante arriba a la derecha; los mensajes scrollean por debajo.
+   Sin backdrop-filter a propósito (el fade del chat lo rompería). */
+.chat-wrapper { position: relative; }
+.cai-info-chip-chat { position: absolute; top: 10px; right: 14px; z-index: 40; }
+/* Contenido del modal (reusa la cáscara .ej-modal-card → hereda light/King) */
+.cai-info-intro { font-size: 13.5px; line-height: 1.55; color: var(--muted); margin: 6px 0 14px; }
+.cai-info-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.cai-info-list li { display: flex; gap: 10px; font-size: 13.5px; line-height: 1.5; color: var(--text); text-align: left; }
+.cai-info-list li::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent-bright); flex: none; margin-top: 7px;
+}
+body.theme-light .cai-info-list li::before, body.theme-king .cai-info-list li::before { background: var(--accent); }
+.cai-info-tip {
+  margin-top: 14px; font-size: 12.5px; line-height: 1.5; color: var(--text);
+  background: rgba(124,106,255,0.08); border: 1px solid rgba(124,106,255,0.20);
+  border-radius: 12px; padding: 10px 12px; text-align: left;
+}
+body.theme-king .cai-info-tip { background: rgba(255,79,123,0.07); border-color: rgba(255,79,123,0.22); }
 .cai-ent-serie-unit {
   font-family: 'JetBrains Mono', monospace;
   font-size: 9.5px; color: var(--muted2);
@@ -14719,6 +14778,13 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     </div>
   </div>
 
+  <!-- Chip "i" de la sección (el header de Home está oculto → fila propia, a la derecha) -->
+  <div class="cai-info-row">
+    <button class="cai-info-chip" type="button" data-info="home" onclick="showInfoModal('home')" aria-label="Info">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.6" fill="currentColor"/></svg>
+    </button>
+  </div>
+
   <!-- Aviso de mensaje del coach sin leer. El badge vivía escondido en el Perfil
        (agujero negro: las clientas no lo veían y seguían preguntando). Este banner
        lo trae al Home. Lo muestra/oculta _setCoachReplyBadge según los no leídos. -->
@@ -15738,6 +15804,10 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
 
 <!-- CHAT -->
 <div class="chat-wrapper" id="chat-wrapper">
+  <!-- Chip "i" de la sección — flotante (el chat no tiene header propio) -->
+  <button class="cai-info-chip cai-info-chip-chat" type="button" data-info="chat" onclick="showInfoModal('chat')" aria-label="Info">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.6" fill="currentColor"/></svg>
+  </button>
   <div class="chat-card">
     <div class="chat-messages" id="chat-messages"></div>
     <div class="quick-btns" id="quick-btns"></div>
@@ -15753,6 +15823,13 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
 
 <!-- PERFIL (premium identity hub) -->
 <div class="diario-wrapper" id="perfil-wrapper">
+
+  <!-- Chip "i" de la sección (el Perfil arranca directo en el héroe → fila propia) -->
+  <div class="cai-info-row">
+    <button class="cai-info-chip" type="button" data-info="perfil" onclick="showInfoModal('perfil')" aria-label="Info">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.6" fill="currentColor"/></svg>
+    </button>
+  </div>
 
   <!-- STUDIO entry point — visible only when currentUser.role === 'admin'.
        Studio lives at /studio as its own bundle for isolation; this card is
@@ -16363,7 +16440,14 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
         </div>
         <h2 class="cai-alim-header-h2">MI ENTRENO</h2>
       </div>
-      <div class="cai-alim-header-sub" id="ent-header-sub">—</div>
+      <!-- El chip "i" va junto al subtítulo (no al h2): la columna de chips de la
+           derecha deja poco ancho y el título se partía en dos líneas en 375px. -->
+      <div class="cai-info-subrow">
+        <div class="cai-alim-header-sub" id="ent-header-sub">—</div>
+        <button class="cai-info-chip" type="button" data-info="entreno" onclick="showInfoModal('entreno')" aria-label="Info">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.6" fill="currentColor"/></svg>
+        </button>
+      </div>
     </div>
     <!-- Chips de referencia del header (columna pareja: ambos toman el ancho del
          más largo). Intensificadores abre #intens-modal; Progresión (gated
@@ -16489,6 +16573,20 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     <div class="ej-modal-muscle" id="intens-modal-sub"></div>
     <div class="cai-intens-intro" id="intens-modal-intro"></div>
     <div id="intens-modal-list"></div>
+  </div>
+</div>
+
+<!-- INFO DE SECCIÓN — ayuda contextual por sección (chips "i"). Reusa la cáscara
+     del modal "Cómo se hace" (mismas clases → hereda light/King). Contenido
+     estático en INFO_SECCIONES (JS), renderizado al abrir según lang. -->
+<div class="ej-modal-overlay" id="info-modal" onclick="closeInfoModal(event)" role="dialog" aria-modal="true" aria-label="Cómo usar esta sección">
+  <div class="ej-modal-card cai-info-card" onclick="event.stopPropagation()">
+    <button class="ej-modal-close" onclick="closeInfoModal()" aria-label="Cerrar">×</button>
+    <div class="ej-modal-title" id="info-modal-title">—</div>
+    <div class="ej-modal-muscle" id="info-modal-sub"></div>
+    <div class="cai-info-intro" id="info-modal-intro"></div>
+    <ul class="cai-info-list" id="info-modal-list"></ul>
+    <div class="cai-info-tip" id="info-modal-tip" style="display:none"></div>
   </div>
 </div>
 
@@ -16807,6 +16905,9 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18a9 9 0 0 1-18 0z"/><path d="M9 4c0 1-1 2-1 3s1 2 1 3"/><path d="M14 4c0 1-1 2-1 3s1 2 1 3"/></svg>
         </div>
         <h2 class="cai-alim-header-h2">MI ALIMENTACIÓN</h2>
+        <button class="cai-info-chip" type="button" data-info="alim" onclick="showInfoModal('alim')" aria-label="Info">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.6" fill="currentColor"/></svg>
+        </button>
       </div>
       <div class="cai-alim-header-sub" id="alim-header-sub">—</div>
     </div>
@@ -18162,6 +18263,175 @@ function endTour(skipped) {
   try { localStorage.setItem(TOUR_DONE_KEY, '1'); } catch (e) {}
   trackEvent(skipped ? 'tour_skipped' : 'tour_completed', { step: _tourIdx + 1, total: TOUR_STEPS.length });
 }
+
+// ═══════════ INFO DE SECCIÓN — chips "i" con ayuda contextual ═══════════
+// Cada sección tiene un chip "i" que titila (CSS .is-new) hasta que se abre una
+// vez; después queda quieto pero siempre disponible. Pensado para reemplazar al
+// tutorial de bienvenida (que se ve una vez y no se puede re-consultar en el
+// momento de la duda). Gate: ?info=0 apaga (persiste), ?info=1 vuelve a prender.
+const INFO_ENABLED = (() => {
+  try {
+    const v = new URLSearchParams(window.location.search).get('info');
+    if (v === '0') { try { localStorage.setItem('coachai_info', '0'); } catch {} return false; }
+    if (v === '1') { try { localStorage.removeItem('coachai_info'); } catch {} return true; }
+    return localStorage.getItem('coachai_info') !== '0';
+  } catch { return true; }
+})();
+const INFO_SEEN_KEY = 'coachai_info_seen_v1';
+
+// Contenido por sección. El rol del chat respeta el reparto vigente: el día a
+// día lo resuelve la IA; los cambios del plan activo los gestiona el coach.
+const INFO_SECCIONES = {
+  home: {
+    es: { title: '🏠 Inicio', sub: '¿Cómo se usa?',
+      intro: 'Tu resumen del día: en 10 segundos sabés cómo venís y qué te toca.',
+      items: [
+        'El anillo muestra los entrenamientos que completaste esta semana.',
+        'Más abajo tenés tus calorías de hoy, tu próxima comida y accesos rápidos.',
+        'Al final está tu Seguimiento Semanal: desde ahí hacés el cierre de cada semana con tus fotos.',
+      ],
+      tip: '💡 Si tu coach te escribió, te aparece un aviso acá arriba — tocalo para leerlo.' },
+    en: { title: '🏠 Home', sub: 'How it works',
+      intro: 'Your daily summary: in 10 seconds you know how you are doing and what is next.',
+      items: [
+        'The ring shows the workouts you completed this week.',
+        'Below you have today\'s calories, your next meal and quick shortcuts.',
+        'At the bottom is your Weekly Tracking: that\'s where you do each week\'s check-in with your photos.',
+      ],
+      tip: '💡 If your coach messaged you, a banner shows up here — tap it to read.' },
+  },
+  chat: {
+    es: { title: '💬 Chat con tu coach', sub: '¿Cómo se usa?',
+      intro: 'Tu coach con IA, disponible 24/7 para el día a día.',
+      items: [
+        'Preguntale lo que necesites: dudas de entreno, comidas, cómo reemplazar algo hoy.',
+        '¿Todavía no tenés dieta o rutina? Pedísela con los botones rápidos de abajo.',
+        'Los cambios de tu plan activo los gestiona tu coach. Si un día comiste distinto, registralo con ✏️ en Mi Alimentación.',
+      ],
+      tip: '💡 Cuanto más contexto le des (cómo dormiste, qué tenés en la heladera), mejor te responde.' },
+    en: { title: '💬 Coach chat', sub: 'How it works',
+      intro: 'Your AI coach, available 24/7 for the day-to-day.',
+      items: [
+        'Ask anything: training doubts, meals, how to swap something today.',
+        'No diet or routine yet? Ask for it with the quick buttons below.',
+        'Changes to your active plan are handled by your coach. If you ate differently one day, log it with ✏️ in My Nutrition.',
+      ],
+      tip: '💡 The more context you give (how you slept, what\'s in your fridge), the better the answers.' },
+  },
+  alim: {
+    es: { title: '🥗 Mi Alimentación', sub: '¿Cómo se usa?',
+      intro: 'Tu plan de comidas de la semana, día por día.',
+      items: [
+        'Tildá ✓ cada comida cumplida — la barra de HOY avanza sola.',
+        '¿Comiste otra cosa? Tocá ✏️ y contá qué comiste: las calorías se recalculan solas.',
+        'Arriba ves tu objetivo diario: kcal, proteína, carbos y grasas.',
+      ],
+      tip: '💡 Registrar un día imperfecto vale más que no registrar: tu coach ve la foto real.' },
+    en: { title: '🥗 My Nutrition', sub: 'How it works',
+      intro: 'Your weekly meal plan, day by day.',
+      items: [
+        'Tick ✓ each meal you complete — the TODAY bar moves on its own.',
+        'Ate something else? Tap ✏️ and say what you had: calories recalculate automatically.',
+        'At the top you see your daily target: kcal, protein, carbs and fat.',
+      ],
+      tip: '💡 Logging an imperfect day beats not logging: your coach sees the real picture.' },
+  },
+  entreno: {
+    es: { title: '💪 Mi Entreno', sub: '¿Cómo se usa?',
+      intro: 'Tu rutina organizada día por día.',
+      items: [
+        'Cargá el peso de cada serie a medida que entrenás.',
+        'Tocá «▶ Cómo se hace» en cualquier ejercicio para ver la demo.',
+        'El chip Intensificadores explica las técnicas de tu rutina; Progresión te muestra tu gráfico de fuerza.',
+        'Al terminar, marcá el día como entrenado ✓.',
+      ],
+      tip: '💡 Si repetís los pesos de la semana pasada, hay un botón que te los carga de una.' },
+    en: { title: '💪 My Training', sub: 'How it works',
+      intro: 'Your routine, organized day by day.',
+      items: [
+        'Log the weight of each set as you train.',
+        'Tap "▶ How it\'s done" on any exercise to watch the demo.',
+        'The Intensifiers chip explains your routine\'s techniques; Progress shows your strength chart.',
+        'When you finish, mark the day as trained ✓.',
+      ],
+      tip: '💡 Repeating last week\'s weights? There\'s a button that fills them in for you.' },
+  },
+  perfil: {
+    es: { title: '👤 Tu Perfil', sub: '¿Cómo se usa?',
+      intro: 'Tu espacio: datos, fotos y planes.',
+      items: [
+        'Tocá tu avatar para ver y editar tus datos.',
+        'Mirá tu transformación visual y tus análisis semanales.',
+        'Desde acá también cambiás el idioma y le escribís a soporte o a tu coach.',
+      ],
+      tip: '💡 Tus planes guardados quedan siempre acá, por si querés releer alguno.' },
+    en: { title: '👤 Your Profile', sub: 'How it works',
+      intro: 'Your space: data, photos and plans.',
+      items: [
+        'Tap your avatar to view and edit your data.',
+        'Check your visual transformation and weekly analyses.',
+        'From here you can also switch language and message support or your coach.',
+      ],
+      tip: '💡 Your saved plans always live here, in case you want to re-read one.' },
+  },
+};
+
+function _infoSeenMap() {
+  try { return JSON.parse(localStorage.getItem(INFO_SEEN_KEY) || '{}') || {}; } catch (e) { return {}; }
+}
+
+// Estado inicial de los chips: ocultos si ?info=0; titilando (.is-new) los que
+// nunca se abrieron. Corre una vez al cargar (los chips son HTML estático).
+function initInfoChips() {
+  const seen = _infoSeenMap();
+  document.querySelectorAll('.cai-info-chip[data-info]').forEach(btn => {
+    if (!INFO_ENABLED) {
+      const row = btn.closest('.cai-info-row');
+      (row || btn).style.display = 'none';
+      return;
+    }
+    btn.classList.toggle('is-new', !seen[btn.dataset.info]);
+  });
+}
+
+function showInfoModal(key) {
+  const sec = INFO_SECCIONES[key];
+  const modal = document.getElementById('info-modal');
+  if (!sec || !modal) return;
+  const t = (typeof lang !== 'undefined' && lang === 'en') ? sec.en : sec.es;
+  document.getElementById('info-modal-title').textContent = t.title;
+  document.getElementById('info-modal-sub').textContent = t.sub;
+  document.getElementById('info-modal-intro').textContent = t.intro;
+  const list = document.getElementById('info-modal-list');
+  list.innerHTML = '';
+  t.items.forEach(txt => {
+    const li = document.createElement('li');
+    li.textContent = txt;
+    list.appendChild(li);
+  });
+  const tip = document.getElementById('info-modal-tip');
+  if (t.tip) { tip.textContent = t.tip; tip.style.display = ''; } else { tip.style.display = 'none'; }
+  modal.classList.add('open');
+  const card = modal.querySelector('.ej-modal-card');
+  if (card) card.scrollTop = 0;
+  // Marcar como vista → el chip deja de titilar (para siempre, en este device)
+  const seen = _infoSeenMap();
+  if (!seen[key]) {
+    seen[key] = 1;
+    try { localStorage.setItem(INFO_SEEN_KEY, JSON.stringify(seen)); } catch (e) {}
+  }
+  document.querySelectorAll(`.cai-info-chip[data-info="${key}"]`).forEach(b => b.classList.remove('is-new'));
+  try { trackEvent('info_open', { seccion: key }); } catch (e) {}
+}
+
+function closeInfoModal(event) {
+  if (event && event.target && event.target.id !== 'info-modal' && !event.target.classList.contains('ej-modal-close')) return;
+  const modal = document.getElementById('info-modal');
+  if (modal) modal.classList.remove('open');
+}
+
+// El script vive al final del body → el DOM de los chips ya existe acá.
+try { initInfoChips(); } catch (e) { console.warn('[CoachAI] initInfoChips err:', e); }
 
 // Refresh last_active (always) and bump session_count (only on a new entry).
 // Called once per app entry from handleEmailLogin.
