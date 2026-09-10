@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260910-1429-progresion-de-fuerza-live-para-todos">
+<meta name="app-version" content="20260910-1436-record-personal--gated--pr-1-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6241,6 +6241,42 @@ body.theme-king .cai-intens-chip { color: var(--accent) !important; background: 
 .cai-prog-stat-l { font-size: 8.5px; letter-spacing: .12em; color: var(--muted, #8a8a99); font-family: 'JetBrains Mono', monospace; margin-top: 3px; }
 .cai-prog-foot { font-size: 10.5px; color: var(--muted, #8a8a99); text-align: center; margin-top: 10px; }
 .cai-prog-empty, .cai-prog-loading { color: var(--muted, #8a8a99); font-size: 13px; line-height: 1.55; padding: 18px 4px; text-align: center; }
+
+/* ── RÉCORD PERSONAL (PR) — celebración: glow dorado + confetti + toast ── */
+@keyframes pr-glow {
+  0% { box-shadow: 0 0 0 0 rgba(232,161,61,.75); }
+  60% { box-shadow: 0 0 0 9px rgba(232,161,61,0); }
+  100% { box-shadow: 0 0 0 0 rgba(232,161,61,0); }
+}
+.cai-ent-serie-row .cai-ent-serie-input.pr-hit {
+  border-color: #E8A13D !important;
+  background: rgba(246,198,103,.16) !important;
+  animation: pr-glow 1.1s ease-out 2;
+}
+.pr-confetti {
+  position: fixed; width: 6px; height: 10px; border-radius: 2px; z-index: 6000;
+  pointer-events: none; opacity: 0;
+  animation: pr-confetti-fly 1.15s ease-out forwards;
+}
+@keyframes pr-confetti-fly {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(1); }
+  100% { opacity: 0; transform: translate(var(--prx, 40px), calc(var(--pry, -60px) + 90px)) rotate(280deg) scale(.7); }
+}
+#pr-toast {
+  position: fixed; top: 14px; left: 50%; z-index: 6001;
+  transform: translate(-50%, -130%);
+  transition: transform .35s cubic-bezier(.2, .9, .3, 1.2);
+  display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(135deg, #FFF6E3, #FDEBC8);
+  border: 1.5px solid #F2CE86; color: #8a5a10;
+  border-radius: 16px; padding: 10px 16px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; line-height: 1.35;
+  box-shadow: 0 8px 28px rgba(232,161,61,.35);
+  max-width: min(92vw, 420px); pointer-events: none;
+}
+#pr-toast.show { transform: translate(-50%, 0); }
+.pr-toast-ico { font-size: 22px; }
+.pr-toast-prev { opacity: .7; font-size: 11.5px; }
 .cai-intens-intro {
   font-size: 12.5px; line-height: 1.5; color: var(--muted);
   margin: -6px 0 14px;
@@ -31206,6 +31242,132 @@ function closeProgresionModal(event) {
   if (modal) modal.classList.remove('open');
 }
 
+// ═══════════ RÉCORD PERSONAL (PR) — celebración al superar el máximo histórico ═══════════
+// Al tipear un peso que supera el mejor peso de semanas ANTERIORES para ese
+// ejercicio: glow dorado en el campo + confetti + toast + vibración. Lo cargado
+// ESTA semana solo sube la vara en silencio (nada de festejar el día 1 en cada
+// campo). No escribe nada en DB — puro feedback visual. Medalla: fase 2.
+// Gate: ?pr=1 prende / ?pr=0 apaga (localStorage coachai_pr). Default OFF hasta
+// QA en celu; al liberar cambiar el return final a `!== '0'`.
+const PR_ENABLED = (() => {
+  try {
+    const v = new URLSearchParams(window.location.search).get('pr');
+    if (v === '0') { try { localStorage.setItem('coachai_pr', '0'); } catch {} return false; }
+    if (v === '1') { try { localStorage.setItem('coachai_pr', '1'); } catch {} return true; }
+    return localStorage.getItem('coachai_pr') === '1';
+  } catch { return false; }
+})();
+
+// Baseline por (usuario, semana): { norm: { v: mejorKg, hist: vieneDeSemanaAnterior } }
+let _prBaseline = null;
+const _prTimers = {};
+
+function _prMaybeInit() {
+  if (!PR_ENABLED || !currentUser || !sbClient) return;
+  const wk = entrenoWeekKey();
+  if (_prBaseline && _prBaseline.uid === currentUser.id && _prBaseline.wk === wk) return;
+  const mapping = buildTrainingDayMapping();
+  if (!mapping) return;
+  const uid = currentUser.id;
+  const base = { uid, wk, map: {}, loading: true };
+  _prBaseline = base;
+  _progFetchWeeks().then(weeks => {
+    if (_prBaseline !== base || !currentUser || currentUser.id !== uid) return;
+    const list = _progExerciseList(mapping);
+    weeks.forEach(w => {
+      if (!w.semana || w.semana >= wk) return; // solo semanas ANTERIORES cuentan como historia
+      list.forEach(x => {
+        const slots = _progSlotsForWeek(w, mapping, x.slot, x.norm);
+        if (!slots) return;
+        const best = _progBestForWeek(w, slots);
+        if (best == null) return;
+        const cur = base.map[x.norm];
+        if (!cur || best > cur.v) base.map[x.norm] = { v: best, hist: true };
+        else cur.hist = true;
+      });
+    });
+    // Lo que ya cargó esta semana sube la vara sin festejo (evita re-festejar al recargar)
+    try {
+      const state = getEntrenoWeekState();
+      list.forEach(x => {
+        Object.keys(state.weights || {}).forEach(k => {
+          if (!k.startsWith(x.slot + 's')) return;
+          const v = parseFloat(String(state.weights[k]).replace(',', '.'));
+          if (!isFinite(v) || v <= 0) return;
+          const cur = base.map[x.norm];
+          if (!cur) base.map[x.norm] = { v, hist: false };
+          else if (v > cur.v) cur.v = v;
+        });
+      });
+    } catch (e) {}
+    base.loading = false;
+  }).catch(e => { console.warn('pr baseline failed:', e); if (_prBaseline === base) _prBaseline = null; });
+}
+
+function _prCheck(dayIdx, exIdx, serie, val, inputEl) {
+  try {
+    if (!PR_ENABLED || !_prBaseline || _prBaseline.loading) return;
+    if (!currentUser || _prBaseline.uid !== currentUser.id || _prBaseline.wk !== entrenoWeekKey()) return;
+    const v = parseFloat(String(val || '').replace(',', '.'));
+    if (!isFinite(v) || v <= 0) return;
+    const mapping = buildTrainingDayMapping();
+    const day = mapping && mapping.days[dayIdx];
+    const ex = day && !day.isRest && (day.exercises || [])[exIdx];
+    if (!ex) return;
+    const norm = _entNormName(ex.name);
+    if (!norm) return;
+    const cur = _prBaseline.map[norm];
+    if (!cur) { _prBaseline.map[norm] = { v, hist: false }; return; } // sin historia → vara silenciosa
+    if (v <= cur.v) return;
+    const prev = cur.v;
+    cur.v = v; // sube la vara SIEMPRE (no re-festeja el mismo valor)
+    if (!cur.hist) return; // récord real = contra semanas anteriores
+    _prCelebrate(ex.name, v, prev, inputEl);
+    try { trackEvent('pr_hit', { ej: String(ex.name).slice(0, 60), kg: v, prev }); } catch (e) {}
+  } catch (e) { /* la celebración jamás rompe el guardado */ }
+}
+
+function _prCelebrate(exName, v, prev, inputEl) {
+  const es = lang === 'es';
+  // 1) glow dorado en el campo
+  if (inputEl && inputEl.isConnected) {
+    inputEl.classList.remove('pr-hit'); void inputEl.offsetWidth;
+    inputEl.classList.add('pr-hit');
+    setTimeout(() => { try { inputEl.classList.remove('pr-hit'); } catch (e) {} }, 2600);
+  }
+  // 2) confetti desde el campo (position:fixed → funciona con scroll)
+  try {
+    const r = inputEl && inputEl.isConnected ? inputEl.getBoundingClientRect() : null;
+    const cx = r ? r.left + r.width / 2 : window.innerWidth / 2;
+    const cy = r ? r.top + r.height / 2 : window.innerHeight / 3;
+    const colors = ['#F6C667', '#E8A13D', '#7c6aff', '#f472b6', '#16a34a'];
+    for (let i = 0; i < 16; i++) {
+      const p = document.createElement('div');
+      p.className = 'pr-confetti';
+      const ang = Math.random() * 2 * Math.PI, dist = 50 + Math.random() * 80;
+      p.style.cssText = `left:${cx}px;top:${cy}px;background:${colors[i % colors.length]};`
+        + `--prx:${Math.round(Math.cos(ang) * dist)}px;--pry:${Math.round(Math.sin(ang) * dist - 40)}px;`
+        + `animation-delay:${(Math.random() * 0.12).toFixed(2)}s`;
+      document.body.appendChild(p);
+      setTimeout(() => { try { p.remove(); } catch (e) {} }, 1500);
+    }
+  } catch (e) {}
+  // 3) toast
+  try {
+    let t = document.getElementById('pr-toast');
+    if (!t) { t = document.createElement('div'); t.id = 'pr-toast'; document.body.appendChild(t); }
+    const esc3 = (typeof _esc === 'function') ? _esc : (x => String(x));
+    t.innerHTML = `<span class="pr-toast-ico">🏆</span><span><b>${es ? '¡Récord personal!' : 'Personal record!'}</b><br>`
+      + `${esc3(exName)}: ${_progFmtKg(v)} kg <span class="pr-toast-prev">(${es ? 'antes' : 'was'} ${_progFmtKg(prev)})</span></span>`;
+    t.classList.remove('show'); void t.offsetWidth;
+    t.classList.add('show');
+    clearTimeout(t._hid);
+    t._hid = setTimeout(() => t.classList.remove('show'), 3200);
+  } catch (e) {}
+  // 4) vibración cortita (Android; iOS la ignora sin romper)
+  try { if (navigator.vibrate) navigator.vibrate([40, 60, 40]); } catch (e) {}
+}
+
 let _entrenoSyncTimer = null;
 // Persist to localStorage immediately (instant UI) + debounced upsert to
 // Supabase so the coach sees it cross-device and it survives a cache wipe.
@@ -31616,6 +31778,8 @@ function renderMiEntreno() {
     const progLbl = document.getElementById('prog-chip-label');
     if (progLbl) progLbl.textContent = lang === 'es' ? 'Progresión' : 'Progress';
   }
+  // Récord personal: precargar el baseline histórico (async, una vez por semana/usuario)
+  if (mapping) { try { _prMaybeInit(); } catch (e) {} }
   const esc = (typeof _esc === 'function') ? _esc : (x => String(x));
 
   // Empty state — no active rutina (o "preparando" si la pre-generación del
@@ -32000,6 +32164,12 @@ function onEntrenoWeight(dayIdx, exIdx, serie, inputEl) {
       setTimeout(() => saved.classList.remove('show'), 1200);
     }
   }, 500);
+  // Récord personal: chequeo con debounce propio, más largo que el de guardado
+  // (evita festejar números a medio tipear). Nunca toca el guardado.
+  try {
+    clearTimeout(_prTimers[k]);
+    _prTimers[k] = setTimeout(() => _prCheck(dayIdx, exIdx, serie, clean, inputEl), 900);
+  } catch (e) {}
 }
 
 // Sibling handler for the reps field. Same debounce + state-merge pattern as

@@ -102,5 +102,55 @@ for (const n of [1, 2, 12]) {
 ok(api._progChartSvg([{ label: 'x', val: 50 }, { label: 'y', val: 50 }]).includes('polyline'), 'chart valores iguales (min=max) no explota');
 ok(api._progFmtKg(47.5) === '47.5' && api._progFmtKg(50) === '50', '_progFmtKg 47.5/50');
 
+// ── 3) Récord personal: semántica de _prCheck (vara histórica vs silenciosa) ──
+console.log('3) Récord personal (_prCheck)');
+const prCheckSrc = extractFunction(html, '_prCheck');
+const entNormSrc = extractFunction(html, '_entNormName');
+function mkPr(baseline) {
+  const env = { celebrated: [], tracked: [] };
+  const fn = new Function('env', `"use strict";
+    ${entNormSrc}
+    const PR_ENABLED = true;
+    const currentUser = { id: 'u1' };
+    const entrenoWeekKey = () => '2026-W37';
+    const _prBaseline = env.baseline;
+    const buildTrainingDayMapping = () => ({ days: [
+      { isRest: false, exercises: [{ name: 'Press inclinado con mancuernas', detail: '3×12' }] }
+    ]});
+    const trackEvent = (n, d) => env.tracked.push([n, d]);
+    const _prCelebrate = (name, v, prev) => env.celebrated.push({ name, v, prev });
+    ${prCheckSrc}
+    return _prCheck;`)(Object.assign(env, { baseline }));
+  return { fn, env };
+}
+// a) historia real 20 → 22.5 festeja y sube la vara
+let t1 = mkPr({ uid: 'u1', wk: '2026-W37', loading: false, map: { 'press inclinado con mancuernas': { v: 20, hist: true } } });
+t1.fn(0, 0, 1, '22.5', null);
+ok(t1.env.celebrated.length === 1 && t1.env.celebrated[0].v === 22.5 && t1.env.celebrated[0].prev === 20, 'PR real festeja (20→22.5)');
+ok(t1.env.baseline.map['press inclinado con mancuernas'].v === 22.5, 'la vara sube a 22.5');
+t1.fn(0, 0, 2, '22.5', null);
+ok(t1.env.celebrated.length === 1, 'repetir 22.5 NO re-festeja');
+t1.fn(0, 0, 3, '21', null);
+ok(t1.env.celebrated.length === 1, 'peso menor no festeja');
+// b) sin historia previa (hist:false) → sube vara en silencio
+let t2 = mkPr({ uid: 'u1', wk: '2026-W37', loading: false, map: { 'press inclinado con mancuernas': { v: 20, hist: false } } });
+t2.fn(0, 0, 1, '25', null);
+ok(t2.env.celebrated.length === 0 && t2.env.baseline.map['press inclinado con mancuernas'].v === 25, 'sin historia: silencio + vara sube');
+// c) ejercicio sin entrada en baseline → la crea silenciosa
+let t3 = mkPr({ uid: 'u1', wk: '2026-W37', loading: false, map: {} });
+t3.fn(0, 0, 1, '30', null);
+ok(t3.env.celebrated.length === 0 && t3.env.baseline.map['press inclinado con mancuernas'].v === 30, 'primer registro: vara silenciosa');
+// d) baseline cargando o valor basura → no-op sin explotar
+let t4 = mkPr({ uid: 'u1', wk: '2026-W37', loading: true, map: {} });
+t4.fn(0, 0, 1, '50', null);
+ok(t4.env.celebrated.length === 0, 'loading → no-op');
+let t5 = mkPr({ uid: 'u1', wk: '2026-W37', loading: false, map: {} });
+t5.fn(0, 0, 1, 'abc', null); t5.fn(0, 0, 1, '', null); t5.fn(9, 9, 1, '50', null);
+ok(t5.env.celebrated.length === 0, 'basura / día inexistente → no-op');
+// e) coma decimal también en el check
+let t6 = mkPr({ uid: 'u1', wk: '2026-W37', loading: false, map: { 'press inclinado con mancuernas': { v: 20, hist: true } } });
+t6.fn(0, 0, 1, '22,5', null);
+ok(t6.env.celebrated.length === 1 && t6.env.celebrated[0].v === 22.5, 'coma decimal "22,5" festeja como 22.5');
+
 console.log(fails ? `\n✗ ${fails} FALLAS` : '\n✓ TODO VERDE');
 process.exit(fails ? 1 : 0);
