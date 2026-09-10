@@ -31253,9 +31253,9 @@ const PR_ENABLED = (() => {
   try {
     const v = new URLSearchParams(window.location.search).get('pr');
     if (v === '0') { try { localStorage.setItem('coachai_pr', '0'); } catch {} return false; }
-    if (v === '1') { try { localStorage.setItem('coachai_pr', '1'); } catch {} return true; }
-    return localStorage.getItem('coachai_pr') === '1';
-  } catch { return false; }
+    if (v === '1') { try { localStorage.removeItem('coachai_pr'); } catch {} return true; }
+    return localStorage.getItem('coachai_pr') !== '0';
+  } catch { return true; }
 })();
 
 // Baseline por (usuario, semana): { norm: { v: mejorKg, hist: vieneDeSemanaAnterior } }
