@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260910-1425-progresion--selector-desplegable">
+<meta name="app-version" content="20260910-1429-progresion-de-fuerza-live-para-todos">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -30977,9 +30977,9 @@ const PROG_ENABLED = (() => {
   try {
     const v = new URLSearchParams(window.location.search).get('progresion');
     if (v === '0') { try { localStorage.setItem('coachai_prog', '0'); } catch {} return false; }
-    if (v === '1') { try { localStorage.setItem('coachai_prog', '1'); } catch {} return true; }
-    return localStorage.getItem('coachai_prog') === '1';
-  } catch { return false; }
+    if (v === '1') { try { localStorage.removeItem('coachai_prog'); } catch {} return true; }
+    return localStorage.getItem('coachai_prog') !== '0';
+  } catch { return true; }
 })();
 
 // Cache de historial por usuario (60s) para no re-consultar en cada apertura.
