@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260914-1304-deploy">
+<meta name="app-version" content="20260914-1420-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -24867,16 +24867,18 @@ function saveProgress(data) {
 let fotosProgreso = [];
 
 // Throws on non-image MIME or oversized files. Cheap to call from any upload
-// path. Without this guard, HEIC/RAW/video files silently broke compressImage,
-// which then hung the Promise forever and the UI stuck on "Subiendo foto...".
-const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+// path. OJO (2026-09-14, caso Carolina): un MIME VACÍO ya NO rechaza — algunos
+// teléfonos/pickers entregan el archivo sin type y eran fotos válidas; ahora
+// decide la cadena de decodificado (compressImage + rescates, que ya no cuelgan
+// gracias a onerror). Solo rechazamos cuando el type EXISTE y no es imagen.
+const MAX_IMAGE_BYTES = 30 * 1024 * 1024;
 function validateImageFile(file) {
   if (!file) throw new Error(lang === 'es' ? 'No seleccionaste ningún archivo.' : 'No file selected.');
-  if (!file.type || !file.type.startsWith('image/')) {
+  if (file.type && !file.type.startsWith('image/')) {
     throw new Error(lang === 'es' ? 'El archivo no es una imagen.' : 'File is not an image.');
   }
   if (file.size > MAX_IMAGE_BYTES) {
-    throw new Error(lang === 'es' ? 'La imagen pesa más de 15 MB. Probá con una más liviana.' : 'Image is over 15 MB. Use a lighter one.');
+    throw new Error(lang === 'es' ? 'La imagen pesa más de 30 MB. Probá con una más liviana.' : 'Image is over 30 MB. Use a lighter one.');
   }
 }
 
@@ -24912,6 +24914,97 @@ async function compressImage(file, maxWidth = 1400, quality = 0.88) {
     };
     img.src = url;
   });
+}
+
+// ===== Cadena de RESCATE de fotos (2026-09-14, caso Carolina) =====
+// Cuando compressImage falla (HEIF de Samsung "alta eficiencia", fotos gigantes,
+// formatos raros), en vez de tirar "No pudimos procesar la imagen" probamos en
+// orden: (1) createImageBitmap (decodifica más formatos y achica DURANTE el
+// decode → una foto de 108MP no revienta la memoria del teléfono), (2) si huele
+// a HEIC → convertirla a JPG en el MISMO teléfono con heic2any (self-hosted,
+// se carga solo cuando hace falta), (3) último recurso: subir el original tal
+// cual, que la foto nunca se pierda. La usuaria no configura NADA.
+// Escape: ?fotofix=0 apaga la cadena (vuelve al comportamiento anterior).
+const FOTO_FIX_ENABLED = (() => { try { return new URLSearchParams(location.search).get('fotofix') !== '0'; } catch (e) { return true; } })();
+
+function _fotoLooksHeic(file) {
+  const t = String(file?.type || '').toLowerCase();
+  const n = String(file?.name || '').toLowerCase();
+  return t.includes('heic') || t.includes('heif') || n.endsWith('.heic') || n.endsWith('.heif');
+}
+
+// Rescate 1: decode vía createImageBitmap. resizeWidth achica en el decode
+// (memoria-seguro para fotos enormes); si el navegador no soporta las opciones,
+// cae al decode plano. En esta rama de rescate un leve upscale a 1400 de una
+// foto chica es un trade-off aceptable.
+async function _compressViaBitmap(file, maxWidth = 1400, quality = 0.88) {
+  if (typeof createImageBitmap !== 'function') return null;
+  try {
+    let bmp;
+    try { bmp = await createImageBitmap(file, { resizeWidth: maxWidth, resizeQuality: 'high' }); }
+    catch (e) { bmp = await createImageBitmap(file); }
+    const scale = Math.min(1, maxWidth / bmp.width);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(bmp.width * scale));
+    canvas.height = Math.max(1, Math.round(bmp.height * scale));
+    canvas.getContext('2d').drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    try { bmp.close(); } catch (e) {}
+    return await new Promise(res => canvas.toBlob(b => res(b), 'image/jpeg', quality));
+  } catch (e) { return null; }
+}
+
+// Rescate 2: conversor HEIC→JPG (heic2any, self-hosted en /heic2any.min.js).
+// Se carga UNA vez y solo cuando un HEIC real falló — nadie más paga el peso.
+let _heic2anyLoading = null;
+function _loadHeic2any() {
+  if (window.heic2any) return Promise.resolve(window.heic2any);
+  if (_heic2anyLoading) return _heic2anyLoading;
+  _heic2anyLoading = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = '/heic2any.min.js';
+    s.onload = () => resolve(window.heic2any);
+    s.onerror = () => { _heic2anyLoading = null; reject(new Error('heic_lib_no_cargo')); };
+    document.head.appendChild(s);
+  });
+  return _heic2anyLoading;
+}
+async function _convertHeicToJpeg(file) {
+  try {
+    const heic2any = await _loadHeic2any();
+    if (typeof heic2any !== 'function') return null;
+    const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+    return Array.isArray(out) ? out[0] : out;   // HEIC multi-imagen → la primera
+  } catch (e) { return null; }
+}
+
+// Orquesta la cadena. Devuelve { blob, rescate, ext, contentType } — rescate null
+// = camino feliz de siempre (cero cambio para quien hoy sube bien).
+async function compressImageRobusto(file) {
+  const normal = await compressImage(file);
+  if (normal) return { blob: normal, rescate: null, ext: 'jpg', contentType: 'image/jpeg' };
+  if (!FOTO_FIX_ENABLED) return { blob: null, rescate: null, ext: 'jpg', contentType: 'image/jpeg' };
+
+  const viaBitmap = await _compressViaBitmap(file);
+  if (viaBitmap) return { blob: viaBitmap, rescate: 'bitmap', ext: 'jpg', contentType: 'image/jpeg' };
+
+  if (_fotoLooksHeic(file)) {
+    const jpg = await _convertHeicToJpeg(file);
+    if (jpg) {
+      const rec = (await compressImage(jpg)) || (await _compressViaBitmap(jpg)) || jpg;
+      return { blob: rec, rescate: 'heic', ext: 'jpg', contentType: 'image/jpeg' };
+    }
+  }
+
+  // Último recurso: el original tal cual, con su extensión/tipo reales — la foto
+  // no se pierde aunque algún visor no la muestre. La telemetría lo delata.
+  const n = String(file.name || '').toLowerCase();
+  const m = n.match(/\.(heic|heif|png|webp|jpe?g|gif|bmp|avif)$/);
+  return {
+    blob: file,
+    rescate: 'original',
+    ext: m ? m[1] : 'bin',
+    contentType: file.type || 'application/octet-stream',
+  };
 }
 
 function previewFotoInicial(event) {
@@ -25026,16 +25119,22 @@ async function uploadFoto(file, tipo = 'progreso', vista = null) {
   // reads currentUser.id = B).
   const uid = currentUser.id;
   validateImageFile(file);
-  const blob = await compressImage(file);
+  // Cadena de rescate (ver compressImageRobusto): camino feliz idéntico al de
+  // siempre; si falla, bitmap → conversión HEIC en el teléfono → original.
+  const { blob, rescate, ext, contentType } = await compressImageRobusto(file);
   if (!blob) throw new Error(lang === 'es' ? 'No pudimos procesar la imagen. Probá con otra.' : 'Could not process the image. Try another.');
+  if (rescate) {
+    // Telemetría del rescate: qué paso salvó la foto (y con qué formato venía).
+    try { trackEvent('foto_upload_rescate', { paso: rescate, mime: String(file.type || 'vacio'), kb: Math.round((file.size || 0) / 1024), tipo, vista: vista || null }); } catch (e) {}
+  }
   const fecha = getTodayKey();
   // Append a random suffix so two uploads in the same millisecond don't collide
   // on the storage path (upsert:false would 409 the second one). Embedding the
   // vista in the filename also makes the storage browser self-documenting.
   const rand = (crypto.randomUUID?.() || Math.random().toString(36)).slice(0, 8);
   const vistaTag = vista ? `-${vista}` : '';
-  const path = `${uid}/${fecha}${vistaTag}-${Date.now()}-${rand}.jpg`;
-  const { error: upErr } = await sbClient.storage.from('progress-photos').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+  const path = `${uid}/${fecha}${vistaTag}-${Date.now()}-${rand}.${ext}`;
+  const { error: upErr } = await sbClient.storage.from('progress-photos').upload(path, blob, { contentType, upsert: false });
   if (upErr) throw upErr;
   const { data: { publicUrl } } = sbClient.storage.from('progress-photos').getPublicUrl(path);
   // Vista is one of 'frente' | 'espalda' | 'perfil' (matches the DB check
