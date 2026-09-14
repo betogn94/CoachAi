@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260910-1518-deploy">
+<meta name="app-version" content="20260914-1304-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -24922,6 +24922,7 @@ function previewFotoInicial(event) {
   if (!file) return;
   try { validateImageFile(file); }
   catch (e) {
+    try { trackEvent('foto_upload_fail', { flujo: 'validacion_onboarding_legacy', motivo: String(e?.message || e).slice(0, 120), mime: String(file.type || 'vacio'), kb: Math.round((file.size || 0) / 1024) }); } catch (e2) {}
     event.target.value = '';
     document.getElementById('foto-status').textContent = '⚠ ' + e.message;
     return;
@@ -24946,6 +24947,7 @@ function previewFotoVista(event, vista) {
   if (!file) return;
   try { validateImageFile(file); }
   catch (e) {
+    try { trackEvent('foto_upload_fail', { flujo: 'validacion_onboarding', motivo: String(e?.message || e).slice(0, 120), mime: String(file.type || 'vacio'), kb: Math.round((file.size || 0) / 1024) }); } catch (e2) {}
     event.target.value = '';
     if (statusEl) statusEl.textContent = '⚠ ' + e.message;
     return;
@@ -25077,12 +25079,17 @@ async function uploadFotoInicial() {
         Object.values(vistaInputs).forEach(el => { if (el) el.value = ''; });
       } else {
         console.warn('[fotos-inicio] partial failures:', failed);
+        try {
+          const _motivo = failed.map(f => String(f.reason?.message || f.reason).slice(0, 120)).join(' | ');
+          trackEvent('foto_upload_fail', { flujo: 'inicio_onboarding', fallidas: failed.length, motivo: _motivo });
+        } catch (e2) { /* la telemetría nunca rompe el flujo */ }
         if (status) status.textContent = lang === 'es'
           ? `⚠ ${failed.length} de 2 fotos fallaron — podés reintentar desde Perfil`
           : `⚠ ${failed.length} of 2 photos failed — retry from Profile`;
       }
     } catch (e) {
       console.error(e);
+      try { trackEvent('foto_upload_fail', { flujo: 'inicio_onboarding', motivo: String(e?.message || e).slice(0, 180) }); } catch (e2) {}
       if (status) status.textContent = '⚠ ' + (e.message || (lang === 'es' ? 'Error al subir las fotos' : 'Upload failed'));
     }
     return;
@@ -25097,6 +25104,7 @@ async function uploadFotoInicial() {
     input.value = '';
   } catch(e) {
     console.error(e);
+    try { trackEvent('foto_upload_fail', { flujo: 'inicio_onboarding_legacy', motivo: String(e?.message || e).slice(0, 180) }); } catch (e2) {}
     if (status) status.textContent = '⚠ ' + (e.message || (lang === 'es' ? 'Error al subir la foto' : 'Upload failed'));
   }
 }
@@ -25142,6 +25150,7 @@ function onFotoInicioPick(event) {
   if (!file) return;
   try { validateImageFile(file); }
   catch (e) {
+    try { trackEvent('foto_upload_fail', { flujo: 'validacion_inicio_perfil', motivo: String(e?.message || e).slice(0, 120), mime: String(file.type || 'vacio'), kb: Math.round((file.size || 0) / 1024) }); } catch (e2) {}
     event.target.value = '';
     const st = document.getElementById('foto-inicio-status');
     if (st) st.textContent = '⚠ ' + e.message;
@@ -25182,6 +25191,7 @@ async function confirmFotoInicio() {
     renderSemanas().catch(() => {});
   } catch (e) {
     console.error(e);
+    try { trackEvent('foto_upload_fail', { flujo: 'inicio_perfil', motivo: String(e?.message || e).slice(0, 180) }); } catch (e2) {}
     if (st) st.textContent = '⚠ ' + (e.message || (lang === 'es' ? 'Error al subir la foto' : 'Upload failed'));
     if (btn) { btn.disabled = false; btn.style.opacity = ''; }
     if (reBtn) reBtn.disabled = false;
@@ -25200,7 +25210,12 @@ async function subirFotoDesdeDash(event) {
     await loadAndRenderFotos();
   } catch(e) {
     console.error(e);
-    status.textContent = '⚠ ' + (e.message || (lang === 'es' ? 'Error al subir la foto' : 'Upload failed'));
+    try { trackEvent('foto_upload_fail', { flujo: 'progreso_dash', motivo: String(e?.message || e).slice(0, 180) }); } catch (e2) {}
+    // Resetear el input: un file input con el MISMO archivo re-elegido no dispara
+    // `change`, así que sin esto el reintento con la misma foto "no hace nada".
+    event.target.value = '';
+    if (status) status.textContent = '⚠ ' + (e.message || (lang === 'es' ? 'Error al subir la foto' : 'Upload failed')) +
+      (lang === 'es' ? ' Tocá de nuevo para reintentar.' : ' Tap again to retry.');
   }
 }
 
@@ -26610,6 +26625,9 @@ function previewCierreFotoVista(event, vista) {
   if (!file) return;
   try { validateImageFile(file); }
   catch (e) {
+    // Telemetría del rechazo en la validación (con MIME y tamaño: los navegadores
+    // embebidos a veces entregan el archivo con type vacío → "no es una imagen").
+    try { trackEvent('foto_upload_fail', { flujo: 'validacion_cierre', motivo: String(e?.message || e).slice(0, 120), mime: String(file.type || 'vacio'), kb: Math.round((file.size || 0) / 1024) }); } catch (e2) {}
     event.target.value = '';
     alert('⚠ ' + e.message);
     return;
@@ -26668,6 +26686,7 @@ function previewCierreFoto(event) {
   if (!file) return;
   try { validateImageFile(file); }
   catch (e) {
+    try { trackEvent('foto_upload_fail', { flujo: 'validacion_cierre_legacy', motivo: String(e?.message || e).slice(0, 120), mime: String(file.type || 'vacio'), kb: Math.round((file.size || 0) / 1024) }); } catch (e2) {}
     event.target.value = '';
     alert('⚠ ' + e.message);
     return;
@@ -26792,12 +26811,28 @@ async function ejecutarCierreSemana() {
       if (espaldaRes.status === 'fulfilled') semanaEspaldaUrl = espaldaRes.value;
       if (!semanaFrenteUrl || !semanaEspaldaUrl) {
         console.error('[cierre] photo upload partial failure', { frenteRes, espaldaRes });
+        // Telemetría de fallo (rama de error solamente): motivo por vista, para
+        // poder diagnosticar desde Tower sin depender del reporte de la clienta.
+        try {
+          const _motivo = [
+            frenteRes.status === 'rejected'  ? ('frente: '  + String(frenteRes.reason?.message  || frenteRes.reason).slice(0, 120)) : null,
+            espaldaRes.status === 'rejected' ? ('espalda: ' + String(espaldaRes.reason?.message || espaldaRes.reason).slice(0, 120)) : null,
+          ].filter(Boolean).join(' | ');
+          trackEvent('foto_upload_fail', { flujo: 'cierre_semana', motivo: _motivo });
+        } catch (e2) { /* la telemetría nunca rompe el flujo */ }
         btn.disabled = false;
         _setBtnTxt(lang === 'es' ? '⚠ Falló subir fotos — reintentá' : '⚠ Photo upload failed — retry');
+        // Mensaje accionable: si la foto no se pudo procesar, reintentar con el
+        // MISMO archivo va a fallar igual — guiar a sacar una nueva con la cámara.
+        const _stFoto = document.getElementById('cierre-foto-status');
+        if (_stFoto) _stFoto.textContent = lang === 'es'
+          ? '⚠ No pudimos subir tus fotos. Reintentá; si sigue fallando, sacá una foto nueva con la cámara y volvé a elegirla.'
+          : '⚠ We could not upload your photos. Retry; if it keeps failing, take a new photo with the camera and pick it again.';
         return;
       }
     } catch(e) {
       console.error('Photo upload failed:', e);
+      try { trackEvent('foto_upload_fail', { flujo: 'cierre_semana', motivo: String(e?.message || e).slice(0, 180) }); } catch (e2) {}
       btn.disabled = false;
       _setBtnTxt(lang === 'es' ? '⚠ Error subiendo fotos' : '⚠ Photo upload error');
       return;
