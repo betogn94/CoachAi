@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260914-1420-deploy">
+<meta name="app-version" content="20260915-2022-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -1163,6 +1163,15 @@ body.theme-light .cai-home-semanas .semana-status.cerrada {
 body.theme-light .cai-home-semanas .semana-status.cerrada::before {
   border-left-color: var(--accent3) !important;
   border-bottom-color: var(--accent3) !important;
+}
+body.theme-light .cai-home-semanas .semana-status.pendiente {
+  color: #b8791f !important;
+  border-color: rgba(216,146,44,0.35) !important;
+  background: rgba(216,146,44,0.10) !important;
+}
+body.theme-light .cai-home-semanas .semana-status.pendiente::before {
+  background: #d8922c !important;
+  box-shadow: 0 0 10px rgba(216,146,44,0.65) !important;
 }
 body.theme-light .cai-home-semanas .semana-status {
   border-color: var(--border) !important;
@@ -3391,6 +3400,15 @@ body.theme-king .cai-home-semanas .semana-status.cerrada {
 body.theme-king .cai-home-semanas .semana-status.cerrada::before {
   border-left-color: var(--accent3) !important;
   border-bottom-color: var(--accent3) !important;
+}
+body.theme-king .cai-home-semanas .semana-status.pendiente {
+  color: #ffb454 !important;
+  border-color: rgba(255,180,84,0.35) !important;
+  background: rgba(255,180,84,0.08) !important;
+}
+body.theme-king .cai-home-semanas .semana-status.pendiente::before {
+  background: #ffb454 !important;
+  box-shadow: 0 0 10px rgba(255,180,84,0.65) !important;
 }
 body.theme-king .cai-home-semanas .semana-status {
   border-color: var(--border) !important;
@@ -10740,6 +10758,7 @@ footer {
 .semana-status { font-size: 10px; font-weight: 700; letter-spacing: 0.5px; padding: 3px 8px; border-radius: 100px; }
 .semana-status.cerrada { background: rgba(46,207,181,0.1); color: var(--accent3); }
 .semana-status.en-curso { background: rgba(124,106,255,0.12); color: var(--accent-bright); }
+.semana-status.pendiente { background: rgba(255,180,84,0.12); color: #d8922c; }
 
 .semana-body { display: none; border-top: 1px solid var(--border); }
 .semana-card.open .semana-body { display: block; }
@@ -13379,6 +13398,16 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
   border-bottom: 1.8px solid #2ecfb5;
   transform: rotate(-45deg);
 }
+/* CIERRE LIBRE: semana cerrada automáticamente, análisis pendiente (ámbar) */
+.cai-home-semanas .semana-status.pendiente {
+  color: #ffb454;
+  border-color: rgba(255,180,84,0.35);
+  background: rgba(255,180,84,0.08);
+}
+.cai-home-semanas .semana-status.pendiente::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: #ffb454; box-shadow: 0 0 10px #ffb454;
+}
 
 /* Chips inside collapsed cards */
 .cai-home-semanas .semana-chip {
@@ -14135,10 +14164,20 @@ body.theme-king .cai-perfil-transform-badge {
 }
 .cierre-gate-overlay.open { display: flex; }
 .cierre-gate-card {
+  position: relative;
   background: var(--surface, #fff); border: 1px solid var(--border, rgba(0,0,0,0.08));
   border-radius: 22px; box-shadow: 0 20px 60px -20px rgba(0,0,0,0.5);
   padding: 30px 24px 24px; max-width: 360px; width: 100%; text-align: center;
 }
+/* X para cerrar el overlay (solo modo CIERRE LIBRE — la muestra el JS) */
+.cierre-gate-x {
+  position: absolute; top: 10px; right: 10px; width: 34px; height: 34px;
+  display: none; align-items: center; justify-content: center;
+  border: none; border-radius: 50%; background: transparent;
+  color: var(--muted); font-size: 24px; line-height: 1; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.cierre-gate-x:active { transform: scale(0.92); }
 .cierre-gate-eyebrow { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1.8px; color: var(--accent); margin-bottom: 10px; }
 .cierre-gate-emoji { font-size: 46px; line-height: 1; margin-bottom: 12px; }
 .cierre-gate-title { font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
@@ -17007,6 +17046,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
      o el nav). No es descartable tocando afuera — el único salir es cerrar o ir a cargar. -->
 <div class="cierre-gate-overlay" id="cierre-gate-overlay" role="dialog" aria-modal="true" aria-label="Cerrar tu semana">
   <div class="cierre-gate-card">
+    <button class="cierre-gate-x" id="cierre-gate-x" type="button" onclick="cierreGateDismiss()" aria-label="Cerrar">×</button>
     <div class="cierre-gate-eyebrow" data-es="SEMANA COMPLETA" data-en="WEEK COMPLETE">SEMANA COMPLETA</div>
     <div class="cierre-gate-emoji" aria-hidden="true">🎉</div>
     <div class="cierre-gate-title" id="cierre-gate-title">¡Lograste otra semana!</div>
@@ -25916,6 +25956,65 @@ let cierreActualWeekNum = null;
 // que nunca tuvo un plan. null = todavía sin cargar o sin ningún plan (→ no se gatea).
 let _cierreActivityStart = null;
 
+// ── CIERRE LIBRE (Fase 1, 2026-09-15) ───────────────────────────────────────
+// La semana TERMINADA se cierra sola (fila en cierres_semanales con los stats
+// congelados, sin fotos ni análisis) y el análisis queda como PENDIENTE
+// opcional; el overlay deja de bloquear (aparece una sola vez, con X).
+// DEFAULT OFF: se enciende con ?cierrelibre=1 (QA). Al liberarse a todos, el
+// default pasará a ON y ?cierrelibre=0 quedará como escape.
+const CIERRE_LIBRE = (() => { try { return new URLSearchParams(location.search).get('cierrelibre') === '1'; } catch (e) { return false; } })();
+
+// Cierra AUTOMÁTICAMENTE las semanas TERMINADAS sin cierre (solo CIERRE_LIBRE).
+// INSERT-ONLY (ignoreDuplicates → ON CONFLICT DO NOTHING sobre la unique
+// usuario_id+semana_num): JAMÁS pisa una fila existente, así un race (dos
+// dispositivos, doble render) no puede borrar un análisis ya hecho. Requiere
+// _cierreActivityStart (primer plan) para no fabricar backlog fantasma en
+// cuentas migradas/test con created_at viejo. Devuelve true si insertó algo.
+async function autoCloseEndedWeeks(createdAt, currentWeek) {
+  if (!CIERRE_LIBRE || !sbClient || !currentUser) return false;
+  if (currentUser.role && currentUser.role !== 'user') return false;  // solo clientes
+  if (!_cierreActivityStart) return false;
+  const today = getTodayKey();
+  const closed = new Set((cierresSemanales || []).map(c => c.semana_num));
+  const rows = [];
+  for (let w = 1; w < currentWeek; w++) {
+    if (closed.has(w)) continue;
+    const range = getWeekRange(createdAt, w);
+    if (range.end >= today) continue;                 // solo semanas YA terminadas
+    if (range.end < _cierreActivityStart) continue;   // anteriores al primer plan → no
+    const stats = computeWeekStats(recentDiario, range);
+    rows.push({
+      usuario_id:   currentUser.id,
+      semana_num:   w,
+      fecha_inicio: range.start,
+      fecha_fin:    range.end,
+      stats: { trained: stats.trained, avgCal: stats.avgCal, avgProt: stats.avgProt, totalLogs: stats.totalLogs },
+    });
+  }
+  if (!rows.length) return false;
+  const { error } = await sbClient.from('cierres_semanales')
+    .upsert(rows, { onConflict: 'usuario_id,semana_num', ignoreDuplicates: true });
+  if (error) { console.warn('[cierre-libre] auto-cierre falló:', error.message); return false; }
+  console.info('[cierre-libre] auto-cierre semanas:', rows.map(r => r.semana_num).join(','));
+  try { trackEvent('cierre_auto', { semanas: rows.map(r => r.semana_num).join(',') }); } catch (e) {}
+  return true;
+}
+
+// Post auto-cierre: reabrir el ciclo EN CALIENTE — mismo patrón que el cierre
+// manual (ver el success path del análisis): recargar weeklyPlans (recalcula
+// closed), clonar el plan a la semana nueva y refrescar los quick-buttons.
+async function reabrirCicloPostCierre() {
+  try {
+    weeklyPlans = await loadCurrentWeekPlans();
+    try {
+      const didRepeat = await autoRepeatPlans();
+      if (didRepeat) weeklyPlans = await loadCurrentWeekPlans();
+    } catch (eR) { console.warn('[cierre-libre] auto-repeat post-cierre falló:', eR?.message || eR); }
+    dismissedPlanButtons.clear();
+    if (typeof refreshQuickButtons === 'function') refreshQuickButtons();
+  } catch (e) { console.warn('[cierre-libre] reabrir ciclo:', e?.message || e); }
+}
+
 function getWeekNum(createdAt) {
   const start = new Date(createdAt.slice(0, 10) + 'T00:00:00');
   const today = new Date();
@@ -25992,7 +26091,7 @@ async function renderSemanas() {
   const createdAt = currentUser.created_at || new Date().toISOString();
   const currentWeek = getWeekNum(createdAt);
 
-  const [cierres, fotos, firstPlan] = await Promise.all([
+  let [cierres, fotos, firstPlan] = await Promise.all([
     loadCierresSemanales(),
     loadFotosProgreso(),
     // Fecha del PRIMER plan entregado — ancla los cierres a la actividad real.
@@ -26009,6 +26108,16 @@ async function renderSemanas() {
   cierresSemanales = cierres;
   _cierreActivityStart = firstPlan;
   _cierresLoaded = true;   // recién ahora el gate puede evaluar sin riesgo de falso-bloqueo
+  // CIERRE LIBRE: cerrar en frío las semanas terminadas sin cierre. Si insertó,
+  // recargamos los cierres (la fila nueva alimenta pills/overlay/card de Home) y
+  // reabrimos el ciclo (plan de la semana nueva en caliente, sin recargar la app).
+  try {
+    if (await autoCloseEndedWeeks(createdAt, currentWeek)) {
+      cierres = await loadCierresSemanales();
+      cierresSemanales = cierres;
+      await reabrirCicloPostCierre();
+    }
+  } catch (e) { console.warn('[cierre-libre] auto-cierre:', e?.message || e); }
   // Con los cierres ya cargados, re-evaluamos el recordatorio de cierre de Home
   // (dato autoritativo del closed-state, por si la primera llamada en renderHome
   // corrió antes de tener los cierres).
@@ -26045,8 +26154,13 @@ async function renderSemanas() {
     const trainedTarget = (currentUser?.dias_entreno?.length || selectedDias.length || 3);
 
     // ── Status pill (chevron-friendly, no emoji) ──────────────────────
+    // CIERRE LIBRE: la semana cerrada sin análisis es un estado propio
+    // ("Análisis pendiente", ámbar) y la cerrada CON análisis pasa a "Completa".
+    const analisisPendiente = CIERRE_LIBRE && !!cierre && !cierre.analisis;
     const statusPill = cierre
-      ? `<span class="semana-status cerrada">${isEs?'Cerrada':'Closed'}</span>`
+      ? (analisisPendiente
+          ? `<span class="semana-status pendiente">${isEs?'Análisis pendiente':'Analysis pending'}</span>`
+          : `<span class="semana-status cerrada">${CIERRE_LIBRE ? (isEs?'Completa':'Complete') : (isEs?'Cerrada':'Closed')}</span>`)
       : isCurrent
         ? `<span class="semana-status en-curso">${isEs?'En curso':'In progress'}</span>`
         : `<span class="semana-status">${isEs?'Sin cerrar':'Open'}</span>`;
@@ -26214,8 +26328,9 @@ async function renderSemanas() {
         </div>`;
     }
 
-    // Timeline (vertical day-by-day, en curso only)
-    if (!cierre && stats.wLogs.length > 0) {
+    // Timeline (vertical day-by-day, en curso only — y también en las semanas
+    // cerradas con análisis PENDIENTE, para poder repasar antes de analizarse)
+    if ((!cierre || analisisPendiente) && stats.wLogs.length > 0) {
       bodyHtml += `<div class="semana-timeline">`;
       bodyHtml += stats.wLogs.map(l => {
         const comidas = [l.desayuno, l.almuerzo, l.merienda, l.cena].filter(Boolean).join(' · ');
@@ -26266,7 +26381,9 @@ async function renderSemanas() {
     // normal (Mi Alim / Mi Entreno, solo editan hoy) no deja completar. Solo en
     // semanas SIN cerrar (previo al cierre). Cada uno abre el panel "Completar día".
     // Días faltantes de esta semana → también alimentan el aviso pre-cierre.
-    _weekCompletable[w] = (!cierre) ? _completable : [];
+    // CIERRE LIBRE: la semana auto-cerrada con análisis pendiente también admite
+    // completar días (el aviso pre-análisis los ofrece vía attemptCierreSemana).
+    _weekCompletable[w] = (!cierre || analisisPendiente) ? _completable : [];
     if (!cierre && _completable.length) {
       bodyHtml += `
         <div class="semana-completar" id="semana-completar-${w}">
@@ -26290,6 +26407,21 @@ async function renderSemanas() {
             <path d="M5 4v17"/><path d="M5 5h11l-2 3.5L16 12H5"/>
           </svg>
           ${isEs?'Cerrar semana y ver mi análisis':'Close week & see my analysis'}
+        </button>`;
+    }
+
+    // CIERRE LIBRE: semana ya cerrada automáticamente, análisis pendiente →
+    // CTA para hacerlo cuando quiera (fotos + análisis completan la fila).
+    // Pasa por attemptCierreSemana: si quedaron días sin registrar, primero
+    // ofrece completarlos (opcional, como siempre).
+    if (analisisPendiente) {
+      bodyHtml += `
+        <button class="btn-cerrar-semana" onclick="attemptCierreSemana(${w})">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/>
+          </svg>
+          ${isEs?'Hacer mi análisis de la semana':'Do my weekly analysis'}
         </button>`;
     }
 
@@ -28368,6 +28500,23 @@ function pendingCierreWeek() {
   return null;
 }
 
+// CIERRE LIBRE: semana cerrada SIN análisis más reciente. Solo mostramos UNA
+// (la última) para no abrumar con backlog; las demás quedan accesibles desde
+// sus cards en Seguimiento. null si no hay pendientes.
+function pendingAnalisisWeek() {
+  if (!CIERRE_LIBRE) return null;
+  const cierres = (typeof cierresSemanales !== 'undefined' && Array.isArray(cierresSemanales)) ? cierresSemanales : [];
+  const pend = cierres.filter(c => c && !c.analisis).sort((a, b) => b.semana_num - a.semana_num);
+  return pend.length ? pend[0].semana_num : null;
+}
+
+// CIERRE LIBRE: el overlay celebratorio aparece UNA sola vez por semana. El
+// "visto" vive en localStorage por usuario+semana; si el dispositivo lo borra,
+// el peor caso es verlo una vez más (inofensivo).
+function _cierreVistoKey(week) { return 'cai_cierre_visto_' + ((currentUser && currentUser.id) || 'anon') + '_' + week; }
+function _cierreOverlayVisto(week) { try { return !!localStorage.getItem(_cierreVistoKey(week)); } catch (e) { return false; } }
+function _cierreOverlayMarcarVisto(week) { try { localStorage.setItem(_cierreVistoKey(week), '1'); } catch (e) {} }
+
 // ── OVERLAY DE CIERRE OBLIGATORIO ────────────────────────────────────────────
 // Cuando una semana se COMPLETÓ y no está cerrada, bloqueamos Home/Chat/Perfil con
 // un overlay que las guía a cerrar (Mi Alimentación y Mi Entreno quedan accesibles
@@ -28395,6 +28544,18 @@ function applyCierreGate(navId) {
   // No pisar los modales del flujo de cierre (análisis, aviso de días faltantes,
   // o el panel de completar un día) — el gate no debe aparecer encima de ellos.
   const modalOpen = !!document.querySelector('#cierre-overlay.open, #cierre-warn-overlay.open, #completar-overlay.open');
+  // CIERRE LIBRE: el overlay deja de bloquear. La semana ya se cerró sola
+  // (autoCloseEndedWeeks); acá solo celebramos e invitamos al análisis, UNA
+  // sola vez por semana (con X para cerrarlo — queda pendiente en Seguimiento).
+  if (CIERRE_LIBRE) {
+    let pweek = null;
+    if (!modalOpen && _cierresLoaded && _CIERRE_GATE_BLOCKED.indexOf(navId) !== -1) {
+      try { pweek = pendingAnalisisWeek(); } catch (e) { pweek = null; }
+    }
+    if (pweek != null && !_cierreOverlayVisto(pweek)) { renderCierreGateLibre(pweek); ov.classList.add('open'); }
+    else { ov.classList.remove('open'); }
+    return;
+  }
   let week = null;
   if (!modalOpen && _cierresLoaded && _CIERRE_GATE_BLOCKED.indexOf(navId) !== -1) {
     try { week = pendingCierreWeek(); } catch (e) { week = null; }
@@ -28407,12 +28568,40 @@ function renderCierreGate(week) {
   const t = document.getElementById('cierre-gate-title');
   if (t) t.textContent = (lang === 'es') ? `¡Lograste tu semana ${week}!` : `You completed week ${week}!`;
 }
+// CIERRE LIBRE: contenido celebratorio no-bloqueante — la semana ya está
+// cerrada, invitamos al análisis comparativo y mostramos la X para salir.
+function renderCierreGateLibre(week) {
+  _cierreGateWeek = week;
+  const isEs = (lang === 'es');
+  const t = document.getElementById('cierre-gate-title');
+  if (t) t.textContent = isEs ? `¡Terminaste tu semana ${week}!` : `You finished week ${week}!`;
+  const d = document.querySelector('#cierre-gate-overlay .cierre-gate-desc');
+  if (d) d.textContent = isEs
+    ? 'Ya podés hacer tu análisis comparativo: tu punto de inicio frente a la semana que pasó. Llevar registro de tu progreso es la mejor forma de ver los cambios. Si ahora no podés, cerrá esta ventana — te queda pendiente en tu Seguimiento.'
+    : 'Your comparison analysis is ready: your starting point vs the week you just finished. Tracking your progress is the best way to see change. If now is not a good time, close this window — it stays pending in your Weekly tracking.';
+  const b = document.querySelector('#cierre-gate-overlay .cierre-gate-btn');
+  if (b) b.textContent = isEs ? 'Hacer mi análisis' : 'Do my analysis';
+  const links = document.querySelector('#cierre-gate-overlay .cierre-gate-links');
+  if (links) links.style.display = 'none';
+  const x = document.getElementById('cierre-gate-x');
+  if (x) x.style.display = 'flex';
+}
 function cierreGateClose() {
+  // CIERRE LIBRE: entrar al análisis también cuenta como "visto" — si abandona
+  // a mitad, el overlay no lo persigue; el pendiente queda en Seguimiento.
+  if (CIERRE_LIBRE && _cierreGateWeek != null) _cierreOverlayMarcarVisto(_cierreGateWeek);
   const ov = document.getElementById('cierre-gate-overlay');
   if (ov) ov.classList.remove('open');                 // ocultamos el gate antes de abrir el flujo
   // Pasa por attemptCierreSemana: si quedan días pasados sin registrar, muestra el
   // aviso (con los días tappables para completarlos) ANTES de la card del cierre.
   if (_cierreGateWeek != null) { try { attemptCierreSemana(_cierreGateWeek); } catch (e) { console.warn('[cierre-gate] open:', e); } }
+}
+// X del overlay (solo CIERRE_LIBRE): lo marca visto y no vuelve a aparecer.
+// El análisis queda pendiente en Seguimiento + la card recordatorio de Home.
+function cierreGateDismiss() {
+  if (_cierreGateWeek != null) _cierreOverlayMarcarVisto(_cierreGateWeek);
+  const ov = document.getElementById('cierre-gate-overlay');
+  if (ov) ov.classList.remove('open');
 }
 
 function renderHomeCierreCard() {
@@ -28435,7 +28624,15 @@ function renderHomeCierreCard() {
   // Semana PENDIENTE de cerrar: la más vieja sin cerrar que YA terminó (catch-up),
   // o la actual en sus últimos 2 días. Reemplaza el viejo "solo la semana vigente",
   // que ofrecía cerrar la semana nueva vacía cuando el cliente cerraba tarde.
-  const week = pendingCierreWeek();
+  let week = pendingCierreWeek();
+  let analisisPend = false;
+  // CIERRE LIBRE: las semanas terminadas ya se cierran solas → lo que puede
+  // quedar pendiente es el ANÁLISIS (fotos + IA). pendingCierreWeek solo
+  // devuelve la semana en curso en su último día (invitación a cerrarla hoy).
+  if (CIERRE_LIBRE && week == null) {
+    week = pendingAnalisisWeek();
+    analisisPend = (week != null);
+  }
   if (week == null) return;
   const range = getWeekRange(currentUser.created_at, week);
 
@@ -28444,7 +28641,8 @@ function renderHomeCierreCard() {
   const end = new Date(range.end + 'T00:00:00');
   const daysLeft = Math.round((end - today) / 86400000);
   let msg;
-  if (daysLeft < 0)        msg = isEs ? 'Pendiente'  : 'Pending';
+  if (analisisPend)        msg = isEs ? 'Análisis pendiente' : 'Analysis pending';
+  else if (daysLeft < 0)   msg = isEs ? 'Pendiente'  : 'Pending';
   else if (daysLeft === 0) msg = isEs ? 'Es hoy'     : "It's today";
   else if (daysLeft === 1) msg = isEs ? 'Es mañana'  : "It's tomorrow";
   else {
