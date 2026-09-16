@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260916-1506-deploy">
+<meta name="app-version" content="20260916-1525-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6867,6 +6867,143 @@ body.theme-king .cai-entses-eyebrow { color: var(--accent) !important; }
 body.theme-king .cai-entses-dot { background: var(--accent) !important; }
 body.theme-king .cai-entses-btn { box-shadow: 0 6px 18px rgba(255,79,123,0.30) !important; }
 body.theme-king .entreno-done-stat { background: rgba(255,79,123,0.06) !important; border-color: rgba(255,79,123,0.18) !important; }
+
+/* ======================================================================
+   MI ENTRENO V2 · FASE 3 — vista previa + modo guiado (gated ?guiado=1)
+   ====================================================================== */
+/* Vista previa: filas resumen con acordeón */
+.cai-entprev-list { display: flex; flex-direction: column; gap: 8px; padding-top: 14px; }
+.cai-entprev-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 12px;
+  background: rgba(0,0,0,0.22);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 12px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.cai-entprev-ex.open .cai-entprev-row {
+  border-color: rgba(124,106,255,0.30);
+  background: rgba(124,106,255,0.05);
+  border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+}
+.cai-entprev-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 800;
+  background: rgba(124,106,255,0.12);
+  color: var(--accent-bright);
+  flex-shrink: 0;
+}
+.cai-entprev-name {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 600;
+  color: var(--text);
+  min-width: 0; flex: 1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cai-entprev-detail {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.3px;
+  color: var(--accent-bright);
+  padding: 3px 8px; border-radius: 6px;
+  background: rgba(124,106,255,0.10);
+  border: 1px solid rgba(124,106,255,0.22);
+  flex-shrink: 0; white-space: nowrap;
+}
+.cai-entprev-chev { color: var(--muted2); font-size: 11px; flex-shrink: 0; transition: transform 0.2s ease; }
+.cai-entprev-ex.open .cai-entprev-chev { transform: rotate(180deg); }
+.cai-entprev-body {
+  border: 1px solid rgba(124,106,255,0.18); border-top: 0;
+  border-radius: 0 0 12px 12px;
+  padding: 4px 10px 10px;
+  background: rgba(0,0,0,0.12);
+}
+.cai-entprev-body .cai-ent-ex { border: 0; background: transparent; padding-left: 0; padding-right: 0; }
+/* La fila ya muestra nombre + chip serie×reps: adentro del acordeón se ocultan
+   para no duplicar (la cue, el "Cómo se hace" y las series quedan). */
+.cai-entprev-body .cai-ent-ex-top { display: none; }
+
+/* Modo guiado: tira de progreso + números tocables */
+.cai-entg-progress { padding-top: 14px; }
+.cai-entg-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.8px; font-weight: 800;
+  color: var(--accent-bright); text-transform: uppercase;
+}
+.cai-entg-nums {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin: 10px 0;
+}
+.cai-entg-num {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 800;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.14);
+  color: var(--muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.cai-entg-num:active { transform: scale(0.92); }
+.cai-entg-num.filled {
+  border-color: var(--accent3);
+  color: var(--accent3);
+}
+.cai-entg-num.cur {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(124,106,255,0.35);
+}
+.cai-entg-bar {
+  height: 4px; border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+.cai-entg-bar-fill {
+  height: 100%; border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.cai-entg-next { width: 100%; margin-top: 4px; }
+.cai-entg-next svg { width: 16px; height: 16px; }
+
+/* --- Tema claro --- */
+body.theme-light .cai-entprev-row {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+}
+body.theme-light .cai-entprev-ex.open .cai-entprev-row {
+  border-color: rgba(124,106,255,0.30) !important;
+  background: rgba(124,106,255,0.06) !important;
+}
+body.theme-light .cai-entprev-num { background: rgba(124,106,255,0.10) !important; color: var(--accent) !important; }
+body.theme-light .cai-entprev-detail { background: rgba(124,106,255,0.08) !important; color: var(--accent) !important; }
+body.theme-light .cai-entprev-chev { color: var(--muted) !important; }
+body.theme-light .cai-entprev-body { background: var(--surface2) !important; border-color: rgba(124,106,255,0.22) !important; }
+body.theme-light .cai-entg-label { color: var(--accent) !important; }
+body.theme-light .cai-entg-num { border-color: var(--border) !important; color: var(--muted) !important; }
+body.theme-light .cai-entg-num.filled { border-color: var(--accent) !important; color: var(--accent) !important; }
+body.theme-light .cai-entg-num.cur { background: var(--accent) !important; border-color: var(--accent) !important; color: #fff !important; }
+body.theme-light .cai-entg-bar { background: rgba(26,26,38,0.08) !important; }
+
+/* --- Tema King --- */
+body.theme-king .cai-entprev-row { background: var(--surface2) !important; border-color: var(--border) !important; }
+body.theme-king .cai-entprev-ex.open .cai-entprev-row {
+  border-color: rgba(255,79,123,0.30) !important;
+  background: rgba(255,79,123,0.05) !important;
+}
+body.theme-king .cai-entprev-num { background: rgba(255,79,123,0.10) !important; color: var(--accent) !important; }
+body.theme-king .cai-entprev-detail { background: rgba(255,79,123,0.08) !important; color: var(--accent) !important; border-color: rgba(255,79,123,0.25) !important; }
+body.theme-king .cai-entprev-body { background: var(--surface2) !important; border-color: rgba(255,79,123,0.22) !important; }
+body.theme-king .cai-entg-label { color: var(--accent) !important; }
+body.theme-king .cai-entg-num.filled { border-color: var(--accent) !important; color: var(--accent) !important; }
+body.theme-king .cai-entg-num.cur { background: var(--accent) !important; border-color: var(--accent) !important; box-shadow: 0 4px 12px rgba(255,79,123,0.30) !important; }
 
 /* ======================================================================
    HOME (app dashboard) — crystal-depth, same language as Mi Alim
@@ -31910,6 +32047,63 @@ const SES_ENABLED = (() => {
   } catch { return true; }
 })();
 
+// ---- MI ENTRENO V2 · Fase 3: vista previa + modo guiado ----
+// Retoque final pedido por Beto (2026-09-16):
+// - VISTA PREVIA: al abrir un día, en vez de la lista editable completa, un
+//   resumen liviano de los ejercicios (nombre + serie×reps). Tocar un
+//   ejercicio lo despliega con sus campos (el registro libre sigue a un tap).
+// - MODO GUIADO: con la sesión corriendo, los ejercicios aparecen DE A UNO
+//   con "Siguiente ejercicio"; en el último, "Finalizar entrenamiento".
+//   Válvulas anti-rigidez: la tira de números es tocable (saltar/volver si la
+//   máquina está ocupada) y "Siguiente" nunca exige haber llenado nada.
+// El ejercicio actual persiste en estado.sesion["d{idx}"].e → si iOS mata la
+// PWA a mitad de entreno, al reabrir sigue donde estaba.
+// GATED: ?guiado=1 prende (persiste para QA), ?guiado=0 apaga. Default OFF.
+const GUIADO_ENABLED = (() => {
+  try {
+    const v = new URLSearchParams(window.location.search).get('guiado');
+    if (v === '1') { try { localStorage.setItem('coachai_guiado', '1'); } catch {} return true; }
+    if (v === '0') { try { localStorage.removeItem('coachai_guiado'); } catch {} return false; }
+    return localStorage.getItem('coachai_guiado') === '1';
+  } catch { return false; }
+})();
+
+// Acordeón de la vista previa (efímero, keyed por índice de ejercicio).
+let _entPrevOpen = {};
+function entPrevToggleEx(j) {
+  _entPrevOpen[j] = !_entPrevOpen[j];
+  renderMiEntreno();
+}
+
+// Saltar a un ejercicio puntual del modo guiado (tira de números tocable).
+function entGuiadoGo(idx, j) {
+  const st = getEntrenoWeekState();
+  const s = _entSesGet(st, idx);
+  if (!s || !s.i || s.f) return;
+  s.e = j;
+  saveEntrenoWeekState(st);
+  renderMiEntreno();
+  setTimeout(() => {
+    const el = document.getElementById('ent-guiado-top');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 50);
+}
+
+// "Siguiente ejercicio" — avanza; en el último cae en Finalizar (no debería
+// llegar acá porque el botón cambia, pero por las dudas).
+function entGuiadoNext(idx) {
+  const mapping = buildTrainingDayMapping();
+  const day = mapping && mapping.days[idx];
+  if (!day) return;
+  const last = day.exercises.length - 1;
+  const st = getEntrenoWeekState();
+  const s = _entSesGet(st, idx);
+  if (!s || !s.i || s.f) return;
+  const cur = Math.min(Math.max(s.e || 0, 0), last);
+  if (cur >= last) { entSesFinish(idx); return; }
+  entGuiadoGo(idx, cur + 1);
+}
+
 // Sesión abierta hace más de 6h sin finalizar = "colgada" (se fue del gym sin
 // tocar Finalizar): la card ofrece cerrarla o descartarla en vez del reloj.
 const _ENT_SES_STALE_MS = 6 * 60 * 60 * 1000;
@@ -32730,6 +32924,7 @@ async function showMiEntreno() {
   _entOverrideIdx = null;
   _entHeroOpen = {};
   _entV2SelIdx = null;               // V2: reentrar siempre cae en el menú de días
+  _entPrevOpen = {};
   renderMiEntreno();                 // instant paint from localStorage cache
   await hydrateEntrenoFromSupabase(); // then refresh from durable source
   renderMiEntreno();
@@ -32893,6 +33088,7 @@ let _entV2SelIdx = null;
 function entV2SelectDay(routineIdx) {
   _entV2SelIdx = routineIdx;
   _entHeroOpen = {};   // el día elegido arranca desplegado (default del hero)
+  _entPrevOpen = {};   // acordeón de la vista previa cerrado al entrar
   try { trackEvent('ent_v2_day_open', { idx: routineIdx }); } catch (e) {}
   renderMiEntreno();
   scrollToTop();
@@ -32900,6 +33096,7 @@ function entV2SelectDay(routineIdx) {
 
 function entV2Back() {
   _entV2SelIdx = null;
+  _entPrevOpen = {};
   renderMiEntreno();
   scrollToTop();
 }
@@ -32941,6 +33138,181 @@ function toggleEntOther() {
     tog.classList.toggle('open', !isOpen);
     tog.setAttribute('aria-expanded', !isOpen ? 'true' : 'false');
   }
+}
+
+// Card completa de UN ejercicio (chip serie×reps, cue, "Cómo se hace",
+// intensificadores, filas de series con inputs + arrastre). Extraída del loop
+// del hero para reutilizarla de a una en la vista previa y el modo guiado V2.
+// El HTML es EXACTAMENTE el que siempre generó el hero — mismas keys, mismos
+// handlers (onEntrenoReps/Weight), mismo guardado.
+function _entExCardHtml(displayIdx, j, ex, state, mapping) {
+  const esc = (typeof _esc === 'function') ? _esc : (x => String(x));
+  const nSeries = parseSeriesCount(ex.detail);
+  const refSlot = entrenoRefSlot(mapping, displayIdx, j, ex.name, nSeries);
+  let exHasRef = false;
+  const seriesRows = [];
+  for (let s = 1; s <= nSeries; s++) {
+    const sk = serieKey(displayIdx, j, s);
+    const sv = state.weights[sk] || '';
+    const sr = state.reps[sk] || '';
+    const rw = refSlot ? sanitizeWeight(_entrenoRef.weights[`${refSlot}s${s}`] || '') : '';
+    const rr = refSlot ? sanitizeReps(_entrenoRef.reps[`${refSlot}s${s}`] || '') : '';
+    const wRef = !!(rw && !sv), rRef = !!(rr && !sr);
+    if (wRef || rRef) exHasRef = true;
+    // Dual-input row: [reps] × [peso] kg ✓ — sharing the space that
+    // used to hold a single weight input. Both fields share the same
+    // ews-{sk} indicator since they belong to the same serie.
+    seriesRows.push(`<div class="cai-ent-serie-row">
+      <span class="cai-ent-serie-label">${lang === 'es' ? 'Serie' : 'Set'} ${s}</span>
+      <span class="cai-ent-serie-field">
+        <input class="cai-ent-serie-input${rRef ? ' has-ref' : ''}" type="text" inputmode="numeric"
+               value="${esc(sr)}" placeholder="${rRef ? esc(rr) : '0'}"
+               oninput="onEntrenoReps(${displayIdx},${j},${s},this)"
+               onblur="cleanEntrenoFieldOnBlur(this,'reps')"
+               aria-label="${lang === 'es' ? 'Repeticiones serie' : 'Set reps'} ${s} — ${esc(ex.name)}">
+        <span class="cai-ent-serie-unit">${lang === 'es' ? 'reps' : 'reps'}</span>
+      </span>
+      <span class="cai-ent-serie-times">×</span>
+      <span class="cai-ent-serie-field">
+        <input class="cai-ent-serie-input${wRef ? ' has-ref' : ''}" type="text" inputmode="decimal"
+               value="${esc(sv)}" placeholder="${wRef ? esc(rw) : '0'}"
+               oninput="onEntrenoWeight(${displayIdx},${j},${s},this)"
+               onblur="cleanEntrenoFieldOnBlur(this,'weight')"
+               aria-label="${lang === 'es' ? 'Peso serie' : 'Set weight'} ${s} — ${esc(ex.name)}">
+        <span class="cai-ent-serie-unit">kg</span>
+      </span>
+      <span class="cai-ent-serie-saved" id="ews-${sk}">✓</span>
+    </div>`);
+  }
+  const refHint = exHasRef
+    ? `<span class="cai-ent-ref-hint">${lang === 'es' ? 'sem. pasada' : 'last week'}</span>`
+    : '';
+  // Partimos el detail en DATO (series×reps → chip) + INDICACIÓN (técnica → cue suave).
+  // Así un intensificador largo no infla el chip coral (se veía saturado): queda un chip
+  // chico con el número + una nota prolija debajo. El primer " · " separa ambos.
+  let exSerie = ex.detail || '', exCue = '';
+  if (exSerie) {
+    const _sep = exSerie.search(/\s[·–—-]\s/);
+    if (_sep !== -1) { exCue = exSerie.slice(_sep + 3).trim(); exSerie = exSerie.slice(0, _sep).trim(); }
+  }
+  const exNameSafe = String(ex.name).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  return `<div class="cai-ent-ex">
+    <div class="cai-ent-ex-top">
+      <div class="cai-ent-ex-name">${esc(ex.name)}</div>
+      ${exSerie ? `<div class="cai-ent-ex-detail">${esc(exSerie)}</div>` : ''}
+    </div>
+    ${exCue ? `<div class="cai-ent-ex-cue">${esc(exCue)}</div>` : ''}
+    <button class="cai-ent-ex-info-btn" onclick="event.stopPropagation();showEjercicioModal('${exNameSafe}')" type="button"><svg class="cai-ent-ex-info-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z" fill="currentColor" stroke="none"/></svg>${lang === 'es' ? 'Cómo se hace' : 'How to do it'}</button>
+    ${ex.note ? _renderEntNote(ex.note, esc) : ''}
+    <div class="cai-ent-series">
+      ${refHint ? `<div class="cai-ent-series-title cai-ent-series-title--hint">${refHint}</div>` : ''}
+      ${seriesRows.join('')}
+    </div>
+  </div>`;
+}
+
+// ---- V2 Fase 3 · VISTA PREVIA del día ----
+// Resumen liviano: fila por ejercicio (nº, nombre, chip serie×reps). Tocar una
+// fila despliega la card completa con inputs (registro libre sin sesión).
+function _entPreviewHtml(displayIdx, day, state, mapping, ctx) {
+  const esc = (typeof _esc === 'function') ? _esc : (x => String(x));
+  const isEs = lang === 'es';
+  const totalSeries = day.exercises.reduce((n, ex) => n + parseSeriesCount(ex.detail), 0);
+  const rows = day.exercises.map((ex, j) => {
+    // Chip = solo el DATO del detail (antes del primer " · "), igual que la card.
+    let d = ex.detail || '';
+    const _sep = d.search(/\s[·–—-]\s/);
+    if (_sep !== -1) d = d.slice(0, _sep).trim();
+    const open = !!_entPrevOpen[j];
+    return `<div class="cai-entprev-ex${open ? ' open' : ''}">
+      <div class="cai-entprev-row" onclick="entPrevToggleEx(${j})" role="button" tabindex="0"
+           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();entPrevToggleEx(${j});}"
+           aria-expanded="${open ? 'true' : 'false'}">
+        <span class="cai-entprev-num">${j + 1}</span>
+        <span class="cai-entprev-name">${esc(ex.name)}</span>
+        ${d ? `<span class="cai-entprev-detail">${esc(d)}</span>` : ''}
+        <span class="cai-entprev-chev" aria-hidden="true">▾</span>
+      </div>
+      ${open ? `<div class="cai-entprev-body">${_entExCardHtml(displayIdx, j, ex, state, mapping)}</div>` : ''}
+    </div>`;
+  }).join('');
+  return `
+    <div class="cai-ent-hero open${ctx.done ? ' done' : ''}">
+      <div class="cai-ent-hero-top">
+        <div class="cai-ent-hero-head" style="cursor:default">
+          <div style="min-width:0;flex:1">
+            <div class="cai-ent-hero-eyebrow">${ctx.eyebrow}</div>
+            <div class="cai-ent-hero-title">${esc(ctx.cleanLabel)}</div>
+            <div class="cai-ent-hero-sub">${day.exercises.length} ${isEs ? 'ejercicios' : 'exercises'} · ${totalSeries} ${isEs ? 'series' : 'sets'}</div>
+          </div>
+          <div class="cai-ent-hero-head-actions">
+            <button class="cai-ent-hero-check${ctx.done ? ' done' : ''}"
+                    onclick="event.stopPropagation();toggleEntrenoDone(${displayIdx})"
+                    type="button"
+                    aria-label="${isEs ? 'Marcar entreno cumplido' : 'Mark workout done'}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="cai-ent-hero-body-wrap" style="max-height:none;overflow:visible;">
+        <div class="cai-entprev-list">${rows}</div>
+        ${_buildCardioChipHtml({ isRestDay: false })}
+      </div>
+    </div>`;
+}
+
+// ---- V2 Fase 3 · MODO GUIADO (sesión corriendo) ----
+// Un ejercicio a la vez: tira "EJERCICIO N DE M" con números tocables
+// (saltar/volver), la card completa del actual, y Siguiente/Finalizar.
+function _entGuiadoHtml(displayIdx, day, state, mapping, ctx) {
+  const esc = (typeof _esc === 'function') ? _esc : (x => String(x));
+  const isEs = lang === 'es';
+  const last = day.exercises.length - 1;
+  const s = _entSesGet(state, displayIdx);
+  const cur = Math.min(Math.max((s && s.e) || 0, 0), last);
+  const ex = day.exercises[cur];
+  // Un ejercicio "tiene datos" si alguna de sus series tiene peso cargado —
+  // el numerito se pinta como hecho para orientarse al saltar.
+  const hasData = (j) => {
+    const pref = 'd' + displayIdx + 'e' + j + 's';
+    return Object.keys(state.weights || {}).some(k => k.indexOf(pref) === 0 && state.weights[k]);
+  };
+  const nums = day.exercises.map((_, j) =>
+    `<button class="cai-entg-num${j === cur ? ' cur' : ''}${hasData(j) ? ' filled' : ''}" type="button"
+             onclick="entGuiadoGo(${displayIdx},${j})" aria-label="${isEs ? 'Ir al ejercicio' : 'Go to exercise'} ${j + 1}">${j + 1}</button>`
+  ).join('');
+  const pct = Math.round(((cur + 1) / day.exercises.length) * 100);
+  const nextBtn = cur < last
+    ? `<button class="cai-entses-btn cai-entg-next" type="button" onclick="entGuiadoNext(${displayIdx})">
+         ${isEs ? 'Siguiente ejercicio' : 'Next exercise'}
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+       </button>`
+    : `<button class="cai-entses-btn cai-entg-next" type="button" onclick="entSesFinish(${displayIdx})">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+         ${isEs ? 'Finalizar entrenamiento' : 'Finish workout'}
+       </button>`;
+  return `
+    <div class="cai-ent-hero open" id="ent-guiado-top">
+      <div class="cai-ent-hero-top">
+        <div class="cai-ent-hero-head" style="cursor:default">
+          <div style="min-width:0;flex:1">
+            <div class="cai-ent-hero-eyebrow">${ctx.eyebrow}</div>
+            <div class="cai-ent-hero-title">${esc(ctx.cleanLabel)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="cai-ent-hero-body-wrap" style="max-height:none;overflow:visible;">
+        <div class="cai-entg-progress">
+          <div class="cai-entg-label">${isEs ? 'EJERCICIO' : 'EXERCISE'} ${cur + 1} ${isEs ? 'DE' : 'OF'} ${day.exercises.length}</div>
+          <div class="cai-entg-nums">${nums}</div>
+          <div class="cai-entg-bar"><div class="cai-entg-bar-fill" style="width:${pct}%"></div></div>
+        </div>
+        <div class="cai-ent-hero-ex-list">${_entExCardHtml(displayIdx, cur, ex, state, mapping)}</div>
+        ${nextBtn}
+        ${cur === last ? _buildCardioChipHtml({ isRestDay: false }) : ''}
+      </div>
+    </div>`;
 }
 
 // ---- V2 · vista LISTA: saludo + menú de días del split ----
@@ -33238,70 +33610,9 @@ function renderMiEntreno() {
       // pasada como placeholder + hint "sem. pasada". (El botón "Repetir pesos de
       // la semana pasada" se retiró 2026-09-16 a pedido de Beto — poco uso; la
       // función applyEntrenoRef queda por si el gesto vuelve.)
-      const exHtml = day.exercises.map((ex, j) => {
-        const nSeries = parseSeriesCount(ex.detail);
-        const refSlot = entrenoRefSlot(mapping, displayIdx, j, ex.name, nSeries);
-        let exHasRef = false;
-        const seriesRows = [];
-        for (let s = 1; s <= nSeries; s++) {
-          const sk = serieKey(displayIdx, j, s);
-          const sv = state.weights[sk] || '';
-          const sr = state.reps[sk] || '';
-          const rw = refSlot ? sanitizeWeight(_entrenoRef.weights[`${refSlot}s${s}`] || '') : '';
-          const rr = refSlot ? sanitizeReps(_entrenoRef.reps[`${refSlot}s${s}`] || '') : '';
-          const wRef = !!(rw && !sv), rRef = !!(rr && !sr);
-          if (wRef || rRef) exHasRef = true;
-          // Dual-input row: [reps] × [peso] kg ✓ — sharing the space that
-          // used to hold a single weight input. Both fields share the same
-          // ews-{sk} indicator since they belong to the same serie.
-          seriesRows.push(`<div class="cai-ent-serie-row">
-            <span class="cai-ent-serie-label">${lang === 'es' ? 'Serie' : 'Set'} ${s}</span>
-            <span class="cai-ent-serie-field">
-              <input class="cai-ent-serie-input${rRef ? ' has-ref' : ''}" type="text" inputmode="numeric"
-                     value="${esc(sr)}" placeholder="${rRef ? esc(rr) : '0'}"
-                     oninput="onEntrenoReps(${displayIdx},${j},${s},this)"
-                     onblur="cleanEntrenoFieldOnBlur(this,'reps')"
-                     aria-label="${lang === 'es' ? 'Repeticiones serie' : 'Set reps'} ${s} — ${esc(ex.name)}">
-              <span class="cai-ent-serie-unit">${lang === 'es' ? 'reps' : 'reps'}</span>
-            </span>
-            <span class="cai-ent-serie-times">×</span>
-            <span class="cai-ent-serie-field">
-              <input class="cai-ent-serie-input${wRef ? ' has-ref' : ''}" type="text" inputmode="decimal"
-                     value="${esc(sv)}" placeholder="${wRef ? esc(rw) : '0'}"
-                     oninput="onEntrenoWeight(${displayIdx},${j},${s},this)"
-                     onblur="cleanEntrenoFieldOnBlur(this,'weight')"
-                     aria-label="${lang === 'es' ? 'Peso serie' : 'Set weight'} ${s} — ${esc(ex.name)}">
-              <span class="cai-ent-serie-unit">kg</span>
-            </span>
-            <span class="cai-ent-serie-saved" id="ews-${sk}">✓</span>
-          </div>`);
-        }
-        const refHint = exHasRef
-          ? `<span class="cai-ent-ref-hint">${lang === 'es' ? 'sem. pasada' : 'last week'}</span>`
-          : '';
-        // Partimos el detail en DATO (series×reps → chip) + INDICACIÓN (técnica → cue suave).
-        // Así un intensificador largo no infla el chip coral (se veía saturado): queda un chip
-        // chico con el número + una nota prolija debajo. El primer " · " separa ambos.
-        let exSerie = ex.detail || '', exCue = '';
-        if (exSerie) {
-          const _sep = exSerie.search(/\s[·–—-]\s/);
-          if (_sep !== -1) { exCue = exSerie.slice(_sep + 3).trim(); exSerie = exSerie.slice(0, _sep).trim(); }
-        }
-        const exNameSafe = String(ex.name).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        return `<div class="cai-ent-ex">
-          <div class="cai-ent-ex-top">
-            <div class="cai-ent-ex-name">${esc(ex.name)}</div>
-            ${exSerie ? `<div class="cai-ent-ex-detail">${esc(exSerie)}</div>` : ''}
-          </div>
-          ${exCue ? `<div class="cai-ent-ex-cue">${esc(exCue)}</div>` : ''}
-          <button class="cai-ent-ex-info-btn" onclick="event.stopPropagation();showEjercicioModal('${exNameSafe}')" type="button"><svg class="cai-ent-ex-info-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z" fill="currentColor" stroke="none"/></svg>${lang === 'es' ? 'Cómo se hace' : 'How to do it'}</button>
-          ${ex.note ? _renderEntNote(ex.note, esc) : ''}
-          <div class="cai-ent-series">
-            ${refHint ? `<div class="cai-ent-series-title cai-ent-series-title--hint">${refHint}</div>` : ''}
-            ${seriesRows.join('')}
-          </div>
-        </div>`;
-      }).join('');
+      // La card de cada ejercicio vive en _entExCardHtml (compartida con la
+      // vista previa y el modo guiado de V2).
+      const exHtml = day.exercises.map((ex, j) => _entExCardHtml(displayIdx, j, ex, state, mapping)).join('');
 
       // Collapsible training-day hero: default collapsed, tap head to expand.
       // The check button is a sibling inside .cai-ent-hero-head-actions so
@@ -33315,6 +33626,20 @@ function renderMiEntreno() {
       // Por defecto la card del día arranca DESPLEGADA (ejercicios listos). Si el
       // usuario la colapsa, _entHeroOpen[displayIdx] queda en false y se respeta.
       const wasOpen = (_entHeroOpen[displayIdx] === undefined) ? true : !!_entHeroOpen[displayIdx];
+
+      // === V2 Fase 3 (gated GUIADO_ENABLED): vista previa / modo guiado ===
+      // Con sesión corriendo → un ejercicio a la vez; sin sesión → resumen
+      // liviano con acordeón. El hero clásico queda para el flag apagado.
+      if (ENT_V2_ENABLED && GUIADO_ENABLED) {
+        const sesG = _entSesGet(state, displayIdx);
+        const runningG = (typeof SES_ENABLED !== 'undefined' && SES_ENABLED)
+          && sesG && sesG.i && !sesG.f && (Date.now() - sesG.i) < _ENT_SES_STALE_MS;
+        hero.innerHTML = runningG
+          ? _entGuiadoHtml(displayIdx, day, state, mapping, { eyebrow, cleanLabel, done })
+          : _entPreviewHtml(displayIdx, day, state, mapping, { eyebrow, cleanLabel, done });
+        return;
+      }
+
       hero.innerHTML = `
         <div class="cai-ent-hero${done ? ' done' : ''}${wasOpen ? ' open' : ''}" id="cai-ent-hero-card">
           <div class="cai-ent-hero-top">
