@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260916-1429-deploy">
+<meta name="app-version" content="20260916-1438-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -32894,9 +32894,10 @@ function renderMiEntreno() {
         </div>
       `;
     } else {
-      // Arrastre de pesos: cuántos campos vacíos del día tienen sugerencia de la
-      // semana de referencia (para mostrar el botón "Repetir semana pasada").
-      let dayRefPending = 0;
+      // Arrastre de pesos: los campos vacíos muestran la referencia de la semana
+      // pasada como placeholder + hint "sem. pasada". (El botón "Repetir pesos de
+      // la semana pasada" se retiró 2026-09-16 a pedido de Beto — poco uso; la
+      // función applyEntrenoRef queda por si el gesto vuelve.)
       const exHtml = day.exercises.map((ex, j) => {
         const nSeries = parseSeriesCount(ex.detail);
         const refSlot = entrenoRefSlot(mapping, displayIdx, j, ex.name, nSeries);
@@ -32909,8 +32910,6 @@ function renderMiEntreno() {
           const rw = refSlot ? sanitizeWeight(_entrenoRef.weights[`${refSlot}s${s}`] || '') : '';
           const rr = refSlot ? sanitizeReps(_entrenoRef.reps[`${refSlot}s${s}`] || '') : '';
           const wRef = !!(rw && !sv), rRef = !!(rr && !sr);
-          if (wRef) dayRefPending++;
-          if (rRef) dayRefPending++;
           if (wRef || rRef) exHasRef = true;
           // Dual-input row: [reps] × [peso] kg ✓ — sharing the space that
           // used to hold a single weight input. Both fields share the same
@@ -33003,10 +33002,6 @@ function renderMiEntreno() {
             </div>
           </div>
           <div class="cai-ent-hero-body-wrap">
-            ${dayRefPending > 0 ? `<button class="cai-ent-ref-btn" type="button" onclick="event.stopPropagation();applyEntrenoRef(${displayIdx})">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-              ${lang === 'es' ? 'Repetir pesos de la semana pasada' : 'Repeat last week\'s weights'}
-            </button>` : ''}
             <div class="cai-ent-hero-ex-list">${exHtml}</div>
             ${_buildCardioChipHtml({ isRestDay: false })}
           </div>
