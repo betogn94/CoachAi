@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260916-1438-deploy">
+<meta name="app-version" content="20260916-1448-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -31714,15 +31714,17 @@ const ENT_REF_ENABLED = (() => {
 // abre la card de ejercicios de siempre (hero) con un botón para volver al menú.
 // El modelo de datos no cambia: completed/weights/reps siguen keyed por índice
 // de rutina, así que entrenar "Día 2" un lunes ya estaba soportado.
-// GATED: ?entrenov2=1 prende (persiste en localStorage para QA), ?entrenov2=0
-// apaga. Default OFF hasta liberar.
+// LIBERADO A TODOS (2026-09-16, flip pedido por Beto tras QA E2E + su visto
+// bueno visual). `?entrenov2=0` apaga (persiste en localStorage como escape);
+// `?entrenov2=1` vuelve a prender. Un '1' persistido de la etapa de QA también
+// cae en default ON.
 const ENT_V2_ENABLED = (() => {
   try {
     const v = new URLSearchParams(window.location.search).get('entrenov2');
-    if (v === '1') { try { localStorage.setItem('coachai_entv2', '1'); } catch {} return true; }
-    if (v === '0') { try { localStorage.removeItem('coachai_entv2'); } catch {} return false; }
-    return localStorage.getItem('coachai_entv2') === '1';
-  } catch { return false; }
+    if (v === '0') { try { localStorage.setItem('coachai_entv2', '0'); } catch {} return false; }
+    if (v === '1') { try { localStorage.removeItem('coachai_entv2'); } catch {} return true; }
+    return localStorage.getItem('coachai_entv2') !== '0';
+  } catch { return true; }
 })();
 
 function buildEntrenoExSnapshot() {
