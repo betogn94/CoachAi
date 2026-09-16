@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260916-1412-deploy">
+<meta name="app-version" content="20260916-1429-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -32626,16 +32626,13 @@ function renderEntV2List(mapping, state) {
     ? (isEs ? `Hola, ${esc(first)}` : `Hi, ${esc(first)}`)
     : (isEs ? '¡Hola!' : 'Hi!');
   const pregunta = isEs ? '¿Qué vamos a entrenar hoy?' : 'What are we training today?';
-  let subLine;
+  // Sub-línea solo en descanso (pedido de Beto 2026-09-16: en día de entreno la
+  // sugerencia sobraba — el badge HOY de la card ya lo dice).
+  let subLine = '';
   if (mapping.isTodayRest) {
     subLine = isEs
       ? 'Hoy es día de recuperación — y también cuenta. Si tenés ganas de moverte, elegí un día y dale.'
       : 'Today is a recovery day — it counts too. If you feel like moving, pick a day and go.';
-  } else {
-    const nHoy = Object.values(mapping.weekdayToRoutineIdx).indexOf(mapping.todayRoutineIdx) + 1;
-    subLine = isEs
-      ? `Para hoy te sugerimos el Día ${nHoy}, pero elegís vos.`
-      : `Day ${nHoy} is today's suggestion, but it's your call.`;
   }
   if (v2Greeting) {
     // En descanso, el chip de cardio (si la regla aplica) va debajo del saludo.
@@ -32645,7 +32642,7 @@ function renderEntV2List(mapping, state) {
       <div class="cai-entv2-greet">
         <div class="cai-entv2-greet-hola">${hola} 👋</div>
         <div class="cai-entv2-greet-q">${pregunta}</div>
-        <div class="cai-entv2-greet-sub">${subLine}</div>
+        ${subLine ? `<div class="cai-entv2-greet-sub">${subLine}</div>` : ''}
         ${restCardio}
       </div>`;
   }
