@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260916-1448-deploy">
+<meta name="app-version" content="20260916-1459-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6743,6 +6743,130 @@ body.theme-king .cai-entv2-back-btn {
   border-color: rgba(255,79,123,0.3) !important;
   color: var(--accent) !important;
 }
+
+/* ======================================================================
+   MI ENTRENO V2 · FASE 2 — card de sesión con cronómetro (gated ?sesion=1)
+   ====================================================================== */
+#ent-ses-card { margin: 12px 18px 0; }
+.cai-entses {
+  padding: 16px;
+  background-color: rgba(20,20,32,0.55);
+  background-image:
+    linear-gradient(135deg, rgba(124,106,255,0.06) 0%, transparent 45%),
+    linear-gradient(225deg, rgba(46,207,181,0.04) 0%, transparent 45%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.cai-entses.running { border-color: rgba(124,106,255,0.35); }
+.cai-entses-eyebrow {
+  display: flex; align-items: center; gap: 7px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.8px; font-weight: 800;
+  color: var(--accent-bright); text-transform: uppercase;
+}
+.cai-entses-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent-bright);
+  animation: entses-pulse 1.6s ease-in-out infinite;
+}
+@keyframes entses-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+.cai-entses-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; letter-spacing: 0.4px;
+  color: var(--muted); margin-top: 6px;
+}
+.cai-entses-timer {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 40px; font-weight: 800; letter-spacing: 1px;
+  color: var(--text);
+  margin: 8px 0 4px;
+  font-variant-numeric: tabular-nums;
+}
+.cai-entses-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.cai-entses-btn {
+  flex: 1;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 13px 16px;
+  border: 0; border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px; font-weight: 800; letter-spacing: 0.2px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  box-shadow: 0 6px 18px rgba(124,106,255,0.35);
+}
+.cai-entses > .cai-entses-btn { width: 100%; margin-top: 12px; }
+.cai-entses-btn:active { transform: scale(0.97); filter: brightness(0.94); }
+.cai-entses-btn svg { width: 16px; height: 16px; flex: none; }
+.cai-entses-ghost {
+  padding: 13px 16px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.14);
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.cai-entses-ghost:active { transform: scale(0.97); }
+.cai-entses.done .cai-entses-meta { color: var(--text); font-weight: 700; }
+
+/* Stats en el overlay "¡Entreno completado!" */
+.entreno-done-stats {
+  display: flex; gap: 10px; justify-content: center;
+  margin: 12px 0 4px;
+}
+.entreno-done-stat {
+  flex: 1; max-width: 150px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(124,106,255,0.08);
+  border: 1px solid rgba(124,106,255,0.18);
+}
+.entreno-done-stat-v {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px; font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.entreno-done-stat-l {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 0.6px; text-transform: uppercase;
+  color: var(--muted); margin-top: 3px;
+}
+
+/* --- Tema claro --- */
+body.theme-light .cai-entses {
+  background: var(--surface) !important;
+  background-image: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 1px 2px rgba(26,26,38,0.04), 0 4px 14px rgba(124,106,255,0.06) !important;
+}
+body.theme-light .cai-entses.running { border-color: rgba(124,106,255,0.35) !important; }
+body.theme-light .cai-entses-eyebrow { color: var(--accent) !important; }
+body.theme-light .cai-entses-dot { background: var(--accent) !important; }
+body.theme-light .cai-entses-ghost { border-color: var(--border) !important; color: var(--muted) !important; }
+body.theme-light .entreno-done-stat { background: rgba(124,106,255,0.06) !important; }
+
+/* --- Tema King --- */
+body.theme-king .cai-entses {
+  background: var(--surface) !important;
+  background-image: none !important;
+  border-color: var(--border) !important;
+}
+body.theme-king .cai-entses.running { border-color: rgba(255,79,123,0.4) !important; }
+body.theme-king .cai-entses-eyebrow { color: var(--accent) !important; }
+body.theme-king .cai-entses-dot { background: var(--accent) !important; }
+body.theme-king .cai-entses-btn { box-shadow: 0 6px 18px rgba(255,79,123,0.30) !important; }
+body.theme-king .entreno-done-stat { background: rgba(255,79,123,0.06) !important; border-color: rgba(255,79,123,0.18) !important; }
 
 /* ======================================================================
    HOME (app dashboard) — crystal-depth, same language as Mi Alim
@@ -16742,6 +16866,9 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   <div id="ent-v2-back" style="display:none"></div>
   <div id="ent-v2-list" style="display:none"></div>
 
+  <!-- V2 Fase 2 (gated SES_ENABLED): card de sesión con cronómetro — vista día -->
+  <div id="ent-ses-card" style="display:none"></div>
+
   <!-- HERO: today's day card with full exercise list + weight inputs -->
   <div id="ent-hero" style="display:none"></div>
 
@@ -17337,6 +17464,11 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     <img class="entreno-done-medal" src="medals/entreno_completado.webp" alt="" draggable="false">
     <div class="entreno-done-title">¡Entreno completado! 💪</div>
     <div class="entreno-done-sub" id="entreno-done-sub">—</div>
+    <!-- Stats de la sesión (solo cuando hubo cronómetro / pesos cargados) -->
+    <div class="entreno-done-stats" id="entreno-done-stats" style="display:none">
+      <div class="entreno-done-stat"><div class="entreno-done-stat-v" id="entreno-done-dur">—</div><div class="entreno-done-stat-l" data-es="Duración" data-en="Duration">Duración</div></div>
+      <div class="entreno-done-stat"><div class="entreno-done-stat-v" id="entreno-done-vol">—</div><div class="entreno-done-stat-l" data-es="Volumen total" data-en="Total volume">Volumen total</div></div>
+    </div>
     <button class="logro-celebr-btn" onclick="shareEntrenoFromMoment()" type="button"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" style="vertical-align:-3px;margin-right:7px" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>Compartir</button>
     <button class="logro-celebr-btn ghost" onclick="closeEntrenoDone()" type="button">Listo</button>
   </div>
@@ -30468,11 +30600,39 @@ async function getEntrenoShareSubtitle(){
   try{ if(sbClient && currentUser){ const { count } = await sbClient.from('dias_entrenados').select('fecha',{count:'exact',head:true}).eq('usuario_id', currentUser.id); if(count) return 'Entreno #'+count; } }catch(e){}
   return '¡Otro día menos! 💪';
 }
-async function showEntrenoCompletadoMoment(){
+async function showEntrenoCompletadoMoment(dayIdx){
   const sub = await getEntrenoShareSubtitle();
   let fecha = ''; try { fecha = new Date().toLocaleDateString(lang==='en'?'en-US':'es-AR', { day:'numeric', month:'long' }).toUpperCase(); } catch(e){}
-  _entrenoShareLogro = { key:'entreno_completado', titulo:'Entreno completado', desc: sub, eyebrow: fecha ? ('★ '+fecha) : '★ ENTRENO DEL DÍA' };
+  // Stats de la sesión (V2 Fase 2): si el día llegó con cronómetro cerrado y/o
+  // pesos cargados, la card y la story salen con duración + volumen total.
+  let durTxt = '', volTxt = '';
+  try {
+    if (dayIdx !== undefined && dayIdx !== null && typeof _entSesGet === 'function') {
+      const st = getEntrenoWeekState();
+      const s = _entSesGet(st, dayIdx);
+      if (s && s.i && s.f) durTxt = _entSesFmtDur(s.f - s.i);
+      const vol = _entDayVolumen(st, dayIdx);
+      if (vol > 0) volTxt = vol.toLocaleString(lang==='en'?'en-US':'es-AR') + ' kg';
+    }
+  } catch(e){}
+  const statsSuffix = [durTxt ? '⏱ ' + durTxt : '', volTxt].filter(Boolean).join(' · ');
+  _entrenoShareLogro = { key:'entreno_completado', titulo:'Entreno completado',
+    desc: statsSuffix ? (sub + ' · ' + statsSuffix) : sub,
+    eyebrow: fecha ? ('★ '+fecha) : '★ ENTRENO DEL DÍA' };
   const subEl=document.getElementById('entreno-done-sub'); if(subEl) subEl.textContent = sub;
+  const statsEl=document.getElementById('entreno-done-stats');
+  if (statsEl) {
+    if (durTxt || volTxt) {
+      statsEl.style.display = 'flex';
+      const dEl=document.getElementById('entreno-done-dur'); if(dEl) dEl.textContent = durTxt || '—';
+      const vEl=document.getElementById('entreno-done-vol'); if(vEl) vEl.textContent = volTxt || '—';
+      // Si falta uno de los dos, esa celda se oculta para no mostrar "—".
+      if (dEl) dEl.parentElement.style.display = durTxt ? '' : 'none';
+      if (vEl) vEl.parentElement.style.display = volTxt ? '' : 'none';
+    } else {
+      statsEl.style.display = 'none';
+    }
+  }
   const ov=document.getElementById('entreno-done-overlay'); if(ov) ov.classList.add('open');
 }
 function shareEntrenoFromMoment(){ if(_entrenoShareLogro) startShareLogro(_entrenoShareLogro); }
@@ -31727,6 +31887,175 @@ const ENT_V2_ENABLED = (() => {
   } catch { return true; }
 })();
 
+// ---- MI ENTRENO V2 · Fase 2: sesión de entrenamiento con cronómetro ----
+// En la vista día (solo V2), una card de sesión: "Comenzar entrenamiento"
+// arranca un cronómetro; "Finalizar" cierra la sesión, marca el día como
+// entrenado (misma cadena que el ✓ de siempre) y el momento compartible sale
+// con DURACIÓN + VOLUMEN TOTAL (pesos×reps cargados).
+// CLAVE ANTI-PWA-CONGELADA: nunca contamos ticks — guardamos el timestamp de
+// inicio (`estado.sesion["d{idx}"] = { i: ms }`) y el reloj visible siempre se
+// CALCULA (Date.now() - i). Con el teléfono bloqueado 40 min, al volver la
+// duración es exacta. `f: ms` al finalizar. Vive en el mismo JSON semanal de
+// entreno_semanal (outbox offline-first, hydrate, todo gratis).
+// El ✓ retrospectivo de siempre sigue vivo: la sesión es un camino opcional.
+// GATED: ?sesion=1 prende (persiste para QA), ?sesion=0 apaga. Default OFF.
+const SES_ENABLED = (() => {
+  try {
+    const v = new URLSearchParams(window.location.search).get('sesion');
+    if (v === '1') { try { localStorage.setItem('coachai_sesion', '1'); } catch {} return true; }
+    if (v === '0') { try { localStorage.removeItem('coachai_sesion'); } catch {} return false; }
+    return localStorage.getItem('coachai_sesion') === '1';
+  } catch { return false; }
+})();
+
+// Sesión abierta hace más de 6h sin finalizar = "colgada" (se fue del gym sin
+// tocar Finalizar): la card ofrece cerrarla o descartarla en vez del reloj.
+const _ENT_SES_STALE_MS = 6 * 60 * 60 * 1000;
+
+function _entSesGet(state, idx) {
+  return (state && state.sesion && state.sesion['d' + idx]) || null;
+}
+
+// Volumen total del día: suma peso×reps de las series que tienen AMBOS datos.
+// Keys d{dia}e{ej}s{serie}; el prefijo 'd{idx}e' no colisiona (la 'e' corta).
+function _entDayVolumen(state, idx) {
+  let v = 0;
+  const pref = 'd' + idx + 'e';
+  Object.keys((state && state.weights) || {}).forEach(k => {
+    if (k.indexOf(pref) !== 0) return;
+    const w = parseFloat(String(state.weights[k]).replace(',', '.'));
+    const r = parseInt((state.reps && state.reps[k]) || '', 10);
+    if (w > 0 && r > 0) v += w * r;
+  });
+  return Math.round(v);
+}
+
+function _entSesFmtTimer(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+  const p = n => String(n).padStart(2, '0');
+  return h > 0 ? `${h}:${p(m)}:${p(ss)}` : `${p(m)}:${p(ss)}`;
+}
+function _entSesFmtDur(ms) {
+  const min = Math.max(1, Math.round(ms / 60000));
+  const h = Math.floor(min / 60), m = min % 60;
+  return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m} min`;
+}
+
+function entSesStart(idx) {
+  const st = getEntrenoWeekState();
+  st.sesion = st.sesion || {};
+  st.sesion['d' + idx] = { i: Date.now() };
+  saveEntrenoWeekState(st);
+  try { trackEvent('ent_ses_start', { idx }); } catch (e) {}
+  renderMiEntreno();
+}
+
+function entSesFinish(idx) {
+  const st = getEntrenoWeekState();
+  const s = _entSesGet(st, idx);
+  if (!s || !s.i || s.f) return;
+  s.f = Date.now();
+  saveEntrenoWeekState(st);
+  try { trackEvent('ent_ses_finish', { idx, min: Math.round((s.f - s.i) / 60000) }); } catch (e) {}
+  if (!st.completed[idx]) {
+    // Marca el día por la cadena de siempre (espejo dias_entrenados/progreso,
+    // re-render y momento compartible — que ahora sale con los stats).
+    toggleEntrenoDone(idx);
+  } else {
+    renderMiEntreno();
+    try { showEntrenoCompletadoMoment(idx); } catch (e) {}
+  }
+}
+
+function entSesDiscard(idx) {
+  const st = getEntrenoWeekState();
+  if (st.sesion && st.sesion['d' + idx]) {
+    delete st.sesion['d' + idx];
+    saveEntrenoWeekState(st);
+    try { trackEvent('ent_ses_discard', { idx }); } catch (e) {}
+  }
+  renderMiEntreno();
+}
+
+// Reloj visible: recalcula desde el timestamp cada segundo mientras la card
+// esté en el DOM. Si el nodo desaparece (cambio de sección/vista), se apaga solo.
+let _entSesTickId = null;
+function _entSesTickStop() { if (_entSesTickId) { clearInterval(_entSesTickId); _entSesTickId = null; } }
+function _entSesTickStart(idx) {
+  _entSesTickStop();
+  _entSesTickId = setInterval(() => {
+    const el = document.getElementById('ent-ses-timer');
+    if (!el) { _entSesTickStop(); return; }
+    const s = _entSesGet(getEntrenoWeekState(), idx);
+    if (!s || !s.i || s.f) { _entSesTickStop(); return; }
+    el.textContent = _entSesFmtTimer(Date.now() - s.i);
+  }, 1000);
+}
+
+// Card de sesión (vista día V2). Estados: idle → corriendo → colgada / cerrada.
+function _renderEntSesCard(idx, state, day) {
+  const cont = document.getElementById('ent-ses-card');
+  if (!cont) return;
+  _entSesTickStop();
+  if (!SES_ENABLED || !day || day.isRest) { cont.style.display = 'none'; cont.innerHTML = ''; return; }
+  const isEs = lang === 'es';
+  const s = _entSesGet(state, idx);
+  const totalSeries = (day.exercises || []).reduce((n, ex) => n + parseSeriesCount(ex.detail), 0);
+  const chips = `${day.exercises.length} ${isEs ? 'ejercicios' : 'exercises'} · ${totalSeries} ${isEs ? 'series' : 'sets'}`;
+  let html = '';
+  if (!s || !s.i) {
+    // IDLE — invitación a arrancar la sesión
+    html = `
+      <div class="cai-entses">
+        <div class="cai-entses-eyebrow">${isEs ? 'SESIÓN DE HOY' : "TODAY'S SESSION"}</div>
+        <div class="cai-entses-meta">${chips}</div>
+        <button class="cai-entses-btn" type="button" onclick="entSesStart(${idx})">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
+          ${isEs ? 'Comenzar entrenamiento' : 'Start workout'}
+        </button>
+      </div>`;
+  } else if (!s.f) {
+    const elapsed = Date.now() - s.i;
+    if (elapsed >= _ENT_SES_STALE_MS) {
+      // COLGADA — quedó abierta de antes
+      html = `
+        <div class="cai-entses stale">
+          <div class="cai-entses-eyebrow">${isEs ? 'SESIÓN SIN CERRAR' : 'UNFINISHED SESSION'}</div>
+          <div class="cai-entses-meta">${isEs ? '¿Terminaste este entreno?' : 'Did you finish this workout?'}</div>
+          <div class="cai-entses-row">
+            <button class="cai-entses-btn" type="button" onclick="entSesFinish(${idx})">${isEs ? 'Finalizar' : 'Finish'}</button>
+            <button class="cai-entses-ghost" type="button" onclick="entSesDiscard(${idx})">${isEs ? 'Descartar' : 'Discard'}</button>
+          </div>
+        </div>`;
+    } else {
+      // CORRIENDO — reloj calculado + finalizar
+      html = `
+        <div class="cai-entses running">
+          <div class="cai-entses-eyebrow"><span class="cai-entses-dot"></span>${isEs ? 'ENTRENAMIENTO EN CURSO' : 'WORKOUT IN PROGRESS'}</div>
+          <div class="cai-entses-timer" id="ent-ses-timer">${_entSesFmtTimer(elapsed)}</div>
+          <div class="cai-entses-row">
+            <button class="cai-entses-btn" type="button" onclick="entSesFinish(${idx})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              ${isEs ? 'Finalizar entrenamiento' : 'Finish workout'}
+            </button>
+            <button class="cai-entses-ghost" type="button" onclick="entSesDiscard(${idx})">${isEs ? 'Descartar' : 'Discard'}</button>
+          </div>
+        </div>`;
+      _entSesTickStart(idx);
+    }
+  } else {
+    // CERRADA — resumen chico (la celebración grande ya salió al finalizar)
+    html = `
+      <div class="cai-entses done">
+        <div class="cai-entses-eyebrow">${isEs ? 'SESIÓN COMPLETADA' : 'SESSION DONE'}</div>
+        <div class="cai-entses-meta">⏱ ${_entSesFmtDur(s.f - s.i)}${_entDayVolumen(state, idx) > 0 ? ` · ${_entDayVolumen(state, idx).toLocaleString(isEs ? 'es-AR' : 'en-US')} kg` : ''}</div>
+      </div>`;
+  }
+  cont.style.display = 'block';
+  cont.innerHTML = html;
+}
+
 function buildEntrenoExSnapshot() {
   try {
     if (typeof buildTrainingDayMapping !== 'function') return null;
@@ -32744,6 +33073,9 @@ function renderMiEntreno() {
     if (v2Greeting) v2Greeting.style.display = 'none';
     if (v2List) v2List.style.display = 'none';
     if (v2Back) v2Back.style.display = 'none';
+    const sesEmpty = document.getElementById('ent-ses-card');
+    if (sesEmpty) { sesEmpty.style.display = 'none'; }
+    _entSesTickStop();
     if (_isPlanPreparing('rutina')) {
       if (emptyState) emptyState.style.display = 'none';
       if (prepState) prepState.style.display = 'block';
@@ -32787,13 +33119,15 @@ function renderMiEntreno() {
     if (overrideChip) overrideChip.style.display = 'none'; // el menú reemplaza al override
     if (otherCard) otherCard.style.display = 'none';       // y a "Resto de la semana"
     if (_entV2SelIdx === null || !mapping.days[_entV2SelIdx]) {
-      // Vista LISTA: saludo + cards del split. Sin hero ni back.
+      // Vista LISTA: saludo + cards del split. Sin hero, back ni card de sesión.
       hero.style.display = 'none';
       if (v2Back) v2Back.style.display = 'none';
+      _renderEntSesCard(null, state, null);   // oculta y apaga el tick
       renderEntV2List(mapping, state);
       return;
     }
-    // Vista DÍA: back + hero del día elegido. Saludo/lista/summary se ocultan.
+    // Vista DÍA: back + card de sesión (Fase 2) + hero del día elegido.
+    // Saludo/lista/summary se ocultan.
     if (v2Greeting) v2Greeting.style.display = 'none';
     if (v2List) v2List.style.display = 'none';
     if (summary) summary.style.display = 'none';
@@ -32805,10 +33139,12 @@ function renderMiEntreno() {
           ${lang === 'es' ? 'Elegir otro día' : 'Pick another day'}
         </button>`;
     }
+    _renderEntSesCard(_entV2SelIdx, state, mapping.days[_entV2SelIdx]);
   } else {
     if (v2Greeting) v2Greeting.style.display = 'none';
     if (v2List) v2List.style.display = 'none';
     if (v2Back) v2Back.style.display = 'none';
+    _renderEntSesCard(null, state, null);     // V2 apagado → sin card de sesión
   }
 
   // Decide which day to render as hero
@@ -33120,7 +33456,7 @@ function toggleEntrenoDone(i) {
 
   // Momento "entreno completado" (compartible) — solo al COMPLETAR un día de entreno
   // de verdad (no descanso, y no al destildar). Liviano: no toca la colección ni el push.
-  if (!wasDone && isDone && !isRestDay) { try { showEntrenoCompletadoMoment(); } catch (e) {} }
+  if (!wasDone && isDone && !isRestDay) { try { showEntrenoCompletadoMoment(i); } catch (e) {} }
 }
 
 let _entrenoWeightTimers = {};
