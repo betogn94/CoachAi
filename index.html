@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260915-2051-deploy">
+<meta name="app-version" content="20260916-1412-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6538,6 +6538,211 @@ body.theme-king .cai-info-tip { background: rgba(255,79,123,0.07); border-color:
 }
 .cai-ent-subcard-arrow svg { width: 14px; height: 14px; }
 .cai-ent-subcard.rest .cai-ent-subcard-arrow { display: none; }
+
+/* ======================================================================
+   MI ENTRENO V2 (Fase 1) — saludo + menú de días del split
+   Gated ENT_V2_ENABLED (?entrenov2=1). Mismo lenguaje glass que el hero.
+   ====================================================================== */
+.cai-entv2-greet { margin: 16px 18px 2px; }
+.cai-entv2-greet-hola {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 25px; font-weight: 800; letter-spacing: -0.5px;
+  color: var(--text); line-height: 1.15;
+}
+.cai-entv2-greet-q {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15.5px; font-weight: 700;
+  color: var(--accent-bright);
+  margin-top: 3px;
+}
+.cai-entv2-greet-sub {
+  font-size: 12.5px; color: var(--muted);
+  margin-top: 5px; line-height: 1.5;
+  max-width: 340px;
+}
+.cai-entv2-greet .cai-ent-cardio-chip { margin-top: 12px; }
+
+.cai-entv2-list-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; letter-spacing: 0.8px; font-weight: 800;
+  color: var(--accent-bright);
+  text-transform: uppercase;
+  border-left: 3px solid var(--accent);
+  padding-left: 9px; line-height: 1.25;
+  margin: 0 0 12px;
+}
+#ent-v2-list { margin: 18px 18px 26px; }
+.cai-entv2-list { display: flex; flex-direction: column; gap: 10px; }
+
+.cai-entv2-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 15px 14px;
+  background-color: rgba(20,20,32,0.55);
+  background-image:
+    linear-gradient(135deg, rgba(124,106,255,0.06) 0%, transparent 45%),
+    linear-gradient(225deg, rgba(46,207,181,0.04) 0%, transparent 45%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.06);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.18s cubic-bezier(0.18, 1.1, 0.4, 1.05), border-color 0.15s ease;
+}
+.cai-entv2-card:active { transform: scale(0.985); border-color: rgba(124,106,255,0.35); }
+@media (hover: hover) and (pointer: fine) {
+  .cai-entv2-card:hover { border-color: rgba(124,106,255,0.35); }
+  .cai-entv2-card.rest:hover { border-color: rgba(255,255,255,0.08); }
+}
+.cai-entv2-card.today { border-color: rgba(124,106,255,0.40); box-shadow: 0 8px 28px rgba(0,0,0,0.30), 0 0 0 3px rgba(124,106,255,0.10), inset 0 1px 0 rgba(255,255,255,0.06); }
+.cai-entv2-card.done { opacity: 0.88; }
+.cai-entv2-card.rest { cursor: default; opacity: 0.75; }
+.cai-entv2-card.rest:active { transform: none; border-color: rgba(255,255,255,0.08); }
+
+.cai-entv2-card-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; letter-spacing: 0.6px; font-weight: 700;
+  padding: 5px 9px; border-radius: 7px;
+  background: rgba(124,106,255,0.10);
+  color: var(--accent-bright);
+  border: 1px solid rgba(124,106,255,0.25);
+  flex-shrink: 0; white-space: nowrap;
+}
+.cai-entv2-card.rest .cai-entv2-card-badge {
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+  border-color: rgba(255,255,255,0.10);
+}
+.cai-entv2-card-info { min-width: 0; flex: 1; }
+.cai-entv2-card-name {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14.5px; font-weight: 700;
+  color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cai-entv2-card-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; letter-spacing: 0.5px;
+  color: var(--muted2);
+  margin-top: 3px;
+}
+.cai-entv2-card-hoy {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 0.8px; font-weight: 800;
+  padding: 4px 8px; border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  flex-shrink: 0;
+}
+.cai-entv2-card-go {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(124,106,255,0.14);
+  border: 1px solid rgba(124,106,255,0.30);
+  color: var(--accent-bright);
+  flex-shrink: 0;
+}
+.cai-entv2-card-go svg { width: 16px; height: 16px; display: block; margin-left: 1px; }
+.cai-entv2-card-go.done {
+  background: var(--accent3);
+  border-color: var(--accent3);
+  color: var(--bg);
+}
+.cai-entv2-card-go.done svg { margin-left: 0; }
+
+#ent-v2-back { margin: 12px 18px 0; }
+.cai-entv2-back-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 8px 14px 8px 10px;
+  border-radius: 999px;
+  background: rgba(124,106,255,0.10);
+  border: 1px solid rgba(124,106,255,0.25);
+  color: var(--accent-bright);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12.5px; font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease;
+}
+.cai-entv2-back-btn:active { transform: scale(0.96); }
+.cai-entv2-back-btn svg { width: 14px; height: 14px; flex: none; }
+
+/* --- Tema claro --- */
+body.theme-light .cai-entv2-card {
+  background: var(--surface) !important;
+  background-image: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 1px 2px rgba(26,26,38,0.04), 0 4px 14px rgba(124,106,255,0.06) !important;
+}
+body.theme-light .cai-entv2-card.today {
+  border-color: rgba(124,106,255,0.40) !important;
+  box-shadow: 0 1px 2px rgba(26,26,38,0.04), 0 0 0 3px rgba(124,106,255,0.10) !important;
+}
+body.theme-light .cai-entv2-card:active,
+body.theme-light .cai-entv2-card:hover { border-color: rgba(124,106,255,0.35) !important; }
+body.theme-light .cai-entv2-card.rest:hover { border-color: var(--border) !important; }
+body.theme-light .cai-entv2-greet-q { color: var(--accent) !important; }
+body.theme-light .cai-entv2-list-title { color: var(--accent) !important; }
+body.theme-light .cai-entv2-card-badge {
+  background: rgba(124,106,255,0.08) !important;
+  color: var(--accent) !important;
+}
+body.theme-light .cai-entv2-card.rest .cai-entv2-card-badge {
+  background: var(--surface2) !important;
+  color: var(--muted) !important;
+  border-color: var(--border) !important;
+}
+body.theme-light .cai-entv2-card-meta { color: var(--muted) !important; }
+body.theme-light .cai-entv2-card-go {
+  background: rgba(124,106,255,0.08) !important;
+  color: var(--accent) !important;
+}
+body.theme-light .cai-entv2-card-go.done {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff !important;
+}
+body.theme-light .cai-entv2-back-btn {
+  background: rgba(124,106,255,0.08) !important;
+  color: var(--accent) !important;
+}
+
+/* --- Tema King --- */
+body.theme-king .cai-entv2-card {
+  background: var(--surface) !important;
+  background-image: none !important;
+  border-color: var(--border) !important;
+}
+body.theme-king .cai-entv2-card.today {
+  border-color: rgba(255,79,123,0.40) !important;
+  box-shadow: 0 0 0 3px rgba(255,79,123,0.10) !important;
+}
+body.theme-king .cai-entv2-greet-q { color: var(--accent) !important; }
+body.theme-king .cai-entv2-list-title { color: var(--accent) !important; }
+body.theme-king .cai-entv2-card-badge {
+  background: rgba(255,79,123,0.08) !important;
+  color: var(--accent) !important;
+  border-color: rgba(255,79,123,0.3) !important;
+}
+body.theme-king .cai-entv2-card-hoy { background: var(--accent) !important; }
+body.theme-king .cai-entv2-card-go {
+  background: rgba(255,79,123,0.08) !important;
+  border-color: rgba(255,79,123,0.3) !important;
+  color: var(--accent) !important;
+}
+body.theme-king .cai-entv2-card-go.done {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff !important;
+}
+body.theme-king .cai-entv2-back-btn {
+  background: rgba(255,79,123,0.08) !important;
+  border-color: rgba(255,79,123,0.3) !important;
+  color: var(--accent) !important;
+}
 
 /* ======================================================================
    HOME (app dashboard) — crystal-depth, same language as Mi Alim
@@ -16505,6 +16710,9 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     </div>
   </div>
 
+  <!-- V2 (Fase 1, gated ENT_V2_ENABLED): saludo personal — se pinta vía renderMiEntreno -->
+  <div id="ent-v2-greeting" style="display:none"></div>
+
   <!-- Hero summary card (ESTA SEMANA · X/N días + adherencia bar) -->
   <div class="cai-alim-summary" id="ent-summary" style="display:none">
     <div class="cai-alim-summary-eyebrow" id="ent-summary-eyebrow">ESTA SEMANA</div>
@@ -16528,6 +16736,11 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     <span id="ent-override-chip-text">—</span>
     <button onclick="resetEntOverride()" type="button">↺ <span data-es="volver a hoy" data-en="back to today">volver a hoy</span></button>
   </div>
+
+  <!-- V2 (Fase 1): fila "volver al menú de días" (vista día) + menú de días del
+       split (vista lista). Ambos gated ENT_V2_ENABLED, render vía renderMiEntreno. -->
+  <div id="ent-v2-back" style="display:none"></div>
+  <div id="ent-v2-list" style="display:none"></div>
 
   <!-- HERO: today's day card with full exercise list + weight inputs -->
   <div id="ent-hero" style="display:none"></div>
@@ -31494,6 +31707,24 @@ const ENT_REF_ENABLED = (() => {
   } catch { return true; }
 })();
 
+// ---- MI ENTRENO V2 · Fase 1: selección libre del día del split ----
+// Reestructura de la sección: al entrar, saludo personal + menú con TODOS los
+// días del split para que la usuaria elija qué entrenar hoy. El "hoy toca"
+// pasa de mandato a sugerencia (badge HOY en la card sugerida). Tocar un día
+// abre la card de ejercicios de siempre (hero) con un botón para volver al menú.
+// El modelo de datos no cambia: completed/weights/reps siguen keyed por índice
+// de rutina, así que entrenar "Día 2" un lunes ya estaba soportado.
+// GATED: ?entrenov2=1 prende (persiste en localStorage para QA), ?entrenov2=0
+// apaga. Default OFF hasta liberar.
+const ENT_V2_ENABLED = (() => {
+  try {
+    const v = new URLSearchParams(window.location.search).get('entrenov2');
+    if (v === '1') { try { localStorage.setItem('coachai_entv2', '1'); } catch {} return true; }
+    if (v === '0') { try { localStorage.removeItem('coachai_entv2'); } catch {} return false; }
+    return localStorage.getItem('coachai_entv2') === '1';
+  } catch { return false; }
+})();
+
 function buildEntrenoExSnapshot() {
   try {
     if (typeof buildTrainingDayMapping !== 'function') return null;
@@ -32165,6 +32396,7 @@ async function showMiEntreno() {
   // and collapse the hero card so the user sees the compact summary first.
   _entOverrideIdx = null;
   _entHeroOpen = {};
+  _entV2SelIdx = null;               // V2: reentrar siempre cae en el menú de días
   renderMiEntreno();                 // instant paint from localStorage cache
   await hydrateEntrenoFromSupabase(); // then refresh from durable source
   renderMiEntreno();
@@ -32321,6 +32553,24 @@ function resetEntOverride() {
   renderMiEntreno();
 }
 
+// ---- V2: navegación menú de días ↔ vista de un día (efímero, nunca persiste) ----
+// null = menú de selección (vista de entrada); número = índice de rutina abierto.
+let _entV2SelIdx = null;
+
+function entV2SelectDay(routineIdx) {
+  _entV2SelIdx = routineIdx;
+  _entHeroOpen = {};   // el día elegido arranca desplegado (default del hero)
+  try { trackEvent('ent_v2_day_open', { idx: routineIdx }); } catch (e) {}
+  renderMiEntreno();
+  scrollToTop();
+}
+
+function entV2Back() {
+  _entV2SelIdx = null;
+  renderMiEntreno();
+  scrollToTop();
+}
+
 // Toggle the open/collapsed state of the currently-displayed hero card.
 // We key by displayIdx so if the user expands → swaps → comes back, they
 // see the same state (within the session).
@@ -32329,7 +32579,11 @@ function toggleEntHero() {
   const mapping = buildTrainingDayMapping();
   if (!mapping) return;
   let displayIdx;
-  if (_entOverrideIdx !== null && mapping.days[_entOverrideIdx]) displayIdx = _entOverrideIdx;
+  if (ENT_V2_ENABLED) {
+    if (_entV2SelIdx === null || !mapping.days[_entV2SelIdx]) return; // menú: no hay hero
+    displayIdx = _entV2SelIdx;
+  }
+  else if (_entOverrideIdx !== null && mapping.days[_entOverrideIdx]) displayIdx = _entOverrideIdx;
   else if (!mapping.isTodayRest) displayIdx = mapping.todayRoutineIdx;
   else return;  // rest hero has no body to toggle
   // undefined = abierta por defecto → el primer tap debe COLAPSAR (false).
@@ -32356,6 +32610,99 @@ function toggleEntOther() {
   }
 }
 
+// ---- V2 · vista LISTA: saludo + menú de días del split ----
+// Reemplaza al hero como vista de entrada. Cada día no-descanso del split es
+// una card tocable (entV2SelectDay); el día que mapea a hoy lleva el badge HOY
+// como sugerencia. Los descansos se consolidan en una card OFF informativa.
+function renderEntV2List(mapping, state) {
+  const v2Greeting = document.getElementById('ent-v2-greeting');
+  const v2List = document.getElementById('ent-v2-list');
+  const esc = (typeof _esc === 'function') ? _esc : (x => String(x));
+  const isEs = lang === 'es';
+
+  // --- Saludo ---
+  const first = ((currentUser && currentUser.nombre) || '').trim().split(' ')[0];
+  const hola = first
+    ? (isEs ? `Hola, ${esc(first)}` : `Hi, ${esc(first)}`)
+    : (isEs ? '¡Hola!' : 'Hi!');
+  const pregunta = isEs ? '¿Qué vamos a entrenar hoy?' : 'What are we training today?';
+  let subLine;
+  if (mapping.isTodayRest) {
+    subLine = isEs
+      ? 'Hoy es día de recuperación — y también cuenta. Si tenés ganas de moverte, elegí un día y dale.'
+      : 'Today is a recovery day — it counts too. If you feel like moving, pick a day and go.';
+  } else {
+    const nHoy = Object.values(mapping.weekdayToRoutineIdx).indexOf(mapping.todayRoutineIdx) + 1;
+    subLine = isEs
+      ? `Para hoy te sugerimos el Día ${nHoy}, pero elegís vos.`
+      : `Day ${nHoy} is today's suggestion, but it's your call.`;
+  }
+  if (v2Greeting) {
+    // En descanso, el chip de cardio (si la regla aplica) va debajo del saludo.
+    const restCardio = mapping.isTodayRest ? _buildCardioChipHtml({ isRestDay: true }) : '';
+    v2Greeting.style.display = 'block';
+    v2Greeting.innerHTML = `
+      <div class="cai-entv2-greet">
+        <div class="cai-entv2-greet-hola">${hola} 👋</div>
+        <div class="cai-entv2-greet-q">${pregunta}</div>
+        <div class="cai-entv2-greet-sub">${subLine}</div>
+        ${restCardio}
+      </div>`;
+  }
+
+  // --- Cards de días del split ---
+  const playSvg = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>';
+  const checkSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>';
+  const cards = [];
+  mapping.days.forEach((d, idx) => {
+    if (d.isRest) return;
+    const wd = mapping.routineIdxToWeekday[idx];
+    const wdLabel = wd ? _ENT_WEEKDAYS_ES_LABEL[_ENT_WEEKDAYS_ES.indexOf(wd)] : '';
+    const dayNumber = Object.values(mapping.weekdayToRoutineIdx).indexOf(idx) + 1;
+    const badge = dayNumber > 0 ? `${isEs ? 'DÍA' : 'DAY'} ${dayNumber}` : '·';
+    const isSuggested = (idx === mapping.todayRoutineIdx);
+    const done = !!state.completed[idx];
+    const name = _entCleanLabel(d.label) || d.label || (isEs ? 'Entrenamiento' : 'Workout');
+    const metaParts = [`${d.exercises.length} ${isEs ? 'ejercicios' : 'exercises'}`];
+    if (wdLabel) metaParts.push(wdLabel);
+    cards.push(`
+      <div class="cai-entv2-card${done ? ' done' : ''}${isSuggested ? ' today' : ''}"
+           onclick="entV2SelectDay(${idx})" role="button" tabindex="0"
+           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();entV2SelectDay(${idx});}"
+           aria-label="${esc(name)}">
+        <div class="cai-entv2-card-badge">${badge}</div>
+        <div class="cai-entv2-card-info">
+          <div class="cai-entv2-card-name">${esc(name)}</div>
+          <div class="cai-entv2-card-meta">${metaParts.join(' · ')}</div>
+        </div>
+        ${isSuggested ? `<div class="cai-entv2-card-hoy">${isEs ? 'HOY' : 'TODAY'}</div>` : ''}
+        <div class="cai-entv2-card-go${done ? ' done' : ''}">${done ? checkSvg : playSvg}</div>
+      </div>`);
+  });
+
+  // Card OFF consolidada (informativa, no tocable)
+  if (mapping.restWeekdays.length) {
+    const restWdLabels = mapping.restWeekdays
+      .map(w => _ENT_WEEKDAYS_ES_LABEL[_ENT_WEEKDAYS_ES.indexOf(w)])
+      .join(' · ');
+    cards.push(`
+      <div class="cai-entv2-card rest">
+        <div class="cai-entv2-card-badge">OFF</div>
+        <div class="cai-entv2-card-info">
+          <div class="cai-entv2-card-name">${isEs ? 'Descanso' : 'Rest'}</div>
+          <div class="cai-entv2-card-meta">${restWdLabels}</div>
+        </div>
+      </div>`);
+  }
+
+  if (v2List) {
+    v2List.style.display = 'block';
+    v2List.innerHTML = `
+      <div class="cai-entv2-list-title">${isEs ? 'TU SPLIT DE LA SEMANA' : 'YOUR WEEKLY SPLIT'}</div>
+      <div class="cai-entv2-list">${cards.join('')}</div>`;
+  }
+}
+
 function renderMiEntreno() {
   const hero = document.getElementById('ent-hero');
   const otherCard = document.getElementById('ent-other-card');
@@ -32363,6 +32710,9 @@ function renderMiEntreno() {
   const summary = document.getElementById('ent-summary');
   const headerSub = document.getElementById('ent-header-sub');
   const overrideChip = document.getElementById('ent-override-chip');
+  const v2Greeting = document.getElementById('ent-v2-greeting');
+  const v2List = document.getElementById('ent-v2-list');
+  const v2Back = document.getElementById('ent-v2-back');
   if (!hero) return;
 
   // Always update the page subtitle ("Lunes · hoy")
@@ -32392,6 +32742,9 @@ function renderMiEntreno() {
     if (otherCard) otherCard.style.display = 'none';
     if (summary) summary.style.display = 'none';
     if (overrideChip) overrideChip.style.display = 'none';
+    if (v2Greeting) v2Greeting.style.display = 'none';
+    if (v2List) v2List.style.display = 'none';
+    if (v2Back) v2Back.style.display = 'none';
     if (_isPlanPreparing('rutina')) {
       if (emptyState) emptyState.style.display = 'none';
       if (prepState) prepState.style.display = 'block';
@@ -32430,9 +32783,40 @@ function renderMiEntreno() {
     }
   }
 
+  // === V2 (Fase 1): menú de días como vista de entrada ===
+  if (ENT_V2_ENABLED) {
+    if (overrideChip) overrideChip.style.display = 'none'; // el menú reemplaza al override
+    if (otherCard) otherCard.style.display = 'none';       // y a "Resto de la semana"
+    if (_entV2SelIdx === null || !mapping.days[_entV2SelIdx]) {
+      // Vista LISTA: saludo + cards del split. Sin hero ni back.
+      hero.style.display = 'none';
+      if (v2Back) v2Back.style.display = 'none';
+      renderEntV2List(mapping, state);
+      return;
+    }
+    // Vista DÍA: back + hero del día elegido. Saludo/lista/summary se ocultan.
+    if (v2Greeting) v2Greeting.style.display = 'none';
+    if (v2List) v2List.style.display = 'none';
+    if (summary) summary.style.display = 'none';
+    if (v2Back) {
+      v2Back.style.display = 'block';
+      v2Back.innerHTML = `
+        <button class="cai-entv2-back-btn" type="button" onclick="entV2Back()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          ${lang === 'es' ? 'Elegir otro día' : 'Pick another day'}
+        </button>`;
+    }
+  } else {
+    if (v2Greeting) v2Greeting.style.display = 'none';
+    if (v2List) v2List.style.display = 'none';
+    if (v2Back) v2Back.style.display = 'none';
+  }
+
   // Decide which day to render as hero
   let displayIdx;
-  if (_entOverrideIdx !== null && mapping.days[_entOverrideIdx]) {
+  if (ENT_V2_ENABLED) {
+    displayIdx = _entV2SelIdx;      // vista día V2 (validado arriba)
+  } else if (_entOverrideIdx !== null && mapping.days[_entOverrideIdx]) {
     displayIdx = _entOverrideIdx;
   } else if (!mapping.isTodayRest) {
     displayIdx = mapping.todayRoutineIdx;
@@ -32636,7 +33020,8 @@ function renderMiEntreno() {
 
   // === RESTO DE LA SEMANA ===
   // Sub-cards for every routine day NOT being shown as hero, plus one consolidated REST sub-card.
-  if (otherCard) {
+  // En V2 no existe: el menú de días cumple ese rol (otherCard ya quedó oculto arriba).
+  if (otherCard && !ENT_V2_ENABLED) {
     const subCards = [];
     mapping.days.forEach((d, idx) => {
       if (idx === displayIdx) return;
