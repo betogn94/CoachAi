@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260916-1525-deploy">
+<meta name="app-version" content="20260916-1534-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6816,6 +6816,17 @@ body.theme-king .cai-entv2-back-btn {
 }
 .cai-entses-ghost:active { transform: scale(0.97); }
 .cai-entses.done .cai-entses-meta { color: var(--text); font-weight: 700; }
+/* Festejo post-overlay: pulso dorado + mini pop en "SESIÓN COMPLETADA" */
+@keyframes entses-cele-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(232,161,61,.65); transform: scale(1); }
+  30% { transform: scale(1.02); }
+  60% { box-shadow: 0 0 0 12px rgba(232,161,61,0); transform: scale(1); }
+  100% { box-shadow: 0 0 0 0 rgba(232,161,61,0); transform: scale(1); }
+}
+.cai-entses.done.cele {
+  border-color: #E8A13D !important;
+  animation: entses-cele-pulse 1.1s ease-out 2;
+}
 
 /* Stats en el overlay "¡Entreno completado!" */
 .entreno-done-stats {
@@ -30725,6 +30736,8 @@ function closeSharePreview(event){
   // Si veníamos de una celebración (que ocultamos para compartir), reanudamos la cola.
   _celeShowing = false;
   setTimeout(() => { try { _drainCele(); } catch (e) {} }, 380);
+  // Festejo pendiente de la sesión (si venía de "¡Entreno completado!" con cronómetro)
+  try { setTimeout(_entSesMaybeCelebrate, 420); } catch (e) {}
 }
 
 // ── MOMENTO "ENTRENO COMPLETADO" ──────────────────────────────────────────────
@@ -30773,7 +30786,7 @@ async function showEntrenoCompletadoMoment(dayIdx){
   const ov=document.getElementById('entreno-done-overlay'); if(ov) ov.classList.add('open');
 }
 function shareEntrenoFromMoment(){ if(_entrenoShareLogro) startShareLogro(_entrenoShareLogro); }
-function closeEntrenoDone(event){ if(event && event.target && event.target.id!=='entreno-done-overlay' && !event.target.classList.contains('logro-celebr-btn')) return; const ov=document.getElementById('entreno-done-overlay'); if(ov) ov.classList.remove('open'); }
+function closeEntrenoDone(event){ if(event && event.target && event.target.id!=='entreno-done-overlay' && !event.target.classList.contains('logro-celebr-btn')) return; const ov=document.getElementById('entreno-done-overlay'); if(ov) ov.classList.remove('open'); try { setTimeout(_entSesMaybeCelebrate, 220); } catch(e){} }
 
 // "Mi información" card — populates the discreet collapsed header
 // (avatar + name + email) AND the editable form fields revealed on expand.
@@ -32153,6 +32166,7 @@ function entSesFinish(idx) {
   if (!s || !s.i || s.f) return;
   s.f = Date.now();
   saveEntrenoWeekState(st);
+  _entSesCelebrateIdx = idx;   // al cerrar el overlay, festejo sobre la card
   try { trackEvent('ent_ses_finish', { idx, min: Math.round((s.f - s.i) / 60000) }); } catch (e) {}
   if (!st.completed[idx]) {
     // Marca el día por la cadena de siempre (espejo dias_entrenados/progreso,
@@ -32162,6 +32176,38 @@ function entSesFinish(idx) {
     renderMiEntreno();
     try { showEntrenoCompletadoMoment(idx); } catch (e) {}
   }
+}
+
+// Festejo sobre la card "SESIÓN COMPLETADA" — se dispara UNA vez, al cerrar el
+// overlay de entreno completado (Listo/X) o al volver de compartir la story.
+// Reusa los papelitos del Récord Personal (.pr-confetti) + un pulso de glow.
+let _entSesCelebrateIdx = null;
+function _entSesMaybeCelebrate() {
+  if (_entSesCelebrateIdx === null) return;
+  _entSesCelebrateIdx = null;
+  try {
+    const card = document.querySelector('#ent-ses-card .cai-entses.done');
+    if (!card || !card.isConnected) return;
+    // Pulso de glow en la card
+    card.classList.remove('cele'); void card.offsetWidth;
+    card.classList.add('cele');
+    setTimeout(() => { try { card.classList.remove('cele'); } catch (e) {} }, 2400);
+    // Lluvia de papelitos a lo ancho de la card (position:fixed, como el PR)
+    const r = card.getBoundingClientRect();
+    const colors = ['#F6C667', '#E8A13D', '#7c6aff', '#f472b6', '#16a34a', '#38bdf8'];
+    for (let i = 0; i < 26; i++) {
+      const p = document.createElement('div');
+      p.className = 'pr-confetti';
+      const x = r.left + 8 + Math.random() * Math.max(10, r.width - 16);
+      const y = r.top + 4 + Math.random() * 12;
+      p.style.cssText = `left:${x}px;top:${y}px;background:${colors[i % colors.length]};`
+        + `--prx:${Math.round((Math.random() - 0.5) * 70)}px;--pry:${Math.round(-20 - Math.random() * 50)}px;`
+        + `animation-delay:${(Math.random() * 0.35).toFixed(2)}s`;
+      document.body.appendChild(p);
+      setTimeout(() => { try { p.remove(); } catch (e) {} }, 1900);
+    }
+    try { if (navigator.vibrate) navigator.vibrate([30, 50, 30]); } catch (e) {}
+  } catch (e) {}
 }
 
 function entSesDiscard(idx) {
