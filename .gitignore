@@ -1,5 +1,10 @@
 # Local Claude Code config (machine-specific)
 .claude/settings.local.json
+.claude/skills/
+
+# Skills de agentes instaladas con `npx skills add` (tooling local, no de la app)
+.agents/
+skills-lock.json
 .claude/.credentials*
 .claude/cache/
 .claude/logs/
