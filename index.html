@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260918-1324-deploy">
+<meta name="app-version" content="20260918-1339-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -14662,6 +14662,33 @@ body.theme-king .cai-perfil-transform-badge {
   -webkit-tap-highlight-color: transparent;
 }
 .cierre-gate-x:active { transform: scale(0.92); }
+/* Overlay de espera del análisis IA (ruedita + frases secuenciales) */
+.analisis-wait-overlay {
+  position: fixed; inset: 0; z-index: 4500;
+  display: none; align-items: center; justify-content: center; padding: 24px;
+  background: rgba(17,17,26,0.55);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+}
+.analisis-wait-overlay.open { display: flex; }
+.analisis-wait-card {
+  background: var(--surface, #fff); border: 1px solid var(--border, rgba(0,0,0,0.08));
+  border-radius: 22px; box-shadow: 0 20px 60px -20px rgba(0,0,0,0.5);
+  padding: 34px 26px 30px; max-width: 340px; width: 100%; text-align: center;
+}
+.analisis-wait-spinner {
+  width: 44px; height: 44px; margin: 0 auto 18px;
+  border-radius: 50%;
+  border: 3.5px solid var(--surface2, rgba(0,0,0,0.08));
+  border-top-color: var(--accent);
+  animation: analisisSpin 0.9s linear infinite;
+}
+@keyframes analisisSpin { to { transform: rotate(360deg); } }
+.analisis-wait-title { font-size: 17px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+.analisis-wait-phrase {
+  font-size: 13.5px; color: var(--muted); line-height: 1.5; min-height: 40px;
+  transition: opacity 0.35s ease; opacity: 1;
+}
+.analisis-wait-phrase.fading { opacity: 0; }
 .cierre-gate-eyebrow { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1.8px; color: var(--accent); margin-bottom: 10px; }
 .cierre-gate-emoji { font-size: 46px; line-height: 1; margin-bottom: 12px; }
 .cierre-gate-title { font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
@@ -17551,6 +17578,15 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       <button class="cierre-gate-link" type="button" onclick="showDiario(); setActiveNav('nav-diario')" data-es="Falta cargar comidas" data-en="Log meals">Falta cargar comidas</button>
       <button class="cierre-gate-link" type="button" onclick="showMiEntreno(); setActiveNav('nav-entreno')" data-es="Falta cargar entrenos" data-en="Log workouts">Falta cargar entrenos</button>
     </div>
+  </div>
+</div>
+
+<!-- Overlay de espera del análisis IA — ruedita + frases mientras Claude trabaja -->
+<div class="analisis-wait-overlay" id="analisis-wait-overlay" role="status" aria-live="polite">
+  <div class="analisis-wait-card">
+    <div class="analisis-wait-spinner" aria-hidden="true"></div>
+    <div class="analisis-wait-title" id="analisis-wait-title">Analizando tu semana</div>
+    <div class="analisis-wait-phrase" id="analisis-wait-phrase">—</div>
   </div>
 </div>
 
@@ -27480,6 +27516,55 @@ Cumpliste **3 de 4 entrenamientos (75% adherencia)** y registraste comidas 5 de 
   };
 })();
 
+// ── Overlay de espera del análisis IA ───────────────────────────────────────
+// Mientras la IA trabaja (subida de fotos + visión, 15-30s) la pantalla quedaba
+// muda tras tocar el botón. Este overlay tapa la card (evita taps a mitad de
+// proceso) y va contando lo que pasa con frases secuenciales que siguen el
+// pipeline real; se queda en la última hasta que el flujo lo cierra (finally).
+let _analisisWaitTimer = null;
+function showAnalisisWait() {
+  const ov = document.getElementById('analisis-wait-overlay');
+  if (!ov) return;
+  const isEs = (lang === 'es');
+  const frases = isEs ? [
+    'Subiendo tus fotos…',
+    'Comparando con tu punto de inicio…',
+    'Revisando tus entrenos de la semana…',
+    'Mirando tus calorías y tu proteína…',
+    'Tu coach está pensando la devolución…',
+    'Escribiendo tus objetivos de la próxima semana…',
+    'Un momento más, ya casi está…',
+  ] : [
+    'Uploading your photos…',
+    'Comparing with your starting point…',
+    "Reviewing this week's workouts…",
+    'Looking at your calories and protein…',
+    'Your coach is thinking through the feedback…',
+    'Writing your goals for next week…',
+    'One more moment, almost there…',
+  ];
+  const title = document.getElementById('analisis-wait-title');
+  if (title) title.textContent = isEs ? 'Analizando tu semana' : 'Analyzing your week';
+  const ph = document.getElementById('analisis-wait-phrase');
+  let i = 0;
+  if (ph) { ph.classList.remove('fading'); ph.textContent = frases[0]; }
+  ov.classList.add('open');
+  if (_analisisWaitTimer) clearInterval(_analisisWaitTimer);
+  _analisisWaitTimer = setInterval(() => {
+    if (i >= frases.length - 1) { clearInterval(_analisisWaitTimer); _analisisWaitTimer = null; return; }
+    i++;
+    if (ph) {
+      ph.classList.add('fading');
+      setTimeout(() => { ph.textContent = frases[i]; ph.classList.remove('fading'); }, 350);
+    }
+  }, 4000);
+}
+function hideAnalisisWait() {
+  if (_analisisWaitTimer) { clearInterval(_analisisWaitTimer); _analisisWaitTimer = null; }
+  const ov = document.getElementById('analisis-wait-overlay');
+  if (ov) ov.classList.remove('open');
+}
+
 async function ejecutarCierreSemana() {
   if (cierreInflight) return;
   // Hard gate: both this-week photos must be uploaded before we burn an AI
@@ -27521,6 +27606,7 @@ async function ejecutarCierreSemana() {
   btn.disabled = true;
   _setBtnTxt(lang === 'es' ? 'Analizando...' : 'Analyzing...');
   if (retryBanner) retryBanner.style.display = 'none';
+  showAnalisisWait();   // el finally lo cierra en TODAS las salidas (éxito y error)
 
   try {
     const createdAt = currentUser.created_at || new Date().toISOString();
@@ -27704,6 +27790,7 @@ async function ejecutarCierreSemana() {
       }
     }
   } finally {
+    hideAnalisisWait();
     cierreInflight = false;
   }
 }
@@ -27780,6 +27867,7 @@ async function regenerarAnalisisSemana(weekNum) {
 
   const btn = document.getElementById(`btn-regen-${weekNum}`);
   if (btn) { btn.disabled = true; btn.textContent = lang === 'es' ? '⏳ REGENERANDO...' : '⏳ REGENERATING...'; }
+  showAnalisisWait();
 
   try {
     const cierre = cierresSemanales.find(c => c.semana_num === weekNum);
@@ -27819,6 +27907,8 @@ async function regenerarAnalisisSemana(weekNum) {
   } catch(e) {
     console.error('Regenerar análisis falló:', e);
     if (btn) { btn.disabled = false; btn.textContent = lang === 'es' ? '⚠ ERROR — REINTENTAR' : '⚠ ERROR — RETRY'; }
+  } finally {
+    hideAnalisisWait();
   }
 }
 
