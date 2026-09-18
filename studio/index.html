@@ -2362,13 +2362,16 @@
       // pero ya no manejan el semáforo — lo que importa es no dejar a un cliente
       // sin respuesta. _openBugs queda como nombre interno = mensajes sin leer.)
       const activos = await Promise.all((usuarios || []).map(async (u) => {
-        const { count } = await sb
-          .from('notas_coach')
-          .select('id', { count: 'exact', head: true })
-          .eq('usuario_id', u.id)
-          .eq('de', 'cliente')
-          .eq('leido', false);
-        return { ...u, _openBugs: count || 0, _origin: originMap.get(u.email.toLowerCase()) || null };
+        // 2 conteos por clienta: mensajes sin leer (semáforo) + semanas cerradas
+        // sin análisis (CIERRE LIBRE: la semana se cierra sola y el análisis queda
+        // pendiente — este badge le recuerda al coach a quién empujar).
+        const [notas, cierresPend] = await Promise.all([
+          sb.from('notas_coach').select('id', { count: 'exact', head: true })
+            .eq('usuario_id', u.id).eq('de', 'cliente').eq('leido', false),
+          sb.from('cierres_semanales').select('id', { count: 'exact', head: true })
+            .eq('usuario_id', u.id).is('analisis', null),
+        ]);
+        return { ...u, _openBugs: notas.count || 0, _pendAnalisis: cierresPend.count || 0, _origin: originMap.get(u.email.toLowerCase()) || null };
       }));
 
       // Compute traffic-light bucket counts for dashboard
@@ -2425,6 +2428,7 @@
       <th>Tipo</th>
       <th>Última actividad</th>
       <th>Cobro</th>
+      <th>Análisis</th>
       <th class="cell-right">Bugs</th>
     </tr></thead>`;
 
@@ -2451,6 +2455,11 @@
         <td>${c._isInvited ? '<span class="badge badge-pending">pendiente</span>' : '<span class="badge badge-accent">activo</span>'}</td>
         <td class="cell-dim">${fmtRelative(c.last_active || c.created_at)}</td>
         <td><span class="tl tl-${cobro.color}" title="${esc(cobroTitle)}"><span class="tl-dot"></span>${cobroLabel}</span></td>
+        <td>${c._isInvited
+          ? '<span class="cell-dim">—</span>'
+          : (c._pendAnalisis > 0
+            ? `<span class="badge badge-warning" title="Semana${c._pendAnalisis > 1 ? 's' : ''} cerrada${c._pendAnalisis > 1 ? 's' : ''} sin análisis — recordale hacerlo (2 fotos + IA)">📸 ${c._pendAnalisis} pend.</span>`
+            : '<span class="cell-dim">al día</span>')}</td>
         <td class="cell-right">
           ${c._openBugs > 0 ? `<span class="badge badge-danger">${c._openBugs}</span>` : '<span class="cell-dim">0</span>'}
         </td>
