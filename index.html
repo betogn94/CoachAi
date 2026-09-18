@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260918-2210-deploy">
+<meta name="app-version" content="20260918-2217-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11391,6 +11391,22 @@ body.alimv2-on.theme-king .alimv2-kcal-chip { color: var(--accent); }
   box-shadow: 0 6px 16px var(--av2-glow);
 }
 .alimv2-check[disabled] { opacity: .3; cursor: default; }
+
+/* Pantallas angostas (teléfonos reales): recuperar milímetros horizontales
+   para que la descripción entre en ~2 líneas como en pantallas anchas —
+   menos padding de página (18→12), foto 56px, check 28px, letra 10.5px.
+   Los márgenes de summary/tips acompañan para que todos los bordes alineen. */
+@media (max-width: 430px) {
+  body.alimv2-on .cai-alim-meals { padding-left: 12px; padding-right: 12px; }
+  body.alimv2-on .cai-alim-summary { margin-left: 12px; margin-right: 12px; }
+  body.alimv2-on .alim-tips-card { margin-left: 12px; margin-right: 12px; }
+  .alimv2-days { padding-left: 12px; padding-right: 12px; }
+  .alimv2-meal { padding: 9px; gap: 8px; }
+  .alimv2-meal-img { width: 56px; min-height: 56px; flex-basis: 56px; }
+  .alimv2-meal-detail { font-size: 10.5px; }
+  .alimv2-check { width: 28px; height: 28px; }
+  .alimv2-check svg { width: 14px; height: 14px; }
+}
 
 /* ============ MI ALIMENTACIÓN — week view (mirror Mi Entreno) ============ */
 /* Daily-target card — KCAL + macros. Crystal-depth chrome matches
