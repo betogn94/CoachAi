@@ -156,10 +156,21 @@ function userWeek(createdAt, tz, todayLocal) {
   return { weekNum: Math.floor(daysSince / 7) + 1, dayInWeek: daysSince % 7 };
 }
 
-function buildCierreSemana() {
+// CIERRE LIBRE (2026-09-15): la semana se cierra SOLA al abrir la app — el push
+// ya no pide "cerrala". Dos estados: (a) todavía no abrió la app → invitar a
+// entrar (el auto-cierre corre solo y le entrega el plan nuevo); (b) ya se
+// auto-cerró pero el análisis quedó pendiente → invitar al análisis.
+function buildSemanaLista() {
   return {
     title: '📊 ¡Terminaste tu semana!',
-    body: 'Cerrala para ver tu progreso y recibir tu plan nuevo. 💪',
+    body: 'Entrá a ver tu resumen — tu plan nuevo ya te espera. 💪',
+    url: '/', tag: 'cierre-semana',
+  };
+}
+function buildAnalisisPendiente() {
+  return {
+    title: '📸 Tu análisis te espera',
+    body: 'Dos fotos y la IA te muestra el progreso de tu semana. Cuando quieras. ✨',
     url: '/', tag: 'cierre-semana',
   };
 }
@@ -277,7 +288,8 @@ export default async function handler(req, res) {
         // En test mostramos el mensaje aunque no falte nada (sample = ambos).
         payload = buildCierreDia(missing.length ? missing : ['comidas', 'entreno']);
       }
-      else if (testTipo === 'cierre_semana') payload = buildCierreSemana();
+      else if (testTipo === 'cierre_semana') payload = buildSemanaLista();
+      else if (testTipo === 'analisis_pendiente') payload = buildAnalisisPendiente();
       else if (testTipo === 'logro') {
         const lg = (await sbGet(`user_logros?usuario_id=eq.${u.id}&select=logro_key,titulo,descripcion&order=awarded_at.desc&limit=1`))[0];
         payload = buildLogroNotif(lg || { logro_key: 'sample', titulo: 'Semana perfecta' });
@@ -340,18 +352,22 @@ export default async function handler(req, res) {
         }
       }
 
-      // #4 CERRÁ TU SEMANA — ~20:00 del ÚLTIMO día de su semana (dayInWeek 6) y,
-      // como catch-up, el día siguiente (dayInWeek 0). Solo si NO cerró esa semana.
-      // (Se limita solo a esos 2 días → máx 2 avisos, no hostiga.)
+      // #4 SEMANA LISTA / ANÁLISIS PENDIENTE — ~20:00 del ÚLTIMO día de su semana
+      // (dayInWeek 6) y, como catch-up, el día siguiente (dayInWeek 0). Con CIERRE
+      // LIBRE la semana se cierra sola al abrir la app, así que el push depende del
+      // estado: sin cierre → invitar a entrar; cierre auto sin análisis → invitar
+      // al análisis. (Mismos 2 días → máx 2 avisos, no hostiga.)
       if (lp.hour === 20 && u.created_at) {
         const w = userWeek(u.created_at, u.timezone, lp.fecha);
         let targetWeek = null;
         if (w && w.dayInWeek === 6) targetWeek = w.weekNum;                       // último día
         else if (w && w.dayInWeek === 0 && w.weekNum > 1) targetWeek = w.weekNum - 1; // día siguiente
         if (targetWeek) {
-          const cierre = (await sbGet(`cierres_semanales?usuario_id=eq.${u.id}&semana_num=eq.${targetWeek}&select=id&limit=1`))[0];
-          if (!cierre && await claimLog(u.id, 'cierre_semana', lp.fecha)) {
-            const n = await pushToUser(u.id, buildCierreSemana());
+          const cierre = (await sbGet(`cierres_semanales?usuario_id=eq.${u.id}&semana_num=eq.${targetWeek}&select=id,analisis&limit=1`))[0];
+          const payload = !cierre ? buildSemanaLista()
+            : (!cierre.analisis ? buildAnalisisPendiente() : null);
+          if (payload && await claimLog(u.id, 'cierre_semana', lp.fecha)) {
+            const n = await pushToUser(u.id, payload);
             sentLog.push({ uid: u.id.slice(0, 8), tipo: 'cierre_semana', sent: n });
           }
         }
