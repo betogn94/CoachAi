@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260918-1339-deploy">
+<meta name="app-version" content="20260918-1418-medalla-rompe-records">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -30361,6 +30361,8 @@ const LOGROS_CATALOG = [
   { key:'cien_entrenos',      titulo:'100 entrenos', desc:'100 entrenos. Esto es disciplina pura.',                    color:'amber', emblem:'barbell', num:100 },
   { key:'cien_comidas',       titulo:'100 comidas',  desc:'100 comidas registradas. La nutrición es la mitad del trabajo.', color:'amber', emblem:'utensils', num:100 },
   { key:'quinientas_comidas', titulo:'500 comidas',  desc:'500 comidas registradas. Un hábito de verdad.',             color:'amber', emblem:'utensils', num:500 },
+  // — Fuerza —
+  { key:'primer_record', titulo:'Rompe-récords', desc:'Superaste tu mejor marca por primera vez. ¡A por la próxima!', color:'amber', emblem:'star' },
   // — Permanencia —
   { key:'primer_mes', titulo:'Primer mes', desc:'Un mes entero en CoachAI. ¡Esto es un estilo de vida!', color:'rose', emblem:'calendar', num:1 },
   { key:'tres_meses', titulo:'3 meses',    desc:'Tres meses sostenidos. Pocos llegan acá.',             color:'rose', emblem:'calendar', num:3 },
@@ -32834,7 +32836,35 @@ function _prCheck(dayIdx, exIdx, serie, val, inputEl) {
     if (!cur.hist) return; // récord real = contra semanas anteriores
     _prCelebrate(ex.name, v, prev, inputEl);
     try { trackEvent('pr_hit', { ej: String(ex.name).slice(0, 60), kg: v, prev }); } catch (e) {}
+    try { _prAwardMedalla(); } catch (e) {}
   } catch (e) { /* la celebración jamás rompe el guardado */ }
+}
+
+// Medalla "Rompe-récords": se otorga UNA vez, en el momento del primer récord real.
+// Insertamos con celebrado=true + notificado=true (la celebración la disparamos acá
+// mismo tras el toast dorado; así ni checkAndAwardLogros ni el push del cron duplican).
+let _prMedalDone = false;
+async function _prAwardMedalla() {
+  try {
+    if (_prMedalDone || !sbClient || !currentUser) return;
+    if (currentUser.role && currentUser.role !== 'user') return;
+    if (typeof _getImpersonateUid === 'function' && _getImpersonateUid()) return;
+    const tpl = LOGRO_BY_KEY['primer_record'];
+    if (!tpl) return;
+    const { data: existing } = await sbClient.from('user_logros')
+      .select('logro_key').eq('usuario_id', currentUser.id).eq('logro_key', 'primer_record').limit(1);
+    if (existing && existing.length) { _prMedalDone = true; return; }
+    await sbClient.from('user_logros').upsert([{
+      usuario_id: currentUser.id, logro_key: 'primer_record',
+      titulo: tpl.titulo, descripcion: tpl.desc, icon: tpl.emblem,
+      notificado: true, celebrado: true,
+    }], { onConflict: 'usuario_id,logro_key', ignoreDuplicates: true });
+    _prMedalDone = true;
+    try { renderPerfilLogros(); } catch (e) {}
+    try { trackEvent('logros_awarded', { keys: 'primer_record', silent: false }); } catch (e) {}
+    // Dejar que el toast dorado termine su momento → después el modal de medalla nueva.
+    setTimeout(() => { try { queueLogroCele(tpl); } catch (e) {} }, 2600);
+  } catch (e) { console.warn('[pr] medalla:', e); }
 }
 
 function _prCelebrate(exName, v, prev, inputEl) {
