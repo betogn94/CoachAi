@@ -24,3 +24,6 @@ tmp-generation-dump.json
 # Exports de datos de clientas (no versionar — privacidad)
 dieta-*.md
 rutina-*.md
+
+# Evidencias/documentos de clientas: NUNCA al repo (quedan locales)
+evidencia-*
