@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260918-1418-medalla-rompe-records">
+<meta name="app-version" content="20260918-1430-tutorial-retirado--chips-i-lo-reemplazan-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -2201,67 +2201,6 @@ body.theme-light .cai-perfil-tutorial-btn {
   background: var(--surface) !important;
   border: 1px solid rgba(124, 106, 255,0.28) !important;
   color: var(--accent) !important;
-}
-body.theme-light .tour-card {
-  background: rgba(255, 255, 255, 0.82) !important;
-  color: var(--text) !important;
-  border: 1px solid rgba(124, 106, 255,0.35) !important;
-  box-shadow:
-    0 24px 64px rgba(26,26,38,0.18),
-    0 0 0 1px rgba(124, 106, 255,0.10),
-    inset 0 1px 0 rgba(255,255,255,0.60) !important;
-}
-body.theme-light .tour-progress {
-  background: rgba(124, 106, 255,0.14) !important;
-}
-body.theme-light .tour-progress-bar {
-  background: linear-gradient(90deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
-}
-body.theme-light .tour-step-num {
-  color: var(--accent) !important;
-}
-body.theme-light .tour-title {
-  color: var(--text) !important;
-}
-body.theme-light .tour-body {
-  color: var(--muted) !important;
-}
-body.theme-light .tour-close {
-  color: var(--muted) !important;
-}
-body.theme-light .tour-close:hover {
-  color: var(--text) !important;
-}
-body.theme-light .tour-btn-back {
-  border: 1px solid var(--border) !important;
-  color: var(--muted) !important;
-}
-body.theme-light .tour-btn-back:hover:not(:disabled) {
-  color: var(--accent) !important;
-  border-color: rgba(124, 106, 255,0.40) !important;
-}
-body.theme-light .tour-btn-skip {
-  color: var(--muted) !important;
-}
-body.theme-light .tour-btn-skip:hover {
-  color: var(--accent) !important;
-}
-body.theme-light .tour-btn-next {
-  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
-  color: #fff !important;
-  box-shadow: 0 4px 14px rgba(124, 106, 255,0.32) !important;
-}
-body.theme-light .tour-btn-next:hover {
-  box-shadow: 0 6px 18px rgba(124, 106, 255,0.42) !important;
-}
-body.theme-light .tour-replay-btn {
-  background: rgba(124, 106, 255,0.10) !important;
-  border: 1px solid rgba(124, 106, 255,0.30) !important;
-  color: var(--accent) !important;
-}
-body.theme-light .tour-replay-btn:hover {
-  background: rgba(124, 106, 255,0.18) !important;
-  border-color: rgba(124, 106, 255,0.50) !important;
 }
 body.theme-light .cai-alim-summary-kcal.kcal-achieved {
   color: #15803D !important;
@@ -4444,63 +4383,6 @@ body.theme-king .cai-perfil-tutorial-btn {
   background: var(--surface) !important;
   border: 1px solid rgba(255,79,123,0.28) !important;
   color: var(--accent) !important;
-}
-
-/* --- P. Welcome tour overlay (in-app guided tour) ---
-   The default tour-card is a translucent dark glass that lets the app
-   show through. KING flips it to a translucent LIGHT glass (cream-white
-   with backdrop blur) so the coral-painted app behind reads correctly.
-   The coral palette also takes over the progress bar, the "Paso X / N"
-   eyebrow, the Next button gradient + glow, and the Back/Skip muted
-   tints. Typography stays full-opacity for legibility on the blur. */
-body.theme-king .tour-card {
-  background: rgba(255, 255, 255, 0.82) !important;
-  color: var(--text) !important;
-  border: 1px solid rgba(255,79,123,0.35) !important;
-  box-shadow:
-    0 24px 64px rgba(26,26,38,0.18),
-    0 0 0 1px rgba(255,107,149,0.10),
-    inset 0 1px 0 rgba(255,255,255,0.60) !important;
-}
-body.theme-king .tour-progress {
-  background: rgba(255,79,123,0.14) !important;
-}
-body.theme-king .tour-progress-bar {
-  background: linear-gradient(90deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
-}
-body.theme-king .tour-step-num { color: var(--accent) !important; }
-body.theme-king .tour-title { color: var(--text) !important; }
-body.theme-king .tour-body  { color: var(--muted) !important; }
-body.theme-king .tour-close { color: var(--muted) !important; }
-body.theme-king .tour-close:hover { color: var(--text) !important; }
-body.theme-king .tour-btn-back {
-  border: 1px solid var(--border) !important;
-  color: var(--muted) !important;
-}
-body.theme-king .tour-btn-back:hover:not(:disabled) {
-  color: var(--accent) !important;
-  border-color: rgba(255,79,123,0.40) !important;
-}
-body.theme-king .tour-btn-skip { color: var(--muted) !important; }
-body.theme-king .tour-btn-skip:hover { color: var(--accent) !important; }
-body.theme-king .tour-btn-next {
-  background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent3) 100%) !important;
-  color: #fff !important;
-  box-shadow: 0 4px 14px rgba(255,79,123,0.32) !important;
-}
-body.theme-king .tour-btn-next:hover {
-  box-shadow: 0 6px 18px rgba(255,79,123,0.42) !important;
-}
-/* Legacy .tour-replay-btn (different from .cai-perfil-tutorial-btn) — used
-   in case any code path still renders the pill version. */
-body.theme-king .tour-replay-btn {
-  background: rgba(255,79,123,0.10) !important;
-  border: 1px solid rgba(255,79,123,0.30) !important;
-  color: var(--accent) !important;
-}
-body.theme-king .tour-replay-btn:hover {
-  background: rgba(255,79,123,0.18) !important;
-  border-color: rgba(255,79,123,0.50) !important;
 }
 
 /* --- end of KING overlay (landing/home/nav/drawer/chat/mi-alim/mi-entreno/perfil) --- */
@@ -9346,7 +9228,7 @@ footer {
 .mi-info-msg.ok { color: var(--accent3); }
 .mi-info-msg.err { color: #e96a6a; }
 
-/* Replay-tour row stays subtle below the info card */
+/* Edit-profile row stays subtle below the info card */
 .perfil-edit-row {
   text-align: center;
   margin-top: 8px;
@@ -10332,104 +10214,6 @@ footer {
   letter-spacing: 0.2px;
 }
 
-/* ============ Welcome tour overlay (in-app guided onboarding) ============ */
-.tour-overlay {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  z-index: 9999; padding: 14px 12px 18px;
-  pointer-events: none;
-  display: none;
-}
-.tour-overlay.active { display: block; }
-.tour-card {
-  max-width: 540px; margin: 0 auto;
-  /* Translucent dark glass so the app behind the card is visible (slightly
-     blurred for readability) — user can see what section we're talking
-     about, while the card text stays high-contrast on the dark blur. */
-  background: rgba(15, 15, 26, 0.78);
-  color: var(--text);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  backdrop-filter: blur(20px) saturate(140%);
-  border: 1px solid rgba(124,106,255,0.35);
-  border-radius: 18px; padding: 20px 22px 16px;
-  box-shadow:
-    0 24px 64px rgba(0,0,0,0.55),
-    0 0 0 1px rgba(46,207,181,0.08),
-    inset 0 1px 0 rgba(255,255,255,0.06);
-  position: relative;
-  pointer-events: auto;
-  animation: tour-card-in 0.28s cubic-bezier(0.18, 1.1, 0.4, 1.05);
-}
-@keyframes tour-card-in {
-  from { transform: translateY(28px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-.tour-close {
-  position: absolute; top: 7px; right: 9px;
-  background: none; border: none; color: var(--muted);
-  font-size: 22px; cursor: pointer; padding: 4px 8px;
-  line-height: 1; font-family: inherit;
-}
-.tour-close:hover { color: var(--text); }
-.tour-progress {
-  height: 3px; background: rgba(124,106,255,0.18);
-  border-radius: 100px; margin-bottom: 12px; overflow: hidden;
-}
-.tour-progress-bar {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent) 0%, var(--accent2) 50%, var(--accent3) 100%);
-  border-radius: 100px; transition: width 0.32s ease;
-  width: 0%;
-}
-.tour-step-num {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px; letter-spacing: 1.5px;
-  color: var(--accent3); text-transform: uppercase;
-  margin-bottom: 4px;
-}
-.tour-title {
-  font-size: 17px; font-weight: 700; color: var(--text);
-  line-height: 1.3; margin-bottom: 6px;
-  padding-right: 28px;
-}
-.tour-body {
-  font-size: 14px; color: var(--muted); line-height: 1.6;
-  margin-bottom: 16px;
-}
-.tour-actions {
-  display: flex; align-items: center; gap: 8px;
-}
-.tour-btn {
-  padding: 9px 14px; border-radius: 100px;
-  font-size: 12.5px; font-weight: 600; cursor: pointer;
-  border: 1px solid transparent; background: none;
-  font-family: inherit; transition: all 0.15s ease;
-}
-.tour-btn-back {
-  border: 1px solid var(--border); color: var(--muted);
-}
-.tour-btn-back:hover:not(:disabled) { color: var(--text); border-color: rgba(124,106,255,0.40); }
-.tour-btn-back:disabled { opacity: 0.30; cursor: not-allowed; }
-.tour-btn-skip {
-  margin-left: auto; color: var(--muted); font-size: 11.5px;
-}
-.tour-btn-skip:hover { color: var(--text); }
-.tour-btn-next {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
-  color: white; padding: 10px 20px; font-weight: 700;
-  box-shadow: 0 4px 14px rgba(124,106,255,0.32);
-}
-.tour-btn-next:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(124,106,255,0.42); }
-
-/* "Ver tutorial otra vez" CTA in Perfil */
-.tour-replay-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: rgba(124,106,255,0.10); border: 1px solid rgba(124,106,255,0.30);
-  color: var(--accent-bright);
-  padding: 9px 16px; border-radius: 100px;
-  font-size: 12.5px; font-weight: 600; cursor: pointer;
-  font-family: inherit; transition: background 0.15s, border-color 0.15s;
-}
-.tour-replay-btn:hover { background: rgba(124,106,255,0.22); border-color: rgba(124,106,255,0.55); }
 .beta-inv-badge {
   font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
   padding: 3px 9px; border-radius: 100px; white-space: nowrap;
@@ -12964,7 +12748,6 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
   .onb-back-btn:hover, .onb-next-btn:hover,
   .alim-edit-close:hover, .alim-edit-cancel:hover, .alim-edit-save:hover,
   .ej-modal-close:hover,
-  .tour-close:hover, .tour-btn-skip:hover, .tour-btn-next:hover, .tour-replay-btn:hover,
   .progress-skip-link:hover,
   .plan-toggle-btn:hover,
   .feedback-fab:hover, #feedback-fab:hover,
@@ -17175,22 +16958,6 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   </div>
 </div>
 
-<!-- Welcome tour — fixed-bottom card walks the user through the app -->
-<div class="tour-overlay" id="tour-overlay" role="dialog" aria-modal="false" aria-label="Tutorial de CoachAI">
-  <div class="tour-card">
-    <button class="tour-close" onclick="endTour(true)" aria-label="Cerrar tutorial">×</button>
-    <div class="tour-progress"><div class="tour-progress-bar" id="tour-progress-bar"></div></div>
-    <div class="tour-step-num" id="tour-step-num">1 / 6</div>
-    <div class="tour-title" id="tour-title">—</div>
-    <div class="tour-body" id="tour-body">—</div>
-    <div class="tour-actions">
-      <button class="tour-btn tour-btn-back" id="tour-btn-back" onclick="prevTourStep()">← Atrás</button>
-      <button class="tour-btn tour-btn-skip" onclick="endTour(true)">Saltar</button>
-      <button class="tour-btn tour-btn-next" id="tour-btn-next" onclick="nextTourStep()">Siguiente →</button>
-    </div>
-  </div>
-</div>
-
 <!-- CIERRE DE SEMANA -->
 <div class="cierre-overlay" id="cierre-overlay">
   <div class="cierre-card coach-card">
@@ -18711,136 +18478,14 @@ function stopHeartbeat() {
 }
 
 // ============================
-// WELCOME TOUR — in-app guided onboarding
+// WELCOME TOUR — RETIRADO (2026-09-18)
 // ============================
-// Fires automatically on the first launchCoach() after onboarding, walks the
-// user through the 5 key sections of the app, then sets a flag in localStorage
-// so it doesn't re-fire. Users can replay it anytime from the Perfil section.
+// El tutorial guiado se retiró: lo reemplazan los chips "i" de ayuda contextual
+// por sección (INFO DE SECCIÓN, más abajo). Se conserva TOUR_DONE_KEY porque los
+// LOGROS lo usan como señal de "primera entrada" (bienvenida silenciosa, ver
+// checkAndAwardLogros) y delete-account lo limpia. La key se marca en
+// maybeStartTour() (sin UI).
 const TOUR_DONE_KEY = 'coachai_tour_done_v1';
-// 7-step in-app guided tour. Each step has a nav fn that brings the right
-// section into view as the card's backdrop, so the user sees what we're
-// describing through the translucent card. Step 6 (Cierre Semanal) doesn't
-// have its own section — the modal lives inside Home — so we scroll Home
-// to the SEGUIMIENTO SEMANAL block instead of just landing on Home top.
-const TOUR_STEPS = [
-  {
-    nav: () => showHome(),
-    // Default tenant (CoachAI) is mass-market — masculine reads as
-    // gender-neutral in Spanish. KING (Jesús's whitelabel) serves only
-    // women clients, so the feminine "Bienvenida" is used there. Same
-    // override pattern can be reused for any other step that needs
-    // gender-aware copy on KING. Resolved at render time in
-    // renderTourStep() via the body.theme-king class check.
-    title: '¡Bienvenido! 👋',
-    titleKing: '¡Bienvenida! 👋',
-    body: 'Acabás de terminar tu onboarding. En 40 segundos te muestro las partes principales de la app. Podés saltarlo y retomarlo cuando quieras desde tu Perfil.',
-  },
-  {
-    nav: () => showHome(),
-    title: '🏠 Inicio',
-    body: 'Tu pantalla principal: entrenamientos de la semana, calorías de hoy, próxima comida y qué te toca ahora. Es el resumen rápido de todo.',
-  },
-  {
-    nav: () => showChat(),
-    title: '💬 Chat con tu coach',
-    body: 'Tu coach IA disponible 24/7. Pedile tu rutina o dieta de la semana, hacele preguntas o ajustá lo que necesites. Para arrancar tocá los botones de "Dieta" o "Rutina" abajo.',
-  },
-  {
-    nav: () => showMiEntreno(),
-    title: '💪 Mi Entreno',
-    body: 'Tu rutina organizada día por día. Cargá tu peso por cada serie a medida que entrenás y tocá "▶ Cómo se hace" en cualquier ejercicio para ver la demo.',
-  },
-  {
-    nav: () => showDiario(),
-    title: '🥗 Mi Alimentación',
-    body: 'Tu plan de comidas semanal. Tildá ✓ cada comida cumplida o tocá ✏️ para editarla si comiste otra cosa — la IA recalcula las calorías solas.',
-  },
-  {
-    // Cierre Semanal lives at the bottom of Home, inside the "Seguimiento
-    // Semanal" block. We scroll it into view so the user actually sees the
-    // section we're describing behind the card.
-    nav: () => {
-      showHome();
-      requestAnimationFrame(() => {
-        const el = document.querySelector('.cai-home-semanas');
-        if (el && typeof el.scrollIntoView === 'function') {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      });
-    },
-    title: '📸 Cierre semanal',
-    body: 'Al final de cada semana subís dos fotos (frente + espalda) y la IA te arma un análisis completo de tu progreso. Lo ves acá abajo, en "Seguimiento Semanal".',
-  },
-  {
-    nav: () => showPerfil(),
-    title: '👤 Tu Perfil',
-    body: 'Tus datos, tus planes guardados, y este tutorial siempre accesible. ¡A entrenar! 💪',
-    isLast: true,
-  },
-];
-
-let _tourIdx = 0;
-
-function startTour(force) {
-  // Skip if already completed unless explicitly forced (replay from Perfil)
-  if (!force) {
-    try { if (localStorage.getItem(TOUR_DONE_KEY) === '1') return; } catch (e) {}
-  }
-  _tourIdx = 0;
-  const overlay = document.getElementById('tour-overlay');
-  if (!overlay) return;
-  renderTourStep();
-  overlay.classList.add('active');
-  trackEvent('tour_started', { forced: !!force });
-}
-
-function renderTourStep() {
-  const step = TOUR_STEPS[_tourIdx];
-  if (!step) { endTour(false); return; }
-  // Navigate to the section this step is talking about
-  if (typeof step.nav === 'function') {
-    try { step.nav(); } catch (e) { console.warn('[CoachAI] tour nav err:', e); }
-  }
-  const num = document.getElementById('tour-step-num');
-  const title = document.getElementById('tour-title');
-  const body = document.getElementById('tour-body');
-  const bar = document.getElementById('tour-progress-bar');
-  const back = document.getElementById('tour-btn-back');
-  const next = document.getElementById('tour-btn-next');
-  if (num) num.textContent = `Paso ${_tourIdx + 1} / ${TOUR_STEPS.length}`;
-  // Tenant-aware copy: if the current tenant uses theme-king and the step
-  // ships a *King override, prefer it. Currently only the welcome step's
-  // salutation needs this (masculine for default, feminine for KING).
-  const isKing = document.body.classList.contains('theme-king');
-  if (title) title.textContent = (isKing && step.titleKing) ? step.titleKing : step.title;
-  if (body)  body.textContent  = (isKing && step.bodyKing)  ? step.bodyKing  : step.body;
-  if (bar) bar.style.width = `${((_tourIdx + 1) / TOUR_STEPS.length) * 100}%`;
-  if (back) back.disabled = _tourIdx === 0;
-  if (next) next.textContent = step.isLast ? '✓ Terminar' : 'Siguiente →';
-}
-
-function nextTourStep() {
-  if (_tourIdx < TOUR_STEPS.length - 1) {
-    _tourIdx++;
-    renderTourStep();
-  } else {
-    endTour(false);
-  }
-}
-
-function prevTourStep() {
-  if (_tourIdx > 0) {
-    _tourIdx--;
-    renderTourStep();
-  }
-}
-
-function endTour(skipped) {
-  const overlay = document.getElementById('tour-overlay');
-  if (overlay) overlay.classList.remove('active');
-  try { localStorage.setItem(TOUR_DONE_KEY, '1'); } catch (e) {}
-  trackEvent(skipped ? 'tour_skipped' : 'tour_completed', { step: _tourIdx + 1, total: TOUR_STEPS.length });
-}
 
 // ═══════════ INFO DE SECCIÓN — chips "i" con ayuda contextual ═══════════
 // Cada sección tiene un chip "i" que titila (CSS .is-new) hasta que se abre una
@@ -20120,19 +19765,23 @@ function hidePlanLoadingOverlay() {
   if (ov) ov.style.display = 'none';
   if (_planLoadingTimer) { clearTimeout(_planLoadingTimer); _planLoadingTimer = null; }
   if (_planLoadingRotator) { clearInterval(_planLoadingRotator); _planLoadingRotator = null; }
-  // Recién ahora (app a la vista) arranca el tour, si corresponde.
+  // Recién ahora (app a la vista) se marca la primera entrada (tutorial retirado).
   try { maybeStartTour(); } catch (e) {}
 }
 
-// Arranca el tour de bienvenida UNA sola vez, y NUNCA detrás de la pantalla de
-// carga (si está visible, se reintenta al cerrarla vía hidePlanLoadingOverlay).
+// El tutorial fue RETIRADO (2026-09-18): lo reemplazan los chips "i" por sección.
+// Esta función queda SOLO para marcar TOUR_DONE_KEY en la primera entrada — los
+// logros la usan como señal de "bienvenida silenciosa" (checkAndAwardLogros la
+// captura al arrancar). El delay evita ganarle la carrera a ese primer chequeo:
+// la 1ra entrada queda silenciosa igual que antes y desde la 2da se celebra.
 let _tourKicked = false;
 function maybeStartTour() {
   if (_tourKicked) return;
-  const ov = document.getElementById('plan-loading-overlay');
-  if (ov && ov.style.display === 'flex') return;  // todavía cargando → se llama al cerrar
   _tourKicked = true;
-  try { startTour(false); } catch (e) {}
+  try {
+    if (localStorage.getItem(TOUR_DONE_KEY) === '1') return;
+    setTimeout(() => { try { localStorage.setItem(TOUR_DONE_KEY, '1'); } catch (e) {} }, 5000);
+  } catch (e) {}
 }
 
 // Bienvenida LIMPIA del coach para nativos (reemplaza el auto-pedido en el chat).
@@ -23760,15 +23409,8 @@ async function launchCoach() {
     _pendingPlanesEntregados = null;
   }
 
-  // First-time welcome tour: fires as soon as the home backdrop has
-  // painted — feels like a welcome, not an interruption. The previous
-  // setTimeout of 1200ms was long enough for users to start tapping
-  // around, and the tour landed mid-navigation as a popup. Two nested
-  // requestAnimationFrame() calls guarantee the browser has finished
-  // ONE full paint cycle (the home behind the tour card) before the
-  // overlay slides in (~16-32ms in practice, below human reaction).
-  // startTour() is a no-op if the user already completed it
-  // (localStorage flag), so reruns of launchCoach() are safe.
+  // Primera entrada: maybeStartTour() solo marca TOUR_DONE_KEY (el tutorial fue
+  // retirado — queda la señal para los logros). Idempotente en reruns de launchCoach().
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       try { maybeStartTour(); } catch (e) {}
