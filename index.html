@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260918-2003-deploy">
+<meta name="app-version" content="20260918-2020-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11277,7 +11277,10 @@ body.alimv2-on {
   --av2-shadow: 0 16px 50px rgba(0,0,0,0.45);
   --av2-track: rgba(255,255,255,0.09);
 }
-body.alimv2-on.theme-light {
+/* King también es tema CLARO (fondo blanco rosado) — comparte los tokens
+   claros. Sin esto las cards salen con el vidrio dark (gris plomo). */
+body.alimv2-on.theme-light,
+body.alimv2-on.theme-king {
   --av2-card: #ffffff;
   --av2-line: rgba(26,26,46,0.08);
   --av2-shadow: 0 10px 30px rgba(26,26,46,0.07);
@@ -11354,7 +11357,8 @@ body.alimv2-on .cai-alim-meals { flex-direction: column; gap: 12px; }
   background: rgba(124,106,255,0.12); color: var(--accent-bright);
   padding: 3px 8px; border-radius: 8px;
 }
-body.alimv2-on.theme-light .alimv2-kcal-chip { color: var(--accent); background: rgba(124,106,255,0.10); }
+body.alimv2-on.theme-light .alimv2-kcal-chip,
+body.alimv2-on.theme-king .alimv2-kcal-chip { color: var(--accent); background: rgba(124,106,255,0.10); }
 .alimv2-macros { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted2); letter-spacing: .3px; }
 .alimv2-meal-edit {
   border: none; background: none; color: var(--muted2); cursor: pointer;
