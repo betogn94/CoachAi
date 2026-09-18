@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260918-2206-deploy">
+<meta name="app-version" content="20260918-2210-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11361,7 +11361,6 @@ body.alimv2-on .cai-alim-meals { flex-direction: column; gap: 12px; }
 .alimv2-meal-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .alimv2-meal-top { display: flex; align-items: baseline; gap: 8px; }
 .alimv2-meal-name { font-family: 'Bebas Neue', sans-serif; font-size: 15.5px; letter-spacing: .8px; color: var(--text); }
-.alimv2-meal-hour { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted2); letter-spacing: .5px; }
 .alimv2-meal-detail { font-size: 11px; color: var(--muted); line-height: 1.45; margin: 3px 0 5px; overflow-wrap: break-word; }
 .alimv2-meal-detail em { font-style: normal; opacity: .7; }
 .alimv2-meal-nums { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: auto; }
@@ -17422,7 +17421,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     <summary class="alim-tips-title"><span>📋 Cómo leer tu plan</span><span class="alim-tips-chev">▾</span></summary>
     <div class="alim-tips-body">
       <div class="alim-tips-item"><span class="ti-ic">🔀</span><span>Cuando ves <b>"o"</b> entre dos alimentos, <b>elegí uno</b> — no comés los dos.</span></div>
-      <div class="alim-tips-item"><span class="ti-ic">➕</span><span><b>"///"</b> significa que esos alimentos van <b>juntos</b> en la misma comida.</span></div>
+      <div class="alim-tips-item"><span class="ti-ic">➕</span><span><b>"+"</b> significa que esos alimentos van <b>juntos</b> en la misma comida.</span></div>
       <div class="alim-tips-item"><span class="ti-ic">⚖️</span><span>Todos los alimentos se pesan <b>cocidos</b>.</span></div>
       <div class="alim-tips-item"><span class="ti-ic">🥗</span><span>En ensaladas podés usar vinagres, salsas 0 cal, sal a gusto (sin exagerar) y cualquier condimento. <b>Evitá los aceites</b> si no están incluidos en esa comida.</span></div>
       <!-- Notas generales del plan (dinámicas, extraídas por parseDietaContenido) -->
@@ -24711,19 +24710,15 @@ async function renderMiAlimentacion() {
   const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
   const EDIT_SVG  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
 
-  // Display helper: coaches like Jesús write meal options as
-  // "3 claras + 1 huevo + 3 tostadas" using "+" between ingredients,
-  // which on a narrow phone column visually melts together. Swap
-  // " + " for " /// " purely at render time — separates ingredients
-  // into visually distinct chunks without losing the meaning. The
-  // raw text in DB stays as the coach pasted it.
-  // " / " = alternativas (elegí una) → lo mostramos como " o " (imposible de leer
-  // como "y"). " + " = combinados (van juntos) → " /// ". El orden importa:
-  // convertimos "/" ANTES de crear los "///" (que contienen "/") para no pisarlos.
-  // Solo display — el texto en la base queda como lo pegó el coach.
+  // Display helper — solo afecta el render, el texto en la base queda como
+  // lo pegó el coach.
+  // " / " = alternativas (elegí una) → se muestra como " o " (imposible de
+  // leer como "y"). " + " = combinados (van juntos) → se muestra TAL CUAL:
+  // el "+" es universal y la card "Cómo leer tu plan" lo explica. (Antes se
+  // convertía a "///"; retirado 2026-09-18 a pedido de Beto — confundía más
+  // de lo que separaba.)
   const _displayMealContent = (txt) => (txt || '')
-    .replace(/\s\/\s/g, ' o ')
-    .replace(/\s\+\s/g, ' /// ');
+    .replace(/\s\/\s/g, ' o ');
   // Las dietas migradas estilo Jesús separan los GRUPOS de una comida con " · "
   // (proteína · carbo · grasa · infusión) y dentro de cada grupo las opciones con
   // "/". En una columna angosta todo eso se renderiza como UNA línea corrida →
@@ -24794,7 +24789,6 @@ async function renderMiAlimentacion() {
         <div class="alimv2-meal-body">
           <div class="alimv2-meal-top">
             <div class="alimv2-meal-name">${_esc(m.name)}</div>
-            ${v.hour ? `<div class="alimv2-meal-hour">${v.hour}</div>` : ''}
           </div>
           <div class="alimv2-meal-detail">${_mealDetailHtml(v.st.customText || m.content)}${v.st.customText ? ' <em>· editada</em>' : ''}</div>
           <div class="alimv2-meal-nums">
