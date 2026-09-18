@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260918-2027-deploy">
+<meta name="app-version" content="20260918-2112-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11329,22 +11329,20 @@ body.alimv2-on .alim-target-card { display: none !important; }
 
 .alimv2-rings { display: flex; justify-content: space-between; gap: 8px; margin: 14px 0 4px; }
 .alimv2-ring { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.alimv2-ring svg { width: 56px; height: 56px; transform: rotate(-90deg); }
+/* OJO: la rotación -90° del arco va por ATRIBUTO SVG en el <g> (no CSS):
+   iOS Safari rota el <text> con otro transform-origin y la letra desaparecía. */
+.alimv2-ring svg { width: 56px; height: 56px; }
 .alimv2-ring .track { fill: none; stroke: var(--av2-track); stroke-width: 5; }
-.alimv2-ring .fill { fill: none; stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset .5s cubic-bezier(.22,1,.36,1); }
-.alimv2-ring .ctr {
-  font-family: inherit; font-size: 12px; font-weight: 800;
-  transform: rotate(90deg); transform-origin: center;
-  text-anchor: middle; dominant-baseline: central; fill: var(--text);
-}
+.alimv2-ring .fill { fill: none; stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset .8s cubic-bezier(.22,1,.36,1), stroke .3s; }
+.alimv2-ring .ctr { font-family: inherit; font-size: 12px; font-weight: 800; fill: var(--text); }
 .alimv2-ring .rv { font-size: 11px; font-weight: 700; color: var(--text); }
 .alimv2-ring .rv small { color: var(--muted2); font-weight: 500; }
 .alimv2-ring .rp { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted2); }
 
 body.alimv2-on .cai-alim-meals { flex-direction: column; gap: 12px; }
 .alimv2-meal {
-  background: var(--av2-card); border: 1px solid var(--av2-line); border-radius: 20px;
-  padding: 12px; display: flex; gap: 12px; align-items: stretch;
+  background: var(--av2-card); border: 1px solid var(--av2-line); border-radius: 18px;
+  padding: 10px; display: flex; gap: 10px; align-items: stretch;
   box-shadow: var(--av2-shadow); position: relative; overflow: hidden;
   transition: border-color .2s, background .2s;
 }
@@ -11353,29 +11351,29 @@ body.alimv2-on .cai-alim-meals { flex-direction: column; gap: 12px; }
   background: linear-gradient(0deg, var(--av2-tint-bg), var(--av2-tint-bg)), var(--av2-card);
 }
 .alimv2-meal-img {
-  width: 86px; min-height: 86px; flex: 0 0 86px; border-radius: 14px;
+  width: 64px; min-height: 64px; flex: 0 0 64px; border-radius: 12px;
   background-color: var(--av2-chip-bg);
   background-size: cover; background-position: center; position: relative;
 }
 .alimv2-meal.done .alimv2-meal-img::after {
-  content: ''; position: absolute; inset: 0; border-radius: 14px;
+  content: ''; position: absolute; inset: 0; border-radius: 12px;
   background: var(--av2-tint-img);
 }
 .alimv2-meal-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .alimv2-meal-top { display: flex; align-items: baseline; gap: 8px; }
-.alimv2-meal-name { font-family: 'Bebas Neue', sans-serif; font-size: 17px; letter-spacing: .8px; color: var(--text); }
-.alimv2-meal-hour { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--muted2); letter-spacing: .5px; }
-.alimv2-meal-detail { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 4px 0 6px; overflow-wrap: break-word; }
+.alimv2-meal-name { font-family: 'Bebas Neue', sans-serif; font-size: 15.5px; letter-spacing: .8px; color: var(--text); }
+.alimv2-meal-hour { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted2); letter-spacing: .5px; }
+.alimv2-meal-detail { font-size: 11px; color: var(--muted); line-height: 1.45; margin: 3px 0 5px; overflow-wrap: break-word; }
 .alimv2-meal-detail em { font-style: normal; opacity: .7; }
 .alimv2-meal-nums { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: auto; }
 .alimv2-kcal-chip {
-  font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
   background: var(--av2-chip-bg); color: var(--accent-bright);
-  padding: 3px 8px; border-radius: 8px;
+  padding: 2px 7px; border-radius: 7px;
 }
 body.alimv2-on.theme-light .alimv2-kcal-chip,
 body.alimv2-on.theme-king .alimv2-kcal-chip { color: var(--accent); }
-.alimv2-macros { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted2); letter-spacing: .3px; }
+.alimv2-macros { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--muted2); letter-spacing: .3px; }
 .alimv2-meal-edit {
   border: none; background: none; color: var(--muted2); cursor: pointer;
   font-family: inherit; font-size: 10.5px; font-weight: 700;
@@ -11384,11 +11382,11 @@ body.alimv2-on.theme-king .alimv2-kcal-chip { color: var(--accent); }
 .alimv2-meal-edit svg { width: 12px; height: 12px; }
 .alimv2-meal-checkcol { display: flex; align-items: center; padding-left: 2px; }
 .alimv2-check {
-  width: 34px; height: 34px; border-radius: 50%; cursor: pointer; flex: 0 0 auto;
+  width: 30px; height: 30px; border-radius: 50%; cursor: pointer; flex: 0 0 auto;
   border: 2px solid var(--muted2); background: none; color: transparent;
   display: flex; align-items: center; justify-content: center; transition: all .18s;
 }
-.alimv2-check svg { width: 17px; height: 17px; }
+.alimv2-check svg { width: 15px; height: 15px; }
 .alimv2-check.on {
   background: linear-gradient(135deg, var(--accent-bright), var(--accent));
   border-color: transparent; color: #fff;
@@ -24337,27 +24335,55 @@ function alimV2ImgFor(key, dayIdx, mealIdx) {
   return set[(dayIdx + mealIdx) % set.length] + '?auto=format&fit=crop&w=240&q=70';
 }
 
-// Anillo SVG de macro (P/C/G): progreso cumplido/plan del día. Rojo si el
+// Anillos SVG de macros (P/C/G): progreso cumplido/plan del día. Rojo si el
 // cumplido supera el plan >3% (misma tolerancia que el estado de kcal).
+// Render PERSISTENTE: el DOM de los anillos se construye una sola vez y los
+// tildes solo actualizan stroke-dashoffset → la transición CSS anima el arco
+// (reconstruir con innerHTML mataba la animación). En el primer paint el arco
+// anima desde 0% hasta el valor real.
+// GOTCHA iOS Safari: la rotación -90° va como atributo transform del <g>;
+// rotar el <svg>/<text> por CSS corre el texto de lugar y la letra desaparece.
+// Y el centrado vertical de la letra usa dy (dominant-baseline es inestable
+// en Safari).
 const _ALIM_V2_RING_COLORS = { P: 'var(--accent)', C: '#ff9f43', G: 'var(--accent3)' };
-function _alimV2Ring(letter, done, target) {
-  const pct = target > 0 ? Math.min(done / target, 1) : 0;
+function _alimV2RingsRender(box, items) {
   const R = 24, CIRC = 2 * Math.PI * R;
-  const off = CIRC * (1 - pct);
-  const over = target > 0 && done > target * 1.03;
-  const color = over ? '#e5484d' : _ALIM_V2_RING_COLORS[letter];
-  const pctLabel = target > 0 ? Math.round(done / target * 100) : 0;
-  return `
-    <div class="alimv2-ring">
-      <svg viewBox="0 0 56 56" aria-hidden="true">
-        <circle class="track" cx="28" cy="28" r="${R}"/>
-        <circle class="fill" cx="28" cy="28" r="${R}" stroke="${color}"
-          stroke-dasharray="${CIRC.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"/>
-        <text class="ctr" x="28" y="28">${letter}</text>
-      </svg>
-      <div class="rv"${over ? ' style="color:#e5484d"' : ''}>${done}<small>/${target}g</small></div>
-      <div class="rp">${pctLabel}%</div>
-    </div>`;
+  const firstPaint = box.dataset.built !== '1';
+  if (firstPaint) {
+    box.innerHTML = items.map(it => `
+      <div class="alimv2-ring" data-macro="${it.letter}">
+        <svg viewBox="0 0 56 56" aria-hidden="true">
+          <g transform="rotate(-90 28 28)">
+            <circle class="track" cx="28" cy="28" r="${R}"/>
+            <circle class="fill" cx="28" cy="28" r="${R}"
+              stroke-dasharray="${CIRC.toFixed(1)}" style="stroke-dashoffset:${CIRC.toFixed(1)}"/>
+          </g>
+          <text class="ctr" x="28" y="28" text-anchor="middle" dy="0.36em">${it.letter}</text>
+        </svg>
+        <div class="rv"></div>
+        <div class="rp"></div>
+      </div>`).join('');
+    box.dataset.built = '1';
+  }
+  items.forEach(it => {
+    const el = box.querySelector(`.alimv2-ring[data-macro="${it.letter}"]`);
+    if (!el) return;
+    const pct = it.target > 0 ? Math.min(it.done / it.target, 1) : 0;
+    const over = it.target > 0 && it.done > it.target * 1.03;
+    const fill = el.querySelector('.fill');
+    const off = (CIRC * (1 - pct)).toFixed(1);
+    fill.style.stroke = over ? '#e5484d' : _ALIM_V2_RING_COLORS[it.letter];
+    if (firstPaint) {
+      // Doble rAF: garantiza un frame pintado en 0% antes de transicionar.
+      requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.strokeDashoffset = off; }));
+    } else {
+      fill.style.strokeDashoffset = off;
+    }
+    const rv = el.querySelector('.rv');
+    rv.innerHTML = `${it.done}<small>/${it.target}g</small>`;
+    rv.style.color = over ? '#e5484d' : '';
+    el.querySelector('.rp').textContent = (it.target > 0 ? Math.round(it.done / it.target * 100) : 0) + '%';
+  });
 }
 
 async function renderMiAlimentacion() {
@@ -24668,10 +24694,11 @@ async function renderMiAlimentacion() {
   const ringsBox = document.getElementById('alimv2-rings');
   if (ringsBox) {
     if (ALIM_V2_ENABLED && showMacros) {
-      ringsBox.innerHTML =
-        _alimV2Ring('P', doneProt, plannedProt) +
-        _alimV2Ring('C', doneCarbs, plannedCarbs) +
-        _alimV2Ring('G', doneFat, plannedFat);
+      _alimV2RingsRender(ringsBox, [
+        { letter: 'P', done: doneProt,  target: plannedProt },
+        { letter: 'C', done: doneCarbs, target: plannedCarbs },
+        { letter: 'G', done: doneFat,   target: plannedFat },
+      ]);
       ringsBox.style.display = 'flex';
     } else ringsBox.style.display = 'none';
   }
