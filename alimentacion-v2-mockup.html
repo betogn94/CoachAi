@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Mi Alimentación V2 — Mockup</title>
+<!--
+  MOCKUP del rediseño de Mi Alimentación (no toca la app).
+  Qué demuestra:
+    · Selector de días (strip semanal) arriba — hoy resaltado, semana navegable
+    · Card resumen EN SU UBICACIÓN ACTUAL, rediseñada: kcal + anillos de macros
+    · Meal cards con foto ambiental por tipo de comida (rotación con semilla por día)
+    · Tildes como gesto primario (estado verde/rojo 🚨 de kcal intactos)
+    · Banca los 2 formatos reales: dieta IA (kcal/macros por comida) y
+      dieta estilo Jesús (menú de grupos con opciones "/", target solo en header)
+  Fotos: Unsplash (solo para el mockup — la tanda final se define aparte).
+-->
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700;9..40,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:            #FAFAFF;
+  --accent:        #7c6aff;
+  --accent-bright: #9d8dff;
+  --accent2:       #ff6b6b;
+  --accent3:       #2ecfb5;
+  --text:          #1A1A2E;
+  --muted:         #6B6B80;
+  --muted2:        #A9A9C0;
+  --card:          #ffffff;
+  --line:          rgba(26,26,46,0.08);
+  --ok:            #1fae8e;
+  --bad:           #e5484d;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body {
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg); color:var(--text);
+  display:flex; justify-content:center;
+  min-height:100vh;
+}
+.phone { width:100%; max-width:430px; padding:18px 0 90px; }
+
+/* ── Header (mismo patrón que la app) ─────────────────── */
+.hdr { display:flex; align-items:flex-start; justify-content:space-between; padding:6px 18px 2px; }
+.hdr-title { display:flex; align-items:center; gap:10px; }
+.hdr-ico {
+  width:38px; height:38px; border-radius:12px; flex:0 0 auto;
+  background:linear-gradient(135deg,var(--accent-bright),var(--accent));
+  display:flex; align-items:center; justify-content:center; color:#fff;
+  box-shadow:0 6px 18px rgba(124,106,255,0.35);
+}
+.hdr-ico svg { width:21px; height:21px; }
+.hdr h1 { font-family:'Bebas Neue',sans-serif; font-size:30px; letter-spacing:1.5px; line-height:1; padding-top:3px; }
+.hdr-sub { font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:1.2px; color:var(--muted); margin:4px 0 0 48px; text-transform:uppercase; }
+.info-chip {
+  width:22px; height:22px; border-radius:50%; border:1.5px solid var(--muted2);
+  background:none; color:var(--muted); display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700; cursor:pointer; margin-top:6px;
+}
+
+/* ── Toggle de dataset (solo mockup) ──────────────────── */
+.demo-toggle {
+  margin:14px 18px 0; display:flex; background:rgba(124,106,255,0.08);
+  border-radius:12px; padding:3px; border:1px dashed rgba(124,106,255,0.35);
+}
+.demo-toggle button {
+  flex:1; border:none; background:none; padding:8px 0; border-radius:9px;
+  font-family:'DM Sans',sans-serif; font-size:12px; font-weight:700; color:var(--muted); cursor:pointer;
+}
+.demo-toggle button.on { background:var(--accent); color:#fff; box-shadow:0 4px 12px rgba(124,106,255,0.35); }
+.demo-note { font-size:10px; color:var(--muted2); text-align:center; margin-top:5px; font-family:'JetBrains Mono',monospace; letter-spacing:0.5px; }
+
+/* ── Day strip ────────────────────────────────────────── */
+.days { display:flex; gap:6px; padding:16px 18px 4px; }
+.day {
+  flex:1; border:none; background:none; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding:9px 0 7px; border-radius:14px; color:var(--muted);
+  transition:background .18s, color .18s, box-shadow .18s;
+}
+.day .dw { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1px; text-transform:uppercase; }
+.day .dn { font-family:'Bebas Neue',sans-serif; font-size:19px; line-height:1; }
+.day .dot { width:4px; height:4px; border-radius:50%; background:transparent; }
+.day.has .dot { background:var(--accent3); }
+.day.sel {
+  background:linear-gradient(135deg,var(--accent-bright),var(--accent));
+  color:#fff; box-shadow:0 8px 20px rgba(124,106,255,0.4);
+}
+.day.sel .dot { background:#fff; }
+.day.today:not(.sel) { color:var(--accent); }
+
+/* ── Card resumen (ubicación actual, rediseñada) ──────── */
+.summary {
+  margin:12px 18px; padding:16px 16px 14px;
+  background:var(--card); border:1px solid var(--line); border-radius:20px;
+  box-shadow:0 10px 30px rgba(26,26,46,0.07);
+}
+.sum-eyebrow { font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:1.4px; color:var(--accent); text-transform:uppercase; margin-bottom:10px; }
+.sum-row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.sum-count { font-family:'Bebas Neue',sans-serif; font-size:40px; line-height:0.9; }
+.sum-count small { font-size:22px; color:var(--muted2); }
+.sum-label { font-size:11.5px; color:var(--muted); margin-top:3px; }
+.sum-kcal { text-align:right; font-size:11px; color:var(--muted); }
+.sum-kcal strong { display:block; font-family:'Bebas Neue',sans-serif; font-size:27px; font-weight:400; letter-spacing:0.5px; color:var(--text); margin-top:2px; }
+.sum-kcal .tot { color:var(--muted2); font-size:19px; }
+.sum-kcal.ok strong, .sum-kcal.ok .tot { color:var(--ok); }
+.sum-kcal.bad strong, .sum-kcal.bad .tot { color:var(--bad); }
+/* Anillos de macros */
+.rings { display:flex; justify-content:space-between; gap:8px; margin:14px 0 4px; }
+.ring { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.ring svg { width:56px; height:56px; transform:rotate(-90deg); }
+.ring .track { fill:none; stroke:rgba(26,26,46,0.07); stroke-width:5; }
+.ring .fill  { fill:none; stroke-width:5; stroke-linecap:round; transition:stroke-dashoffset .5s cubic-bezier(.22,1,.36,1); }
+.ring .ctr {
+  font-family:'DM Sans',sans-serif; font-size:12px; font-weight:800;
+  transform:rotate(90deg); transform-origin:center; text-anchor:middle; dominant-baseline:central;
+  fill:var(--text);
+}
+.ring .rv { font-size:11px; font-weight:700; }
+.ring .rv small { color:var(--muted2); font-weight:500; }
+.ring .rp { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--muted2); }
+.pbar { height:7px; border-radius:99px; background:rgba(26,26,46,0.06); overflow:hidden; margin-top:12px; }
+.pbar div { height:100%; border-radius:99px; background:linear-gradient(90deg,var(--accent-bright),var(--accent)); transition:width .5s cubic-bezier(.22,1,.36,1); }
+
+/* ── "Cómo leer tu plan" (King) ───────────────────────── */
+.tips {
+  margin:0 18px 12px; background:var(--card); border:1px solid var(--line);
+  border-radius:16px; overflow:hidden; box-shadow:0 6px 18px rgba(26,26,46,0.05);
+}
+.tips summary { list-style:none; cursor:pointer; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; font-size:12.5px; font-weight:700; }
+.tips summary::-webkit-details-marker { display:none; }
+.tips .chev { color:var(--muted2); transition:transform .2s; }
+.tips[open] .chev { transform:rotate(180deg); }
+.tips-body { padding:0 16px 12px; }
+.tips-item { display:flex; gap:8px; font-size:12px; color:var(--muted); line-height:1.45; margin-top:7px; }
+.tips-item b { color:var(--text); }
+
+/* ── Meal cards ───────────────────────────────────────── */
+.meals { display:flex; flex-direction:column; gap:12px; padding:2px 18px; }
+.meal {
+  background:var(--card); border:1px solid var(--line); border-radius:20px;
+  padding:12px; display:flex; gap:12px; align-items:stretch;
+  box-shadow:0 8px 24px rgba(26,26,46,0.06);
+  transition:border-color .2s, background .2s;
+  position:relative; overflow:hidden;
+}
+.meal.done { border-color:rgba(46,207,181,0.45); background:linear-gradient(0deg, rgba(46,207,181,0.05), rgba(46,207,181,0.05)), var(--card); }
+.meal-img {
+  width:86px; border-radius:14px; flex:0 0 86px; min-height:86px;
+  background-size:cover; background-position:center;
+  position:relative;
+}
+.meal.done .meal-img::after {
+  content:''; position:absolute; inset:0; border-radius:14px;
+  background:rgba(46,207,181,0.18);
+}
+.meal-body { flex:1; min-width:0; display:flex; flex-direction:column; }
+.meal-top { display:flex; align-items:baseline; gap:8px; }
+.meal-name { font-family:'Bebas Neue',sans-serif; font-size:17px; letter-spacing:0.8px; }
+.meal-hour { font-family:'JetBrains Mono',monospace; font-size:9.5px; color:var(--muted2); letter-spacing:0.5px; }
+.meal-detail { font-size:12px; color:var(--muted); line-height:1.5; margin:4px 0 6px; }
+.meal-detail em { font-style:normal; opacity:.7; }
+.meal-nums { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:auto; }
+.kcal-chip {
+  font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500;
+  background:rgba(124,106,255,0.1); color:var(--accent);
+  padding:3px 8px; border-radius:8px;
+}
+.macros { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted2); letter-spacing:0.3px; }
+.meal-edit {
+  border:none; background:none; color:var(--muted2); cursor:pointer;
+  font-family:'DM Sans',sans-serif; font-size:10.5px; font-weight:700;
+  display:inline-flex; align-items:center; gap:4px; padding:0; margin-left:auto;
+}
+.meal-edit svg { width:12px; height:12px; }
+/* Check — gesto primario, columna derecha */
+.meal-check-col { display:flex; align-items:center; padding-left:2px; }
+.check {
+  width:34px; height:34px; border-radius:50%; cursor:pointer;
+  border:2px solid var(--muted2); background:none; color:transparent;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .18s;
+}
+.check svg { width:17px; height:17px; }
+.check.on {
+  background:linear-gradient(135deg,var(--accent3),#25b89f); border-color:transparent; color:#fff;
+  box-shadow:0 6px 16px rgba(46,207,181,0.45);
+}
+
+.foot {
+  text-align:center; font-family:'JetBrains Mono',monospace; font-size:9.5px;
+  color:var(--muted2); letter-spacing:1px; margin-top:26px; text-transform:uppercase;
+}
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <div class="hdr">
+    <div>
+      <div class="hdr-title">
+        <div class="hdr-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18a9 9 0 0 1-18 0z"/><path d="M9 4c0 1-1 2-1 3s1 2 1 3"/><path d="M14 4c0 1-1 2-1 3s1 2 1 3"/></svg>
+        </div>
+        <h1>MI ALIMENTACIÓN</h1>
+        <button class="info-chip" type="button">i</button>
+      </div>
+      <div class="hdr-sub" id="hdr-sub">—</div>
+    </div>
+  </div>
+
+  <div class="demo-toggle">
+    <button id="tg-ia" class="on" onclick="setDataset('ia')">Dieta IA</button>
+    <button id="tg-jesus" onclick="setDataset('jesus')">Dieta estilo Jesús (King)</button>
+  </div>
+  <div class="demo-note">toggle solo del mockup — en la app se detecta solo</div>
+
+  <div class="days" id="days"></div>
+
+  <div class="summary" id="summary">
+    <div class="sum-eyebrow" id="sum-eyebrow">HOY</div>
+    <div class="sum-row">
+      <div>
+        <div class="sum-count"><span id="sum-done">0</span><small>/<span id="sum-total">0</span></small></div>
+        <div class="sum-label">Comidas cumplidas</div>
+      </div>
+      <div class="sum-kcal" id="sum-kcal">
+        kcal
+        <strong><span id="kcal-done">0</span> <span class="tot">/ <span id="kcal-target">0</span></span> <span id="kcal-alarm"></span></strong>
+      </div>
+    </div>
+    <div class="rings" id="rings"></div>
+    <div class="pbar"><div id="pbar-fill" style="width:0%"></div></div>
+  </div>
+
+  <details class="tips" id="tips" style="display:none">
+    <summary><span>📋 Cómo leer tu plan</span><span class="chev">▾</span></summary>
+    <div class="tips-body">
+      <div class="tips-item"><span>🔀</span><span>Cuando ves <b>"o"</b> entre dos alimentos, <b>elegí uno</b> — no comés los dos.</span></div>
+      <div class="tips-item"><span>➕</span><span><b>"///"</b> significa que esos alimentos van <b>juntos</b> en la misma comida.</span></div>
+      <div class="tips-item"><span>⚖️</span><span>Todos los alimentos se pesan <b>cocidos</b>.</span></div>
+    </div>
+  </details>
+
+  <div class="meals" id="meals"></div>
+
+  <div class="foot">Mockup Mi Alimentación V2 · no toca la app</div>
+</div>
+
+<script>
+// ── Fotos ambientales por tipo de comida (Unsplash, solo mockup) ──
+// Rotación con SEMILLA por día: misma foto toda la jornada, varía día a día.
+const IMG = {
+  desayuno: [
+    'https://images.unsplash.com/photo-1497888329096-51c27beff665',
+    'https://images.unsplash.com/photo-1474859569645-e0def92b02bc',
+    'https://images.unsplash.com/photo-1567769541715-8c71fe49fd43',
+  ],
+  almuerzo: [
+    'https://images.unsplash.com/photo-1610057098265-05f2bcbedd55',
+    'https://images.unsplash.com/photo-1579619002916-88cd4c81a70c',
+    'https://images.unsplash.com/photo-1593787614839-9b93c8998f25',
+  ],
+  merienda: [
+    'https://images.unsplash.com/photo-1621797350488-fb28c9217e3b',
+    'https://images.unsplash.com/photo-1612182062572-e29c5dfb5eb4',
+    'https://images.unsplash.com/photo-1530259152377-3a014e1092e0',
+  ],
+  cena: [
+    'https://images.unsplash.com/photo-1676300184021-96fa00e1a987',
+    'https://images.unsplash.com/photo-1627857638952-642f8cbba8da',
+    'https://images.unsplash.com/photo-1588428894220-ae6af96e8c2d',
+  ],
+};
+// Tipos sin set propio reusan el más parecido
+const IMG_ALIAS = { 'pre-entreno':'merienda', 'post-entreno':'almuerzo', colacion:'merienda', snack:'merienda', comida:'almuerzo' };
+const imgFor = (key, dayIdx, mealIdx) => {
+  const set = IMG[key] || IMG[IMG_ALIAS[key]] || IMG.almuerzo;
+  return set[(dayIdx + mealIdx) % set.length] + '?auto=format&fit=crop&w=240&q=70';
+};
+
+const HOURS = { desayuno:'08:30', almuerzo:'13:00', merienda:'17:00', cena:'21:00', comida:'' };
+
+// ── Dataset 1: dieta generada por IA (kcal + macros POR comida) ──
+const mealIA = (name,key,txt,k,p,c,g) => ({ name, key, content:txt, kcal:k, prot:p, carbs:c, fat:g });
+const DIETA_IA = {
+  header: { targetKcal:1800, targetProt:140, targetCarbs:170, targetFat:55 },
+  king: false,
+  days: [0,1,2,3,4,5,6].map(i => ({ meals: [
+    mealIA('Desayuno','desayuno','Avena 60g + banana + claras 4 + café', 420,28,55,8),
+    mealIA('Almuerzo','almuerzo',['Pollo 150g + arroz 180g + ensalada verde','Merluza 200g + papa 250g + brócoli','Carne magra 130g + fideos 150g + zanahoria'][i%3], 520,42,50,14),
+    mealIA('Merienda','merienda','Yogur proteico + tostadas de arroz 3 + queso untable', 310,24,32,9),
+    mealIA('Cena','cena',['Merluza 200g + puré de calabaza + zucchini','Omelette 2 huevos + 3 claras + ensalada + pan integral 1','Pollo 140g + batata 200g + ensalada'][i%3], 460,38,40,16),
+  ]})),
+};
+
+// ── Dataset 2: dieta estilo Jesús (menús con opciones "/", target solo en header) ──
+// La app reparte el target entre las comidas (igual que renderMiAlimentacion).
+const mealJ = (name,key,groups) => ({ name, key, content:groups.join(' · '), kcal:null, prot:null, carbs:null, fat:null });
+const DIETA_JESUS = {
+  header: { targetKcal:1600, targetProt:130, targetCarbs:150, targetFat:48 },
+  king: true,
+  days: [0,1,2,3,4,5,6].map(() => ({ meals: [
+    mealJ('Comida 1','comida',['3 claras + 1 huevo / 250g yogurt','3 galletas de arroz / 50g avena','1 fruta','Café / mate / té']),
+    mealJ('Comida 2','comida',['150g pollo / 150g pescado / 2 huevos','150g arroz / 150g camote / 200g papa','Ensalada libre (sin aceite)']),
+    mealJ('Comida 3','comida',['250g yogurt / 30g whey','30g frutos secos / 1/2 palta','1 fruta']),
+    mealJ('Comida 4','comida',['130g carne magra / 150g pollo','Verduras salteadas / ensalada','10g aceite de oliva']),
+  ]})),
+};
+
+// ── Estado del mockup ─────────────────────────────────────
+let dataset = 'ia';
+let selDay = (new Date().getDay() + 6) % 7;   // 0=Lun..6=Dom, hoy
+const todayIdx = selDay;
+// estado[dataset][day] = Set de índices cumplidos — demo con algo pre-tildado
+const estado = { ia:{}, jesus:{} };
+estado.ia[todayIdx] = new Set([0,1]);
+estado.jesus[todayIdx] = new Set([0]);
+
+const plan  = () => dataset === 'ia' ? DIETA_IA : DIETA_JESUS;
+const eSet  = () => { const e = estado[dataset]; if (!e[selDay]) e[selDay] = new Set(); return e[selDay]; };
+const DOWS  = ['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'];
+const DOWSL = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+
+function setDataset(d) {
+  dataset = d;
+  document.getElementById('tg-ia').classList.toggle('on', d==='ia');
+  document.getElementById('tg-jesus').classList.toggle('on', d==='jesus');
+  document.getElementById('tips').style.display = plan().king ? '' : 'none';
+  render();
+}
+function setDay(i) { selDay = i; render(); }
+function toggleMeal(j) {
+  const s = eSet();
+  s.has(j) ? s.delete(j) : s.add(j);
+  render();
+}
+
+// Comidas efectivas del día: en estilo Jesús reparte el target del header
+function dayMeals() {
+  const p = plan();
+  const meals = p.days[selDay].meals.map(m => ({...m}));
+  const anyKcal = meals.some(m => m.kcal);
+  if (!anyKcal && p.header.targetKcal) {
+    const n = meals.length;
+    meals.forEach(m => {
+      m.kcal  = Math.round(p.header.targetKcal  / n);
+      m.prot  = Math.round(p.header.targetProt  / n);
+      m.carbs = Math.round(p.header.targetCarbs / n);
+      m.fat   = Math.round(p.header.targetFat   / n);
+      m.estimado = true;
+    });
+  }
+  return meals;
+}
+
+const RING_COLORS = { P:'#7c6aff', C:'#ff9f43', G:'#2ecfb5' };
+function ringSvg(letter, done, target) {
+  const pct = target > 0 ? Math.min(done/target, 1) : 0;
+  const R = 24, CIRC = 2 * Math.PI * R;
+  const off = CIRC * (1 - pct);
+  const over = target > 0 && done > target * 1.03;
+  const color = over ? 'var(--bad)' : RING_COLORS[letter];
+  return `
+    <div class="ring">
+      <svg viewBox="0 0 56 56">
+        <circle class="track" cx="28" cy="28" r="${R}"/>
+        <circle class="fill" cx="28" cy="28" r="${R}" stroke="${color}"
+          stroke-dasharray="${CIRC}" stroke-dashoffset="${off}"/>
+        <text class="ctr" x="28" y="28">${letter}</text>
+      </svg>
+      <div class="rv" style="color:${over?'var(--bad)':'var(--text)'}">${done}<small>/${target}g</small></div>
+      <div class="rp">${target>0?Math.round(done/target*100):0}%</div>
+    </div>`;
+}
+
+function render() {
+  // Header sub
+  const isToday = selDay === todayIdx;
+  document.getElementById('hdr-sub').textContent = DOWSL[selDay] + (isToday ? ' · hoy' : '');
+
+  // Day strip — fecha real de cada día de la semana actual
+  const now = new Date();
+  const mon = new Date(now); mon.setDate(now.getDate() - todayIdx);
+  document.getElementById('days').innerHTML = DOWS.map((dw,i) => {
+    const d = new Date(mon); d.setDate(mon.getDate() + i);
+    const has = (estado[dataset][i] || new Set()).size > 0;
+    return `<button class="day${i===selDay?' sel':''}${i===todayIdx?' today':''}${has?' has':''}" onclick="setDay(${i})">
+      <span class="dw">${dw}</span><span class="dn">${d.getDate()}</span><span class="dot"></span>
+    </button>`;
+  }).join('');
+
+  const meals = dayMeals();
+  const s = eSet();
+
+  // Totales
+  let doneN=0, kDone=0, pDone=0, cDone=0, gDone=0, kPlan=0, pPlan=0, cPlan=0, gPlan=0;
+  meals.forEach((m,j) => {
+    kPlan += m.kcal||0; pPlan += m.prot||0; cPlan += m.carbs||0; gPlan += m.fat||0;
+    if (s.has(j)) { doneN++; kDone += m.kcal||0; pDone += m.prot||0; cDone += m.carbs||0; gDone += m.fat||0; }
+  });
+
+  document.getElementById('sum-eyebrow').textContent = (isToday?'HOY':'') + (isToday?' · ':'') + DOWSL[selDay].toUpperCase();
+  document.getElementById('sum-done').textContent = doneN;
+  document.getElementById('sum-total').textContent = meals.length;
+  document.getElementById('kcal-done').textContent = kDone;
+  document.getElementById('kcal-target').textContent = kPlan;
+  // Estados verde/rojo (misma lógica ±3% de la app)
+  const kEl = document.getElementById('sum-kcal');
+  kEl.classList.remove('ok','bad');
+  const tol = kPlan * 0.03;
+  let alarm = '';
+  if (kDone > kPlan + tol) { kEl.classList.add('bad'); alarm = '🚨'; }
+  else if (kDone >= kPlan - tol && kDone > 0) kEl.classList.add('ok');
+  document.getElementById('kcal-alarm').textContent = alarm;
+
+  document.getElementById('rings').innerHTML =
+    ringSvg('P', pDone, pPlan) + ringSvg('C', cDone, cPlan) + ringSvg('G', gDone, gPlan);
+  document.getElementById('pbar-fill').style.width = (meals.length ? Math.round(doneN/meals.length*100) : 0) + '%';
+
+  // Meal cards
+  const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  const EDIT  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+  document.getElementById('meals').innerHTML = meals.map((m,j) => {
+    const on = s.has(j);
+    // " / " = alternativas → " o " ; grupos " · " → líneas (igual que la app)
+    const detail = (m.content||'').replace(/\s\/\s/g,' o ').split(/\s·\s/).join('<br>');
+    return `
+    <div class="meal${on?' done':''}">
+      <div class="meal-img" style="background-image:url('${imgFor(m.key, selDay, j)}')"></div>
+      <div class="meal-body">
+        <div class="meal-top">
+          <div class="meal-name">${m.name}</div>
+          <div class="meal-hour">${HOURS[m.key]||''}</div>
+        </div>
+        <div class="meal-detail">${detail}</div>
+        <div class="meal-nums">
+          <span class="kcal-chip">${m.estimado?'~':''}${m.kcal} kcal</span>
+          <span class="macros">P${m.prot} · C${m.carbs} · G${m.fat}</span>
+          <button class="meal-edit" type="button">${EDIT}<span>Editar</span></button>
+        </div>
+      </div>
+      <div class="meal-check-col">
+        <button class="check${on?' on':''}" type="button" onclick="toggleMeal(${j})" aria-label="Marcar ${m.name}">${CHECK}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+render();
+</script>
+</body>
+</html>
