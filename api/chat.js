@@ -105,6 +105,29 @@ export default async function handler(req, res) {
     // de Vercel; 'error' (red caída hacia Supabase Auth) es fail-open SIEMPRE
     // para que una caída de Supabase no tumbe el chat de todos.
     console.warn('[chat-auth]', ident.reason, '- origin:', req.headers.origin || '(none)');
+    // Telemetría del shadow-mode en NUESTRA base (los logs de Vercel retienen ~1 día):
+    // cada request sin identidad queda en beta_eventos → se monitorea con SQL y el
+    // flip a 'enforce' se decide con datos. Fire-and-forget: no demora ni rompe el chat
+    // (la promesa termina de fondo mientras corre la llamada al modelo).
+    try {
+      fetch(`${SUPABASE_URL}/rest/v1/beta_eventos`, {
+        method: 'POST',
+        headers: {
+          apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+          authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+          'content-type': 'application/json',
+          prefer: 'return=minimal',
+        },
+        body: JSON.stringify({
+          evento: 'chat_auth_missing',
+          meta: {
+            reason: ident.reason,
+            origin: req.headers.origin || null,
+            ua: String(req.headers['user-agent'] || '').slice(0, 140),
+          },
+        }),
+      }).catch(() => {});
+    } catch (e) {}
     if (AUTH_MODE === 'enforce' && ident.reason !== 'error') {
       return res.status(401).json({ error: 'auth_required', retryable: false });
     }
