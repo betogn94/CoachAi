@@ -144,7 +144,7 @@ body {
   transition:border-color .2s, background .2s;
   position:relative; overflow:hidden;
 }
-.meal.done { border-color:rgba(46,207,181,0.45); background:linear-gradient(0deg, rgba(46,207,181,0.05), rgba(46,207,181,0.05)), var(--card); }
+.meal.done { border-color:rgba(124,106,255,0.45); background:linear-gradient(0deg, rgba(124,106,255,0.05), rgba(124,106,255,0.05)), var(--card); }
 .meal-img {
   width:86px; border-radius:14px; flex:0 0 86px; min-height:86px;
   background-size:cover; background-position:center;
@@ -152,7 +152,7 @@ body {
 }
 .meal.done .meal-img::after {
   content:''; position:absolute; inset:0; border-radius:14px;
-  background:rgba(46,207,181,0.18);
+  background:rgba(124,106,255,0.18);
 }
 .meal-body { flex:1; min-width:0; display:flex; flex-direction:column; }
 .meal-top { display:flex; align-items:baseline; gap:8px; }
@@ -183,8 +183,8 @@ body {
 }
 .check svg { width:17px; height:17px; }
 .check.on {
-  background:linear-gradient(135deg,var(--accent3),#25b89f); border-color:transparent; color:#fff;
-  box-shadow:0 6px 16px rgba(46,207,181,0.45);
+  background:linear-gradient(135deg,var(--accent-bright),var(--accent)); border-color:transparent; color:#fff;
+  box-shadow:0 6px 16px rgba(124,106,255,0.45);
 }
 
 .foot {
