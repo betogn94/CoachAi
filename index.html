@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260918-2112-deploy">
+<meta name="app-version" content="20260918-2206-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11278,7 +11278,6 @@ body.alimv2-on {
   --av2-track: rgba(255,255,255,0.09);
   /* Tintes de acento (card cumplida, glow del check, chip kcal): violeta
      de marca en default/dark; King los redefine abajo en SU rosa. */
-  --av2-tint-border: rgba(124,106,255,0.45);
   --av2-tint-bg:     rgba(124,106,255,0.05);
   --av2-tint-img:    rgba(124,106,255,0.18);
   --av2-glow:        rgba(124,106,255,0.45);
@@ -11296,7 +11295,6 @@ body.alimv2-on.theme-king {
 /* King: los tintes van en el rosa de la marca (mismo juego acento/acento
    tenue que el violeta en default). */
 body.alimv2-on.theme-king {
-  --av2-tint-border: rgba(255,79,123,0.45);
   --av2-tint-bg:     rgba(255,79,123,0.06);
   --av2-tint-img:    rgba(255,79,123,0.16);
   --av2-glow:        rgba(255,79,123,0.40);
@@ -11346,8 +11344,9 @@ body.alimv2-on .cai-alim-meals { flex-direction: column; gap: 12px; }
   box-shadow: var(--av2-shadow); position: relative; overflow: hidden;
   transition: border-color .2s, background .2s;
 }
+/* Card cumplida: solo el tinte suave del acento — sin borde de color
+   (lo probó Beto y el borde le sobraba; el borde queda el neutro de siempre). */
 .alimv2-meal.done {
-  border-color: var(--av2-tint-border);
   background: linear-gradient(0deg, var(--av2-tint-bg), var(--av2-tint-bg)), var(--av2-card);
 }
 .alimv2-meal-img {
