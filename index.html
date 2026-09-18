@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260916-1540-deploy">
+<meta name="app-version" content="20260918-1324-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6850,6 +6850,13 @@ body.theme-king .cai-entv2-back-btn {
   font-family: 'JetBrains Mono', monospace;
   font-size: 9px; letter-spacing: 0.6px; text-transform: uppercase;
   color: var(--muted); margin-top: 3px;
+}
+/* Variante texto (día del split): tipografía de lectura y achica si es largo */
+.entreno-done-stat-v--txt {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; line-height: 1.25;
+  overflow: hidden; text-overflow: ellipsis;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
 
 /* --- Tema claro --- */
@@ -17612,10 +17619,12 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     <img class="entreno-done-medal" src="medals/entreno_completado.webp" alt="" draggable="false">
     <div class="entreno-done-title">¡Entreno completado! 💪</div>
     <div class="entreno-done-sub" id="entreno-done-sub">—</div>
-    <!-- Stats de la sesión (solo cuando hubo cronómetro / pesos cargados) -->
+    <!-- Stats de la sesión (solo cuando hubo cronómetro). El volumen en kg se
+         reemplazó por el día del split (pedido de Beto 2026-09-18: "1400 kg"
+         no le dice nada a nadie; "Pecho/Tríceps" sí). -->
     <div class="entreno-done-stats" id="entreno-done-stats" style="display:none">
       <div class="entreno-done-stat"><div class="entreno-done-stat-v" id="entreno-done-dur">—</div><div class="entreno-done-stat-l" data-es="Duración" data-en="Duration">Duración</div></div>
-      <div class="entreno-done-stat"><div class="entreno-done-stat-v" id="entreno-done-vol">—</div><div class="entreno-done-stat-l" data-es="Volumen total" data-en="Total volume">Volumen total</div></div>
+      <div class="entreno-done-stat"><div class="entreno-done-stat-v entreno-done-stat-v--txt" id="entreno-done-day">—</div><div class="entreno-done-stat-l" data-es="Entrenamiento" data-en="Workout">Entrenamiento</div></div>
     </div>
     <button class="logro-celebr-btn" onclick="shareEntrenoFromMoment()" type="button"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" style="vertical-align:-3px;margin-right:7px" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>Compartir</button>
     <button class="logro-celebr-btn ghost" onclick="closeEntrenoDone()" type="button">Listo</button>
@@ -30753,32 +30762,34 @@ async function getEntrenoShareSubtitle(){
 async function showEntrenoCompletadoMoment(dayIdx){
   const sub = await getEntrenoShareSubtitle();
   let fecha = ''; try { fecha = new Date().toLocaleDateString(lang==='en'?'en-US':'es-AR', { day:'numeric', month:'long' }).toUpperCase(); } catch(e){}
-  // Stats de la sesión (V2 Fase 2): si el día llegó con cronómetro cerrado y/o
-  // pesos cargados, la card y la story salen con duración + volumen total.
-  let durTxt = '', volTxt = '';
+  // Stats de la sesión (V2 Fase 2): si el día llegó con cronómetro cerrado,
+  // la card y la story salen con el DÍA DEL SPLIT + la duración. (El volumen
+  // en kg se retiró 2026-09-18 a pedido de Beto: no comunica nada afuera.)
+  let durTxt = '', dayTxt = '';
   try {
     if (dayIdx !== undefined && dayIdx !== null && typeof _entSesGet === 'function') {
       const st = getEntrenoWeekState();
       const s = _entSesGet(st, dayIdx);
       if (s && s.i && s.f) durTxt = _entSesFmtDur(s.f - s.i);
-      const vol = _entDayVolumen(st, dayIdx);
-      if (vol > 0) volTxt = vol.toLocaleString(lang==='en'?'en-US':'es-AR') + ' kg';
+      const mapping = buildTrainingDayMapping();
+      const day = mapping && mapping.days[dayIdx];
+      if (day && !day.isRest) dayTxt = _entCleanLabel(day.label) || '';
     }
   } catch(e){}
-  const statsSuffix = [durTxt ? '⏱ ' + durTxt : '', volTxt].filter(Boolean).join(' · ');
+  const statsSuffix = [dayTxt, durTxt ? '⏱ ' + durTxt : ''].filter(Boolean).join(' · ');
   _entrenoShareLogro = { key:'entreno_completado', titulo:'Entreno completado',
     desc: statsSuffix ? (sub + ' · ' + statsSuffix) : sub,
     eyebrow: fecha ? ('★ '+fecha) : '★ ENTRENO DEL DÍA' };
   const subEl=document.getElementById('entreno-done-sub'); if(subEl) subEl.textContent = sub;
   const statsEl=document.getElementById('entreno-done-stats');
   if (statsEl) {
-    if (durTxt || volTxt) {
+    if (durTxt || dayTxt) {
       statsEl.style.display = 'flex';
       const dEl=document.getElementById('entreno-done-dur'); if(dEl) dEl.textContent = durTxt || '—';
-      const vEl=document.getElementById('entreno-done-vol'); if(vEl) vEl.textContent = volTxt || '—';
+      const yEl=document.getElementById('entreno-done-day'); if(yEl) yEl.textContent = dayTxt || '—';
       // Si falta uno de los dos, esa celda se oculta para no mostrar "—".
       if (dEl) dEl.parentElement.style.display = durTxt ? '' : 'none';
-      if (vEl) vEl.parentElement.style.display = volTxt ? '' : 'none';
+      if (yEl) yEl.parentElement.style.display = dayTxt ? '' : 'none';
     } else {
       statsEl.style.display = 'none';
     }
@@ -32289,11 +32300,12 @@ function _renderEntSesCard(idx, state, day) {
       _entSesTickStart(idx);
     }
   } else {
-    // CERRADA — resumen chico (la celebración grande ya salió al finalizar)
+    // CERRADA — resumen chico (la celebración grande ya salió al finalizar).
+    // Sin volumen en kg (2026-09-18): el número no comunica nada.
     html = `
       <div class="cai-entses done">
         <div class="cai-entses-eyebrow">${isEs ? 'SESIÓN COMPLETADA' : 'SESSION DONE'}</div>
-        <div class="cai-entses-meta">⏱ ${_entSesFmtDur(s.f - s.i)}${_entDayVolumen(state, idx) > 0 ? ` · ${_entDayVolumen(state, idx).toLocaleString(isEs ? 'es-AR' : 'en-US')} kg` : ''}</div>
+        <div class="cai-entses-meta">⏱ ${_entSesFmtDur(s.f - s.i)}</div>
       </div>`;
   }
   cont.style.display = 'block';
