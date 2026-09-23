@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260923-2002-deploy">
+<meta name="app-version" content="20260923-2028-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11188,11 +11188,15 @@ footer {
   display: flex; align-items: center; justify-content: center;
   position: relative;
 }
-.ej-modal-gif-wrap img {
+.ej-modal-gif-wrap img,
+.ej-modal-gif-wrap video {
   width: 100%; height: 100%; object-fit: contain; display: block;
 }
+/* video-mode: la ficha tiene clip mp4 en loop → el <video> reemplaza al flipbook */
+.ej-modal-gif-wrap video[hidden] { display: none; }
+.ej-modal-gif-wrap.video-mode img { display: none; }
 .ej-modal-gif-wrap.empty { aspect-ratio: 1 / 1; min-height: 80px; max-height: 140px; }
-.ej-modal-gif-wrap.empty img { display: none; }
+.ej-modal-gif-wrap.empty img, .ej-modal-gif-wrap.empty video { display: none; }
 .ej-modal-gif-wrap.empty::after {
   content: '📷  Demo en preparación';
   color: var(--muted); font-size: 12px;
@@ -17057,6 +17061,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     <div class="ej-modal-muscle" id="ej-modal-muscle"></div>
     <div class="ej-modal-gif-wrap" id="ej-modal-gif-wrap">
       <img id="ej-modal-gif" src="" alt="Demostración del ejercicio">
+      <video id="ej-modal-video" muted loop playsinline preload="none" hidden></video>
     </div>
     <div class="ej-modal-desc" id="ej-modal-desc"></div>
   </div>
@@ -26158,7 +26163,12 @@ async function showEjercicioModal(freeName) {
   const muscle   = document.getElementById('ej-modal-muscle');
   const gifWrap  = document.getElementById('ej-modal-gif-wrap');
   const gif      = document.getElementById('ej-modal-gif');
+  const video    = document.getElementById('ej-modal-video');
   const desc     = document.getElementById('ej-modal-desc');
+
+  // Reset del modo video antes de decidir qué mostrar
+  gifWrap.classList.remove('video-mode');
+  if (video) { video.pause(); video.removeAttribute('src'); video.hidden = true; }
 
   if (!row) {
     title.textContent = freeName;
@@ -26172,7 +26182,16 @@ async function showEjercicioModal(freeName) {
     title.textContent = row.nombre_es;
     muscle.textContent = (row.muscle_group || '').replace(/-/g, ' ');
     desc.textContent = row.descripcion || '';
-    if (row.frame_0_url && row.frame_1_url) {
+    if (row.video_url && video) {
+      // Clip mp4 mudo en loop (se ve como un gif pero pesa ~10x menos)
+      gifWrap.classList.remove('empty');
+      gifWrap.classList.add('video-mode');
+      if (row.frame_0_url) video.poster = row.frame_0_url;
+      video.src = row.video_url;
+      video.muted = true;           // iOS exige muted para autoplay
+      video.hidden = false;
+      video.play().catch(() => {}); // si el autoplay falla, queda el poster
+    } else if (row.frame_0_url && row.frame_1_url) {
       gifWrap.classList.remove('empty');
       const frames = [row.frame_0_url, row.frame_1_url];
       let toggle = 0;
@@ -26197,6 +26216,8 @@ function closeEjercicioModal(event) {
   if (_ejGifTimer) { clearInterval(_ejGifTimer); _ejGifTimer = null; }
   const gif = document.getElementById('ej-modal-gif');
   if (gif) gif.removeAttribute('src');
+  const video = document.getElementById('ej-modal-video');
+  if (video) { video.pause(); video.removeAttribute('src'); video.hidden = true; }
 }
 
 // ===== Guía de intensificadores (chip en Mi Entreno) =====
