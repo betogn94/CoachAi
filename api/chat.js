@@ -25,12 +25,13 @@ const MODELS = {
 //   'shadow'  → verifica el token si viene y LOGUEA los requests sin token,
 //               pero nunca bloquea por auth. Necesario mientras las PWAs
 //               viejas (que no mandan Authorization) siguen vivas en clientes.
-//   'enforce' → sin token válido = 401. Flipear recién cuando los logs de
-//               Vercel muestren que ya no llegan requests legítimos sin token
-//               (buscar "[chat-auth]" en los runtime logs, ~3-4 días de shadow).
-// El TOPE DIARIO sí corre ya en shadow, pero solo para requests autenticados
-// (los clientes nuevos): un usuario logueado que pasa el límite recibe 429.
-const AUTH_MODE = 'shadow';
+//   'enforce' → sin token válido = 401. FLIPEADO el 2026-09-23 con datos:
+//               5 días de telemetría chat_auth_missing en beta_eventos = CERO
+//               eventos (todas las PWAs vivas mandan token). El reason 'error'
+//               (Supabase Auth caído) sigue fail-open — una caída de Supabase
+//               no tumba el chat de nadie.
+// El TOPE DIARIO corre igual que siempre para los autenticados (429 al pasarlo).
+const AUTH_MODE = 'enforce';
 const DAILY_LIMIT = Number(process.env.CHAT_DAILY_LIMIT || 120);
 // Mismo fallback que api/tower/_db.js: SUPABASE_URL NO está seteada como env
 // var en Vercel (solo la service key lo está) — sin esto la URL queda
