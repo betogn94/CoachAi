@@ -10,11 +10,18 @@
 // single-file and updates often; caching the shell would mean some users see
 // an old build for hours after a deploy. Keep updates instant.
 
-const CACHE = 'coachai-shell-v1';
+const CACHE = 'coachai-shell-v2';
 const SHELL = [
   '/offline.html',
   '/logo.png',
   '/logo-icon.png',
+  // Fotos ambientales de Mi Alimentación V2 (assets propios, inmutables —
+  // si algún día cambian, renombrar archivo + bump de CACHE). ~460KB total.
+  '/img/alim/desayuno-1.webp', '/img/alim/desayuno-2.webp', '/img/alim/desayuno-3.webp',
+  '/img/alim/almuerzo-1.webp', '/img/alim/almuerzo-2.webp', '/img/alim/almuerzo-3.webp',
+  '/img/alim/merienda-1.webp', '/img/alim/merienda-2.webp', '/img/alim/merienda-3.webp',
+  '/img/alim/cena-1.webp',     '/img/alim/cena-2.webp',     '/img/alim/cena-3.webp',
+  '/img/home/home-hero.webp',  '/img/home/fcard-ai.webp',
 ];
 
 self.addEventListener('install', (event) => {
@@ -37,8 +44,30 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
+
+  // Assets inmutables propios (/img/: fotos de alimentación + fondos del home):
+  // cache-first — precacheados en install y, si faltara alguno, se cachea al
+  // primer uso. Son la ÚNICA excepción al pass-through: si alguna vez cambian,
+  // se renombra el archivo + bump de CACHE (nunca se pisan in-place).
+  if (req.method === 'GET') {
+    let path = '';
+    try { const u = new URL(req.url); if (u.origin === self.location.origin) path = u.pathname; } catch (e) {}
+    if (path.startsWith('/img/')) {
+      event.respondWith(
+        caches.match(req).then(hit => hit || fetch(req).then(resp => {
+          if (resp && resp.ok) {
+            const copy = resp.clone();
+            caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+          }
+          return resp;
+        }))
+      );
+      return;
+    }
+  }
+
   // Only intercept top-level navigation (HTML pages). Everything else
-  // (CSS/JS/img/api) goes to the network with no SW involvement.
+  // (CSS/JS/api) goes to the network with no SW involvement.
   if (req.mode !== 'navigate') return;
 
   event.respondWith(

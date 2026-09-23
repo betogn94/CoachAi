@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260923-2028-deploy">
+<meta name="app-version" content="20260923-2355-fotos-propias-alimentacion-v2--adios-unsplash-">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -13209,7 +13209,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
   background-image:
     radial-gradient(ellipse 50% 40% at 80% 20%, rgba(170,100,255,0.08) 0%, transparent 60%),
     linear-gradient(to bottom, rgba(7,7,20,0.45) 0%, rgba(7,7,20,0.72) 55%, rgba(7,7,20,1) 100%),
-    url('https://images.unsplash.com/photo-1576678927484-cc907957088c?w=900&q=85');
+    url('img/home/home-hero.webp');
   background-size: cover;
   background-position: center 35%;
   pointer-events: none;
@@ -13406,7 +13406,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
   background-color: #08081e;
   background-image:
     linear-gradient(to bottom, rgba(8,8,30,0.28) 0%, rgba(8,8,30,0.72) 100%),
-    url('https://images.unsplash.com/photo-1551650975-87deedd944c3?w=600&q=80');
+    url('img/home/fcard-ai.webp');
   background-size: cover;
   background-position: center;
 }
@@ -24353,34 +24353,19 @@ function alimV2SelectDay(i) {
 // intentan matchear el plato (los planes son menús con opciones), solo
 // ambientan el tipo de comida. Rotación con SEMILLA (día + índice de
 // comida): misma foto toda la jornada, varía entre días y entre comidas.
-// TODO antes del flip a default ON: bajar a assets locales optimizados
-// (WebP ~40KB, precache PWA). Hotlink Unsplash SOLO en etapa QA del flag.
+// ASSETS LOCALES (2026-09-23): WebP propios 480×480 en img/alim/ (22-75KB c/u,
+// precacheados por el SW) — se retiró el hotlink a Unsplash (frágil + dependencia
+// externa). Las fotos son las MISMAS que aprobó Beto en el flip del rediseño.
 const _ALIM_V2_IMG = {
-  desayuno: [
-    'https://images.unsplash.com/photo-1497888329096-51c27beff665',
-    'https://images.unsplash.com/photo-1474859569645-e0def92b02bc',
-    'https://images.unsplash.com/photo-1567769541715-8c71fe49fd43',
-  ],
-  almuerzo: [
-    'https://images.unsplash.com/photo-1610057098265-05f2bcbedd55',
-    'https://images.unsplash.com/photo-1579619002916-88cd4c81a70c',
-    'https://images.unsplash.com/photo-1593787614839-9b93c8998f25',
-  ],
-  merienda: [
-    'https://images.unsplash.com/photo-1621797350488-fb28c9217e3b',
-    'https://images.unsplash.com/photo-1612182062572-e29c5dfb5eb4',
-    'https://images.unsplash.com/photo-1530259152377-3a014e1092e0',
-  ],
-  cena: [
-    'https://images.unsplash.com/photo-1676300184021-96fa00e1a987',
-    'https://images.unsplash.com/photo-1627857638952-642f8cbba8da',
-    'https://images.unsplash.com/photo-1588428894220-ae6af96e8c2d',
-  ],
+  desayuno: ['img/alim/desayuno-1.webp', 'img/alim/desayuno-2.webp', 'img/alim/desayuno-3.webp'],
+  almuerzo: ['img/alim/almuerzo-1.webp', 'img/alim/almuerzo-2.webp', 'img/alim/almuerzo-3.webp'],
+  merienda: ['img/alim/merienda-1.webp', 'img/alim/merienda-2.webp', 'img/alim/merienda-3.webp'],
+  cena:     ['img/alim/cena-1.webp',     'img/alim/cena-2.webp',     'img/alim/cena-3.webp'],
 };
 const _ALIM_V2_IMG_ALIAS = { 'pre-entreno': 'merienda', 'post-entreno': 'almuerzo', colacion: 'merienda', snack: 'merienda', comida: 'almuerzo' };
 function alimV2ImgFor(key, dayIdx, mealIdx) {
   const set = _ALIM_V2_IMG[key] || _ALIM_V2_IMG[_ALIM_V2_IMG_ALIAS[key]] || _ALIM_V2_IMG.almuerzo;
-  return set[(dayIdx + mealIdx) % set.length] + '?auto=format&fit=crop&w=240&q=70';
+  return set[(dayIdx + mealIdx) % set.length];
 }
 
 // Sheet de detalle de comida (tap en la card V2): kcal, macros, estado y el
