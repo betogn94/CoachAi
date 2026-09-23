@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260918-2233-deploy">
+<meta name="app-version" content="20260923-2002-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -26080,7 +26080,14 @@ async function loadEjerciciosBiblioteca() {
   try {
     const { data, error } = await sbClient.from('ejercicios_biblioteca').select('*');
     if (error) throw error;
-    _ejBiblioteca = (data || []).map(r => ({ ...r, _normName: _normalizeExName(r.nombre_es) }));
+    // _normNames: nombre canónico + aliases (sinónimos que usan las rutinas,
+    // p.ej. "Sillón de cuádriceps" → Extensión de cuádriceps). Todos participan
+    // del matcheo con las mismas reglas.
+    _ejBiblioteca = (data || []).map(r => {
+      const names = [r.nombre_es, ...(Array.isArray(r.aliases) ? r.aliases : [])];
+      const _normNames = names.map(_normalizeExName).filter(Boolean);
+      return { ...r, _normName: _normNames[0] || '', _normNames };
+    });
   } catch (e) {
     console.error('[CoachAI] could not load ejercicios_biblioteca:', e);
     _ejBiblioteca = [];
@@ -26098,37 +26105,42 @@ function _findEjercicioMatch(freeName) {
   if (!_ejBiblioteca || !_ejBiblioteca.length) return null;
   const norm = _normalizeExName(freeName);
   if (!norm) return null;
-  // 1) exact normalized match — when multiple rows tie (e.g. "Face pull" and
-  // "Face pull (foco trapecio)" both normalize to "face pull"), prefer the row
-  // whose ORIGINAL nombre_es is closest in length to the input. That picks the
+  // Cada fila participa con TODOS sus nombres (canónico + aliases). Entries:
+  // { row, n } — una entrada por nombre normalizado.
+  const entries = [];
+  for (const r of _ejBiblioteca) {
+    for (const n of (r._normNames || [r._normName])) entries.push({ row: r, n });
+  }
+  // 1) exact normalized match — when multiple entries tie (e.g. "Face pull" and
+  // "Face pull (foco trapecio)" both normalize to "face pull"), prefer the entry
+  // whose name is closest in length to the input. That picks the
   // generic over the more qualified variant when the user typed the generic.
-  const exactList = _ejBiblioteca.filter(r => r._normName === norm);
+  const exactList = entries.filter(e => e.n === norm);
   if (exactList.length) {
-    const inLen = freeName.length;
-    exactList.sort((a, b) => Math.abs(a.nombre_es.length - inLen) - Math.abs(b.nombre_es.length - inLen));
-    return exactList[0];
+    exactList.sort((a, b) => Math.abs(a.n.length - norm.length) - Math.abs(b.n.length - norm.length));
+    return exactList[0].row;
   }
   // 2) substring containment in either direction
-  const subMatches = _ejBiblioteca.filter(r => r._normName.includes(norm) || norm.includes(r._normName));
+  const subMatches = entries.filter(e => e.n.includes(norm) || norm.includes(e.n));
   if (subMatches.length) {
-    // On tie, prefer the row whose normalized name is closest in LENGTH to the input
-    // (more generic = same length; specialized variants are longer)
-    subMatches.sort((a, b) => Math.abs(a._normName.length - norm.length) - Math.abs(b._normName.length - norm.length));
-    return subMatches[0];
+    // On tie, prefer the entry whose normalized name is closest in LENGTH to the
+    // input (more generic = same length; specialized variants are longer)
+    subMatches.sort((a, b) => Math.abs(a.n.length - norm.length) - Math.abs(b.n.length - norm.length));
+    return subMatches[0].row;
   }
   // 3) token overlap — keep single-char tokens (e.g. "Z" in Curl barra Z); ignore stopwords
   const tokens = _ejTokens(norm);
   if (!tokens.length) return null;
   let best = null, bestOverlap = 0, bestLenDiff = Infinity;
-  for (const r of _ejBiblioteca) {
-    const tb = _ejTokens(r._normName);
+  for (const e of entries) {
+    const tb = _ejTokens(e.n);
     if (!tb.length) continue;
     const overlap = tokens.filter(t => tb.includes(t)).length;
     if (overlap < 2) continue;
-    const lenDiff = Math.abs(r._normName.length - norm.length);
+    const lenDiff = Math.abs(e.n.length - norm.length);
     // Pick by max overlap first, then by closest length (better match for variants like "Z")
     if (overlap > bestOverlap || (overlap === bestOverlap && lenDiff < bestLenDiff)) {
-      bestOverlap = overlap; bestLenDiff = lenDiff; best = r;
+      bestOverlap = overlap; bestLenDiff = lenDiff; best = e.row;
     }
   }
   return bestOverlap >= 2 ? best : null;
