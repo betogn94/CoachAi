@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260925-1359-deploy">
+<meta name="app-version" content="20260925-1405-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6349,12 +6349,14 @@ body.theme-king .cai-info-chip.is-new { animation-name: caiInfoPulseKing; }
   html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) #home-wrapper > .cai-info-row,
   html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) #perfil-wrapper > .cai-info-row {
     position: absolute;
-    top: calc(env(safe-area-inset-top, 0px) + 26px);
+    /* "un pelín más adentro" (Beto 2026-09-25): +6px vertical; ambos heroes
+       tienen el borde derecho a 38px del wrapper → right = 38 + ~12 adentro. */
+    top: calc(env(safe-area-inset-top, 0px) + 32px);
     margin: 0; padding: 0;
     z-index: 30;
   }
-  html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) #home-wrapper > .cai-info-row { right: 48px; }
-  html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) #perfil-wrapper > .cai-info-row { right: 30px; }
+  html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) #home-wrapper > .cai-info-row { right: 54px; }
+  html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) #perfil-wrapper > .cai-info-row { right: 48px; }
 }
 /* Chat: flotante arriba a la derecha; los mensajes scrollean por debajo.
    Sin backdrop-filter a propósito (el fade del chat lo rompería). */
