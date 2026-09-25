@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260925-1457-deploy">
+<meta name="app-version" content="20260925-1510-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6367,6 +6367,34 @@ body.theme-king .cai-info-chip.is-new { animation-name: caiInfoPulseKing; }
 .hsk-ico { width: 34px; height: 34px; flex: none; }
 .hsk-t { height: 18px; width: 80%; }
 .hsk-s { height: 12px; width: 65%; }
+
+/* Capas skeleton de ALIMENTACIÓN / ENTRENO / PERFIL — mismo patrón que Home:
+   réplica estática opaca sobre el wrapper hasta que llegan los datos. */
+#alim-skel, #ent-skel, #perfil-skel { display: none; }
+#diario-wrapper.sk-loading, #mi-entreno-wrapper.sk-loading, #perfil-wrapper.sk-loading { position: relative; min-height: 86vh; overflow: hidden; }
+#diario-wrapper.sk-loading > #alim-skel,
+#mi-entreno-wrapper.sk-loading > #ent-skel,
+#perfil-wrapper.sk-loading > #perfil-skel { display: block; position: absolute; inset: 0; z-index: 25; background: var(--bg); padding: 12px 18px 0; }
+.ssk-head { display: flex; align-items: center; gap: 12px; margin: 6px 0 18px; }
+.ssk-ico { width: 38px; height: 38px; border-radius: 12px; flex: none; }
+.ssk-head-col { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.ssk-head-col .skel:nth-child(1) { height: 18px; width: 55%; }
+.ssk-head-col .skel:nth-child(2) { height: 12px; width: 40%; }
+.ssk-days { display: flex; gap: 8px; margin: 0 0 16px; }
+.ssk-day { height: 56px; border-radius: 14px; flex: 1; }
+.ssk-block { display: block; border-radius: 20px; margin-bottom: 14px; }
+.ssk-b1 { height: 150px; }
+.ssk-b2 { height: 88px; }
+/* Perfil: hero avatar + nombre + badge, luego stats 2x2 y secciones */
+.ssk-hero { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 18px; margin: 8px 0 16px; box-shadow: 0 1px 2px rgba(26,26,46,.04), 0 4px 14px rgba(124,106,255,.08); }
+.ssk-hero-top { display: flex; align-items: center; gap: 14px; }
+.ssk-avatar { width: 48px; height: 48px; flex: none; }
+.ssk-hero-col { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.ssk-hero-col .skel:nth-child(1) { height: 16px; width: 50%; }
+.ssk-hero-col .skel:nth-child(2) { height: 12px; width: 70%; }
+.ssk-badge { width: 74px; height: 24px; border-radius: 100px; flex: none; }
+.ssk-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+.ssk-stat { height: 64px; border-radius: 12px; }
 
 /* Toast de marca. OJO: color #fff con !important — la regla universal del
    tema (body.theme-* div { color: var(--text) }) lo pisaría (cazado en la
@@ -16490,6 +16518,22 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
 <!-- PERFIL (premium identity hub) -->
 <div class="diario-wrapper" id="perfil-wrapper">
 
+  <!-- Capa skeleton (carga, solo 1ª entrada de la sesión) — ver showPerfil. -->
+  <div id="perfil-skel" aria-hidden="true">
+    <div class="ssk-hero">
+      <div class="ssk-hero-top">
+        <div class="skel skel-circle ssk-avatar"></div>
+        <div class="ssk-hero-col"><div class="skel"></div><div class="skel"></div></div>
+        <div class="skel ssk-badge"></div>
+      </div>
+      <div class="ssk-stats">
+        <div class="skel ssk-stat"></div><div class="skel ssk-stat"></div><div class="skel ssk-stat"></div><div class="skel ssk-stat"></div>
+      </div>
+    </div>
+    <div class="skel ssk-block ssk-b1"></div>
+    <div class="skel ssk-block ssk-b1"></div>
+  </div>
+
   <!-- (El chip "i" de Perfil vive DENTRO del hero, al lado del nombre —
        en ambos heroes: clásico #perfil-hero y King #perfil-hero-king.) -->
 
@@ -17114,6 +17158,19 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
 <!-- MI ENTRENO — current-week training tracker (client: complete + log weights only) -->
 <div class="diario-wrapper" id="mi-entreno-wrapper">
 
+  <!-- Capa skeleton (carga) — ver #alim-skel. Mostrada vía .sk-loading. -->
+  <div id="ent-skel" aria-hidden="true">
+    <div class="ssk-head">
+      <div class="skel ssk-ico"></div>
+      <div class="ssk-head-col"><div class="skel"></div><div class="skel"></div></div>
+    </div>
+    <div class="skel ssk-block ssk-b1"></div>
+    <div class="skel ssk-block ssk-b2"></div>
+    <div class="skel ssk-block ssk-b2"></div>
+    <div class="skel ssk-block ssk-b2"></div>
+    <div class="skel ssk-block ssk-b2"></div>
+  </div>
+
   <!-- Page header: dumbbell icon + brand title + today-string + back button -->
   <div class="cai-alim-header">
     <div>
@@ -17580,6 +17637,22 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
 
 <!-- REGISTRO DIARIO -->
 <div class="diario-wrapper" id="diario-wrapper">
+
+  <!-- Capa skeleton (carga): réplica gris del layout hasta que llegan los
+       planes de la semana. Mostrada vía .sk-loading (ver showDiario). -->
+  <div id="alim-skel" aria-hidden="true">
+    <div class="ssk-head">
+      <div class="skel ssk-ico"></div>
+      <div class="ssk-head-col"><div class="skel"></div><div class="skel"></div></div>
+    </div>
+    <div class="ssk-days">
+      <div class="skel ssk-day"></div><div class="skel ssk-day"></div><div class="skel ssk-day"></div><div class="skel ssk-day"></div><div class="skel ssk-day"></div><div class="skel ssk-day"></div><div class="skel ssk-day"></div>
+    </div>
+    <div class="skel ssk-block ssk-b1"></div>
+    <div class="skel ssk-block ssk-b2"></div>
+    <div class="skel ssk-block ssk-b2"></div>
+    <div class="skel ssk-block ssk-b2"></div>
+  </div>
 
   <!-- Page header: bowl icon + brand title + today-string + back button -->
   <div class="cai-alim-header">
@@ -18402,7 +18475,7 @@ async function reviewOneTap() {
   } catch (e) {
     console.error('[review one-tap]', e);
     if (btn) { btn.disabled = false; btn.textContent = orig || '🔓 Acceso de revisión'; }
-    try { alert('No se pudo iniciar el acceso de revisión. Reintentá en unos segundos.'); } catch (_) {}
+    try { showToast('No se pudo iniciar el acceso de revisión. Reintentá en unos segundos.', 'err'); } catch (_) {}
   }
 }
 
@@ -25501,6 +25574,13 @@ async function showDiario() {
   _alimV2SelDay = null;   // V2: la sección siempre abre en el día de hoy
   hideAllSections();
   document.getElementById('diario-wrapper').style.display = 'block';
+  // Skeleton: mientras los planes de la semana no llegaron, la sección mostraría
+  // el banner "no tenés dieta activa" mentiroso — la capa gris lo cubre. El
+  // wrapper de loadCurrentWeekPlans la apaga y re-entra cuando hay datos.
+  try {
+    document.getElementById('diario-wrapper').classList.toggle('sk-loading',
+      !window._plansLoaded && localStorage.getItem('coachai_skel') !== '0');
+  } catch (e) {}
   // Use scrollToTop() instead of scrollIntoView+smooth — see showMiEntreno
   // comment. Smooth-scroll APIs misbehave inside iOS PWA standalone mode.
   scrollToTop();
@@ -25606,9 +25686,9 @@ async function saveDiario() {
   // food only, so require at least one meal.
   const hasAnyMeal = desayuno || almuerzo || merienda || cena;
   if (!hasAnyMeal) {
-    alert(lang === 'es'
+    showToast(lang === 'es'
       ? 'Cargá al menos una comida para guardar.'
-      : 'Add at least one meal to save.');
+      : 'Add at least one meal to save.', 'err');
     return;
   }
 
@@ -27732,7 +27812,7 @@ function previewCierreFotoVista(event, vista) {
     // embebidos a veces entregan el archivo con type vacío → "no es una imagen").
     try { trackEvent('foto_upload_fail', { flujo: 'validacion_cierre', motivo: String(e?.message || e).slice(0, 120), mime: String(file.type || 'vacio'), kb: Math.round((file.size || 0) / 1024) }); } catch (e2) {}
     event.target.value = '';
-    alert('⚠ ' + e.message);
+    showToast(e.message, 'err');
     return;
   }
   const preview     = document.getElementById(`cierre-foto-${vista}-preview`);
@@ -27791,7 +27871,7 @@ function previewCierreFoto(event) {
   catch (e) {
     try { trackEvent('foto_upload_fail', { flujo: 'validacion_cierre_legacy', motivo: String(e?.message || e).slice(0, 120), mime: String(file.type || 'vacio'), kb: Math.round((file.size || 0) / 1024) }); } catch (e2) {}
     event.target.value = '';
-    alert('⚠ ' + e.message);
+    showToast(e.message, 'err');
     return;
   }
   const preview = document.getElementById('cierre-foto-preview');
@@ -28180,13 +28260,13 @@ async function regenerarAnalisisSemana(weekNum) {
   const limit = checkRegenRateLimit(currentUser.id, weekNum);
   if (!limit.ok) {
     if (limit.reason === 'daily') {
-      alert(lang === 'es'
-        ? `⏳ Llegaste al máximo de ${REGEN_DAILY_CAP_PER_USER} regeneraciones por día. Probá mañana.`
-        : `⏳ You've hit the daily cap of ${REGEN_DAILY_CAP_PER_USER} regenerations. Try again tomorrow.`);
+      showToast(lang === 'es'
+        ? `Llegaste al máximo de ${REGEN_DAILY_CAP_PER_USER} regeneraciones por día. Probá mañana.`
+        : `You've hit the daily cap of ${REGEN_DAILY_CAP_PER_USER} regenerations. Try again tomorrow.`, 'err');
     } else {
-      alert(lang === 'es'
-        ? `⏳ Esperá ${limit.waitSec}s antes de regenerar esta semana de vuelta.`
-        : `⏳ Wait ${limit.waitSec}s before regenerating this week again.`);
+      showToast(lang === 'es'
+        ? `Esperá ${limit.waitSec}s antes de regenerar esta semana de vuelta.`
+        : `Wait ${limit.waitSec}s before regenerating this week again.`, 'err');
     }
     return;
   }
@@ -28928,7 +29008,7 @@ async function confirmCancelSub() {
 
 function openDeleteAccount() {
   if (typeof _getImpersonateUid === 'function' && _getImpersonateUid()) {
-    alert('No disponible en modo coach (estás viendo la cuenta de un cliente).');
+    showToast('No disponible en modo coach (estás viendo la cuenta de un cliente).', 'err');
     return;
   }
   const ov = document.getElementById('delete-account-overlay');
@@ -29011,6 +29091,19 @@ if (typeof loadCurrentWeekPlans === 'function') {
       setTimeout(() => {
         const hw = document.getElementById('home-wrapper');
         if (hw && hw.classList.contains('sk-loading')) { try { renderHome(); } catch (e) {} }
+        // Alimentación / Entreno: si el usuario entró antes de que llegaran los
+        // planes, su skeleton está prendido → re-entrar por el show* repinta con
+        // datos reales y apaga la capa (son entry points idempotentes).
+        const dw = document.getElementById('diario-wrapper');
+        if (dw && dw.classList.contains('sk-loading')) {
+          dw.classList.remove('sk-loading');
+          if (dw.style.display !== 'none') { try { showDiario(); } catch (e) {} }
+        }
+        const ew = document.getElementById('mi-entreno-wrapper');
+        if (ew && ew.classList.contains('sk-loading')) {
+          ew.classList.remove('sk-loading');
+          if (ew.style.display !== 'none') { try { showMiEntreno(); } catch (e) {} }
+        }
       }, 0);
     }
   };
@@ -29955,7 +30048,19 @@ function showPerfil() {
   // Reset viewport to top via the robust helper (smooth scrolls misbehave in
   // iOS PWA standalone; users land "half-scrolled" into the page otherwise).
   scrollToTop();
-  renderPerfil().catch(console.error);
+  // Skeleton (solo la PRIMERA entrada de la sesión): renderPerfil trae fotos +
+  // cierres + stats de red y las secciones aparecen de a poco. La capa gris
+  // cubre ese pop-in y se apaga cuando la promesa resuelve (o a los 8s, red
+  // de seguridad). Re-entradas: datos calientes → sin skeleton.
+  const _pskOn = !window._perfilLoaded && localStorage.getItem('coachai_skel') !== '0';
+  try { wrapper.classList.toggle('sk-loading', _pskOn); } catch (e) {}
+  if (_pskOn) {
+    const _pskOff = () => { window._perfilLoaded = true; try { wrapper.classList.remove('sk-loading'); } catch (e) {} };
+    const _pskSafety = setTimeout(_pskOff, 8000);
+    renderPerfil().catch(console.error).finally(() => { clearTimeout(_pskSafety); _pskOff(); });
+  } else {
+    renderPerfil().catch(console.error);
+  }
   setActiveNav('nav-perfil');
 }
 
@@ -33475,6 +33580,12 @@ async function showMiEntreno() {
   hideAllSections();
   const w = document.getElementById('mi-entreno-wrapper');
   w.style.display = 'block';
+  // Skeleton: sin weeklyPlans.rutina la sección pintaría el empty state "sin
+  // rutina" un instante. Misma marca global que Home/Alimentación.
+  try {
+    w.classList.toggle('sk-loading',
+      !window._plansLoaded && localStorage.getItem('coachai_skel') !== '0');
+  } catch (e) {}
   // Reset viewport to the absolute top. scrollIntoView({smooth}) is unreliable
   // on iOS PWA standalone — sometimes ignored, sometimes interrupted, leaving
   // the section "half-scrolled". scrollToTop() forces 0 via three different
@@ -34961,7 +35072,7 @@ function logWeight() {
   const input = document.getElementById('peso-input');
   const val = parseFloat(input.value);
   if (!val || val < 30 || val > 250) {
-    alert('Por favor ingresá un peso válido.');
+    showToast('Por favor ingresá un peso válido.', 'err');
     return;
   }
   const today = getTodayKey();
@@ -35117,7 +35228,7 @@ async function handleLogoUpload(e) {
   try {
     validateImageFile(file);
   } catch (err) {
-    alert('⚠ ' + err.message);
+    showToast(err.message, 'err');
     e.target.value = '';
     return;
   }
@@ -35134,9 +35245,9 @@ async function handleLogoUpload(e) {
     });
   } catch (err) {
     console.error('Logo processing failed:', err);
-    alert(lang === 'es'
-      ? '⚠ No pudimos procesar el logo. Probá con otra imagen.'
-      : '⚠ Could not process the logo. Try another image.');
+    showToast(lang === 'es'
+      ? 'No pudimos procesar el logo. Probá con otra imagen.'
+      : 'Could not process the logo. Try another image.', 'err');
     e.target.value = '';
     return;
   }
@@ -35174,9 +35285,9 @@ function applyWhiteLabel() {
     localStorage.setItem(LS_WL, JSON.stringify(wl));
   } catch (err) {
     console.error('Whitelabel save failed:', err);
-    alert(lang === 'es'
-      ? '⚠ No pudimos guardar la configuración. El logo puede ser muy grande — probá con una imagen más chica.'
-      : '⚠ Could not save the configuration. The logo may be too large — try a smaller image.');
+    showToast(lang === 'es'
+      ? 'No pudimos guardar la configuración. El logo puede ser muy grande — probá con una imagen más chica.'
+      : 'Could not save the configuration. The logo may be too large — try a smaller image.', 'err');
     return;
   }
   applyWhiteLabelToApp(wl);
@@ -35301,7 +35412,7 @@ async function changeAdminPassword() {
   try {
     await setAdminPassword(newPass);
   } catch(e) {
-    alert(e.message);
+    showToast(e.message, 'err');
     return;
   }
   document.getElementById('new-password').value = '';
@@ -35644,7 +35755,7 @@ async function betaRevokeInvitado(email) {
     if (error) throw error;
     await loadBetaPanel();
   } catch (e) {
-    alert('No se pudo quitar: ' + (e.message || e));
+    showToast('No se pudo quitar: ' + (e.message || e), 'err');
   }
 }
 
