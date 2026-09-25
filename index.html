@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260924-0033-boton-acceso-revisor--solo-wrapper-ios-">
+<meta name="app-version" content="20260925-1347-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -4464,6 +4464,51 @@ header {
   padding-top: calc(18px + env(safe-area-inset-top)) !important;
   padding-left: calc(36px + env(safe-area-inset-left)) !important;
   padding-right: calc(36px + env(safe-area-inset-right)) !important;
+}
+
+/* ===== HEADER FUERA DENTRO DE LA APP (2026-09-25) =====
+   Decisión de marca (Beto): la barra superior con el logo era redundante
+   adentro de la app — cada sección ya tiene su propio título — y robaba
+   ~70px de contenido. La marca vive en login/onboarding/splash/stories.
+   El header SE CONSERVA en tres casos:
+   • CHAT: ahí el bottom nav se oculta y la hamburguesa es la única salida.
+   • Safari NAVEGADOR (html/body .safari-browser): el bottom nav no existe
+     en ese modo y la hamburguesa es LA navegación de toda la app.
+   • Escape ?header=1 (body.keep-header, persistido en localStorage).
+   CLAVE safe-area: el header era el colchón del notch / Dynamic Island /
+   barra de estado (PWA con viewport-fit=cover). Al sacarlo, las secciones
+   reciben su propio padding-top = env(safe-area-inset-top) + respiro fijo,
+   así los títulos no chocan con el "óvalo" ni la hora (pedido de Beto). */
+/* !important: proceedAfterAuth prende el header con display:flex INLINE al
+   loguear — sin !important el inline gana y el header nunca se oculta.
+   La guarda html:not(.safari-browser) va DENTRO de esta regla (no como
+   cinturón aparte) porque esta regla tiene más especificidad que el
+   cinturón y con !important lo pisaría. */
+html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header):not(:has(#chat-wrapper[style*="block"])) #main-header {
+  display: none !important;
+}
+/* Colchón de las secciones cuando el header no está (si el header está —
+   escape o Safari — mantienen su padding original y no se duplica el techo) */
+html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) :is(#home-wrapper, #diario-wrapper, #dashboard-wrapper, #perfil-wrapper, #wl-wrapper, #mi-entreno-wrapper) {
+  padding-top: calc(14px + env(safe-area-inset-top, 0px)) !important;
+}
+
+/* Toggle de idioma en Perfil → Ajustes (su nueva casa: el del header quedó
+   visible solo en Chat / Safari-navegador). Los botones reusan .lang-btn
+   para que setLang() los sincronice con cualquier otro toggle. */
+.cai-lang-toggle {
+  display: inline-flex; gap: 4px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 100px; padding: 3px; margin-top: 10px;
+}
+.cai-lang-toggle .lang-btn {
+  border: none; background: transparent; border-radius: 100px;
+  padding: 7px 18px; font-family: inherit; font-size: 13px; font-weight: 600;
+  color: var(--muted); cursor: pointer;
+}
+.cai-lang-toggle .lang-btn.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  color: #fff;
 }
 
 /* ===== iOS / Android safe-area handling for PWA standalone mode =====
@@ -14828,6 +14873,12 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     var _lp = params.get('light');
     if (_lp === '1') { try { localStorage.removeItem('coachai_theme_light'); } catch (e) {} }
     else if (_lp === '0') { try { localStorage.setItem('coachai_theme_light', '0'); } catch (e) {} }
+    // ?header=1 → conservar la barra superior DENTRO de la app (escape del
+    // "header fuera" 2026-09-25, persistido); ?header=0 vuelve al default.
+    var _hp = params.get('header');
+    if (_hp === '1') { try { localStorage.setItem('coachai_keep_header', '1'); } catch (e) {} }
+    else if (_hp === '0') { try { localStorage.removeItem('coachai_keep_header'); } catch (e) {} }
+    try { if (localStorage.getItem('coachai_keep_header') === '1') document.body.classList.add('keep-header'); } catch (e) {}
     var applyLightDefault = function(){
       try {
         if (localStorage.getItem('coachai_theme_light') === '0') return;   // opt-out explícito
@@ -16750,6 +16801,20 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       </div>
       <button class="cai-notif-btn" id="notif-activate-btn" onclick="subscribeToPush()" type="button">🔔 Activar notificaciones</button>
       <div class="cai-notif-status" id="notif-status"></div>
+    </div>
+  </div>
+
+  <!-- IDIOMA — el toggle ES/EN vivía en el header (solo Home); con el header
+       fuera de la app (2026-09-25) su casa es Ajustes. Los botones reusan
+       .lang-btn → setLang() los sincroniza con el toggle del login/header. -->
+  <div class="cai-perfil-section" id="perfil-idioma-section">
+    <div class="cai-perfil-section-title" data-es="IDIOMA" data-en="LANGUAGE">IDIOMA</div>
+    <div class="cai-notif-card">
+      <div class="cai-notif-desc" data-es="El idioma de la app y de tu coach." data-en="The language of the app and your coach.">El idioma de la app y de tu coach.</div>
+      <div class="cai-lang-toggle">
+        <button class="lang-btn active" onclick="setLang('es')" type="button">ES</button>
+        <button class="lang-btn" onclick="setLang('en')" type="button">EN</button>
+      </div>
     </div>
   </div>
 
@@ -21358,7 +21423,9 @@ function checkSavedProfile() {
 function setLang(l) {
   lang = l;
   document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`.lang-btn[onclick="setLang('${l}')"]`).classList.add('active');
+  // querySelectorALL: hay más de un toggle (header + Perfil→Ajustes) y todos
+  // deben reflejar el idioma activo, no solo el primero del DOM.
+  document.querySelectorAll(`.lang-btn[onclick="setLang('${l}')"]`).forEach(b => b.classList.add('active'));
   document.querySelectorAll('[data-es]').forEach(el => {
     el.textContent = el.getAttribute(`data-${l}`) || el.textContent;
   });
