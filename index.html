@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260925-1526-deploy">
+<meta name="app-version" content="20260925-1529-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -29115,6 +29115,11 @@ function cuNum(el, to, fmt, dur) {
     if (t < 1) requestAnimationFrame(tick);
     else el._cuRunTo = null;
   })();
+  // Red de seguridad: con la página oculta (PWA en segundo plano) rAF se pausa
+  // y el conteo quedaría en 0 — este timer garantiza el valor final igual.
+  setTimeout(() => {
+    if (el._cuId === id && el._cuRunTo != null) { el._cuRunTo = null; el.textContent = f(to); }
+  }, d + 500);
 }
 // Escritura directa que cancela un count-up en curso — SALVO que el conteo vaya
 // hacia el mismo valor (re-render inmediato tras la entrada): ahí lo deja terminar.
