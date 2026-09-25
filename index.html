@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260925-1510-deploy">
+<meta name="app-version" content="20260925-1526-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15008,6 +15008,11 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     var _tp2 = params.get('toast');
     if (_tp2 === '0') { try { localStorage.setItem('coachai_toast', '0'); } catch (e) {} }
     else if (_tp2 === '1') { try { localStorage.removeItem('coachai_toast'); } catch (e) {} }
+    // ?countup=0 → escape de los números que cuentan + anillos animados al
+    // entrar a una sección; =1 re-enciende.
+    var _cup = params.get('countup');
+    if (_cup === '0') { try { localStorage.setItem('coachai_countup', '0'); } catch (e) {} }
+    else if (_cup === '1') { try { localStorage.removeItem('coachai_countup'); } catch (e) {} }
     var applyLightDefault = function(){
       try {
         if (localStorage.getItem('coachai_theme_light') === '0') return;   // opt-out explícito
@@ -25020,8 +25025,20 @@ async function renderMiAlimentacion() {
   document.getElementById('alim-summary-eyebrow').textContent = (!ALIM_V2_ENABLED || isTodaySel)
     ? `${lang==='es'?'HOY':'TODAY'} · ${day.dayName}`
     : day.dayName;
-  document.getElementById('alim-summary-count').textContent = `${doneCount}/${day.meals.length}`;
-  document.getElementById('alim-summary-done-kcal').textContent = doneKcal;
+  // Count-up de entrada (bandera armada por showDiario; los re-renders por
+  // tildar una comida pintan directo). No consume si el skeleton sigue arriba.
+  const cuArmedA = window._cuArmAlim && cuOn()
+    && !document.getElementById('diario-wrapper').classList.contains('sk-loading');
+  if (cuArmedA) window._cuArmAlim = false;
+  const _cntEl = document.getElementById('alim-summary-count');
+  const _dkEl  = document.getElementById('alim-summary-done-kcal');
+  if (cuArmedA) {
+    cuNum(_cntEl, doneCount, v => `${v}/${day.meals.length}`);
+    cuNum(_dkEl, doneKcal);
+  } else {
+    cuSet(_cntEl, `${doneCount}/${day.meals.length}`);
+    cuSet(_dkEl, String(doneKcal));
+  }
   // The displayed TARGET is the PLAN's kcal sum — fixed, doesn't move when the
   // user edits a meal to a higher kcal value. Without this, editing one meal
   // up by +1000kcal would also raise the "target" by +1000, hiding the
@@ -25106,6 +25123,9 @@ async function renderMiAlimentacion() {
   const ringsBox = document.getElementById('alimv2-rings');
   if (ringsBox) {
     if (ALIM_V2_ENABLED && showMacros) {
+      // Count-up de entrada: forzar el camino "firstPaint" del render de anillos
+      // (rebuild + doble rAF) para que se dibujen desde 0 en cada entrada.
+      if (cuArmedA) ringsBox.dataset.built = '';
       _alimV2RingsRender(ringsBox, [
         { letter: 'P', done: doneProt,  target: plannedProt },
         { letter: 'C', done: doneCarbs, target: plannedCarbs },
@@ -25116,7 +25136,11 @@ async function renderMiAlimentacion() {
   }
   const progress = document.getElementById('alim-summary-progress');
   const pct = day.meals.length ? Math.round((doneCount / day.meals.length) * 100) : 0;
-  progress.style.width = pct + '%';
+  if (cuArmedA && pct > 0) {
+    cuDraw(progress, 'width', '0%', pct + '%', 'width .9s cubic-bezier(.32,.72,0,1)', 900);
+  } else {
+    progress.style.width = pct + '%';
+  }
   if (doneCount === 0) progress.setAttribute('data-empty', 'true');
   else progress.removeAttribute('data-empty');
 
@@ -25581,6 +25605,8 @@ async function showDiario() {
     document.getElementById('diario-wrapper').classList.toggle('sk-loading',
       !window._plansLoaded && localStorage.getItem('coachai_skel') !== '0');
   } catch (e) {}
+  // Count-up: armar la animación de entrada (kcal + X/N + anillos + barra).
+  window._cuArmAlim = true;
   // Use scrollToTop() instead of scrollIntoView+smooth — see showMiEntreno
   // comment. Smooth-scroll APIs misbehave inside iOS PWA standalone mode.
   scrollToTop();
@@ -29061,6 +29087,59 @@ async function confirmDeleteAccount() {
   }
 }
 
+// ===== Count-up + anillos animados al entrar a una sección — escape ?countup=0 =====
+// Semántica: cada show<Sección>() ARMA su bandera (_cuArm*); el primer render
+// elegible (sin skeleton encima) la consume y anima UNA vez. Los re-renders
+// dentro de la sección (tildar comida, marcar día) pintan directo, sin animar.
+function cuOn() {
+  try {
+    if (localStorage.getItem('coachai_countup') === '0') return false;
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+  } catch (e) {}
+  return true;
+}
+// Cuenta el textContent de 0 → to con ease-out (~0.9s). fmt formatea (miles).
+// El token _cuId cancela un conteo en curso si otro render pisa el elemento.
+function cuNum(el, to, fmt, dur) {
+  if (!el) return;
+  to = +to || 0;
+  const f = fmt || String;
+  const id = (el._cuId = (el._cuId || 0) + 1);
+  if (!cuOn() || to <= 0) { el._cuRunTo = null; el.textContent = f(to); return; }
+  el._cuRunTo = f(to);   // valor final en curso — cuSet con el mismo valor no cancela
+  const t0 = performance.now(), d = dur || 900;
+  (function tick() {
+    if (el._cuId !== id) return;
+    const t = Math.min(1, (performance.now() - t0) / d);
+    el.textContent = f(Math.round(to * (1 - Math.pow(1 - t, 3))));
+    if (t < 1) requestAnimationFrame(tick);
+    else el._cuRunTo = null;
+  })();
+}
+// Escritura directa que cancela un count-up en curso — SALVO que el conteo vaya
+// hacia el mismo valor (re-render inmediato tras la entrada): ahí lo deja terminar.
+function cuSet(el, txt) {
+  if (!el) return;
+  if (el._cuRunTo != null && el._cuRunTo === txt) return;
+  el._cuId = (el._cuId || 0) + 1;
+  el._cuRunTo = null;
+  el.textContent = txt;
+}
+// Dibuja un anillo/barra desde vacío: setea el estado inicial sin transición y
+// en el próximo frame el final. `trans` (opcional) alarga la transición SOLO
+// para este dibujo (ej. entrada a la sección); al terminar se limpia la inline
+// para que los updates posteriores usen la transición corta del CSS.
+function cuDraw(el, prop, fromVal, toVal, trans, dur) {
+  if (!el) return;
+  el.style.transition = 'none';
+  el.style[prop] = fromVal;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    el.style.transition = trans || '';
+    el.style[prop] = toVal;
+    if (trans) setTimeout(() => { el.style.transition = ''; }, (dur || 1000) + 100);
+  }));
+}
+
 // ===== Toast de marca (reemplaza los alert() nativos) — escape ?toast=0 =====
 let _toastTimer = null;
 function showToast(msg, kind, ms) {
@@ -29122,6 +29201,10 @@ function showHome() {
   const wrapper = document.getElementById('home-wrapper');
   wrapper.style.display = 'block';
   playHomeCascade(wrapper); // cards en cascada (salvo que venga del swipe)
+  // Count-up: armar la animación de entrada (anillo + X/N + kcal). La consume
+  // el primer render sin skeleton encima — ver cuOn()/cuNum().
+  window._cuArmHome = true;
+  window._cuArmHomeKcal = true;
   renderHome();
   checkCoachReplies().catch(() => {});   // refresca el banner "tu coach te escribió"
   renderKingIndice();       // Mapa Estético vivo (King-only + ?indice=1)
@@ -29306,17 +29389,27 @@ async function renderHomeRing() {
   const pct = target > 0 ? Math.min(completed / target, 1) : 0;
   const circ = 2 * Math.PI * 48;  // r = 48
   const ring = document.getElementById('home-ring-fill');
+  // Count-up de entrada: solo si showHome armó la bandera y el skeleton ya no
+  // tapa la sección (si tapa, queda armada para el re-render post-carga).
+  const cuArmed = window._cuArmHome && cuOn()
+    && !document.getElementById('home-wrapper').classList.contains('sk-loading');
+  if (cuArmed) window._cuArmHome = false;
   if (ring) {
     ring.style.strokeDasharray = circ;
-    ring.style.strokeDashoffset = circ * (1 - pct);
     // Ring + dumbbell share the same brand gradient as the X/N number.
     // When pct=0 there's nothing to draw so the gradient is invisible anyway.
     ring.style.stroke = 'url(#home-ring-grad)';
     ring.style.filter = pct > 0 ? 'drop-shadow(0 0 6px rgba(124,106,255,0.45))' : 'none';
+    if (cuArmed && pct > 0) {
+      cuDraw(ring, 'strokeDashoffset', circ, circ * (1 - pct),
+        'stroke-dashoffset 1.1s cubic-bezier(.32,.72,0,1)', 1100);
+    } else {
+      ring.style.strokeDashoffset = circ * (1 - pct);
+    }
   }
   const doneEl = document.getElementById('home-ring-done');
   const targetEl = document.getElementById('home-ring-target');
-  if (doneEl) doneEl.textContent = completed;
+  if (doneEl) { if (cuArmed) cuNum(doneEl, completed); else cuSet(doneEl, String(completed)); }
   if (targetEl) targetEl.textContent = target;
 }
 
@@ -29795,8 +29888,14 @@ function renderHomeKcalChart() {
   // target exacto y ambas pantallas muestran el mismo número. El header derivado
   // queda de fallback para dietas sin kcal por comida.
   const target = plannedDayKcal || (_alimHeader?.targetKcal) || 0;
-  if (doneEl) doneEl.textContent = doneKcal.toLocaleString(isEs ? 'es-AR' : 'en-US');
-  if (targetEl) targetEl.textContent = target ? `/ ${target.toLocaleString(isEs?'es-AR':'en-US')} ${isEs?'KCAL':'KCAL'}` : '';
+  const fmtK = v => v.toLocaleString(isEs ? 'es-AR' : 'en-US');
+  // Count-up de entrada (bandera propia: este chart se re-renderiza también
+  // cuando ensureAlimentacionLoaded termina — la primera pasada elegible anima).
+  const cuArmedK = window._cuArmHomeKcal && cuOn()
+    && !document.getElementById('home-wrapper').classList.contains('sk-loading');
+  if (cuArmedK) window._cuArmHomeKcal = false;
+  if (doneEl) { if (cuArmedK) cuNum(doneEl, doneKcal, fmtK); else cuSet(doneEl, fmtK(doneKcal)); }
+  if (targetEl) targetEl.textContent = target ? `/ ${fmtK(target)} ${isEs?'KCAL':'KCAL'}` : '';
 
   const maxKcal = Math.max(...bars.map(b => b.kcal), 1);
   // Short labels for x-axis: first 3 letters of meal name
@@ -33586,6 +33685,8 @@ async function showMiEntreno() {
     w.classList.toggle('sk-loading',
       !window._plansLoaded && localStorage.getItem('coachai_skel') !== '0');
   } catch (e) {}
+  // Count-up: armar la animación de entrada (X/N días + barra de adherencia).
+  window._cuArmEnt = true;
   // Reset viewport to the absolute top. scrollIntoView({smooth}) is unreliable
   // on iOS PWA standalone — sometimes ignored, sometimes interrupted, leaving
   // the section "half-scrolled". scrollToTop() forces 0 via three different
@@ -34145,7 +34246,14 @@ function renderMiEntreno() {
   const pct = totalTraining ? Math.round((doneCount / totalTraining) * 100) : 0;
   if (summary) {
     summary.style.display = 'block';
-    document.getElementById('ent-summary-count').textContent = `${doneCount}/${totalTraining}`;
+    // Count-up de entrada (bandera armada por showMiEntreno; los re-renders por
+    // marcar un día / navegar el split pintan directo).
+    const cuArmedE = window._cuArmEnt && cuOn()
+      && !document.getElementById('mi-entreno-wrapper').classList.contains('sk-loading');
+    if (cuArmedE) window._cuArmEnt = false;
+    const _ecEl = document.getElementById('ent-summary-count');
+    if (cuArmedE) cuNum(_ecEl, doneCount, v => `${v}/${totalTraining}`);
+    else cuSet(_ecEl, `${doneCount}/${totalTraining}`);
     const todayLabel = mapping.isTodayRest
       ? (lang === 'es' ? 'Descanso' : 'Rest')
       : `Día ${trainingRoutineIdxs.indexOf(mapping.todayRoutineIdx) + 1}`;
@@ -34154,7 +34262,11 @@ function renderMiEntreno() {
     if (eyebrow) eyebrow.textContent = lang === 'es' ? 'ESTA SEMANA' : 'THIS WEEK';
     const progress = document.getElementById('ent-summary-progress');
     if (progress) {
-      progress.style.width = pct + '%';
+      if (cuArmedE && pct > 0) {
+        cuDraw(progress, 'width', '0%', pct + '%', 'width .9s cubic-bezier(.32,.72,0,1)', 900);
+      } else {
+        progress.style.width = pct + '%';
+      }
       if (doneCount === 0) progress.setAttribute('data-empty', 'true');
       else progress.removeAttribute('data-empty');
     }
