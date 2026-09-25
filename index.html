@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260925-1347-deploy">
+<meta name="app-version" content="20260925-1359-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6330,6 +6330,32 @@ body.theme-king .cai-info-chip.is-new { animation-name: caiInfoPulseKing; }
 .cai-info-subrow .cai-info-chip svg { width: 12px; height: 12px; }
 /* Fila suelta arriba de Home y Perfil (esas secciones no tienen header visible) */
 .cai-info-row { display: flex; justify-content: flex-end; margin: 8px 18px -2px; }
+
+/* Chips "i" de Home y Perfil como BADGE DE ESQUINA del hero (pedido de Beto
+   2026-09-25): con el header fuera quedaban en una fila suelta "en el aire".
+   No pueden vivir DENTRO del hero en el DOM (renderHome/renderPerfil
+   re-renderizan y los pisarían) → overlay absoluto sobre el wrapper, anclado
+   a la esquina sup-der de la card. La esquina INTERNA está ocupada por diseño
+   ("ENTRENAMIENTOS" termina a 19px del borde; badge "Semana N" ídem) → el
+   chip va montado sobre el borde, estilo badge. Mismo gate que "header
+   fuera": con header visible (Safari-navegador / escape ?header=1) vuelven a
+   su fila original. Solo mobile: en desktop el wrapper es más ancho que la
+   card centrada y el ancla se desalinearía. */
+@media (max-width: 760px) {
+  html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) #home-wrapper,
+  html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) #perfil-wrapper {
+    position: relative;
+  }
+  html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) #home-wrapper > .cai-info-row,
+  html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) #perfil-wrapper > .cai-info-row {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 26px);
+    margin: 0; padding: 0;
+    z-index: 30;
+  }
+  html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) #home-wrapper > .cai-info-row { right: 48px; }
+  html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) #perfil-wrapper > .cai-info-row { right: 30px; }
+}
 /* Chat: flotante arriba a la derecha; los mensajes scrollean por debajo.
    Sin backdrop-filter a propósito (el fade del chat lo rompería). */
 .chat-wrapper { position: relative; }
