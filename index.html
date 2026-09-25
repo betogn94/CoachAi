@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260925-1405-deploy">
+<meta name="app-version" content="20260925-1412-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6331,6 +6331,13 @@ body.theme-king .cai-info-chip.is-new { animation-name: caiInfoPulseKing; }
 /* Fila suelta arriba de Home y Perfil (esas secciones no tienen header visible) */
 .cai-info-row { display: flex; justify-content: flex-end; margin: 8px 18px -2px; }
 
+/* Chip "i" al lado del nombre en el hero de Perfil (pedido de Beto): fila
+   flex nombre+chip (el chip NO puede ir dentro de #cph-name/#kph-name — el
+   render les pisa el textContent). Variante chica para acompañar al nombre. */
+.cph-name-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.cai-info-chip-name { width: 22px; height: 22px; flex: none; }
+.cai-info-chip-name svg { width: 12px; height: 12px; }
+
 /* Chips "i" de Home y Perfil como BADGE DE ESQUINA del hero (pedido de Beto
    2026-09-25): con el header fuera quedaban en una fila suelta "en el aire".
    No pueden vivir DENTRO del hero en el DOM (renderHome/renderPerfil
@@ -6342,21 +6349,20 @@ body.theme-king .cai-info-chip.is-new { animation-name: caiInfoPulseKing; }
    su fila original. Solo mobile: en desktop el wrapper es más ancho que la
    card centrada y el ancla se desalinearía. */
 @media (max-width: 760px) {
-  html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) #home-wrapper,
-  html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) #perfil-wrapper {
+  html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) #home-wrapper {
     position: relative;
   }
-  html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) #home-wrapper > .cai-info-row,
-  html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) #perfil-wrapper > .cai-info-row {
+  html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) #home-wrapper > .cai-info-row {
     position: absolute;
-    /* "un pelín más adentro" (Beto 2026-09-25): +6px vertical; ambos heroes
-       tienen el borde derecho a 38px del wrapper → right = 38 + ~12 adentro. */
+    /* Afinado con Beto en vivo: card arranca en top 26 / borde derecho a 38px
+       del wrapper → +6px vertical adentro y ~8px del borde ("un pelín a la
+       derecha", 2026-09-25). El de Perfil ya no usa esto: vive junto al
+       nombre dentro del hero. */
     top: calc(env(safe-area-inset-top, 0px) + 32px);
+    right: 46px;
     margin: 0; padding: 0;
     z-index: 30;
   }
-  html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) #home-wrapper > .cai-info-row { right: 54px; }
-  html:not(.safari-browser) body.app-active:not(.safari-browser):not(.keep-header) #perfil-wrapper > .cai-info-row { right: 48px; }
 }
 /* Chat: flotante arriba a la derecha; los mensajes scrollean por debajo.
    Sin backdrop-filter a propósito (el fade del chat lo rompería). */
@@ -16400,12 +16406,8 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
 <!-- PERFIL (premium identity hub) -->
 <div class="diario-wrapper" id="perfil-wrapper">
 
-  <!-- Chip "i" de la sección (el Perfil arranca directo en el héroe → fila propia) -->
-  <div class="cai-info-row">
-    <button class="cai-info-chip" type="button" data-info="perfil" onclick="showInfoModal('perfil')" aria-label="Info">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.6" fill="currentColor"/></svg>
-    </button>
-  </div>
+  <!-- (El chip "i" de Perfil vive DENTRO del hero, al lado del nombre —
+       en ambos heroes: clásico #perfil-hero y King #perfil-hero-king.) -->
 
   <!-- STUDIO entry point — visible only when currentUser.role === 'admin'.
        Studio lives at /studio as its own bundle for isolation; this card is
@@ -16507,7 +16509,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     <div class="kp-eyebrow">Método King</div>
     <div class="kp-top">
       <button class="kp-avatar" type="button" onclick="openPerfilDatos()" aria-label="Ver y editar tus datos"><span id="kph-initial">—</span><span class="kp-avatar-edit" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span></button>
-      <div class="kp-id"><div class="kp-name" id="kph-name">—</div><span class="kp-chip" id="kph-week">—</span></div>
+      <div class="kp-id"><div class="cph-name-row"><div class="kp-name" id="kph-name">—</div><button class="cai-info-chip cai-info-chip-name" type="button" data-info="perfil" onclick="showInfoModal('perfil')" aria-label="Info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.6" fill="currentColor"/></svg></button></div><span class="kp-chip" id="kph-week">—</span></div>
     </div>
     <div class="kp-ring-wrap">
       <div class="kp-ring">
@@ -16532,7 +16534,14 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
         <span class="cph-avatar-edit" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>
       </button>
       <div class="cph-id">
-        <div class="cph-name" id="cph-name">—</div>
+        <!-- El chip "i" va como HERMANO del nombre (renderPerfilHeroCard pisa
+             el textContent de #cph-name — adentro lo borraría). -->
+        <div class="cph-name-row">
+          <div class="cph-name" id="cph-name">—</div>
+          <button class="cai-info-chip cai-info-chip-name" type="button" data-info="perfil" onclick="showInfoModal('perfil')" aria-label="Info">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.6" fill="currentColor"/></svg>
+          </button>
+        </div>
         <div class="cph-goal" id="cph-goal">—</div>
       </div>
       <div class="cph-weeks-badge" id="cph-weeks">—</div>
