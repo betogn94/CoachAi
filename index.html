@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260925-1529-deploy">
+<meta name="app-version" content="20260925-1532-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -24792,7 +24792,12 @@ function _alimV2RingsRender(box, items) {
     fill.style.stroke = over ? '#e5484d' : _ALIM_V2_RING_COLORS[it.letter];
     if (firstPaint) {
       // Doble rAF: garantiza un frame pintado en 0% antes de transicionar.
-      requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.strokeDashoffset = off; }));
+      // + red de seguridad: con la página oculta rAF se pausa (el anillo
+      // quedaría vacío) — el timer aplica el offset final igual.
+      let _ap = false;
+      const _set = () => { if (_ap) return; _ap = true; fill.style.strokeDashoffset = off; };
+      requestAnimationFrame(() => requestAnimationFrame(_set));
+      setTimeout(_set, 1400);
     } else {
       fill.style.strokeDashoffset = off;
     }
@@ -29138,11 +29143,22 @@ function cuDraw(el, prop, fromVal, toVal, trans, dur) {
   if (!el) return;
   el.style.transition = 'none';
   el.style[prop] = fromVal;
+  let applied = false;
   requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (applied) return;
+    applied = true;
     el.style.transition = trans || '';
     el.style[prop] = toVal;
     if (trans) setTimeout(() => { el.style.transition = ''; }, (dur || 1000) + 100);
   }));
+  // Red de seguridad: con la página oculta rAF se pausa y el elemento quedaría
+  // clavado en el estado vacío — este timer aplica el final sin animar.
+  setTimeout(() => {
+    if (applied) return;
+    applied = true;
+    el.style.transition = '';
+    el.style[prop] = toVal;
+  }, (dur || 1000) + 600);
 }
 
 // ===== Toast de marca (reemplaza los alert() nativos) — escape ?toast=0 =====
