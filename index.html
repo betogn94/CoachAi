@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260925-1412-deploy">
+<meta name="app-version" content="20260925-1457-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6330,6 +6330,65 @@ body.theme-king .cai-info-chip.is-new { animation-name: caiInfoPulseKing; }
 .cai-info-subrow .cai-info-chip svg { width: 12px; height: 12px; }
 /* Fila suelta arriba de Home y Perfil (esas secciones no tienen header visible) */
 .cai-info-row { display: flex; justify-content: flex-end; margin: 8px 18px -2px; }
+
+/* ===== SKELETONS (carga) + TOASTS (feedback) — UI polish 2026-09-25 =====
+   Skeleton: siluetas gris-violeta con brillo mientras los datos de la semana
+   no llegaron (antes se veía el empty state "Sin dieta activa" mentiroso un
+   instante). Escape: ?skel=0. Toast: pill de tinta que reemplaza los alert()
+   nativos del navegador. Escape: ?toast=0 (vuelve a alert). */
+@keyframes skelShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.skel {
+  background: linear-gradient(90deg, #ECEAF4 25%, #F8F7FC 50%, #ECEAF4 75%);
+  background-size: 200% 100%;
+  animation: skelShimmer 1.4s ease-in-out infinite;
+  border-radius: 8px;
+}
+.skel-circle { border-radius: 50%; }
+@media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
+
+/* Capa skeleton del HOME: réplica estática del layout (hero + pill + 4 cards)
+   que cubre el contenido real hasta que loadCurrentWeekPlans termina. */
+#home-skel { display: none; }
+#home-wrapper.sk-loading { position: relative; min-height: 86vh; overflow: hidden; }
+#home-wrapper.sk-loading > #home-skel { display: block; position: absolute; inset: 0; z-index: 25; background: var(--bg); padding: 4px 0 0; }
+.hsk-hero { background: var(--surface); border: 1px solid var(--border); border-radius: 22px; box-shadow: 0 1px 2px rgba(26,26,46,.04), 0 4px 14px rgba(124,106,255,.08); padding: 22px; display: flex; gap: 20px; align-items: center; margin: 0 0 18px; }
+.hsk-ring { width: 96px; height: 96px; flex: none; }
+.hsk-col { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.hsk-col .skel { height: 14px; }
+.hsk-col .skel:nth-child(1) { width: 70%; }
+.hsk-col .skel:nth-child(2) { height: 30px; width: 45%; }
+.hsk-col .skel:nth-child(3) { width: 85%; }
+.hsk-col .skel:nth-child(4) { width: 55%; }
+.hsk-pill { height: 52px; width: 78%; margin: 0 auto 18px; border-radius: 16px; display: block; }
+.hsk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.hsk-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; box-shadow: 0 1px 2px rgba(26,26,46,.04), 0 4px 14px rgba(124,106,255,.08); padding: 16px; height: 168px; display: flex; flex-direction: column; gap: 12px; }
+.hsk-row { display: flex; justify-content: space-between; align-items: center; }
+.hsk-tag { height: 11px; width: 55%; }
+.hsk-ico { width: 34px; height: 34px; flex: none; }
+.hsk-t { height: 18px; width: 80%; }
+.hsk-s { height: 12px; width: 65%; }
+
+/* Toast de marca. OJO: color #fff con !important — la regla universal del
+   tema (body.theme-* div { color: var(--text) }) lo pisaría (cazado en la
+   preview en vivo). z-index altísimo: hay secciones con stacking alto. */
+#cai-toast {
+  position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 14px); opacity: 0; pointer-events: none;
+  z-index: 2147483000;
+  display: flex; align-items: center; gap: 9px;
+  background: #1A1A2E; color: #fff !important;
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+  line-height: 1.35; text-align: left;
+  padding: 11px 18px; border-radius: 22px;
+  box-shadow: 0 8px 28px rgba(26,26,46,.35);
+  max-width: 86vw;
+  transition: transform .28s cubic-bezier(.32,.72,0,1), opacity .28s ease;
+}
+#cai-toast.show { transform: translate(-50%, 0); opacity: 1; }
+#cai-toast .tx { color: #fff !important; }
+#cai-toast .tk { flex: none; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+#cai-toast.ok  .tk { background: rgba(46,207,181,.25); color: #5FE8CF !important; }
+#cai-toast.err .tk { background: rgba(255,107,107,.28); color: #FF9B9B !important; }
 
 /* Chip "i" al lado del nombre en el hero de Perfil (pedido de Beto): fila
    flex nombre+chip (el chip NO puede ir dentro de #cph-name/#kph-name — el
@@ -14913,6 +14972,14 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     if (_hp === '1') { try { localStorage.setItem('coachai_keep_header', '1'); } catch (e) {} }
     else if (_hp === '0') { try { localStorage.removeItem('coachai_keep_header'); } catch (e) {} }
     try { if (localStorage.getItem('coachai_keep_header') === '1') document.body.classList.add('keep-header'); } catch (e) {}
+    // ?skel=0 / ?toast=0 → escapes del skeleton de carga y de los toasts
+    // (UI polish 2026-09-25); =1 los re-enciende.
+    var _sp = params.get('skel');
+    if (_sp === '0') { try { localStorage.setItem('coachai_skel', '0'); } catch (e) {} }
+    else if (_sp === '1') { try { localStorage.removeItem('coachai_skel'); } catch (e) {} }
+    var _tp2 = params.get('toast');
+    if (_tp2 === '0') { try { localStorage.setItem('coachai_toast', '0'); } catch (e) {} }
+    else if (_tp2 === '1') { try { localStorage.removeItem('coachai_toast'); } catch (e) {} }
     var applyLightDefault = function(){
       try {
         if (localStorage.getItem('coachai_theme_light') === '0') return;   // opt-out explícito
@@ -15346,6 +15413,23 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
 
 <!-- HOME SCREEN -->
 <div class="diario-wrapper home-app-wrapper" id="home-wrapper">
+
+  <!-- SKELETON del Home: réplica del layout que cubre el contenido mientras
+       loadCurrentWeekPlans no terminó (clase sk-loading en el wrapper, la
+       maneja renderHome + el wrapper de loadCurrentWeekPlans). ?skel=0 apaga. -->
+  <div id="home-skel" aria-hidden="true">
+    <div class="hsk-hero">
+      <div class="skel skel-circle hsk-ring"></div>
+      <div class="hsk-col"><div class="skel"></div><div class="skel"></div><div class="skel"></div><div class="skel"></div></div>
+    </div>
+    <div class="skel hsk-pill"></div>
+    <div class="hsk-grid">
+      <div class="hsk-card"><div class="hsk-row"><div class="skel hsk-tag"></div><div class="skel skel-circle hsk-ico"></div></div><div class="skel hsk-t"></div><div class="skel hsk-s"></div></div>
+      <div class="hsk-card"><div class="hsk-row"><div class="skel hsk-tag"></div><div class="skel skel-circle hsk-ico"></div></div><div class="skel hsk-t"></div><div class="skel hsk-s"></div></div>
+      <div class="hsk-card"><div class="hsk-row"><div class="skel hsk-tag"></div><div class="skel skel-circle hsk-ico"></div></div><div class="skel hsk-t"></div><div class="skel hsk-s"></div></div>
+      <div class="hsk-card"><div class="hsk-row"><div class="skel hsk-tag"></div><div class="skel skel-circle hsk-ico"></div></div><div class="skel hsk-t"></div><div class="skel hsk-s"></div></div>
+    </div>
+  </div>
 
   <!-- Page header oculto a pedido (saludo + icono sacados) → las cards suben. -->
   <div class="cai-alim-header" style="display:none">
@@ -22028,7 +22112,7 @@ function validateStep(step) {
     const p = document.getElementById('f-peso').value;
     const a = document.getElementById('f-altura').value;
     if (!n || !e || !s || !p || !a) {
-      alert(lang === 'es' ? 'Por favor completá todos los campos obligatorios.' : 'Please fill in all required fields.');
+      showToast(lang === 'es' ? 'Por favor completá todos los campos obligatorios.' : 'Please fill in all required fields.', 'err');
       return false;
     }
     // Numeric ranges — truthiness alone passes "0" and negatives. Stored as-is
@@ -22037,21 +22121,21 @@ function validateStep(step) {
     const pesoN = parseFloat(p);
     const alturaN = parseFloat(a);
     if (!(edadN >= 14 && edadN <= 100)) {
-      alert(lang === 'es' ? 'La edad debe estar entre 14 y 100 años.' : 'Age must be between 14 and 100.');
+      showToast(lang === 'es' ? 'La edad debe estar entre 14 y 100 años.' : 'Age must be between 14 and 100.', 'err');
       return false;
     }
     if (!(pesoN >= 30 && pesoN <= 300)) {
-      alert(lang === 'es' ? 'El peso debe estar entre 30 y 300 kg.' : 'Weight must be between 30 and 300 kg.');
+      showToast(lang === 'es' ? 'El peso debe estar entre 30 y 300 kg.' : 'Weight must be between 30 and 300 kg.', 'err');
       return false;
     }
     if (!(alturaN >= 100 && alturaN <= 230)) {
-      alert(lang === 'es' ? 'La altura debe estar entre 100 y 230 cm.' : 'Height must be between 100 and 230 cm.');
+      showToast(lang === 'es' ? 'La altura debe estar entre 100 y 230 cm.' : 'Height must be between 100 and 230 cm.', 'err');
       return false;
     }
   }
   if (step === 2) {
     if (!selections.objetivo || !selections.nivel || !document.getElementById('f-actividad').value) {
-      alert(lang === 'es' ? 'Por favor seleccioná tu objetivo, nivel y actividad.' : 'Please select your goal, level and activity.');
+      showToast(lang === 'es' ? 'Por favor seleccioná tu objetivo, nivel y actividad.' : 'Please select your goal, level and activity.', 'err');
       return false;
     }
   }
@@ -28897,6 +28981,41 @@ async function confirmDeleteAccount() {
   }
 }
 
+// ===== Toast de marca (reemplaza los alert() nativos) — escape ?toast=0 =====
+let _toastTimer = null;
+function showToast(msg, kind, ms) {
+  try {
+    if (localStorage.getItem('coachai_toast') === '0') { alert(msg); return; }
+    let t = document.getElementById('cai-toast');
+    if (!t) { t = document.createElement('div'); t.id = 'cai-toast'; document.body.appendChild(t); }
+    t.className = (kind === 'err') ? 'err' : 'ok';
+    t.innerHTML = '<span class="tk">' + (kind === 'err' ? '!' : '✓') + '</span><span class="tx"></span>';
+    t.querySelector('.tx').textContent = msg;
+    requestAnimationFrame(() => t.classList.add('show'));
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => t.classList.remove('show'), ms || 2600);
+  } catch (e) { try { alert(msg); } catch (e2) {} }
+}
+
+// Marca "los planes de la semana ya se intentaron cargar" para el skeleton del
+// Home. Wrapper sobre loadCurrentWeekPlans (tiene 9 llamadores — un solo punto
+// acá): al terminar (ok o error) prende la marca y re-renderiza Home en el
+// PRÓXIMO tick — así el llamador ya asignó weeklyPlans antes del re-render.
+if (typeof loadCurrentWeekPlans === 'function') {
+  const _origLoadCWP = loadCurrentWeekPlans;
+  loadCurrentWeekPlans = async function () {
+    try { return await _origLoadCWP.apply(this, arguments); }
+    finally {
+      window._plansLoaded = true;
+      if (window._skelSafety) { clearTimeout(window._skelSafety); window._skelSafety = null; }
+      setTimeout(() => {
+        const hw = document.getElementById('home-wrapper');
+        if (hw && hw.classList.contains('sk-loading')) { try { renderHome(); } catch (e) {} }
+      }, 0);
+    }
+  };
+}
+
 function showHome() {
   // JS fallback for the CSS :has() guard at the top of the file. On Safari <15.4
   // and similar older browsers without :has(), the rule that disables the logo
@@ -28986,6 +29105,18 @@ async function ensureAlimentacionLoaded() {
 function renderHome() {
   const p = loadProfile();
   if (!p) return;
+  // SKELETON del Home: cubre el contenido hasta que loadCurrentWeekPlans
+  // terminó (window._plansLoaded lo prende el wrapper de esa función). Antes
+  // el primer paint mostraba "Sin dieta activa" un instante (mentira
+  // momentánea). Escape ?skel=0. Red de seguridad: 10s máximo.
+  try {
+    const hw = document.getElementById('home-wrapper');
+    const skOn = !window._plansLoaded && localStorage.getItem('coachai_skel') !== '0';
+    hw.classList.toggle('sk-loading', skOn);
+    if (skOn && !window._skelSafety) {
+      window._skelSafety = setTimeout(() => { window._plansLoaded = true; try { renderHome(); } catch (e) {} }, 10000);
+    }
+  } catch (e) {}
   const isEs = lang === 'es';
 
   // Aviso de carga (mientras se pre-generan los planes en el onboarding).
