@@ -109,11 +109,11 @@ El ancla al alta existía para que TODA usuaria tuviera una primera semana de 7 
 - Simulación F2 revisada por Beto ANTES del flip (números concretos: qué cambia para quién).
 - Cron: dry-run del push de cierre con el reloj nuevo contra usuarias reales (sin enviar).
 
-## 7. Preguntas abiertas para Jesús/Beto (cerrar en F0)
-1. ¿OK que la semana de arranque puntúe prorrateado (vs. no puntuar en absoluto)?
-2. ¿OK el "cierre puente" único en la transición (vs. esperar al próximo lunes y dejar días sin cerrar)?
-3. Índice King: ¿el checkpoint visual "cada 4 semanas" cuenta semanas de proceso (semana_num) como hoy? (Propuesta: sí, sin cambio.)
-4. ¿Comunicamos el cambio a las usuarias (mensaje en el chat post-flip) o es transparente? (Propuesta: transparente; el cierre puente con tono neutro lo absorbe.)
+## 7. Preguntas abiertas — ✅ RESUELTAS (Beto, 2026-09-28)
+1. **Semana de arranque: PRORRATEADA (opción A).** Se evaluó la alternativa "primera semana aniversario de 7 días" (cerrar el jueves siguiente): viable pero solo mueve la semana parcial a la semana 2, revive la comparación 7-días-vs-4-días y mantiene dos definiciones de semana → descartada.
+2. **Transición: CIERRE PUENTE (opción A).** Un único cierre neutro por usuaria, marcado transición, sin juicio.
+3. **Índice King: IRRELEVANTE.** El método King / Índice de Armonía ya no lo usa ningún usuario (confirmado por Beto). El código (`kingCierreCalcula`, checkpoint %4) queda dormido tal cual, sin cambios. `semana_num` se conserva como contador de orden para mostrar "Semana N".
+4. **Comunicación: TRANSPARENTE (opción A).** El cierre puente con tono neutro absorbe la transición.
 
 ---
 

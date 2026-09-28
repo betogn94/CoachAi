@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260928-1314-deploy">
+<meta name="app-version" content="20260928-1336-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -27040,6 +27040,35 @@ async function reabrirCicloPostCierre() {
   } catch (e) { console.warn('[cierre-libre] reabrir ciclo:', e?.message || e); }
 }
 
+// ── MODO SOMBRA del reloj ISO — semanas-calendario F2b (SOLO telemetría) ─────
+// docs/semanas-calendario.md §5. Una vez por día compara la última semana
+// COMPLETA según ambos relojes (personal vs ISO) sobre los mismos datos y lo
+// registra en beta_eventos ('week_clock_sombra'). No cambia NADA de lo que ve
+// la usuaria; se retira en F5. Valida en vivo el reloj nuevo antes del flip F3.
+function semanaIsoSombra(createdAt) {
+  try {
+    if (!currentUser || (currentUser.role && currentUser.role !== 'user')) return;
+    if (typeof isoWeekShift !== 'function' || typeof isoWeekRange !== 'function') return;
+    if (!Array.isArray(recentDiario) || recentDiario.length === 0) return; // datos aún no cargados / cuenta sin registros
+    const hoy = getTodayKey();
+    try { if (localStorage.getItem('coachai_sombra_iso') === hoy) return; } catch (e) {}
+    const cur = getWeekNum(createdAt);
+    if (cur < 2) return;                                  // sin semana personal completa aún
+    const rp = getWeekRange(createdAt, cur - 1);          // última semana personal terminada
+    const isoPrev = isoWeekShift(getISOWeekKey(), -1);    // última semana ISO terminada
+    const ri = isoWeekRange(isoPrev);
+    if (!rp || !ri) return;
+    const tp = computeWeekStats(recentDiario, rp).trained;
+    const ti = computeWeekStats(recentDiario, { start: ri.start, end: ri.end }).trained;
+    trackEvent('week_clock_sombra', {
+      pers_rango: rp.start + '..' + rp.end,  pers_train: tp,
+      iso_sem: isoPrev, iso_rango: ri.start + '..' + ri.end, iso_train: ti,
+      diverge: tp !== ti,
+    });
+    try { localStorage.setItem('coachai_sombra_iso', hoy); } catch (e) {}
+  } catch (e) { /* la sombra jamás rompe nada */ }
+}
+
 function getWeekNum(createdAt) {
   const start = new Date(createdAt.slice(0, 10) + 'T00:00:00');
   const today = new Date();
@@ -27143,6 +27172,9 @@ async function renderSemanas() {
       await reabrirCicloPostCierre();
     }
   } catch (e) { console.warn('[cierre-libre] auto-cierre:', e?.message || e); }
+  // SOMBRA ISO (semanas-calendario F2b): comparar ambos relojes 1 vez por día —
+  // telemetría pura sobre datos ya cargados, jamás afecta el render.
+  try { semanaIsoSombra(createdAt); } catch (e) {}
   // Con los cierres ya cargados, re-evaluamos el recordatorio de cierre de Home
   // (dato autoritativo del closed-state, por si la primera llamada en renderHome
   // corrió antes de tener los cierres).
