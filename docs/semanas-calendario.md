@@ -96,7 +96,7 @@ El ancla al alta existía para que TODA usuaria tuviera una primera semana de 7 
 |---|---|---|
 | **F0** | Este doc → revisión Beto + Jesús. Decidir las 3 reglas: arranque prorrateado, cierre puente, comparación solo-completas | — |
 | **F1** | Aditivo: columna `semana_iso` en `cierres_semanales` + helpers nuevos (`isoWeekOf(date)`, `isoWeekRange(iso)`) + tests de fechas (harness con altas en los 7 días de la semana, DST, bordes de año ISO) | Cero (nada lo usa aún) |
-| **F2** | **Simulación offline con datos reales** (SQL): para cada usuaria activa, computar sus cierres como si el reloj nuevo hubiera existido → tabla de divergencias (cuántos análisis habrían cambiado). + **Modo sombra en la app**: computar ambos relojes, loguear `week_clock_divergencia` en `beta_eventos` unos días | Cero (solo lectura/telemetría) |
+| **F2** | **Simulación offline con datos reales** ✅ HECHA 2026-09-28 (ver §8) + **Modo sombra en la app**: computar ambos relojes, loguear `week_clock_divergencia` en `beta_eventos` unos días | Cero (solo lectura/telemetría) |
 | **F3** | Flip del cliente (index.html: consumidores 1-12) detrás de escape **`?semanaiso=0`** + bump + QA E2E con cuentas de prueba (alta lunes / alta jueves / usuaria con historial viejo) | Medio — mitigado por sombra + escape |
 | **F4** | Cron (13) + Studio si hiciera falta (14 — en principio intacto por `fecha_inicio/fin`) | Bajo |
 | **F5** | Limpieza: retirar reloj viejo + doc de cierre | Bajo |
@@ -114,3 +114,31 @@ El ancla al alta existía para que TODA usuaria tuviera una primera semana de 7 
 2. ¿OK el "cierre puente" único en la transición (vs. esperar al próximo lunes y dejar días sin cerrar)?
 3. Índice King: ¿el checkpoint visual "cada 4 semanas" cuenta semanas de proceso (semana_num) como hoy? (Propuesta: sí, sin cambio.)
 4. ¿Comunicamos el cambio a las usuarias (mensaje en el chat post-flip) o es transparente? (Propuesta: transparente; el cierre puente con tono neutro lo absorbe.)
+
+---
+
+## 8. F2 — Resultados de la simulación con datos reales (2026-09-28)
+
+Método: para cada cuenta activa (31), serie de entrenos/semana (unión `dias_entrenados` + `progreso_diario.entreno` — la misma regla del cierre) bajo ambos relojes, últimas 6 semanas completas (17/08→27/09), y peor caída semana-a-semana según cada reloj.
+
+**Validación del método:** todas las altas de lunes dan series IDÉNTICAS bajo ambos relojes (p.ej. Virginia `3,3,3,3,3,3`) → la simulación computa bien.
+
+**Resultado: de 13 cuentas con actividad comparable, 8 (62%) reciben una narrativa semanal distinta según el reloj.** Casos destacados (solo nombre de pila):
+
+| Caso (alta) | Serie ISO (real) | Serie reloj personal | Distorsión |
+|---|---|---|---|
+| Angelica (sáb) | `1,2,1,1` (caída máx -1) | `3,0,2` (caída -3) | El reloj viejo inventa una semana en CERO → análisis "no entrenaste" FALSO |
+| FlorL (dom) | `5,5,5,3` | `5,4,6,3` | Constancia perfecta convertida en serrucho |
+| Bárbara (sáb) | `4,5,4,4,3,1` | `4,3,6,4,3,1` | Pico de 6 inventado, constancia 4-5 escondida |
+| José Alberto (mar) | `3,3` | `4` (→2 al cerrar) | El caso disparador, confirmado exacto |
+| Erica (dom) | `5,5,3,2,5,1` (-4) | `6,4,4,2,4,2` (-2) | Narrativa completamente distinta |
+| Carolina C. (vie) | `0,2,1,2,0,0` | `0,2,0,3,0,0` | Montaña rusa inventada |
+| Fernanda D. (sáb) | `5,3,4,3,0,1` (-3) | `5,3,4,2,1,1` (-2) | **Dirección inversa**: el viejo ESCONDE un parate real (la semana en 0 existió) |
+| Roxana (vie) | `2,5,5,6,3,3` | `5,5,6,5,3` | Corrimientos de 1 día por borde |
+
+**Conclusiones:**
+1. La distorsión es **masiva** (62% de las comparables) y **bidireccional**: a veces reta de más (Angelica, FlorL, José Alberto), a veces esconde un parate real (Fernanda D.) — el reloj viejo no es "más blando" ni "más duro", es **incorrecto** respecto de la semana humana.
+2. Al menos 1 análisis habría afirmado un hecho falso ("cero entrenos") sobre una semana en la que la clienta SÍ entrenó.
+3. Refuerza la decisión de F0: parches de etiqueta no arreglan esto; solo el cambio de reloj.
+
+Queda de F2: **modo sombra** en la app (`week_clock_divergencia` en `beta_eventos`) para validar en vivo el reloj nuevo contra el viejo antes del flip F3.
