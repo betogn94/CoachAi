@@ -7,7 +7,8 @@
     "qa:prod": "node qa/run.js --base https://coach-ai-pearl.vercel.app --personas testb --verbose",
     "test:parsers": "node scripts/test-parsers.mjs",
     "setup:hooks": "git config core.hooksPath .githooks",
-    "prepare": "git config core.hooksPath .githooks || exit 0"
+    "prepare": "git config core.hooksPath .githooks || exit 0",
+    "test:semanas": "node scripts/test-semanas.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

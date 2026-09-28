@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260925-1532-deploy">
+<meta name="app-version" content="20260928-1314-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -19465,6 +19465,48 @@ function getISOWeekKey(date = new Date()) {
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
   return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+}
+
+// ── SEMANAS ISO — helpers del proyecto semanas-calendario (F1, ADITIVOS) ─────
+// docs/semanas-calendario.md. Nada los usa todavía: el flip de cierres al reloj
+// ISO llega en F3 (gated ?semanaiso=0). Toda la aritmética es UTC → inmune a
+// cambios de hora (DST). El reloj es el MISMO de los planes (getISOWeekKey).
+
+// Rango [lunes, domingo] de una clave ISO. isoWeekRange('2026-W40') →
+// { start: '2026-09-28', end: '2026-10-04' }. null si la clave es inválida.
+function isoWeekRange(isoKey) {
+  const m = /^(\d{4})-W(\d{2})$/.exec(String(isoKey || ''));
+  if (!m) return null;
+  const year = +m[1], week = +m[2];
+  if (week < 1 || week > 53) return null;
+  // El 4 de enero SIEMPRE cae en la semana 1 ISO → su lunes ancla la W01.
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const week1Monday = new Date(jan4);
+  week1Monday.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() || 7) - 1));
+  const monday = new Date(week1Monday);
+  monday.setUTCDate(week1Monday.getUTCDate() + (week - 1) * 7);
+  const sunday = new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate() + 6);
+  const fmt = d => d.toISOString().slice(0, 10);
+  return { start: fmt(monday), end: fmt(sunday) };
+}
+
+// Clave ISO desplazada n semanas: isoWeekShift('2026-W01', -1) → '2025-W52'.
+// Truco del jueves: lunes+3 días define sin ambigüedad el año ISO del destino.
+function isoWeekShift(isoKey, n) {
+  const r = isoWeekRange(isoKey);
+  if (!r || !Number.isFinite(n)) return null;
+  const d = new Date(r.start + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + Math.round(n) * 7 + 3);
+  return getISOWeekKey(new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+
+// Semanas de diferencia entre dos claves ISO (b - a; 0 = misma semana, puede
+// ser negativo). "Semana N del proceso" = isoWeeksBetween(semanaDelAlta, hoy)+1.
+function isoWeeksBetween(isoA, isoB) {
+  const a = isoWeekRange(isoA), b = isoWeekRange(isoB);
+  if (!a || !b) return null;
+  return Math.round((Date.parse(b.start) - Date.parse(a.start)) / (7 * 86400000));
 }
 
 async function loadCurrentWeekPlans() {
