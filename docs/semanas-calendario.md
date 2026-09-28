@@ -142,3 +142,5 @@ Método: para cada cuenta activa (31), serie de entrenos/semana (unión `dias_en
 3. Refuerza la decisión de F0: parches de etiqueta no arreglan esto; solo el cambio de reloj.
 
 Queda de F2: **modo sombra** en la app (`week_clock_divergencia` en `beta_eventos`) para validar en vivo el reloj nuevo contra el viejo antes del flip F3.
+
+**Hallazgo extra (2026-09-28, captura real de José Alberto):** la card "Seguimiento semanal" dibuja la barra de días con etiquetas fijas **L M M J V S D**, pero pinta los días por POSICIÓN dentro de la semana personal → para una alta de martes, el entreno del martes aparece bajo la "L" y el del jueves bajo la "M". **El reloj personal está etiquetando mal los días de la semana en la UI** para toda alta no-lunes (72%). El flip F3 lo arregla gratis (la posición 1 pasa a ser realmente lunes); no vale la pena un parche previo.
