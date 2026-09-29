@@ -112,7 +112,85 @@ eq('rango de W00 = null', isoWeekRange('2026-W00'), null);
 eq('shift de clave inválida = null', isoWeekShift('nope', 1), null);
 eq('between con inválida = null', isoWeeksBetween('2026-W40', 'x'), null);
 
+// ═══════════════════════════════════════════════════════════════════════════
+// F3 — MODELO HÍBRIDO (getWeekNum/getWeekRange con reloj ISO)
+// Semanas cerradas = rango registrado · abiertas = continuación ISO (puente).
+// Extrae las funciones REALES + stubs deterministas (hoy fijo, cierres por test).
+// ═══════════════════════════════════════════════════════════════════════════
+{
+  const hybridCode = [
+    'getISOWeekKey', 'isoWeekRange', 'isoWeekShift', 'isoWeeksBetween',
+    'formatLocalDate', '_addDaysStr', '_lastCierre', '_isoKeyOfStr',
+    '_getWeekNumLegacy', '_getWeekRangeLegacy', 'getWeekNum', 'getWeekRange',
+  ].map(extractFunction).join('\n');
+
+  const mk = new Function(`
+    const SEMANA_ISO = true;                    // flip ON (el escape se prueba aparte vía legacy)
+    let cierresSemanales = [];
+    let TEST_TODAY = '2026-09-29';
+    function getTodayKey() { return TEST_TODAY; }
+    ${hybridCode}
+    return {
+      setCierres: c => { cierresSemanales = c; },
+      setToday:   t => { TEST_TODAY = t; },
+      getWeekNum, getWeekRange, _getWeekNumLegacy, _getWeekRangeLegacy,
+    };`);
+  const H = mk();
+
+  // A) Caso José (el disparador): alta martes 15/09, cierres viejos 1-2 (reloj personal)
+  H.setToday('2026-09-29');
+  H.setCierres([
+    { semana_num: 1, fecha_inicio: '2026-09-15', fecha_fin: '2026-09-21' },
+    { semana_num: 2, fecha_inicio: '2026-09-22', fecha_fin: '2026-09-28' },
+  ]);
+  const ALTA_J = '2026-09-15T21:41:47Z';
+  eq('[híbrido] José: semana actual = 3 (contador sigue)', H.getWeekNum(ALTA_J), 3);
+  eq('[híbrido] José: semana 3 = PUENTE mar 29 → dom 4-oct', H.getWeekRange(ALTA_J, 3), { start: '2026-09-29', end: '2026-10-04' });
+  eq('[híbrido] José: semana 2 histórica INTACTA (22-28)', H.getWeekRange(ALTA_J, 2), { start: '2026-09-22', end: '2026-09-28' });
+  eq('[híbrido] José: semana 4 = ISO completa lun 5 → dom 11', H.getWeekRange(ALTA_J, 4), { start: '2026-10-05', end: '2026-10-11' });
+
+  // B) Usuaria nueva alta LUNES sin cierres → semana 1 completa lunes-domingo
+  H.setCierres([]);
+  eq('[híbrido] alta lunes: semana actual = 1', H.getWeekNum('2026-09-28T10:00:00Z'), 1);
+  eq('[híbrido] alta lunes: semana 1 completa (28 → 4-oct)', H.getWeekRange('2026-09-28T10:00:00Z', 1), { start: '2026-09-28', end: '2026-10-04' });
+
+  // C) Usuaria nueva alta JUEVES sin cierres → semana 1 PARCIAL (jue-dom), semana 2 ISO
+  eq('[híbrido] alta jueves: hoy (martes sig.) = semana 2', H.getWeekNum('2026-09-24T10:00:00Z'), 2);
+  eq('[híbrido] alta jueves: semana 1 parcial (24 → 27, 4 días)', H.getWeekRange('2026-09-24T10:00:00Z', 1), { start: '2026-09-24', end: '2026-09-27' });
+  eq('[híbrido] alta jueves: semana 2 ISO completa (28 → 4-oct)', H.getWeekRange('2026-09-24T10:00:00Z', 2), { start: '2026-09-28', end: '2026-10-04' });
+
+  // D) Alta lunes con historial legacy ALINEADO → transición invisible (puente = semana normal)
+  H.setCierres([
+    { semana_num: 1, fecha_inicio: '2026-08-31', fecha_fin: '2026-09-06' },
+    { semana_num: 2, fecha_inicio: '2026-09-07', fecha_fin: '2026-09-13' },
+    { semana_num: 3, fecha_inicio: '2026-09-14', fecha_fin: '2026-09-20' },
+    { semana_num: 4, fecha_inicio: '2026-09-21', fecha_fin: '2026-09-27' },
+  ]);
+  eq('[híbrido] lunes+historial: semana actual = 5', H.getWeekNum('2026-08-31T09:00:00Z'), 5);
+  eq('[híbrido] lunes+historial: semana 5 = 28 → 4-oct (sin puente raro)', H.getWeekRange('2026-08-31T09:00:00Z', 5), { start: '2026-09-28', end: '2026-10-04' });
+
+  // E) Backlog: usuaria que no abre la app hace 3 semanas → semanas pendientes bien numeradas
+  H.setToday('2026-10-14');   // miércoles, 2 ISO completas después del puente
+  H.setCierres([
+    { semana_num: 1, fecha_inicio: '2026-09-15', fecha_fin: '2026-09-21' },
+    { semana_num: 2, fecha_inicio: '2026-09-22', fecha_fin: '2026-09-28' },
+  ]);
+  eq('[híbrido] backlog: semana actual = 5', H.getWeekNum(ALTA_J), 5);
+  eq('[híbrido] backlog: sem 3 puente (29 → 4-oct)', H.getWeekRange(ALTA_J, 3), { start: '2026-09-29', end: '2026-10-04' });
+  eq('[híbrido] backlog: sem 4 ISO (5 → 11-oct)', H.getWeekRange(ALTA_J, 4), { start: '2026-10-05', end: '2026-10-11' });
+  eq('[híbrido] backlog: sem 5 ISO en curso (12 → 18-oct)', H.getWeekRange(ALTA_J, 5), { start: '2026-10-12', end: '2026-10-18' });
+
+  // F) Legacy intacto (el escape ?semanaiso=0 usa exactamente estas)
+  H.setToday('2026-09-29');
+  eq('[legacy] José: semana actual = 3', H._getWeekNumLegacy(ALTA_J), 3);
+  eq('[legacy] José: semana 3 = 29 → 5-oct (martes a lunes)', H._getWeekRangeLegacy(ALTA_J, 3), { start: '2026-09-29', end: '2026-10-05' });
+
+  // G) Carrera/reloj adelantado: created_at futuro no rompe
+  H.setCierres([]);
+  eq('[híbrido] created_at futuro → clamp semana 1', H.getWeekNum('2026-12-01T00:00:00Z'), 1);
+}
+
 console.log('─'.repeat(50));
 console.log(`Resultado: ${ok} OK · ${fail} FALLAS`);
-if (fail === 0) console.log('✅ Reloj ISO verde — anclas, 7 días de alta, 800 días round-trip, W53, DST.');
+if (fail === 0) console.log('✅ Reloj verde — ISO puro (anclas, round-trip, W53, DST) + modelo híbrido F3 (puente, parciales, backlog, históricos intactos, legacy).');
 process.exit(fail === 0 ? 0 : 1);

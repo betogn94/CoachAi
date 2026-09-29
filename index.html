@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260928-1336-deploy">
+<meta name="app-version" content="20260929-2054-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -27013,7 +27013,10 @@ async function autoCloseEndedWeeks(createdAt, currentWeek) {
       semana_num:   w,
       fecha_inicio: range.start,
       fecha_fin:    range.end,
-      stats: { trained: stats.trained, avgCal: stats.avgCal, avgProt: stats.avgProt, totalLogs: stats.totalLogs },
+      // semana_iso: ancla calendario del cierre (el domingo define la semana).
+      // NULL bajo el escape ?semanaiso=0 (reloj legacy) = distinguible en DB.
+      semana_iso:   SEMANA_ISO ? _isoKeyOfStr(range.end) : null,
+      stats: { trained: stats.trained, avgCal: stats.avgCal, avgProt: stats.avgProt, totalLogs: stats.totalLogs, dias: stats.dias, parcial: stats.parcial },
     });
   }
   if (!rows.length) return false;
@@ -27052,9 +27055,9 @@ function semanaIsoSombra(createdAt) {
     if (!Array.isArray(recentDiario) || recentDiario.length === 0) return; // datos aún no cargados / cuenta sin registros
     const hoy = getTodayKey();
     try { if (localStorage.getItem('coachai_sombra_iso') === hoy) return; } catch (e) {}
-    const cur = getWeekNum(createdAt);
+    const cur = _getWeekNumLegacy(createdAt);
     if (cur < 2) return;                                  // sin semana personal completa aún
-    const rp = getWeekRange(createdAt, cur - 1);          // última semana personal terminada
+    const rp = _getWeekRangeLegacy(createdAt, cur - 1);   // última semana personal terminada (reloj VIEJO explícito — post-flip sigue midiendo viejo-vs-ISO)
     const isoPrev = isoWeekShift(getISOWeekKey(), -1);    // última semana ISO terminada
     const ri = isoWeekRange(isoPrev);
     if (!rp || !ri) return;
@@ -27069,7 +27072,9 @@ function semanaIsoSombra(createdAt) {
   } catch (e) { /* la sombra jamás rompe nada */ }
 }
 
-function getWeekNum(createdAt) {
+// ── RELOJ LEGACY (semana personal anclada al alta) ───────────────────────────
+// Conservado COMPLETO como escape (?semanaiso=0) y para el modo sombra.
+function _getWeekNumLegacy(createdAt) {
   const start = new Date(createdAt.slice(0, 10) + 'T00:00:00');
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -27086,13 +27091,83 @@ function getWeekNum(createdAt) {
 // Returns the YYYY-MM-DD range for a given weekNum, in local time. `setDate`
 // preserves the wall clock across DST boundaries, so wStart/wEnd stay at
 // local midnight even when the week crosses a DST shift.
-function getWeekRange(createdAt, weekNum) {
+function _getWeekRangeLegacy(createdAt, weekNum) {
   const start = new Date(createdAt.slice(0, 10) + 'T00:00:00');
   const wStart = new Date(start);
   wStart.setDate(start.getDate() + (weekNum - 1) * 7);
   const wEnd = new Date(wStart);
   wEnd.setDate(wStart.getDate() + 6);
   return { start: formatLocalDate(wStart), end: formatLocalDate(wEnd) };
+}
+
+// ── SEMANAS CALENDARIO — F3: flip del reloj al ISO lunes-domingo ─────────────
+// docs/semanas-calendario.md. Escape: ?semanaiso=0 restaura el reloj personal
+// completo sin deploy. Modelo HÍBRIDO:
+//   - Semanas CERRADAS → el rango registrado en su cierre (históricos intocables).
+//   - Semanas ABIERTAS → continuación ISO: la primera arranca el día siguiente
+//     al último cierre (puente de transición) o en el alta (arranque) y termina
+//     el DOMINGO de esa semana ISO (puede ser parcial, <7 días); las siguientes
+//     son semanas calendario completas lunes-domingo.
+// `semana_num` sigue siendo el contador del proceso (último + 1) → cero
+// colisiones con la numeración vieja y Studio/vistas intactos.
+const SEMANA_ISO = (() => { try { return new URLSearchParams(location.search).get('semanaiso') !== '0'; } catch (e) { return true; } })();
+
+function _addDaysStr(dateStr, n) {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() + n);
+  return formatLocalDate(d);
+}
+// Último cierre registrado (mayor semana_num) de la lista dada.
+function _lastCierre(cierres) {
+  const list = Array.isArray(cierres) ? cierres : [];
+  let best = null;
+  for (const c of list) if (c && c.fecha_fin && (!best || c.semana_num > best.semana_num)) best = c;
+  return best;
+}
+function _isoKeyOfStr(dateStr) { return getISOWeekKey(new Date(dateStr + 'T12:00:00')); }
+
+// Semana actual del proceso. `cierres` opcional (default: global cierresSemanales)
+// — adminBuildSemanasHTML pasa la lista del alumno visto para no leer la global.
+function getWeekNum(createdAt, cierres) {
+  if (!SEMANA_ISO) return _getWeekNumLegacy(createdAt);
+  try {
+    const list = (cierres !== undefined) ? cierres : (typeof cierresSemanales !== 'undefined' ? cierresSemanales : []);
+    const last = _lastCierre(list);
+    const baseNum   = last ? last.semana_num + 1 : 1;
+    const baseStart = last ? _addDaysStr(last.fecha_fin, 1) : createdAt.slice(0, 10);
+    const today = getTodayKey();
+    if (today < baseStart) return Math.max(1, baseNum);   // reloj adelantado / carrera
+    const baseEnd = isoWeekRange(_isoKeyOfStr(baseStart)).end;
+    if (today <= baseEnd) return baseNum;
+    return baseNum + (isoWeeksBetween(_isoKeyOfStr(baseStart), _isoKeyOfStr(today)) || 0);
+  } catch (e) {
+    console.warn('[semana-iso] getWeekNum cayó al legacy:', e?.message || e);
+    return _getWeekNumLegacy(createdAt);
+  }
+}
+
+// Rango {start,end} de la semana `weekNum`. Cerrada → como quedó registrada;
+// abierta → continuación ISO (ver modelo arriba). `cierres` opcional, ídem.
+function getWeekRange(createdAt, weekNum, cierres) {
+  if (!SEMANA_ISO) return _getWeekRangeLegacy(createdAt, weekNum);
+  try {
+    const list = (cierres !== undefined) ? cierres : (typeof cierresSemanales !== 'undefined' ? cierresSemanales : []);
+    const arr = Array.isArray(list) ? list : [];
+    const c = arr.find(x => x && x.semana_num === weekNum && x.fecha_inicio && x.fecha_fin);
+    if (c) return { start: c.fecha_inicio, end: c.fecha_fin };
+    const last = _lastCierre(arr);
+    const baseNum   = last ? last.semana_num + 1 : 1;
+    const baseStart = last ? _addDaysStr(last.fecha_fin, 1) : createdAt.slice(0, 10);
+    if (weekNum <= baseNum) {
+      // Primera semana abierta (puente / arranque): hasta el domingo de SU semana ISO.
+      return { start: baseStart, end: isoWeekRange(_isoKeyOfStr(baseStart)).end };
+    }
+    const iso = isoWeekShift(_isoKeyOfStr(baseStart), weekNum - baseNum);
+    return isoWeekRange(iso);
+  } catch (e) {
+    console.warn('[semana-iso] getWeekRange cayó al legacy:', e?.message || e);
+    return _getWeekRangeLegacy(createdAt, weekNum);
+  }
 }
 
 function formatDateShort(dateStr) {
@@ -27114,6 +27189,10 @@ function computeWeekStats(logs, range) {
     const rows = wLogs.filter(l => l[field] > 0);
     return rows.length ? Math.round(rows.reduce((s, l) => s + l[field], 0) / rows.length) : null;
   };
+  // Días que abarca el rango (1-7). Una semana PARCIAL (<7: arranque del proceso
+  // o puente de transición del reloj ISO) prorratea objetivos y el análisis no
+  // la compara con semanas completas (semanas-calendario, decisiones 1A/2A).
+  const dias = Math.max(1, Math.min(7, Math.round((Date.parse(range.end + 'T12:00:00') - Date.parse(range.start + 'T12:00:00')) / 86400000) + 1));
   return {
     trained,
     avgCal:   avg('calorias_consumidas'),
@@ -27121,6 +27200,8 @@ function computeWeekStats(logs, range) {
     avgCarbs: avg('carbos_g'),
     avgFat:   avg('grasas_g'),
     totalLogs: wLogs.length,
+    dias,
+    parcial: dias < 7,
     wLogs,
   };
 }
@@ -27143,7 +27224,8 @@ async function renderSemanas() {
   if (!container || !currentUser) return;
 
   const createdAt = currentUser.created_at || new Date().toISOString();
-  const currentWeek = getWeekNum(createdAt);
+  // OJO: currentWeek se calcula DESPUÉS de cargar los cierres — el reloj ISO
+  // (semanas-calendario F3) ancla la semana abierta al último cierre registrado.
 
   let [cierres, fotos, firstPlan] = await Promise.all([
     loadCierresSemanales(),
@@ -27162,6 +27244,7 @@ async function renderSemanas() {
   cierresSemanales = cierres;
   _cierreActivityStart = firstPlan;
   _cierresLoaded = true;   // recién ahora el gate puede evaluar sin riesgo de falso-bloqueo
+  const currentWeek = getWeekNum(createdAt);   // con los cierres ya cargados (reloj ISO híbrido)
   // CIERRE LIBRE: cerrar en frío las semanas terminadas sin cierre. Si insertó,
   // recargamos los cierres (la fila nueva alimenta pills/overlay/card de Home) y
   // reabrimos el ciclo (plan de la semana nueva en caliente, sin recargar la app).
@@ -27208,7 +27291,9 @@ async function renderSemanas() {
     // photo comparison / analysis when they want details.
     const isOpen = false;
     const isEs = lang === 'es';
-    const trainedTarget = (currentUser?.dias_entreno?.length || selectedDias.length || 3);
+    // Objetivo de entrenos: prorrateado en semanas parciales (arranque/puente ISO).
+    const _targetBase = (currentUser?.dias_entreno?.length || selectedDias.length || 3);
+    const trainedTarget = (stats && stats.parcial) ? Math.max(1, Math.ceil(_targetBase * stats.dias / 7)) : _targetBase;
 
     // ── Status pill (chevron-friendly, no emoji) ──────────────────────
     // CIERRE LIBRE: la semana cerrada sin análisis es un estado propio
@@ -27244,15 +27329,21 @@ async function renderSemanas() {
     // estados. La foto de la semana cerrada se sigue viendo en la sección
     // Transformación al expandir (antes la colapsada cerrada usaba un
     // thumbnail + texto suelto que rompía la estética del resto de la card).
-    const _dayLabels = ['L','M','M','J','V','S','D'];
-    const _dayFullLabels = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+    // Etiquetas derivadas del día REAL de cada fecha (antes eran fijas L..D y
+    // quedaban corridas para altas no-lunes — bug documentado en
+    // docs/semanas-calendario.md §hallazgo). También soporta semanas PARCIALES
+    // (<7 días: arranque/puente del reloj ISO) renderizando solo sus días.
+    const _dayLabels = [];
+    const _dayLetter = d => 'LMMJVSD'[(d.getDay() + 6) % 7];
+    const _nDias = (stats && stats.dias) || 7;
     const _dayState = [];
     const _completable = []; // días ANTERIORES a hoy sin registro → se pueden "Completar"
     {
       const now = new Date();
       const _todayStr = (typeof getTodayKey === 'function') ? getTodayKey() : formatLocalDate(now);
-      for (let i = 0; i < 7; i++) {
+      for (let i = 0; i < _nDias; i++) {
         const d = new Date(range.start + 'T12:00:00'); d.setDate(d.getDate() + i);
+        _dayLabels.push(_dayLetter(d));
         const dStr = formatLocalDate(d);
         if (d > now) { _dayState.push('future'); continue; }
         const log = stats.wLogs.find(l => l.fecha === dStr);
@@ -28248,12 +28339,13 @@ async function ejecutarCierreSemana() {
 
     // Cache for retry path BEFORE attempting the upsert. If the upsert throws,
     // retryCierreSave() reuses these values without re-calling Claude.
-    const statsJson = { trained: stats.trained, avgCal: stats.avgCal, avgProt: stats.avgProt, totalLogs: stats.totalLogs };
+    const statsJson = { trained: stats.trained, avgCal: stats.avgCal, avgProt: stats.avgProt, totalLogs: stats.totalLogs, dias: stats.dias, parcial: stats.parcial };
     lastCierrePending = {
       usuario_id:        currentUser.id,
       semana_num:        cierreActualWeekNum,
       fecha_inicio:      range.start,
       fecha_fin:         range.end,
+      semana_iso:        SEMANA_ISO ? _isoKeyOfStr(range.end) : null,
       foto_url:          fotoUrl,                  // canonical "frente" photo
       foto_url_espalda:  semanaEspaldaUrl || null, // matching espalda for the diptych
       analisis,
@@ -28509,11 +28601,18 @@ async function generateWeeklyAnalysis(nombre, weekNum, stats, objetivo, language
   const tgtProt    = _alimHeader?.targetProt || null;
   const tgtCarbs   = _alimHeader?.targetCarbs || null;
   const tgtFat     = _alimHeader?.targetFat || null;
-  const adherencia = (stats.trained != null && plannedDays)
-    ? Math.round((stats.trained / plannedDays) * 100) + '%'
+  // Semana PARCIAL (<7 días: arranque del proceso o puente de transición del
+  // reloj ISO — semanas-calendario, decisión 1A): el objetivo de entrenos se
+  // PRORRATEA a los días reales y el análisis no compara contra el historial.
+  const diasSemana  = (stats && stats.dias) || 7;
+  const esParcial   = diasSemana < 7;
+  const plannedPror = plannedDays ? Math.max(1, Math.ceil(plannedDays * diasSemana / 7)) : null;
+  const adherencia = (stats.trained != null && plannedPror)
+    ? Math.round((stats.trained / plannedPror) * 100) + '%'
     : null;
   // Per-week history for trend context (only meaningful from week 2 onwards)
-  const prevSummary = (weekNum > 1 && Array.isArray(cierresSemanales))
+  // Las semanas parciales NO se comparan con el historial (arrancan/transicionan).
+  const prevSummary = (!esParcial && weekNum > 1 && Array.isArray(cierresSemanales))
     ? cierresSemanales
         .filter(c => c.semana_num < weekNum && c.stats)
         .sort((a, b) => a.semana_num - b.semana_num)
@@ -28529,13 +28628,13 @@ PERFIL DEL CLIENTE:
 ${peso  ? `- Peso actual: ${peso} kg\n` : ''}${altura ? `- Altura: ${altura} cm\n` : ''}- Plan: ${plannedDays ? `${plannedDays} días/semana de entreno` : 'sin plan de días'}
 ${tgtKcal ? `- Target diario: ${tgtKcal} kcal · P:${tgtProt||'—'}g · C:${tgtCarbs||'—'}g · G:${tgtFat||'—'}g\n` : ''}
 DATOS DE LA SEMANA ${weekNum}:
-- Entrenos cumplidos: ${stats.trained}${plannedDays ? `/${plannedDays} planeados (${adherencia} adherencia)` : ' de 7 posibles'}
+- Entrenos cumplidos: ${stats.trained}${plannedPror ? `/${plannedPror} planeados${esParcial ? ` — semana de ${diasSemana} días, objetivo prorrateado del plan de ${plannedDays}` : ''} (${adherencia} adherencia)` : ` de ${diasSemana} posibles`}
 - Calorías consumidas: ${stats.avgCal ? `${stats.avgCal} kcal/día prom${tgtKcal ? ` (target ${tgtKcal}, ${stats.avgCal < tgtKcal ? 'déficit' : stats.avgCal > tgtKcal ? 'superávit' : 'on target'} de ${Math.abs(stats.avgCal - tgtKcal)} kcal/día)` : ''}` : 'no registradas'}
 - Proteína: ${stats.avgProt ? `${stats.avgProt}g/día prom${tgtProt ? ` (target ${tgtProt}g)` : ''}` : 'no registrada'}
 - Carbos: ${stats.avgCarbs ? `${stats.avgCarbs}g/día prom${tgtCarbs ? ` (target ${tgtCarbs}g)` : ''}` : 'no registrados'}
 - Grasas: ${stats.avgFat ? `${stats.avgFat}g/día prom${tgtFat ? ` (target ${tgtFat}g)` : ''}` : 'no registradas'}
-- Días con registro de comidas: ${stats.totalLogs}/7
-- Número de semana en el proceso: ${weekNum}
+- Días con registro de comidas: ${stats.totalLogs}/${diasSemana}
+- Número de semana en el proceso: ${weekNum}${esParcial ? `\n\n⚠ SEMANA PARCIAL DE ${diasSemana} DÍAS (arranque del proceso o semana de transición del calendario): NO la compares con otras semanas ni la trates como floja por tener menos días. Evaluá SOLO contra el objetivo prorrateado de arriba y enmarcala con tono de puesta en marcha.` : ''}
 ${indiceCtx ? `\nÍNDICE DE ARMONÍA (Método King — su puntaje hacia la silueta reloj de arena): esta semana ${indiceCtx.delta > 0 ? `SUBE +${indiceCtx.delta} → ${indiceCtx.indice}/100` : `se mantiene en ${indiceCtx.indice}/100`}${indiceCtx.checkpoint ? ` (incluye CHECKPOINT VISUAL de cada 4 semanas: el veredicto mirando sus fotos fue "${indiceCtx.checkpoint.replace('_', ' ')}"${indiceCtx.bonus > 0 ? ` → +${indiceCtx.bonus} extra` : ''})` : ' por su adherencia'}. Mencionalo BREVE (1-2 frases) en el cierre motivador: ${indiceCtx.delta > 0 ? 'celebrá la suba y conectala con su constancia.' : 'sin dramatizar — su Índice no baja nunca, invitala a mover la aguja la próxima semana con adherencia.'}${indiceCtx.checkpoint === 'mejora_clara' ? ' El checkpoint confirmó mejora visible: destacalo como hito.' : ''} Podés decirle que lo vea en su Perfil.\n` : ''}${prevSummary ? `\nHISTORIAL DE SEMANAS ANTERIORES:\n${prevSummary}\n` : ''}
 Escribí un análisis cálido y motivador de 4-5 párrafos. El ORDEN importa: SIEMPRE arrancá por lo bueno.
 1. ARRANCÁ CELEBRANDO lo que ${nombre} hizo bien, con datos concretos (días entrenados, adherencia, lo que SÍ cumplió del target). Que lo primero que lea la haga sentir orgullosa de su esfuerzo.
@@ -28550,13 +28649,13 @@ CLIENT PROFILE:
 ${peso  ? `- Current weight: ${peso} kg\n` : ''}${altura ? `- Height: ${altura} cm\n` : ''}- Plan: ${plannedDays ? `${plannedDays} training days/week` : 'no day plan'}
 ${tgtKcal ? `- Daily target: ${tgtKcal} kcal · P:${tgtProt||'—'}g · C:${tgtCarbs||'—'}g · F:${tgtFat||'—'}g\n` : ''}
 WEEK ${weekNum} DATA:
-- Trained: ${stats.trained}${plannedDays ? `/${plannedDays} planned (${adherencia} adherence)` : ' of 7 possible'}
+- Trained: ${stats.trained}${plannedPror ? `/${plannedPror} planned${esParcial ? ` — ${diasSemana}-day week, prorated from the ${plannedDays}-day plan` : ''} (${adherencia} adherence)` : ` of ${diasSemana} possible`}
 - Calories: ${stats.avgCal ? `${stats.avgCal} kcal/day avg${tgtKcal ? ` (target ${tgtKcal}, ${stats.avgCal < tgtKcal ? 'deficit' : stats.avgCal > tgtKcal ? 'surplus' : 'on target'} of ${Math.abs(stats.avgCal - tgtKcal)} kcal/day)` : ''}` : 'not logged'}
 - Protein: ${stats.avgProt ? `${stats.avgProt}g/day avg${tgtProt ? ` (target ${tgtProt}g)` : ''}` : 'not logged'}
 - Carbs: ${stats.avgCarbs ? `${stats.avgCarbs}g/day avg${tgtCarbs ? ` (target ${tgtCarbs}g)` : ''}` : 'not logged'}
 - Fat: ${stats.avgFat ? `${stats.avgFat}g/day avg${tgtFat ? ` (target ${tgtFat}g)` : ''}` : 'not logged'}
-- Days with food log: ${stats.totalLogs}/7
-- Week number in the process: ${weekNum}
+- Days with food log: ${stats.totalLogs}/${diasSemana}
+- Week number in the process: ${weekNum}${esParcial ? `\n\n⚠ PARTIAL ${diasSemana}-DAY WEEK (process start or calendar transition week): do NOT compare it with other weeks or treat it as weak for having fewer days. Judge ONLY against the prorated target above and frame it as a warm-up/kick-off.` : ''}
 ${prevSummary ? `\nPRIOR WEEKS HISTORY:\n${prevSummary}\n` : ''}
 Write a warm, motivating 4-5 paragraph analysis. ORDER matters: ALWAYS lead with the good.
 1. OPEN BY CELEBRATING what ${nombre} did well, with concrete data (days trained, adherence, what they DID hit of the target). The first thing they read should make them proud of their effort.
@@ -30286,6 +30385,15 @@ function cancelEditProfile() {
 
 function getWeeksActiveSince(createdAtIso) {
   if (!createdAtIso) return 1;
+  // Reloj ISO (semanas-calendario F3): semanas calendario desde la del alta.
+  if (typeof SEMANA_ISO !== 'undefined' && SEMANA_ISO) {
+    try {
+      const a = getISOWeekKey(new Date(createdAtIso.slice(0, 10) + 'T12:00:00'));
+      const b = getISOWeekKey(new Date());
+      const w = (isoWeeksBetween(a, b) || 0) + 1;
+      return Math.max(1, w);
+    } catch (e) { /* cae al cálculo legacy */ }
+  }
   const created = new Date(createdAtIso);
   const diffMs = Date.now() - created.getTime();
   const weeks = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 7)) + 1;
@@ -36328,14 +36436,15 @@ function adminBuildPlanesHTML(planes, cierres) {
 // and renders into a string instead of mutating DOM directly.
 function adminBuildSemanasHTML(user, diario, cierres, fotos) {
   const createdAt = user.created_at || new Date().toISOString();
-  const currentWeek = getWeekNum(createdAt);
+  // Reloj ISO híbrido: pasar los cierres DEL ALUMNO VISTO (no la global del admin).
+  const currentWeek = getWeekNum(createdAt, cierres);
   const fotoInicial = pickBaselinePhoto(fotos);
 
   if (currentWeek < 1) return '<div style="padding:20px;color:var(--muted)">Sin semanas registradas.</div>';
 
   const cards = [];
   for (let w = currentWeek; w >= 1; w--) {
-    const range = getWeekRange(createdAt, w);
+    const range = getWeekRange(createdAt, w, cierres);
     const cierre = cierres.find(c => c.semana_num === w);
     const stats = computeWeekStats(diario, range);
     const isCurrent = w === currentWeek;
