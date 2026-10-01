@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261001-2228-deploy">
+<meta name="app-version" content="20261001-2230-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -29858,7 +29858,10 @@ function renderHomeHoyToca() {
   const todayDay = mapping.days[mapping.todayRoutineIdx];
   const dayNum = Object.values(mapping.weekdayToRoutineIdx).indexOf(mapping.todayRoutineIdx) + 1;
   const cleanLabel = (typeof _entCleanLabel === 'function') ? _entCleanLabel(todayDay.label) : todayDay.label;
-  nameEl.textContent = (cleanLabel || todayDay.label).toUpperCase();
+  // Zero-width space tras "/" → "ISQUIOS/PANTORRILLAS" puede quebrar EN la
+  // barra en vez de partir una palabra al azar (sin "/​" el navegador lo
+  // trata como una sola palabra gigante). Invisible; no afecta el copy.
+  nameEl.textContent = (cleanLabel || todayDay.label).toUpperCase().replace(/\//g, '/​');
   if (detailEl) detailEl.innerHTML = `
     <div class="cai-home-card-body-row" style="color:var(--muted)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/></svg>
