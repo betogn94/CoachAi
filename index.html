@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261001-2230-deploy">
+<meta name="app-version" content="20261001-2234-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6445,6 +6445,22 @@ body.font-uni .cai-home-hero-num { font-size: 44px; letter-spacing: -0.5px; font
   body.font-uni .cai-home-card-title { font-size: 16px; }
   body.font-uni .cai-home-hero-num { font-size: 38px; }
 }
+/* Caso Apple: etiquetas en "Mayúscula inicial", no EN MAYÚSCULAS. El texto lo
+   convierte fontUniCase() (los strings viven en caps en el markup); acá se
+   apaga el uppercase del CSS y el tracking ancho estilo-mono, y se les da un
+   punto más de cuerpo/peso (los 10px caps espaciados quedaban enanos en bajas). */
+body.font-uni .cai-home-hero-eyebrow, body.font-uni .cai-home-card-eyebrow,
+body.font-uni .cai-home-hero-label, body.font-uni .cai-home-semanas-eyebrow,
+body.font-uni .cai-alim-summary-eyebrow, body.font-uni .cai-entv2-list-title,
+body.font-uni .cai-perfil-section-title, body.font-uni .cai-entses-eyebrow,
+body.font-uni .cph-stat-label, body.font-uni .cai-alim-header-sub,
+body.font-uni #ent-summary-today, body.font-uni .cai-home-kcal-bar-label,
+body.font-uni .kp-eyebrow {
+  text-transform: none !important; letter-spacing: 0.1px !important; font-weight: 700;
+}
+body.font-uni .cai-home-card-eyebrow, body.font-uni .cai-home-hero-eyebrow,
+body.font-uni .cai-home-semanas-eyebrow, body.font-uni .cai-alim-summary-eyebrow,
+body.font-uni .cai-perfil-section-title { font-size: 12.5px; }
 
 /* Chips "i" de Home y Perfil como BADGE DE ESQUINA del hero (pedido de Beto
    2026-09-25): con el header fuera quedaban en una fila suelta "en el aire".
@@ -29411,7 +29427,55 @@ function applyFontUni() {
     if (localStorage.getItem('coachai_font') === '0') return;
     const on = localStorage.getItem('coachai_font') === '1'
       || (typeof currentUser !== 'undefined' && currentUser && /^beto131312/.test(currentUser.email || ''));
-    if (on) document.body.classList.add('font-uni');
+    if (!on) return;
+    document.body.classList.add('font-uni');
+    // Observador del caser: cada re-render (innerHTML/textContent) re-aplica la
+    // conversión de MAYÚSCULAS → "Mayúscula inicial". Escribimos nodeValue
+    // (characterData), que NO dispara childList → sin bucle.
+    if (!window._fuObs) {
+      const run = () => { clearTimeout(window._fuT); window._fuT = setTimeout(fontUniCase, 120); };
+      window._fuObs = new MutationObserver(run);
+      window._fuObs.observe(document.body, { childList: true, subtree: true });
+      run();
+    }
+  } catch (e) {}
+}
+
+// Convierte un texto EN-MAYÚSCULAS-FIJAS a "Mayúscula inicial" estilo Apple
+// Fitness ("PRÓXIMA COMIDA" → "Próxima comida"). Solo toca strings 100% en
+// caps (si ya tiene minúsculas, no es una etiqueta gritada → se respeta).
+// Siglas de la whitelist quedan en mayúsculas; también capitaliza tras "/"
+// ("ISQUIOS/PANTORRILLAS" → "Isquios/Pantorrillas").
+function _fuSentence(t) {
+  if (!/[A-ZÁÉÍÓÚÜÑ]/.test(t) || /[a-záéíóúüñ]/.test(t)) return t;
+  const WHITE = { AI: 1, IA: 1, KCAL: 1, PR: 1, OFF: 1 };
+  let out = t.toLowerCase();
+  out = out.replace(/[a-záéíóúüñ]+/g, w => (WHITE[w.toUpperCase()] ? w.toUpperCase() : w));
+  out = out.replace(/[a-záéíóúüñ]/, c => c.toUpperCase());          // primera letra
+  out = out.replace(/\/\s*[a-záéíóúüñ]/g, s => s.toUpperCase());    // tras "/"
+  return out;
+}
+// Etiquetas y títulos grandes que hoy viven escritos en MAYÚSCULAS en el
+// markup/JS. Quedan fuera a propósito: chips chicos (DÍA 1 / HOY / EN CURSO),
+// labels de ejes (DES ALM MER CEN) y el day-strip LUN-DOM — en caps se leen
+// bien incluso en Apple.
+const _FU_CASE_SEL = '.cai-home-hero-eyebrow, .cai-home-hero-label, .cai-home-card-eyebrow, '
+  + '.cai-home-card-title, .cai-home-semanas-eyebrow, .cai-alim-summary-eyebrow, '
+  + '.cai-alim-header-h2, .cai-entv2-list-title, .cai-perfil-section-title, '
+  + '.cai-entses-eyebrow, .cph-stat-label';
+function fontUniCase() {
+  if (!document.body.classList.contains('font-uni')) return;
+  try {
+    document.querySelectorAll(_FU_CASE_SEL).forEach(el => {
+      const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      let n;
+      while ((n = w.nextNode())) {
+        const t = n.nodeValue;
+        if (!t || !t.trim()) continue;
+        const s = _fuSentence(t);
+        if (s !== t) n.nodeValue = s;
+      }
+    });
   } catch (e) {}
 }
 
