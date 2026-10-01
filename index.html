@@ -37,9 +37,9 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261001-2237-deploy">
+<meta name="app-version" content="20261001-2248-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg: #04040a;
@@ -4604,7 +4604,7 @@ body:has(.form-wrapper[style*="block"]) #hamburger-btn {
   border-radius: 6px;
   background: transparent;
   color: var(--muted);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 11px;
   cursor: pointer;
   transition: all 0.2s;
@@ -4737,7 +4737,7 @@ body:has(.form-wrapper[style*="block"]) #hamburger-btn {
 }
 
 h1 {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: clamp(48px, 7vw, 88px);
   line-height: 0.92;
   letter-spacing: 1px;
@@ -5024,7 +5024,7 @@ body.theme-king.onb-open .cai-bottom-nav { display: none !important; }
   background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%);
   color: white;
   border: none;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 16px;
   letter-spacing: 2px;
   cursor: pointer;
@@ -5208,7 +5208,7 @@ body.theme-king.onb-open .cai-bottom-nav { display: none !important; }
 }
 .cai-bottom-nav .nav-item-icon-bn svg { width: 18px; height: 18px; }
 .cai-bottom-nav-label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px;
   letter-spacing: 1.2px;
   color: var(--accent-bright);
@@ -5404,15 +5404,15 @@ body.app-active:has(.form-wrapper[style*="block"]) { padding-bottom: 0; }
 }
 .cai-alim-header-ico svg { width: 16px; height: 16px; }
 .cai-alim-header-h2 {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 24px; letter-spacing: 1.5px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 20px; letter-spacing: 0.4px; font-weight: 800;
   line-height: 1; margin: 0;
   background: linear-gradient(135deg, #f0f0fa 0%, #b4a7ff 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 .cai-alim-header-sub {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px;
   color: var(--muted);
   letter-spacing: 1.2px;
@@ -5435,7 +5435,7 @@ body.app-active:has(.form-wrapper[style*="block"]) { padding-bottom: 0; }
     inset 0 1px 0 rgba(255,255,255,0.09);
 }
 .cai-alim-summary-eyebrow {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px; letter-spacing: 1.4px;
   color: var(--accent-bright);
   margin-bottom: 8px;
@@ -5445,8 +5445,8 @@ body.app-active:has(.form-wrapper[style*="block"]) { padding-bottom: 0; }
   margin-bottom: 14px;
 }
 .cai-alim-summary-count {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 38px; line-height: 0.9; letter-spacing: 1px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 32px; line-height: 1; letter-spacing: 0; font-weight: 800;
   background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -5458,14 +5458,14 @@ body.app-active:has(.form-wrapper[style*="block"]) { padding-bottom: 0; }
 }
 .cai-alim-summary-kcal {
   text-align: right;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10px; color: var(--muted2);
   letter-spacing: 1.2px;
   text-transform: uppercase;
 }
 .cai-alim-summary-kcal strong {
   display: block;
-  font-family: 'Bebas Neue';
+  font-family: 'DM Sans', sans-serif;
   font-size: 24px;
   color: var(--text);
   font-weight: 400;
@@ -5561,7 +5561,7 @@ body .cai-alim-summary-kcal.kcal-exceeded #alim-summary-total-kcal {
   display: flex;
   gap: 8px;
   margin: 6px 0 12px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 11px;
   letter-spacing: 0.04em;
 }
@@ -5660,7 +5660,7 @@ body.theme-king .cai-alim-summary-macros .m-tot {
 }
 .cai-meal-check svg { width: 16px; height: 16px; }
 .cai-meal-hour {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9px; letter-spacing: 0.8px;
   color: var(--muted2);
 }
@@ -5681,7 +5681,7 @@ body.theme-king .cai-alim-summary-macros .m-tot {
   text-decoration: line-through;
 }
 .cai-meal-kcal-chip {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px; letter-spacing: 0.5px;
   padding: 3px 8px;
   border-radius: 100px;
@@ -5703,7 +5703,7 @@ body.theme-king .cai-alim-summary-macros .m-tot {
   flex-shrink: 0;
 }
 .cai-meal-macros {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9px;
   letter-spacing: 0.3px;
   color: var(--muted2);
@@ -5768,7 +5768,7 @@ body.theme-king .cai-meal-macros {
 }
 .cai-alim-empty-ico svg { width: 32px; height: 32px; }
 .cai-alim-empty-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 24px; letter-spacing: 1px;
   line-height: 1; margin-bottom: 6px;
   color: var(--text);
@@ -5787,7 +5787,7 @@ body.theme-king .cai-meal-macros {
   border: 0;
   border-radius: 12px;
   color: white;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 15px; letter-spacing: 2.5px;
   cursor: pointer;
   box-shadow: 0 6px 28px rgba(124,106,255,0.32);
@@ -5912,13 +5912,13 @@ body.theme-king .cai-meal-macros {
   .cai-ent-cardio-hint { display: none; }
 }
 .cai-ent-hero-eyebrow {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px; letter-spacing: 1.4px;
   color: var(--accent-bright);
   margin-bottom: 6px;
 }
 .cai-ent-hero-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 26px; letter-spacing: 1px; line-height: 1;
   background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
@@ -5971,7 +5971,7 @@ body.theme-king .cai-meal-macros {
 }
 .cai-ent-ex-detail {
   display: inline-block;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10px; letter-spacing: 0.4px;
   padding: 3px 9px;
   border-radius: 100px;
@@ -6022,7 +6022,7 @@ body.theme-king .cai-meal-macros {
   display: flex; flex-direction: column; gap: 6px;
 }
 .cai-ent-series-title {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9px; letter-spacing: 1px;
   color: var(--muted2);
   margin-bottom: 2px;
@@ -6031,7 +6031,7 @@ body.theme-king .cai-meal-macros {
   display: flex; align-items: center; gap: 6px;
 }
 .cai-ent-serie-label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10px; color: var(--muted);
   letter-spacing: 0.4px;
   min-width: 48px;
@@ -6051,7 +6051,7 @@ body.theme-king .cai-meal-macros {
   border-radius: 8px;
   padding: 7px 6px;
   color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 12px;
   outline: none;
   text-align: center;
@@ -6174,7 +6174,7 @@ body.theme-king .cai-intens-chip { color: var(--accent) !important; background: 
 .cai-prog-select:focus { outline: none; border-color: var(--accent, #7c6aff); }
 .cai-prog-select-label {
   font-size: 8.5px; letter-spacing: .12em; color: var(--muted, #8a8a99);
-  font-family: 'JetBrains Mono', monospace; margin: 0 2px 5px;
+  font-family: 'DM Sans', sans-serif; margin: 0 2px 5px;
 }
 .cai-prog-stats {
   display: flex; justify-content: space-between; text-align: center;
@@ -6183,7 +6183,7 @@ body.theme-king .cai-intens-chip { color: var(--accent) !important; background: 
 }
 .cai-prog-stat-n { font-size: 16px; font-weight: 800; color: var(--text, #fff); font-family: 'DM Sans', sans-serif; }
 .cai-prog-stat-n.up { color: #16a34a; }
-.cai-prog-stat-l { font-size: 8.5px; letter-spacing: .12em; color: var(--muted, #8a8a99); font-family: 'JetBrains Mono', monospace; margin-top: 3px; }
+.cai-prog-stat-l { font-size: 8.5px; letter-spacing: .12em; color: var(--muted, #8a8a99); font-family: 'DM Sans', sans-serif; margin-top: 3px; }
 .cai-prog-foot { font-size: 10.5px; color: var(--muted, #8a8a99); text-align: center; margin-top: 10px; }
 .cai-prog-empty, .cai-prog-loading { color: var(--muted, #8a8a99); font-size: 13px; line-height: 1.55; padding: 18px 4px; text-align: center; }
 
@@ -6239,7 +6239,7 @@ body.theme-king .cai-intens-chip { color: var(--accent) !important; background: 
 .cai-intens-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
 .cai-intens-name { font-size: 14px; font-weight: 700; color: var(--text); }
 .cai-intens-badge {
-  font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.8px;
+  font-family: 'DM Sans', sans-serif; font-size: 9px; letter-spacing: 0.8px;
   text-transform: uppercase; padding: 2px 7px; border-radius: 999px;
   background: rgba(124,106,255,0.12); color: var(--accent-bright);
 }
@@ -6425,26 +6425,16 @@ body.theme-king .cai-info-chip.is-new { animation-name: caiInfoPulseKing; }
 .cai-info-chip-name { width: 22px; height: 22px; flex: none; }
 .cai-info-chip-name svg { width: 12px; height: 12px; }
 
-/* ===== TIPOGRAFÍA ÚNICA (preview gated: cuenta beto131312* / ?font=1; ?font=0 apaga) =====
-   Unifica TODA la app a DM Sans, estilo Apple Fitness: una familia, jerarquía
-   por peso — adiós JetBrains Mono (mono "anticuada") y Bebas Neue (condensada).
-   Si Beto+socio aprueban, el flip real = limpiar las ~205 declaraciones de
-   font-family + podar el link de Google Fonts (la app baja 1 fuente, no 5). */
-body.font-uni :not(svg):not(svg *) { font-family: 'DM Sans', sans-serif !important; }
-/* EXCEPCIÓN: el cronómetro necesita dígitos de ancho fijo — DM Sans NO tiene
-   cifras tabulares (medido: "1:11:11"=66px vs "0:00:00"=148px) y saltaría
-   cada segundo. Queda mono, igual que el cronómetro del propio iPhone. */
-body.font-uni .cai-entses-timer { font-family: 'JetBrains Mono', monospace !important; }
-/* Tallas: estos venían de Bebas (condensada); DM Sans es más ancha → una
-   talla menos + peso 800 para conservar jerarquía sin desbordar a 375px. */
-body.font-uni .cai-home-card-title { font-size: 18px; letter-spacing: 0.1px; line-height: 1.15; font-weight: 800; }
-body.font-uni .cai-alim-header-h2 { font-size: 20px; letter-spacing: 0.4px; font-weight: 800; }
-body.font-uni .cai-alim-summary-count { font-size: 32px; letter-spacing: 0; font-weight: 800; line-height: 1; }
-body.font-uni .cai-home-hero-num { font-size: 44px; letter-spacing: -0.5px; font-weight: 800; line-height: 1; }
-@media (max-width: 400px) {
-  body.font-uni .cai-home-card-title { font-size: 16px; }
-  body.font-uni .cai-home-hero-num { font-size: 38px; }
-}
+/* ===== TIPOGRAFÍA ÚNICA — 🎉 LIVE PARA TODOS (flip 2026-10-01, aprobado Beto+socio) =====
+   Toda la app habla DM Sans, estilo Apple Fitness: una familia, jerarquía por
+   peso. Las ~205 declaraciones de JetBrains Mono / Bebas Neue / Iceland
+   fueron REEMPLAZADAS en origen (script del flip) y Google Fonts quedó en
+   DM Sans + JetBrains Mono — este último lo usa SOLO el cronómetro
+   (.cai-entses-timer): DM Sans no tiene cifras tabulares ("1:11:11"=66px vs
+   "0:00:00"=148px) y el reloj saltaría cada segundo. Las tallas de los
+   ex-Bebas (card-title, h2, summary-count, hero-num) ya viven en sus clases
+   base. Lo que sigue gated bajo body.font-uni es el CASO de las etiquetas
+   ("Mayúscula inicial" tipo Apple vs MAYÚSCULAS): escape ?font=0. */
 /* Caso Apple: etiquetas en "Mayúscula inicial", no EN MAYÚSCULAS. El texto lo
    convierte fontUniCase() (los strings viven en caps en el markup); acá se
    apaga el uppercase del CSS y el tracking ancho estilo-mono, y se les da un
@@ -6509,12 +6499,12 @@ body.theme-light .cai-info-list li::before, body.theme-king .cai-info-list li::b
 }
 body.theme-king .cai-info-tip { background: rgba(255,79,123,0.07); border-color: rgba(255,79,123,0.22); }
 .cai-ent-serie-unit {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px; color: var(--muted2);
   letter-spacing: 0.4px;
 }
 .cai-ent-serie-times {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 11px; color: var(--muted2);
   padding: 0 2px;
 }
@@ -6543,7 +6533,7 @@ body.theme-king .cai-info-tip { background: rgba(255,79,123,0.07); border-color:
     inset 0 1px 0 rgba(255,255,255,0.06);
 }
 .cai-ent-other-title {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 13px; letter-spacing: 0.8px; font-weight: 800;
   color: var(--accent-bright);
   margin-bottom: 14px;
@@ -6597,7 +6587,7 @@ body.theme-king .cai-info-tip { background: rgba(255,79,123,0.07); border-color:
   min-width: 0; flex: 1;
 }
 .cai-ent-subcard-badge {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px; letter-spacing: 0.6px;
   padding: 4px 8px;
   border-radius: 6px;
@@ -6619,7 +6609,7 @@ body.theme-king .cai-info-tip { background: rgba(255,79,123,0.07); border-color:
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .cai-ent-subcard-day {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px; letter-spacing: 0.5px;
   color: var(--muted2);
   margin-top: 2px;
@@ -6655,7 +6645,7 @@ body.theme-king .cai-info-tip { background: rgba(255,79,123,0.07); border-color:
 .cai-entv2-greet .cai-ent-cardio-chip { margin-top: 12px; }
 
 .cai-entv2-list-title {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 11px; letter-spacing: 0.8px; font-weight: 800;
   color: var(--accent-bright);
   text-transform: uppercase;
@@ -6693,7 +6683,7 @@ body.theme-king .cai-info-tip { background: rgba(255,79,123,0.07); border-color:
 .cai-entv2-card.rest:active { transform: none; border-color: rgba(255,255,255,0.08); }
 
 .cai-entv2-card-badge {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px; letter-spacing: 0.6px; font-weight: 700;
   padding: 5px 9px; border-radius: 7px;
   background: rgba(124,106,255,0.10);
@@ -6714,13 +6704,13 @@ body.theme-king .cai-info-tip { background: rgba(255,79,123,0.07); border-color:
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .cai-entv2-card-meta {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px; letter-spacing: 0.5px;
   color: var(--muted2);
   margin-top: 3px;
 }
 .cai-entv2-card-hoy {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9px; letter-spacing: 0.8px; font-weight: 800;
   padding: 4px 8px; border-radius: 999px;
   background: var(--accent);
@@ -6855,7 +6845,7 @@ body.theme-king .cai-entv2-back-btn {
 .cai-entses.running { border-color: rgba(124,106,255,0.35); }
 .cai-entses-eyebrow {
   display: flex; align-items: center; gap: 7px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10px; letter-spacing: 0.8px; font-weight: 800;
   color: var(--accent-bright); text-transform: uppercase;
 }
@@ -6866,7 +6856,7 @@ body.theme-king .cai-entv2-back-btn {
 }
 @keyframes entses-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
 .cai-entses-meta {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 11px; letter-spacing: 0.4px;
   color: var(--muted); margin-top: 6px;
 }
@@ -6933,13 +6923,13 @@ body.theme-king .cai-entv2-back-btn {
   border: 1px solid rgba(124,106,255,0.18);
 }
 .entreno-done-stat-v {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 16px; font-weight: 800;
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 .entreno-done-stat-l {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9px; letter-spacing: 0.6px; text-transform: uppercase;
   color: var(--muted); margin-top: 3px;
 }
@@ -7001,7 +6991,7 @@ body.theme-king .entreno-done-stat { background: rgba(255,79,123,0.06) !importan
 .cai-entprev-num {
   width: 22px; height: 22px; border-radius: 50%;
   display: inline-flex; align-items: center; justify-content: center;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10px; font-weight: 800;
   background: rgba(124,106,255,0.12);
   color: var(--accent-bright);
@@ -7015,7 +7005,7 @@ body.theme-king .entreno-done-stat { background: rgba(255,79,123,0.06) !importan
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .cai-entprev-detail {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10px; letter-spacing: 0.3px;
   color: var(--accent-bright);
   padding: 3px 8px; border-radius: 6px;
@@ -7039,7 +7029,7 @@ body.theme-king .entreno-done-stat { background: rgba(255,79,123,0.06) !importan
 /* Modo guiado: tira de progreso + números tocables */
 .cai-entg-progress { padding-top: 14px; }
 .cai-entg-label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10px; letter-spacing: 0.8px; font-weight: 800;
   color: var(--accent-bright); text-transform: uppercase;
 }
@@ -7050,7 +7040,7 @@ body.theme-king .entreno-done-stat { background: rgba(255,79,123,0.06) !importan
 .cai-entg-num {
   width: 32px; height: 32px; border-radius: 50%;
   display: inline-flex; align-items: center; justify-content: center;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 11px; font-weight: 800;
   background: transparent;
   border: 1px solid rgba(255,255,255,0.14);
@@ -7230,15 +7220,15 @@ body.theme-king .home-plan-banner { background: #FFF0F4; border-color: rgba(255,
 .cai-home-ring-center svg { width: 28px; height: 28px; }
 .cai-home-hero-info { flex: 1; min-width: 0; }
 .cai-home-hero-eyebrow {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 11px; letter-spacing: 1.4px;
   color: var(--accent-bright);
   margin-bottom: 6px;
 }
 .cai-home-hero-num {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 56px; line-height: 0.95;
-  letter-spacing: 1px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 44px; line-height: 1;
+  letter-spacing: -0.5px; font-weight: 800;
   color: var(--accent-bright);
 }
 .cai-home-hero-num #home-ring-done {
@@ -7348,7 +7338,7 @@ button.cai-home-card { cursor: pointer; }
   margin-bottom: 6px;
 }
 .cai-home-card-eyebrow {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px; letter-spacing: 1.4px;
   color: var(--accent-bright);
 }
@@ -7369,8 +7359,8 @@ button.cai-home-card { cursor: pointer; }
   color: var(--accent3);
 }
 .cai-home-card-title {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 22px; letter-spacing: 1px; line-height: 1.0;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 18px; letter-spacing: 0.1px; line-height: 1.15; font-weight: 800;
   color: var(--text);
   margin-top: 4px;
   /* Cap titles at 2 lines max — keeps card heights uniform even when the
@@ -7528,7 +7518,7 @@ button.cai-home-card { cursor: pointer; }
 /* Kcal card — chart by meal type */
 .cai-home-card-kcal { min-height: 200px; }
 .cai-home-kcal-num {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   line-height: 1.0;
   margin-top: 4px;
 }
@@ -7541,7 +7531,7 @@ button.cai-home-card { cursor: pointer; }
   background-clip: text;
 }
 .cai-home-kcal-num span {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10px; letter-spacing: 0.6px;
   color: var(--muted2);
   margin-left: 4px;
@@ -7584,7 +7574,7 @@ button.cai-home-card { cursor: pointer; }
 }
 .cai-home-kcal-bar-label {
   position: absolute; bottom: -16px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 8.5px; letter-spacing: 0.4px;
   color: var(--muted2);
   white-space: nowrap;
@@ -7593,7 +7583,7 @@ button.cai-home-card { cursor: pointer; }
 /* SEGUIMIENTO SEMANAL — wide hero card wrapping renderSemanas output */
 .cai-home-section { margin: 14px 18px 24px; }
 .cai-home-section-title {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px; letter-spacing: 1.4px;
   color: var(--accent-bright);
   padding: 0 4px;
@@ -7626,8 +7616,8 @@ button.cai-home-card { cursor: pointer; }
 
 @media (max-width: 380px) {
   .cai-home-card { min-height: 152px; padding: 12px 12px 10px; }
-  .cai-home-card-title { font-size: 19px; }
-  .cai-home-hero-num { font-size: 48px; }
+  .cai-home-card-title { font-size: 16px; }
+  .cai-home-hero-num { font-size: 38px; }
   .cai-home-hero-ring { width: 100px; height: 100px; }
 }
 
@@ -7645,7 +7635,7 @@ button.cai-home-card { cursor: pointer; }
   margin: 12px 18px;
 }
 .cai-perfil-section-title {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px; letter-spacing: 1.4px;
   color: var(--accent-bright);
   padding: 0 4px;
@@ -7711,7 +7701,7 @@ button.cai-home-card { cursor: pointer; }
   min-width: 0; flex: 1;
 }
 .cai-perfil-plan-badge {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px; letter-spacing: 0.6px;
   padding: 4px 8px;
   border-radius: 6px;
@@ -7733,7 +7723,7 @@ button.cai-home-card { cursor: pointer; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .cai-perfil-plan-status {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px; letter-spacing: 0.5px;
   color: var(--muted2);
   margin-top: 2px;
@@ -7783,7 +7773,7 @@ button.cai-home-card { cursor: pointer; }
   border: 1px solid rgba(124,106,255,0.30);
   border-radius: 10px;
   color: var(--accent-bright);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10.5px; letter-spacing: 1px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -7866,7 +7856,7 @@ button.cai-home-card { cursor: pointer; }
 }
 .cai-perfil-transform-badge {
   position: absolute; top: 8px; right: 8px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 8.5px; letter-spacing: 1px;
   padding: 3px 7px;
   background: rgba(46,207,181,0.85);
@@ -7878,7 +7868,7 @@ button.cai-home-card { cursor: pointer; }
   padding: 8px 10px;
 }
 .cai-perfil-transform-label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px; letter-spacing: 0.8px;
   color: var(--accent-bright);
 }
@@ -7894,7 +7884,7 @@ button.cai-home-card { cursor: pointer; }
   text-align: center;
 }
 .cai-perfil-foto-inicio-eyebrow {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px; letter-spacing: 1.4px;
   color: var(--accent-bright);
   margin-bottom: 8px;
@@ -7921,7 +7911,7 @@ button.cai-home-card { cursor: pointer; }
   border: 1px solid rgba(124,106,255,0.30);
   border-radius: 10px;
   color: var(--accent-bright);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10.5px; letter-spacing: 1px;
   cursor: pointer;
   margin-bottom: 6px;
@@ -7968,7 +7958,7 @@ button.cai-home-card { cursor: pointer; }
   line-height: 1.55;
 }
 .cai-perfil-analisis-week {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px; letter-spacing: 1.2px;
   color: var(--accent-bright);
   margin-bottom: 8px;
@@ -7990,7 +7980,7 @@ button.cai-home-card { cursor: pointer; }
   border: 1px solid rgba(124,106,255,0.25);
   border-radius: 10px;
   color: var(--accent-bright);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10.5px; letter-spacing: 1px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -8031,7 +8021,7 @@ button.cai-home-card { cursor: pointer; }
   border-radius: 50%;
   background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%);
   display: flex; align-items: center; justify-content: center;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 19px; letter-spacing: 1px;
   color: white;
   flex-shrink: 0;
@@ -8070,7 +8060,7 @@ button.cai-home-card { cursor: pointer; }
 .cai-perfil-info-field:first-child { margin-top: 6px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.05); }
 .cai-perfil-info-field label {
   display: block;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9px; letter-spacing: 1.2px;
   color: var(--muted2);
   margin-bottom: 6px;
@@ -8120,7 +8110,7 @@ button.cai-home-card { cursor: pointer; }
   border: 0;
   border-radius: 12px;
   color: white;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 14px; letter-spacing: 2px;
   cursor: pointer;
   box-shadow: 0 6px 20px rgba(124,106,255,0.30);
@@ -8149,7 +8139,7 @@ button.cai-home-card { cursor: pointer; }
   border: 1px solid rgba(124,106,255,0.18);
   border-radius: 100px;
   color: var(--accent-bright);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10.5px; letter-spacing: 1px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -8184,7 +8174,7 @@ button.cai-home-card { cursor: pointer; }
   background: transparent; border: 1px solid rgba(124,106,255,0.35);
   color: var(--accent-bright);
   padding: 4px 9px; border-radius: 8px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10px; letter-spacing: 0.6px;
   cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
@@ -8314,7 +8304,7 @@ button.cai-home-card { cursor: pointer; }
 
 /* Step number — mirrors the "Cómo Funciona" pattern on Home */
 .section-number {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 36px;
   line-height: 1;
   letter-spacing: 1px;
@@ -8330,7 +8320,7 @@ button.cai-home-card { cursor: pointer; }
 
 .section-info {}
 .section-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 18px;
   letter-spacing: 2px;
   color: var(--accent-bright);
@@ -8510,7 +8500,7 @@ textarea { resize: vertical; min-height: 80px; }
   border: none;
   border-radius: 10px;
   color: white;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 18px;
   letter-spacing: 2px;
   cursor: pointer;
@@ -8538,7 +8528,7 @@ textarea { resize: vertical; min-height: 80px; }
 .dia-card.selected { border-color: var(--accent); background: rgba(124,106,255,0.1); }
 
 .dia-name { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
-.dia-num { font-family: 'JetBrains Mono', monospace; font-size: 20px; color: var(--text); }
+.dia-num { font-family: 'DM Sans', sans-serif; font-size: 20px; color: var(--text); }
 .dia-card.selected .dia-num { color: var(--accent-bright); }
 
 /* RESUMEN */
@@ -8563,7 +8553,7 @@ textarea { resize: vertical; min-height: 80px; }
   border: none;
   border-radius: 12px;
   color: white;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 22px;
   letter-spacing: 3px;
   cursor: pointer;
@@ -8619,7 +8609,7 @@ textarea { resize: vertical; min-height: 80px; }
 }
 
 .cpb-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
-.cpb-value { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent-bright); font-weight: 500; }
+.cpb-value { font-family: 'DM Sans', sans-serif; font-size: 12px; color: var(--accent-bright); font-weight: 500; }
 
 .chat-messages {
   /* Bounded scroll area — messages stack from bottom (newest near input).
@@ -8975,7 +8965,7 @@ footer {
 }
 .wb-text {}
 .wb-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 18px;
   letter-spacing: 2px;
   color: var(--accent-bright);
@@ -8990,7 +8980,7 @@ footer {
   border: none;
   border-radius: 8px;
   color: white;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 16px;
   letter-spacing: 2px;
   cursor: pointer;
@@ -9055,7 +9045,7 @@ footer {
 .perfil-hero > * { position: relative; z-index: 1; }
 
 .perfil-hero-name {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 46px;
   line-height: 1;
   letter-spacing: 4px;
@@ -9097,7 +9087,7 @@ footer {
 }
 .perfil-hero-meta-item { display: flex; flex-direction: column; }
 .perfil-hero-meta-item .ph-num {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 32px;
   letter-spacing: 2px;
   background: linear-gradient(135deg, var(--accent-bright), var(--accent3));
@@ -9183,7 +9173,7 @@ footer {
   text-align: center;
 }
 .perfil-transform-label {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 13px;
   letter-spacing: 2px;
   color: var(--accent-bright);
@@ -9202,7 +9192,7 @@ footer {
   padding: 3px 9px;
   background: linear-gradient(135deg, var(--accent), var(--accent3));
   color: #fff;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10px;
   letter-spacing: 1.5px;
   border-radius: 999px;
@@ -9254,7 +9244,7 @@ footer {
     inset 0 1px 0 rgba(255,255,255,0.05);
 }
 .perfil-stat-num {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 38px;
   letter-spacing: 2px;
   background: linear-gradient(135deg, #ffffff 0%, var(--accent-bright) 70%);
@@ -9298,7 +9288,7 @@ footer {
   flex-wrap: wrap;
 }
 .perfil-plan-label {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 16px;
   letter-spacing: 1.5px;
   color: var(--text);
@@ -9322,7 +9312,7 @@ footer {
   color: var(--accent-bright);
   border-radius: 100px;
   padding: 7px 12px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10px;
   letter-spacing: 1.2px;
   font-weight: 600;
@@ -9371,7 +9361,7 @@ footer {
   border: 1px solid rgba(124,106,255,0.3);
   border-radius: 8px;
   color: var(--accent-bright);
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 13px;
   letter-spacing: 1.5px;
   cursor: pointer;
@@ -9476,7 +9466,7 @@ footer {
 }
 
 .dash-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 32px;
   letter-spacing: 3px;
   background: linear-gradient(135deg, var(--accent-bright), var(--accent3));
@@ -9519,7 +9509,7 @@ footer {
 
 .stat-icon { font-size: 22px; margin-bottom: 6px; }
 .stat-value {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 22px;
   font-weight: 500;
   color: var(--accent-bright);
@@ -9549,7 +9539,7 @@ footer {
 }
 
 .chart-card-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 16px;
   letter-spacing: 2px;
   color: var(--accent-bright);
@@ -9637,7 +9627,7 @@ footer {
 .plan-tab-content.active { display: block; }
 .plan-meta { font-size: 11px; color: var(--muted); margin-bottom: 10px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .plan-badge {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9px;
   letter-spacing: 1.5px;
   padding: 3px 9px;
@@ -9756,7 +9746,7 @@ footer {
 }
 .admin-planes-tipo { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--accent-bright); flex-shrink: 0; }
 .admin-plan-badge {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9px;
   letter-spacing: 1.2px;
   padding: 3px 8px;
@@ -9840,7 +9830,7 @@ footer {
   border-radius: 8px;
   padding: 8px 12px;
   color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s;
@@ -9854,7 +9844,7 @@ footer {
   border: none;
   border-radius: 8px;
   color: white;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 14px;
   letter-spacing: 1px;
   cursor: pointer;
@@ -9883,7 +9873,7 @@ footer {
 }
 
 .weight-tag-date { color: var(--muted); font-size: 10px; }
-.weight-tag-val { font-family: 'JetBrains Mono', monospace; color: var(--accent-bright); font-size: 13px; font-weight: 500; }
+.weight-tag-val { font-family: 'DM Sans', sans-serif; color: var(--accent-bright); font-size: 13px; font-weight: 500; }
 
 /* MEDIDAS */
 .medidas-grid {
@@ -9914,7 +9904,7 @@ footer {
   border-radius: 8px;
   padding: 8px 10px;
   color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 13px;
   outline: none;
   transition: border-color 0.2s;
@@ -10038,7 +10028,7 @@ footer {
 }
 
 .wl-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 32px;
   letter-spacing: 3px;
   background: linear-gradient(135deg, var(--accent-bright), var(--accent3));
@@ -10078,7 +10068,7 @@ footer {
 }
 
 .wl-card-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 16px;
   letter-spacing: 2px;
   color: var(--accent-bright);
@@ -10218,7 +10208,7 @@ footer {
 }
 
 .preview-name {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 20px;
   letter-spacing: 3px;
 }
@@ -10243,7 +10233,7 @@ footer {
   border: none;
   border-radius: 10px;
   color: white;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 18px;
   letter-spacing: 2px;
   cursor: pointer;
@@ -10304,7 +10294,7 @@ footer {
   gap: 12px;
 }
 .admin-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 32px;
   letter-spacing: 3px;
   background: linear-gradient(135deg, var(--accent-bright), var(--accent3));
@@ -10362,7 +10352,7 @@ footer {
   box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(255,71,87,0.1), inset 0 2px 0 #ff4757;
 }
 .admin-stat-num {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 52px;
   line-height: 1;
   color: var(--text);
@@ -10418,7 +10408,7 @@ footer {
 }
 .beta-inv-row-info { flex: 1; min-width: 0; }
 .beta-inv-row-name { font-size: 13px; color: var(--text); font-weight: 600; }
-.beta-inv-row-email { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+.beta-inv-row-email { font-size: 11px; color: var(--muted); font-family: 'DM Sans', sans-serif; }
 .beta-inv-row-time {
   font-size: 11px; color: var(--accent3); margin-top: 3px;
   letter-spacing: 0.2px;
@@ -10444,7 +10434,7 @@ footer {
   border-radius: 12px; padding: 14px 16px;
 }
 .beta-metric-num {
-  font-family: 'Bebas Neue', sans-serif; font-size: 28px;
+  font-family: 'DM Sans', sans-serif; font-size: 28px;
   line-height: 1; color: var(--accent-bright);
 }
 .beta-metric-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
@@ -10455,7 +10445,7 @@ footer {
 }
 .beta-fb-meta {
   font-size: 11px; color: var(--muted);
-  font-family: 'JetBrains Mono', monospace; margin-bottom: 5px;
+  font-family: 'DM Sans', sans-serif; margin-bottom: 5px;
 }
 .beta-fb-msg { font-size: 13px; color: var(--text); line-height: 1.55; white-space: pre-wrap; }
 .beta-empty { font-size: 13px; color: var(--muted); text-align: center; padding: 24px; }
@@ -10465,7 +10455,7 @@ footer {
 }
 
 .admin-section-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 22px;
   letter-spacing: 2px;
   color: var(--text);
@@ -10529,7 +10519,7 @@ footer {
   flex-wrap: wrap;
 }
 .admin-detail-name {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 24px;
   letter-spacing: 2px;
   color: var(--text);
@@ -10551,7 +10541,7 @@ footer {
 .admin-profile-field-label { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
 .admin-profile-field-value { font-size: 14px; font-weight: 600; color: var(--text); }
 .admin-section-subtitle {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 20px;
   letter-spacing: 2px;
   color: var(--text);
@@ -10599,7 +10589,7 @@ footer {
   text-align: center;
 }
 .admin-transform-label {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 14px;
   letter-spacing: 2px;
   color: var(--accent-bright);
@@ -10624,7 +10614,7 @@ footer {
   padding: 3px 9px;
   background: linear-gradient(135deg, var(--accent), var(--accent3));
   color: #fff;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10px;
   letter-spacing: 1.5px;
   border-radius: 999px;
@@ -10749,7 +10739,7 @@ footer {
   line-height: 1.15;
 }
 .ring-num {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 30px;
   letter-spacing: 1px;
   color: #fff;
@@ -11111,7 +11101,7 @@ footer {
 .lightbox-diptych-lbl {
   position: absolute;
   top: 10px; left: 10px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10px; letter-spacing: .10em;
   background: rgba(0,0,0,.55); color: #fff;
   padding: 4px 8px; border-radius: 6px;
@@ -11159,7 +11149,7 @@ footer {
   position: absolute;
   top:   calc(20px + env(safe-area-inset-top, 0px));
   left:  20px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 11px; letter-spacing: .14em;
   background: rgba(0,0,0,.6); color: #fff;
   padding: 5px 11px;
@@ -11211,7 +11201,7 @@ footer {
 }
 .semana-header:hover { background: rgba(255,255,255,0.03); }
 .semana-badge {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 15px;
   letter-spacing: 1px;
   background: var(--surface2);
@@ -11256,7 +11246,7 @@ footer {
 }
 .entreno-progress-label {
   font-size: 12px; color: var(--muted);
-  font-family: 'JetBrains Mono', monospace; letter-spacing: 0.5px;
+  font-family: 'DM Sans', sans-serif; letter-spacing: 0.5px;
 }
 
 /* Day card reuses .semana-card; these add the entreno-specific bits.
@@ -11281,13 +11271,13 @@ footer {
 .entreno-day .semana-header { gap: 12px; }
 .entreno-day-info { flex: 1; min-width: 0; }
 .entreno-day-name {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 16px; letter-spacing: 1px; color: var(--text);
   line-height: 1.1;
 }
 .entreno-day-sub {
   font-size: 11px; color: var(--muted); margin-top: 3px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
 }
 
 /* Premium completion toggle — NOT a native checkbox */
@@ -11336,7 +11326,7 @@ footer {
 }
 .entreno-ex-detail {
   font-size: 11px; color: var(--accent-bright);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   white-space: nowrap; flex-shrink: 0;
 }
 .entreno-ex-note {
@@ -11387,7 +11377,7 @@ footer {
   margin-bottom: 2px; padding-right: 30px; line-height: 1.3;
 }
 .ej-modal-muscle {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px; letter-spacing: 1.2px; color: var(--accent3);
   text-transform: uppercase; margin-bottom: 14px;
 }
@@ -11431,7 +11421,7 @@ footer {
   border-radius: 8px;
   padding: 8px 12px;
   color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 14px;
   width: 110px;
   outline: none;
@@ -11456,7 +11446,7 @@ footer {
 }
 .entreno-serie-label {
   font-size: 12px; color: var(--accent-bright);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   width: 58px; flex-shrink: 0;
 }
 .entreno-serie-input {
@@ -11465,7 +11455,7 @@ footer {
   border-radius: 8px;
   padding: 8px 10px;
   color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 14px;
   width: 76px;
   outline: none;
@@ -11476,7 +11466,7 @@ footer {
 .entreno-serie-input::placeholder { color: var(--muted); opacity: 0.45; }
 .entreno-serie-unit {
   font-size: 12px; color: var(--muted);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
 }
 
 /* ============ MI ALIMENTACIÓN V2 — rediseño visual (?alimv2=1) ============
@@ -11528,8 +11518,8 @@ body.alimv2-on .alim-target-card { display: none !important; }
   transition: background .18s, color .18s, box-shadow .18s;
 }
 .alimv2-day[disabled] { opacity: .35; cursor: default; }
-.alimv2-day .dw { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 1px; }
-.alimv2-day .dn { font-family: 'Bebas Neue', sans-serif; font-size: 19px; line-height: 1; }
+.alimv2-day .dw { font-family: 'DM Sans', sans-serif; font-size: 9px; letter-spacing: 1px; }
+.alimv2-day .dn { font-family: 'DM Sans', sans-serif; font-size: 19px; line-height: 1; }
 .alimv2-day .dot { width: 4px; height: 4px; border-radius: 50%; background: transparent; }
 .alimv2-day.has .dot { background: var(--accent3); }
 .alimv2-day.sel {
@@ -11549,7 +11539,7 @@ body.alimv2-on .alim-target-card { display: none !important; }
 .alimv2-ring .ctr { font-family: inherit; font-size: 12px; font-weight: 800; fill: var(--text); }
 .alimv2-ring .rv { font-size: 11px; font-weight: 700; color: var(--text); }
 .alimv2-ring .rv small { color: var(--muted2); font-weight: 500; }
-.alimv2-ring .rp { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted2); }
+.alimv2-ring .rp { font-family: 'DM Sans', sans-serif; font-size: 9px; color: var(--muted2); }
 
 body.alimv2-on .cai-alim-meals { flex-direction: column; gap: 12px; }
 .alimv2-meal {
@@ -11574,18 +11564,18 @@ body.alimv2-on .cai-alim-meals { flex-direction: column; gap: 12px; }
 }
 .alimv2-meal-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .alimv2-meal-top { display: flex; align-items: baseline; gap: 8px; }
-.alimv2-meal-name { font-family: 'Bebas Neue', sans-serif; font-size: 15.5px; letter-spacing: .8px; color: var(--text); }
+.alimv2-meal-name { font-family: 'DM Sans', sans-serif; font-size: 15.5px; letter-spacing: .8px; color: var(--text); }
 .alimv2-meal-detail { font-size: 11px; color: var(--muted); line-height: 1.45; margin: 3px 0 5px; overflow-wrap: break-word; }
 .alimv2-meal-detail em { font-style: normal; opacity: .7; }
 .alimv2-meal-nums { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: auto; }
 .alimv2-kcal-chip {
-  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  font-family: 'DM Sans', sans-serif; font-size: 10px;
   background: var(--av2-chip-bg); color: var(--accent-bright);
   padding: 2px 7px; border-radius: 7px;
 }
 body.alimv2-on.theme-light .alimv2-kcal-chip,
 body.alimv2-on.theme-king .alimv2-kcal-chip { color: var(--accent); }
-.alimv2-macros { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--muted2); letter-spacing: .3px; }
+.alimv2-macros { font-family: 'DM Sans', sans-serif; font-size: 9.5px; color: var(--muted2); letter-spacing: .3px; }
 .alimv2-meal-edit {
   border: none; background: none; color: var(--muted2); cursor: pointer;
   font-family: inherit; font-size: 10.5px; font-weight: 700;
@@ -11599,7 +11589,7 @@ body.alimv2-on.theme-king .alimv2-kcal-chip { color: var(--accent); }
 .alimv2-detail-desc { font-size: 13px; line-height: 1.55; color: var(--text); margin: 10px 0 12px; }
 .alimv2-detail-stats { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 4px; }
 .alimv2-stat-pill {
-  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  font-family: 'DM Sans', sans-serif; font-size: 11px;
   padding: 4px 10px; border-radius: 9px;
   background: var(--av2-chip-bg); color: var(--accent);
 }
@@ -11654,7 +11644,7 @@ body.alimv2-on.theme-king .alimv2-kcal-chip { color: var(--accent); }
     inset 0 1px 0 rgba(255,255,255,0.09);
 }
 .alim-target-eyebrow {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9.5px; letter-spacing: 1.4px;
   color: var(--accent-bright);
   margin-bottom: 8px;
@@ -11663,7 +11653,7 @@ body.alimv2-on.theme-king .alimv2-kcal-chip { color: var(--accent); }
 .alim-target-stats { display: flex; gap: 10px; align-items: stretch; }
 .alim-target-stats .stat { flex: 1; text-align: center; }
 .alim-target-stats .stat .num {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 22px; line-height: 1;
   color: #fff; letter-spacing: 0.5px;
 }
@@ -11679,7 +11669,7 @@ body.alimv2-on.theme-king .alimv2-kcal-chip { color: var(--accent); }
   -webkit-text-fill-color: #54526e;
 }
 .alim-target-stats .stat .label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9px; letter-spacing: .12em;
   color: #54526e; text-transform: uppercase;
   margin-top: 4px;
@@ -11692,7 +11682,7 @@ body.alimv2-on.theme-king .alimv2-kcal-chip { color: var(--accent); }
 .alim-day-name { font-size: 13.5px; font-weight: 700; color: var(--text); letter-spacing: 0.5px; }
 .alim-day-meta {
   font-size: 11px; color: var(--muted); margin-top: 2px;
-  font-family: 'JetBrains Mono', monospace; letter-spacing: 0.4px;
+  font-family: 'DM Sans', sans-serif; letter-spacing: 0.4px;
 }
 .alim-meal-list { padding: 4px 14px 14px; }
 .alim-meal {
@@ -11722,7 +11712,7 @@ body.alimv2-on.theme-king .alimv2-kcal-chip { color: var(--accent); }
   margin-bottom: 2px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
 }
 .alim-edit-flag {
-  font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.6px;
+  font-family: 'DM Sans', sans-serif; font-size: 9px; letter-spacing: 0.6px;
   color: var(--accent2); opacity: 0.85; font-weight: 500;
 }
 .alim-meal-content {
@@ -11731,7 +11721,7 @@ body.alimv2-on.theme-king .alimv2-kcal-chip { color: var(--accent); }
 }
 .alim-meal.is-editada .alim-meal-content { color: var(--accent-bright); font-style: italic; }
 .alim-meal-kcal {
-  font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+  font-family: 'DM Sans', sans-serif; font-size: 10.5px;
   color: var(--accent3); letter-spacing: 0.5px; margin-top: 4px;
 }
 .alim-edit-btn {
@@ -12018,7 +12008,7 @@ body.theme-king .alim-edit-tip {
   padding: 22px 22px 20px; width: 100%; max-width: 440px;
 }
 .feedback-title {
-  font-family: 'Bebas Neue', sans-serif; font-size: 22px;
+  font-family: 'DM Sans', sans-serif; font-size: 22px;
   letter-spacing: 1.5px; color: var(--accent-bright); margin-bottom: 6px;
 }
 .feedback-sub { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-bottom: 14px; }
@@ -12089,7 +12079,7 @@ body.theme-king .alim-edit-tip {
   padding: 28px 24px;
   width: 100%; max-width: 480px;
 }
-.cierre-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; margin-bottom: 4px; }
+.cierre-title { font-family: 'DM Sans', sans-serif; font-size: 22px; letter-spacing: 2px; margin-bottom: 4px; }
 .cierre-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
 .cierre-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
 .cierre-stat { background: var(--surface2); border-radius: 10px; padding: 12px 14px; text-align: center; }
@@ -12128,7 +12118,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
   letter-spacing: 1.5px;
   color: var(--muted);
   text-align: center;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
 }
 .cierre-foto-slot {
   aspect-ratio: 3/4;
@@ -12195,7 +12185,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 }
 
 .diario-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 32px;
   letter-spacing: 3px;
   background: linear-gradient(135deg, var(--accent-bright), var(--accent3));
@@ -12223,7 +12213,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 .diario-title-icon svg { width: 24px; height: 24px; display: block; }
 
 .diario-date {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 12px;
   color: var(--muted);
   background: var(--surface2);
@@ -12355,7 +12345,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
   border: none;
   border-radius: 10px;
   color: white;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 18px;
   letter-spacing: 2px;
   cursor: pointer;
@@ -12375,7 +12365,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 }
 
 .log-day-date {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 11px;
   color: var(--accent-bright);
   margin-bottom: 8px;
@@ -12748,7 +12738,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 }
 
 .modal-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 24px;
   letter-spacing: 3px;
   color: var(--accent-bright);
@@ -12796,7 +12786,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
   border: none;
   border-radius: 10px;
   color: white;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 18px;
   letter-spacing: 2px;
   cursor: pointer;
@@ -12899,7 +12889,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
   width: 100%; max-width: 400px; text-align: center;
 }
 .email-login-logo {
-  font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 4px;
+  font-family: 'DM Sans', sans-serif; font-size: 32px; letter-spacing: 4px;
   background: linear-gradient(135deg, var(--accent-bright), var(--accent3));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text; margin-bottom: 8px;
@@ -12916,7 +12906,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
   width: 100%; padding: 12px;
   background: linear-gradient(135deg, var(--accent), var(--accent3));
   border: none; border-radius: 10px; color: white;
-  font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 2px;
+  font-family: 'DM Sans', sans-serif; font-size: 16px; letter-spacing: 2px;
   cursor: pointer; transition: all 0.2s;
 }
 @media (hover: hover) and (pointer: fine) {
@@ -13350,7 +13340,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
   margin-bottom: 6px;
 }
 .nav-footer-brand-name {
-  font-family: 'Iceland', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 14px;
   letter-spacing: 3px;
   text-transform: uppercase;
@@ -13381,7 +13371,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 }
 .nav-version-tag {
   color: var(--muted);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 9px;
   margin-left: 6px;
   padding: 1px 6px;
@@ -13483,7 +13473,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 
 /* Emotional static headline */
 .home-hero-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 82px;
   letter-spacing: 4px;
   line-height: 0.9;
@@ -13536,7 +13526,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
   background: linear-gradient(135deg, var(--accent) 0%, rgba(46,207,181,0.85) 100%);
   border: none;
   border-radius: 16px;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 17px;
   letter-spacing: 2.5px;
   color: #fff;
@@ -13583,7 +13573,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
   margin-bottom: 6px;
 }
 .home-section-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 38px;
   letter-spacing: 3px;
   color: var(--text);
@@ -13661,7 +13651,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
   margin-bottom: 12px;
 }
 .home-fcard-headline {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 32px;
   letter-spacing: 3px;
   color: var(--text);
@@ -13777,7 +13767,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
   z-index: 0;
 }
 .home-step-num {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 36px;
   line-height: 1;
   letter-spacing: 6px;
@@ -13792,7 +13782,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 }
 .home-step-body { min-width: 0; padding-top: 6px; }
 .home-step-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 18px;
   letter-spacing: 2px;
   color: var(--text);
@@ -13883,7 +13873,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 }
 .home-card-body { padding: 12px 16px 18px; }
 .home-card-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 15px;
   letter-spacing: 2px;
   color: var(--accent-bright);
@@ -13924,7 +13914,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 /* Eyebrow now lives INSIDE the wrapper card. Padding placement gives it
    breathing room from the top edge without doubling the card's own padding. */
 .cai-home-semanas .cai-home-semanas-eyebrow {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 13px; letter-spacing: 0.8px; font-weight: 800;
   color: var(--accent-bright);
   margin-bottom: 14px;
@@ -13980,7 +13970,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-size: 22px; letter-spacing: 0.08em;
   color: #2ecfb5;
   /* Bebas Neue's metric ascent leaves a large invisible top-padding inside
@@ -13993,7 +13983,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 }
 .cai-home-semanas .semana-card.cerrada .semana-badge { color: var(--muted); }
 .cai-home-semanas .semana-dates {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 11px; letter-spacing: 0.10em;
   color: var(--muted);
   text-transform: uppercase;
@@ -14004,7 +13994,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 /* Status pill */
 .cai-home-semanas .semana-status {
   display: inline-flex; align-items: center; gap: 6px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase;
   padding: 5px 10px; border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.08);
@@ -14047,7 +14037,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 /* Chips inside collapsed cards */
 .cai-home-semanas .semana-chip {
   display: inline-flex; align-items: center; gap: 4px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase;
   padding: 4px 9px; border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.08);
@@ -14078,19 +14068,19 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 .cai-home-semanas .semana-strip-day {
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;
 }
-.cai-home-semanas .semana-strip-day .d { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #54526e; letter-spacing: .08em; }
+.cai-home-semanas .semana-strip-day .d { font-family: 'DM Sans', sans-serif; font-size: 9px; color: #54526e; letter-spacing: .08em; }
 .cai-home-semanas .semana-strip-day .bar { width: 100%; height: 6px; border-radius: 3px; background: rgba(255,255,255,.05); }
 .cai-home-semanas .semana-strip-day.trained .bar { background: linear-gradient(90deg, #7c6aff, #5b9fff); }
 .cai-home-semanas .semana-strip-day.rest    .bar { background: rgba(255,107,107,.35); }
 .cai-home-semanas .semana-strip-summary { text-align: right; padding-left: 10px; }
 .cai-home-semanas .semana-strip-summary .num {
-  font-family: 'Bebas Neue', sans-serif; font-size: 24px; line-height: 1;
+  font-family: 'DM Sans', sans-serif; font-size: 24px; line-height: 1;
   background: linear-gradient(135deg, #7c6aff, #5b9fff, #2ecfb5);
   -webkit-background-clip: text; background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 .cai-home-semanas .semana-strip-summary .num .den { color: #54526e; -webkit-text-fill-color: #54526e; }
-.cai-home-semanas .semana-strip-summary .label { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #54526e; margin-top: 2px; letter-spacing: .08em; }
+.cai-home-semanas .semana-strip-summary .label { font-family: 'DM Sans', sans-serif; font-size: 9px; color: #54526e; margin-top: 2px; letter-spacing: .08em; }
 
 /* Thumbnail card (collapsed · cerrada). Matches strip's top padding so both
    variants breathe the same way from the header divider. */
@@ -14115,7 +14105,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 .cai-home-semanas .semana-thumb-info { flex: 1; min-width: 0; }
 .cai-home-semanas .semana-thumb-stats { display: flex; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
 .cai-home-semanas .semana-thumb-stats span {
-  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  font-family: 'DM Sans', sans-serif; font-size: 10px;
   color: var(--muted); letter-spacing: .08em;
 }
 
@@ -14132,7 +14122,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 }
 .cai-home-semanas .semana-statbar .stat { flex: 1; }
 .cai-home-semanas .semana-statbar .stat .num {
-  font-family: 'Bebas Neue', sans-serif; font-size: 22px; line-height: 1; color: #fff;
+  font-family: 'DM Sans', sans-serif; font-size: 22px; line-height: 1; color: #fff;
 }
 .cai-home-semanas .semana-statbar .stat .num.grad {
   background: linear-gradient(135deg, #7c6aff, #5b9fff, #2ecfb5);
@@ -14141,7 +14131,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 }
 .cai-home-semanas .semana-statbar .stat .num .den { color: #54526e; font-size: 14px; -webkit-text-fill-color: #54526e; }
 .cai-home-semanas .semana-statbar .stat .label {
-  font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .12em;
+  font-family: 'DM Sans', sans-serif; font-size: 9px; letter-spacing: .12em;
   color: #54526e; text-transform: uppercase; margin-top: 4px;
 }
 .cai-home-semanas .semana-statbar .sep { width: 1px; background: rgba(255,255,255,0.08); }
@@ -14182,12 +14172,12 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
 }
 .cai-home-semanas .semana-tl-date {
-  font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: .04em;
+  font-family: 'DM Sans', sans-serif; font-size: 18px; letter-spacing: .04em;
   color: #fff;
 }
 .cai-home-semanas .semana-tl-status {
   display: inline-flex; align-items: center; gap: 6px;
-  font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .12em;
+  font-family: 'DM Sans', sans-serif; font-size: 10px; letter-spacing: .12em;
   text-transform: uppercase;
 }
 .cai-home-semanas .semana-tl-status.trained { color: #b4a7ff; }
@@ -14195,7 +14185,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 .cai-home-semanas .semana-tl-meal { font-size: 13px; color: var(--muted); line-height: 1.45; margin-top: 4px; }
 .cai-home-semanas .semana-tl-kcal {
   display: inline-flex; align-items: center; gap: 6px; margin-top: 6px;
-  font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted);
+  font-family: 'DM Sans', sans-serif; font-size: 10px; color: var(--muted);
 }
 
 /* CTA Cerrar semana (override legacy). Removed the inline icon — with
@@ -14237,7 +14227,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 .cai-home-semanas .semana-transformacion { margin-top: 18px; margin-bottom: 18px; }
 .cai-home-semanas .semana-transf-header {
   display: flex; align-items: center; gap: 8px;
-  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .16em;
+  font-family: 'DM Sans', sans-serif; font-size: 11px; letter-spacing: .16em;
   color: #b4a7ff; text-transform: uppercase; margin-bottom: 10px;
 }
 .cai-home-semanas .semana-transf-compare {
@@ -14255,7 +14245,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 }
 .cai-home-semanas .semana-transf-compare .after img { left: -52%; width: 217%; }
 .cai-home-semanas .semana-transf-compare .lbl {
-  position: absolute; font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  position: absolute; font-family: 'DM Sans', sans-serif; font-size: 10px;
   letter-spacing: .10em; text-transform: uppercase;
   background: rgba(0,0,0,.45); padding: 3px 7px; border-radius: 6px;
   color: #fff;
@@ -14288,7 +14278,7 @@ body.theme-king .cierre-analisis-result strong { color: var(--accent) !important
 }
 .cai-home-semanas .semana-transf-lbl {
   position: absolute; bottom: 8px;
-  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  font-family: 'DM Sans', sans-serif; font-size: 10px;
   letter-spacing: .10em; text-transform: uppercase;
   background: rgba(0,0,0,.45); padding: 3px 7px; border-radius: 6px;
   color: #fff;
@@ -14353,7 +14343,7 @@ body.theme-king .cai-home-semanas .semana-analisis hr {
   display: flex; align-items: center; gap: 8px;
   margin-top: 12px; padding-top: 10px;
   border-top: 1px solid rgba(255,255,255,0.06);
-  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  font-family: 'DM Sans', sans-serif; font-size: 10px;
   letter-spacing: .12em; color: var(--muted); text-transform: uppercase;
 }
 .cai-home-semanas .semana-analisis-footer button {
@@ -14365,7 +14355,7 @@ body.theme-king .cai-home-semanas .semana-analisis hr {
   border-radius: 10px;
   cursor: pointer;
   display: flex; align-items: center; gap: 6px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Sans', sans-serif;
   font-size: 10.5px;
   letter-spacing: 1px;
   -webkit-tap-highlight-color: transparent;
@@ -14411,12 +14401,12 @@ body.theme-king .cai-home-semanas .semana-analisis hr {
   flex-shrink: 0;
 }
 .cierre-overlay .cierre-title {
-  font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: .06em;
+  font-family: 'DM Sans', sans-serif; font-size: 26px; letter-spacing: .06em;
   line-height: 1; color: #fff;
   margin: 0;
 }
 .cierre-overlay .cierre-sub {
-  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .14em;
+  font-family: 'DM Sans', sans-serif; font-size: 11px; letter-spacing: .14em;
   color: var(--muted); text-transform: uppercase; margin: 6px 0 0;
 }
 .cierre-overlay .cierre-stats {
@@ -14438,11 +14428,11 @@ body.theme-king .cai-home-semanas .semana-analisis hr {
   background: linear-gradient(135deg, rgba(124,106,255,.18), rgba(46,207,181,.12));
 }
 .cierre-overlay .cierre-stat .label {
-  font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .16em;
+  font-family: 'DM Sans', sans-serif; font-size: 9px; letter-spacing: .16em;
   color: #54526e; text-transform: uppercase;
 }
 .cierre-overlay .cierre-stat .num {
-  font-family: 'Bebas Neue', sans-serif; font-size: 28px; line-height: 1;
+  font-family: 'DM Sans', sans-serif; font-size: 28px; line-height: 1;
   margin-top: 4px; color: #fff;
   font-weight: normal;
 }
@@ -14453,14 +14443,14 @@ body.theme-king .cai-home-semanas .semana-analisis hr {
 }
 .cierre-overlay .cierre-stat .num .den { color: #54526e; font-size: 20px; -webkit-text-fill-color: #54526e; }
 .cierre-overlay .cierre-stat .sub {
-  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  font-family: 'DM Sans', sans-serif; font-size: 10px;
   color: var(--muted); margin-top: 4px;
   min-height: 12px;
 }
 
 .cierre-photos-eyebrow {
   display: flex; align-items: center; gap: 8px; margin-top: 16px; margin-bottom: 8px;
-  font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: .14em;
+  font-family: 'DM Sans', sans-serif; font-size: 10.5px; letter-spacing: .14em;
   color: #b4a7ff; text-transform: uppercase;
 }
 .cierre-overlay .cierre-photos {
@@ -14468,7 +14458,7 @@ body.theme-king .cai-home-semanas .semana-analisis hr {
 }
 .cierre-overlay .cierre-photo { flex: 1; }
 .cierre-overlay .cierre-photo .cap {
-  font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .14em;
+  font-family: 'DM Sans', sans-serif; font-size: 9px; letter-spacing: .14em;
   color: #54526e; margin-bottom: 5px; text-align: center; text-transform: uppercase;
 }
 .cierre-overlay .cierre-photo .frame {
@@ -14512,7 +14502,7 @@ body.theme-king .cai-home-semanas .semana-analisis hr {
 .cierre-overlay .cierre-photo .frame .frame-empty-ico {
   display: flex; flex-direction: column; align-items: center; gap: 6px;
   color: #54526e;
-  font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .12em;
+  font-family: 'DM Sans', sans-serif; font-size: 10px; letter-spacing: .12em;
   width: 100%; height: 100%;
   justify-content: center;
   text-transform: uppercase;
@@ -14525,8 +14515,8 @@ body.theme-king .cai-home-semanas .semana-analisis hr {
   flex-shrink: 0;
 }
 .cierre-overlay .cierre-photo .upload-cta { text-align: center; padding: 0 6px; }
-.cierre-overlay .cierre-photo .upload-cta .t { font-family: 'Bebas Neue', sans-serif; font-size: 15px; color: #fff; letter-spacing: .04em; }
-.cierre-overlay .cierre-photo .upload-cta .s { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #2ecfb5; margin-top: 3px; letter-spacing: .14em; }
+.cierre-overlay .cierre-photo .upload-cta .t { font-family: 'DM Sans', sans-serif; font-size: 15px; color: #fff; letter-spacing: .04em; }
+.cierre-overlay .cierre-photo .upload-cta .s { font-family: 'DM Sans', sans-serif; font-size: 9px; color: #2ecfb5; margin-top: 3px; letter-spacing: .14em; }
 /* CRITICAL: must match BOTH the legacy single-photo id (#cierre-foto-preview)
    AND the new per-vista ids (#cierre-foto-frente-preview /
    #cierre-foto-espalda-preview). Without width/height/object-fit, the
@@ -14567,7 +14557,7 @@ body.theme-king .cai-home-semanas .semana-analisis hr {
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 14px;
   color: var(--muted);
-  font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: .14em;
+  font-family: 'DM Sans', sans-serif; font-size: 12px; letter-spacing: .14em;
   text-transform: uppercase;
   display: flex; align-items: center; justify-content: center; gap: 8px;
   cursor: pointer;
@@ -14673,7 +14663,7 @@ body.theme-king .cai-perfil-transform-badge {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   width: 100%; margin: 2px 0 4px; padding: 11px 14px;
   background: none; border: none; cursor: pointer;
-  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.06em;
+  font-family: 'DM Sans', sans-serif; font-size: 11px; letter-spacing: 0.06em;
   color: var(--muted); -webkit-tap-highlight-color: transparent;
 }
 .semanas-toggle .semanas-toggle-chev { font-size: 12px; transition: transform 0.2s ease; }
@@ -14731,13 +14721,13 @@ body.theme-king .cai-perfil-transform-badge {
 .medal-wrap.is-locked .medal-em{ color:#8A8A95; }
 .medal-wrap.is-locked .medal-em svg path, .medal-wrap.is-locked .medal-em svg rect{ filter:drop-shadow(0 1px 0.5px rgba(0,0,0,.18)); }
 .medal-num{ position:absolute; left:50%; bottom:0; transform:translate(-50%,34%); z-index:3; min-width:var(--nb); height:var(--nb); padding:0 6px; border-radius:999px; display:grid; place-items:center; box-sizing:border-box;
-  font-family:'Bebas Neue',sans-serif; font-size:calc(var(--nb) * .62); line-height:1; letter-spacing:.02em; color:#fff;
+  font-family:'DM Sans', sans-serif; font-size:calc(var(--nb) * .62); line-height:1; letter-spacing:.02em; color:#fff;
   border:1.5px solid rgba(255,255,255,.6); text-shadow:0 1px 1px rgba(0,0,0,.4), 0 -0.5px 0 rgba(255,255,255,.25); box-shadow:0 3px 7px -2px rgba(17,17,26,.55), inset 0 1px 1px rgba(255,255,255,.5); }
 .medal-wrap.fam-coral .medal-num{ background:linear-gradient(#FF6F94,#B0234F); }
 .medal-wrap.fam-amber .medal-num{ background:linear-gradient(#F4A93E,#A85E0C); }
 .medal-wrap.fam-rose .medal-num{ background:linear-gradient(#C95B95,#6B1E46); }
 .medal-wrap.is-locked .medal-num{ background:linear-gradient(#D8D8DE,#A9A9B4); color:#6E6E78; text-shadow:none; }
-.medal-mult{ position:absolute; left:50%; bottom:8%; transform:translateX(-50%); z-index:4; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:calc(var(--d) * .15); line-height:1; padding:2px 7px; border-radius:999px; color:#fff; letter-spacing:.02em; background:linear-gradient(#1b1b27,#000); border:1.5px solid rgba(255,255,255,.22); box-shadow:0 3px 8px -3px rgba(0,0,0,.6); }
+.medal-mult{ position:absolute; left:50%; bottom:8%; transform:translateX(-50%); z-index:4; font-family:'DM Sans', sans-serif; font-weight:700; font-size:calc(var(--d) * .15); line-height:1; padding:2px 7px; border-radius:999px; color:#fff; letter-spacing:.02em; background:linear-gradient(#1b1b27,#000); border:1.5px solid rgba(255,255,255,.22); box-shadow:0 3px 8px -3px rgba(0,0,0,.6); }
 .medal-ribbon{ position:absolute; left:50%; top:62%; transform:translateX(-50%); z-index:0; display:flex; gap:calc(var(--d) * .28); }
 .medal-ribbon i{ width:calc(var(--d) * .18); height:calc(var(--d) * .42); clip-path:polygon(0 0,100% 0,100% 100%,50% 78%,0 100%); display:block; }
 .medal-wrap.fam-coral .medal-ribbon i{ background:linear-gradient(#FF4F7B,#9C1D45); }
@@ -15065,13 +15055,12 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     var _cup = params.get('countup');
     if (_cup === '0') { try { localStorage.setItem('coachai_countup', '0'); } catch (e) {} }
     else if (_cup === '1') { try { localStorage.removeItem('coachai_countup'); } catch (e) {} }
-    // ?font=1 → PREVIEW de tipografía única (DM Sans en toda la app, estilo
-    // Apple Fitness). Default OFF salvo cuenta de prueba de Beto (ver
-    // applyFontUni); ?font=0 la apaga incluso para esa cuenta.
+    // Tipografía única: LIVE PARA TODOS (flip 2026-10-01). ?font=0 = escape
+    // (vuelve a las etiquetas EN MAYÚSCULAS); ?font=1 re-enciende.
     var _fp = params.get('font');
-    if (_fp === '1') { try { localStorage.setItem('coachai_font', '1'); } catch (e) {} }
+    if (_fp === '1') { try { localStorage.removeItem('coachai_font'); } catch (e) {} }
     else if (_fp === '0') { try { localStorage.setItem('coachai_font', '0'); } catch (e) {} }
-    try { if (localStorage.getItem('coachai_font') === '1') document.body.classList.add('font-uni'); } catch (e) {}
+    try { if (localStorage.getItem('coachai_font') !== '0') document.body.classList.add('font-uni'); } catch (e) {}
     var applyLightDefault = function(){
       try {
         if (localStorage.getItem('coachai_theme_light') === '0') return;   // opt-out explícito
@@ -16608,7 +16597,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     <div style="border:1px solid rgba(124,106,255,0.32); background:linear-gradient(135deg, rgba(124,106,255,0.10), rgba(124,106,255,0.02)); border-radius:14px; padding:18px 20px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
       <div style="width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg, var(--accent-bright, #7c6aff), rgba(124,106,255,0.6)); display:grid; place-items:center; color:#fff; font-weight:700; font-size:15px; letter-spacing:0.04em; flex-shrink:0;">S</div>
       <div style="flex:1; min-width:160px;">
-        <div style="font-family:'JetBrains Mono', monospace; font-size:10.5px; letter-spacing:1.5px; color:var(--accent-bright, #7c6aff); margin-bottom:4px;"
+        <div style="font-family:'DM Sans', sans-serif; font-size:10.5px; letter-spacing:1.5px; color:var(--accent-bright, #7c6aff); margin-bottom:4px;"
              data-es="MODO COACH" data-en="COACH MODE">MODO COACH</div>
         <div style="font-size:13.5px; opacity:0.85; line-height:1.4;"
              data-es="Acceso al panel privado de tus clientes: semáforo, planes, análisis."
@@ -16616,7 +16605,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
           Acceso al panel privado de tus clientes: semáforo, planes, análisis.
         </div>
       </div>
-      <a href="/studio" style="padding:9px 16px; border-radius:10px; background:var(--accent-bright, #7c6aff); border:none; color:#fff; font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:1.2px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:6px; cursor:pointer; transition:transform 0.12s, filter 0.12s;"
+      <a href="/studio" style="padding:9px 16px; border-radius:10px; background:var(--accent-bright, #7c6aff); border:none; color:#fff; font-family:'DM Sans', sans-serif; font-size:11px; letter-spacing:1.2px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:6px; cursor:pointer; transition:transform 0.12s, filter 0.12s;"
          onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''"
          data-es="ABRIR STUDIO →" data-en="OPEN STUDIO →">ABRIR STUDIO →</a>
     </div>
@@ -17565,7 +17554,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
          Claude (the analysis text is cached in-memory). -->
     <div id="cierre-retry-banner" style="display:none; margin-top:12px; padding:12px 14px; background:rgba(255,71,87,0.10); border:1px solid rgba(255,71,87,0.35); border-radius:10px; font-size:13px; line-height:1.5;">
       <span id="cierre-retry-text">⚠ Análisis generado pero no se pudo guardar. Tocá para reintentar.</span>
-      <button onclick="retryCierreSave()" style="display:block; margin-top:8px; background:transparent; border:1px solid #ff4757; color:#ff4757; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:11px; letter-spacing:1.5px; font-family:'JetBrains Mono', monospace;" id="cierre-retry-btn">🔁 REINTENTAR GUARDADO</button>
+      <button onclick="retryCierreSave()" style="display:block; margin-top:8px; background:transparent; border:1px solid #ff4757; color:#ff4757; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:11px; letter-spacing:1.5px; font-family:'DM Sans', sans-serif;" id="cierre-retry-btn">🔁 REINTENTAR GUARDADO</button>
     </div>
 
     <div class="cierre-analisis-result" id="cierre-analisis-result"></div>
@@ -29420,15 +29409,13 @@ async function confirmDeleteAccount() {
   }
 }
 
-// ===== Tipografía única (preview gated) — cuenta beto131312* o ?font=1 =====
-// ?font=0 la apaga (gana incluso sobre la cuenta de prueba). El flip real,
-// si se aprueba, limpia las ~205 font-family + el link de Google Fonts.
+// ===== Tipografía única — LIVE PARA TODOS (flip 2026-10-01) =====
+// Las fuentes ya están unificadas en origen; esto enciende el CASO de las
+// etiquetas ("Mayúscula inicial" estilo Apple) para todo el mundo.
+// Escape ?font=0 → vuelve a las MAYÚSCULAS viejas (localStorage coachai_font).
 function applyFontUni() {
   try {
     if (localStorage.getItem('coachai_font') === '0') return;
-    const on = localStorage.getItem('coachai_font') === '1'
-      || (typeof currentUser !== 'undefined' && currentUser && /^beto131312/.test(currentUser.email || ''));
-    if (!on) return;
     document.body.classList.add('font-uni');
     // Observador del caser: cada re-render (innerHTML/textContent) re-aplica la
     // conversión de MAYÚSCULAS → "Mayúscula inicial". Escribimos nodeValue
@@ -33259,7 +33246,7 @@ function renderPlainTextDieta(text) {
     const headerNorm = m.header.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[\s-]/g, '');
     const emoji = Object.entries(MEAL_EMOJI).find(([k]) => headerNorm.startsWith(k))?.[1] || '🥗';
     const itemsHtml = m.items.map(it => `<li>${it.replace(/[&<>]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[c]))}</li>`).join('');
-    const macros = m.macros ? `<div style="font-size:11px;color:var(--muted);margin-top:8px;font-family:'JetBrains Mono',monospace">${m.macros}</div>` : '';
+    const macros = m.macros ? `<div style="font-size:11px;color:var(--muted);margin-top:8px;font-family:'DM Sans', sans-serif">${m.macros}</div>` : '';
     return `
       <div class="coach-card" style="padding:14px 18px;margin:0 16px 12px;border-radius:14px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
@@ -33272,7 +33259,7 @@ function renderPlainTextDieta(text) {
   }).join('');
 
   const totalBlock = totalLine
-    ? `<div style="margin:14px 16px 4px;padding:12px 16px;background:rgba(124,106,255,0.08);border:1px solid rgba(124,106,255,0.25);border-radius:12px;font-size:12.5px;color:var(--accent-bright);font-family:'JetBrains Mono',monospace;text-align:center">${totalLine}</div>`
+    ? `<div style="margin:14px 16px 4px;padding:12px 16px;background:rgba(124,106,255,0.08);border:1px solid rgba(124,106,255,0.25);border-radius:12px;font-size:12.5px;color:var(--accent-bright);font-family:'DM Sans', sans-serif;text-align:center">${totalLine}</div>`
     : '';
 
   return `<div style="padding:6px 0 12px">${cards}${totalBlock}</div>`;
@@ -33862,13 +33849,13 @@ function _progChartSvg(points) {
       <stop offset="0" stop-color="var(--accent,#7c6aff)" stop-opacity=".22"/>
       <stop offset="1" stop-color="var(--accent,#7c6aff)" stop-opacity="0"/></linearGradient></defs>
     <g stroke="var(--border,rgba(124,106,255,.18))" stroke-width="1" opacity=".7">${grid}</g>
-    <g font-size="8.5" fill="var(--muted,#8a8a99)" font-family="'JetBrains Mono',monospace">${glab}</g>
+    <g font-size="8.5" fill="var(--muted,#8a8a99)" font-family="'DM Sans', sans-serif">${glab}</g>
     ${area}${line}
     <g fill="var(--surface,#fff)" stroke="var(--accent,#7c6aff)" stroke-width="2">${dots}</g>
     <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="5" fill="var(--accent,#7c6aff)" stroke="var(--surface,#fff)" stroke-width="2"/>
     <g><rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${bw}" height="19" rx="9.5" fill="var(--text,#1A1A2E)"/>
     <text x="${(bx + bw / 2).toFixed(1)}" y="${(by + 13).toFixed(1)}" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--surface,#fff)" font-family="'DM Sans',sans-serif">${_progFmtKg(points[li].val)} kg</text></g>
-    <g font-size="8.5" fill="var(--muted,#8a8a99)" font-family="'JetBrains Mono',monospace">${xlab}</g>
+    <g font-size="8.5" fill="var(--muted,#8a8a99)" font-family="'DM Sans', sans-serif">${xlab}</g>
   </svg>`;
 }
 
@@ -36847,7 +36834,7 @@ function adminBuildPlanesHTML(planes, cierres) {
   // History section: collapsed by default. Coach can expand to read past deliveries.
   const historyHtml = olderPlans.length
     ? `<details style="margin-top:14px;">
-         <summary style="cursor:pointer;font-size:11px;letter-spacing:1.5px;color:var(--muted);font-family:'JetBrains Mono', monospace;padding:8px 0;">
+         <summary style="cursor:pointer;font-size:11px;letter-spacing:1.5px;color:var(--muted);font-family:'DM Sans', sans-serif;padding:8px 0;">
            📜 HISTORIAL (${olderPlans.length} ${olderPlans.length === 1 ? 'plan anterior' : 'planes anteriores'})
          </summary>
          <div style="margin-top:8px;">
@@ -37247,7 +37234,7 @@ function adminPlanModal(cfg) {
   const guide = isRutina ? `
     <div style="font-size:11px;color:var(--muted);line-height:1.55;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px">
       <strong style="color:var(--accent-bright)">Formato para que Mi Entreno arme los días y las series:</strong><br>
-      <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text)">
+      <span style="font-family:'DM Sans', sans-serif;font-size:10.5px;color:var(--text)">
 Día 1 · Pecho/Hombros<br>
 1. Press inclinado con mancuernas — 4×10 · pesado · desc 90s<br>
 2. Aperturas en máquina — 3×15 · medio · desc 60s<br>
@@ -37270,7 +37257,7 @@ Descanso: Mié/Sáb/Dom
         ${guide}
         <textarea id="aep-contenido" ${isRutina ? `oninput="adminUpdatePlanPreview()"` : ''} placeholder="Pegá acá ${cfg.tipo === 'dieta' ? 'la dieta' : 'la rutina'} de la clienta…">${_esc(cfg.contenido || '')}</textarea>
       </div>
-      ${isRutina ? `<div id="aep-preview" style="font-size:12px;color:var(--muted);margin:2px 0 8px;font-family:'JetBrains Mono',monospace"></div>` : ''}
+      ${isRutina ? `<div id="aep-preview" style="font-size:12px;color:var(--muted);margin:2px 0 8px;font-family:'DM Sans', sans-serif"></div>` : ''}
       <div class="admin-modal-error" id="aep-error"></div>
       <div class="admin-modal-actions">
         <button class="btn-admin-cancel-modal" onclick="adminCloseActionModal()">Cancelar</button>
@@ -38619,7 +38606,7 @@ async function forceAppUpdate() {
 
 <div id="admin-choice-overlay" style="display:none; position:fixed; inset:0; z-index:2000; background:linear-gradient(135deg, var(--bg, #1a1535) 0%, var(--bg, #1a1535) 100%); padding:24px; padding-top:max(24px, env(safe-area-inset-top,0px)); padding-bottom:max(24px, env(safe-area-inset-bottom,0px)); overflow-y:auto; -webkit-overflow-scrolling:touch;">
   <div style="max-width:440px; margin:0 auto; padding-top:min(8vh, 60px); text-align:center;">
-    <div id="admin-choice-logo" style="font-family:'Bebas Neue', sans-serif; font-size:36px; letter-spacing:0.18em; color:var(--accent-bright, #FF4F7B); margin-bottom:6px;">COACHAI</div>
+    <div id="admin-choice-logo" style="font-family:'DM Sans', sans-serif; font-size:36px; letter-spacing:0.18em; color:var(--accent-bright, #FF4F7B); margin-bottom:6px;">COACHAI</div>
     <div style="font-size:11px; letter-spacing:0.2em; color:var(--muted, #8B95A7); text-transform:uppercase; margin-bottom:36px;">Modo coach detectado</div>
 
     <h1 id="admin-choice-greeting" style="font-size:22px; font-weight:600; margin:0 0 8px; color:var(--text, #fff);">Hola <span id="admin-choice-name">coach</span></h1>
