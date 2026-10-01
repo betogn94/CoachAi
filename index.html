@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261001-2131-deploy">
+<meta name="app-version" content="20261001-2138-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -20185,7 +20185,7 @@ function evaluatePlanQuality(tipo, contenido, opts) {
 // Trae la PLANTILLA de Jesús más apropiada (rutina por días / dieta por kcal más
 // cercano) y le inyecta el nombre + (dieta) el Target del usuario. Es la red de
 // calidad: si la IA no llega al estándar, se entrega esto (plan probado de Jesús).
-async function getBackupPlan(tipo, target) {
+async function getBackupPlan(tipo, target, expectedDays) {
   if (!sbClient || !currentUser) return null;
   try {
     const { data } = await sbClient.from('plan_templates').select('contenido, dias, kcal_base, sexo').eq('tipo', tipo);
@@ -20198,7 +20198,7 @@ async function getBackupPlan(tipo, target) {
     const pool = sameSex.length ? sameSex : data;
     let tpl;
     if (tipo === 'rutina') {
-      const want = (typeof getWeeklyTrainingTarget === 'function' ? getWeeklyTrainingTarget() : 0) || 4;
+      const want = expectedDays || (typeof getWeeklyTrainingTarget === 'function' ? getWeeklyTrainingTarget() : 0) || 4;
       tpl = pool.reduce((a, b) => Math.abs((b.dias || 4) - want) < Math.abs((a.dias || 4) - want) ? b : a);
     } else {
       const want = (target && target.kcal) || 1400;
@@ -20267,7 +20267,11 @@ async function prefetchPlan(tipo, opts) {
       actividad: currentUser && currentUser.actividad,
     };
     const _target = computeDietTarget(_profile);
-    const _expDays = (typeof getWeeklyTrainingTarget === 'function') ? getWeeklyTrainingTarget() : 0;
+    // expectedDays por opts (renovación): getWeeklyTrainingTarget cuenta los días
+    // de la rutina ACTIVA (la vieja) → al renovar con otra cantidad de días la
+    // vara rechazaría la rutina nueva correcta por "menos días" (bug E2E 2026-10-01).
+    const _expDays = (opts && opts.expectedDays)
+      || ((typeof getWeeklyTrainingTarget === 'function') ? getWeeklyTrainingTarget() : 0);
     // Método King (Fase 4): mujer de cohorte King → la rutina proactiva NO
     // entrena pecho. Si la IA lo mete igual, la vara la manda al backup.
     const _noChest = (currentUser && currentUser.sexo === 'femenino')
@@ -20280,7 +20284,7 @@ async function prefetchPlan(tipo, opts) {
     }
     if (_useBackup) {
       try { if (typeof trackEvent === 'function') trackEvent('plan_quality_fallback', { tipo, reasons: _reasons.join(' | ') }); } catch (e) {}
-      const backup = await getBackupPlan(tipo, _target);
+      const backup = await getBackupPlan(tipo, _target, _expDays);
       if (backup) planText = backup;
     }
     if (!planText) throw new Error(tipo + ' inválido y sin plantilla de backup');
@@ -30254,7 +30258,7 @@ async function renovGenerate() {
     // puede tardar ~60s (reintento + normalizado) → lo estiramos a 90s.
     if (_planLoadingTimer) clearTimeout(_planLoadingTimer);
     _planLoadingTimer = setTimeout(() => { try { hidePlanLoadingOverlay(); } catch (e) {} }, 90000);
-    const saved = await prefetchPlan('rutina', { fechaEntrega });
+    const saved = await prefetchPlan('rutina', { fechaEntrega, expectedDays: _renovDias.length });
     hidePlanLoadingOverlay();
     if (!saved) throw new Error('prefetch sin resultado');
     try { trackEvent('renov_ok', { week: _renovWeek, dias: _renovDias.length, foco: foco || 'ninguno' }); } catch (e) {}
