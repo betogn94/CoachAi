@@ -1,6 +1,17 @@
 # Renovación de rutina cada 4 semanas
 
-**Estado: PLANEADA (2026-10-01). Nada implementado todavía.**
+**Estado: F0-F2 IMPLEMENTADAS Y DEPLOYADAS (2026-10-01), gated `?renov=1`. Falta F3: QA E2E con login real + flip a default ON.**
+
+QA hecho (2026-10-01, localhost con estado simulado — NO probado en prod con login real):
+- Sintaxis de los scripts inline de index.html y studio OK (8/8).
+- UI de los 4 pasos verificada con screenshots (tema claro violeta, días preseleccionados desde `dias_entreno`, resumen correcto).
+- Gate: coach ✗ / no-self-serve ✗ / King sin self_serve ✓ / rutina `origen='coach'` ✗ / `origen=null` ✗ / rutina cerrada ✗ / elegible ✓.
+- Cadencia: semana 3 ✗ / semana 4 y 8 ✓ / ya vista ✗. "Seguir con mi rutina" marca visto y no reaparece.
+- `_focoPromptBlock` entra a `buildSystemPrompt()` solo con foco seteado.
+- DB: columnas creadas + backfill `origen='ia'` a los 12 planes de las 6 self-serve (2026-10-01).
+- **No probado:** generación real end-to-end (Haiku + guardado + render de Mi Entreno), flujo EN, King real con reglas sin-pecho, `renov_*` en beta_eventos con RLS real.
+
+Pendiente F3: QA E2E con la cuenta de prueba (sembrar cierre semana 4) → flip del flag a `!== '0'` (escape `?renov=0`) + decidir backfill de las King web existentes.
 
 ## Qué es
 

@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20260929-2054-deploy">
+<meta name="app-version" content="20261001-2125-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -14820,6 +14820,20 @@ body.theme-king .cai-perfil-transform-badge {
   font-family: 'DM Sans', sans-serif; cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
 .cierre-gate-link:active { transform: scale(0.98); }
+/* Overlay de renovación de rutina (reusa el look del cierre-gate) */
+#renov-overlay { z-index: 4050; }                 /* nunca abierto a la vez que el gate (4000) — el JS lo garantiza */
+#renov-overlay .renov-x { display: flex; }        /* siempre descartable */
+.renov-link {
+  width: 100%; margin-top: 10px; padding: 12px;
+  border: 1px solid var(--border, rgba(0,0,0,0.08)); border-radius: 12px;
+  background: var(--surface, #fff); color: var(--muted); font-size: 13.5px; font-weight: 600;
+  font-family: 'DM Sans', sans-serif; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.renov-link:active { transform: scale(0.98); }
+.renov-count { font-size: 12.5px; font-weight: 600; color: var(--muted); margin: 12px 0 14px; }
+#renov-overlay .dias-grid { grid-template-columns: repeat(7, 1fr); gap: 6px; } /* 7 columnas aun en el card angosto (pisa la media query de 4) */
+#renov-overlay .chip-group { justify-content: center; margin-bottom: 18px; }
+#renov-overlay .cierre-gate-btn:disabled { opacity: 0.45; cursor: default; }
 /* Cards y superficies elevadas → sombra ambiental por capas */
 body .cai-home-hero, body .cai-home-card, body .cai-alim-summary, body .cai-meal, body .alim-tips-card,
 body .semana-card, body .cai-ent-summary, body .cai-ent-hero, body .cai-perfil-section, body .cai-perfil-info,
@@ -17796,6 +17810,67 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   </div>
 </div>
 
+<!-- Overlay de RENOVACIÓN DE RUTINA (cada 4 semanas, solo self-serve con rutina IA —
+     docs/renovacion-rutina.md). No bloquea nada: X y "Seguir con mi rutina" lo cierran
+     para siempre (por semana). El wizard vive en el mismo card: ask → días → foco →
+     resumen. Reusa las clases del cierre-gate + dias-grid/chips del onboarding. -->
+<div class="cierre-gate-overlay" id="renov-overlay" role="dialog" aria-modal="true" aria-label="Renovar tu rutina">
+  <div class="cierre-gate-card">
+    <button class="cierre-gate-x renov-x" type="button" onclick="renovDismiss()" aria-label="Cerrar">×</button>
+
+    <div class="renov-step" id="renov-step-ask">
+      <div class="cierre-gate-eyebrow" data-es="TU RUTINA" data-en="YOUR ROUTINE">TU RUTINA</div>
+      <div class="cierre-gate-emoji" aria-hidden="true">🔄</div>
+      <div class="cierre-gate-title" id="renov-ask-title">¿Renovamos tu rutina?</div>
+      <div class="cierre-gate-desc" id="renov-ask-desc"></div>
+      <button class="cierre-gate-btn" type="button" onclick="renovStart()" data-es="Quiero una rutina nueva" data-en="I want a new routine">Quiero una rutina nueva</button>
+      <button class="renov-link" type="button" onclick="renovKeep()" data-es="Seguir con mi rutina" data-en="Keep my routine">Seguir con mi rutina</button>
+    </div>
+
+    <div class="renov-step" id="renov-step-dias" style="display:none">
+      <div class="cierre-gate-eyebrow" data-es="PASO 1 DE 3" data-en="STEP 1 OF 3">PASO 1 DE 3</div>
+      <div class="cierre-gate-title" style="font-size:19px" data-es="¿Qué días vas a entrenar?" data-en="Which days will you train?">¿Qué días vas a entrenar?</div>
+      <div class="cierre-gate-desc" style="margin-bottom:14px" data-es="Podés sumar, mantener o quitar días. Tu rutina se arma con exactamente los que marques." data-en="You can add, keep or remove days. Your routine is built with exactly the days you select.">Podés sumar, mantener o quitar días. Tu rutina se arma con exactamente los que marques.</div>
+      <div class="dias-grid renov-dias" id="renov-dias-grid">
+        <div class="dia-card" data-dia="lun" onclick="renovToggleDia(this,'lun')"><div class="dia-name" data-es="LUN" data-en="MON">LUN</div><div class="dia-num">L</div></div>
+        <div class="dia-card" data-dia="mar" onclick="renovToggleDia(this,'mar')"><div class="dia-name" data-es="MAR" data-en="TUE">MAR</div><div class="dia-num">M</div></div>
+        <div class="dia-card" data-dia="mie" onclick="renovToggleDia(this,'mie')"><div class="dia-name" data-es="MIÉ" data-en="WED">MIÉ</div><div class="dia-num">X</div></div>
+        <div class="dia-card" data-dia="jue" onclick="renovToggleDia(this,'jue')"><div class="dia-name" data-es="JUE" data-en="THU">JUE</div><div class="dia-num">J</div></div>
+        <div class="dia-card" data-dia="vie" onclick="renovToggleDia(this,'vie')"><div class="dia-name" data-es="VIE" data-en="FRI">VIE</div><div class="dia-num">V</div></div>
+        <div class="dia-card" data-dia="sab" onclick="renovToggleDia(this,'sab')"><div class="dia-name" data-es="SÁB" data-en="SAT">SÁB</div><div class="dia-num">S</div></div>
+        <div class="dia-card" data-dia="dom" onclick="renovToggleDia(this,'dom')"><div class="dia-name" data-es="DOM" data-en="SUN">DOM</div><div class="dia-num">D</div></div>
+      </div>
+      <div class="renov-count" id="renov-dias-count"></div>
+      <button class="cierre-gate-btn" type="button" id="renov-dias-next" onclick="renovDiasNext()" data-es="Continuar" data-en="Continue">Continuar</button>
+      <button class="renov-link" type="button" onclick="_renovShowStep('ask')" data-es="Volver" data-en="Back">Volver</button>
+    </div>
+
+    <div class="renov-step" id="renov-step-foco" style="display:none">
+      <div class="cierre-gate-eyebrow" data-es="PASO 2 DE 3" data-en="STEP 2 OF 3">PASO 2 DE 3</div>
+      <div class="cierre-gate-title" style="font-size:19px" data-es="¿Querés un foco especial?" data-en="Want a special focus?">¿Querés un foco especial?</div>
+      <div class="cierre-gate-desc" style="margin-bottom:14px" data-es="Tu nueva rutina va a priorizar lo que elijas, sin descuidar el resto." data-en="Your new routine will prioritize your pick, without neglecting the rest.">Tu nueva rutina va a priorizar lo que elijas, sin descuidar el resto.</div>
+      <div class="chip-group renov-foco" id="renov-foco-chips">
+        <div class="chip" data-foco="gluteos" onclick="renovPickFoco(this,'gluteos')" data-es="🍑 Glúteos y piernas" data-en="🍑 Glutes &amp; legs">🍑 Glúteos y piernas</div>
+        <div class="chip" data-foco="superior" onclick="renovPickFoco(this,'superior')" data-es="💪 Tren superior" data-en="💪 Upper body">💪 Tren superior</div>
+        <div class="chip" data-foco="fullbody" onclick="renovPickFoco(this,'fullbody')" data-es="⚖️ Cuerpo completo" data-en="⚖️ Full body">⚖️ Cuerpo completo</div>
+        <div class="chip" data-foco="core" onclick="renovPickFoco(this,'core')" data-es="🔥 Abdomen y core" data-en="🔥 Abs &amp; core">🔥 Abdomen y core</div>
+        <div class="chip" data-foco="ninguno" onclick="renovPickFoco(this,'ninguno')" data-es="✨ Sin preferencia" data-en="✨ No preference">✨ Sin preferencia</div>
+      </div>
+      <button class="cierre-gate-btn" type="button" id="renov-foco-next" onclick="renovFocoNext()" disabled data-es="Continuar" data-en="Continue">Continuar</button>
+      <button class="renov-link" type="button" onclick="_renovShowStep('dias')" data-es="Volver" data-en="Back">Volver</button>
+    </div>
+
+    <div class="renov-step" id="renov-step-resumen" style="display:none">
+      <div class="cierre-gate-eyebrow" data-es="PASO 3 DE 3" data-en="STEP 3 OF 3">PASO 3 DE 3</div>
+      <div class="cierre-gate-emoji" aria-hidden="true">✨</div>
+      <div class="cierre-gate-title" style="font-size:19px" data-es="Tu nueva rutina" data-en="Your new routine">Tu nueva rutina</div>
+      <div class="cierre-gate-desc" id="renov-resumen-txt" style="margin-bottom:16px"></div>
+      <button class="cierre-gate-btn" type="button" onclick="renovGenerate()" data-es="Generar mi nueva rutina" data-en="Generate my new routine">Generar mi nueva rutina</button>
+      <button class="renov-link" type="button" onclick="_renovShowStep('foco')" data-es="Volver" data-en="Back">Volver</button>
+    </div>
+  </div>
+</div>
+
 <!-- Overlay de espera del análisis IA — ruedita + frases mientras Claude trabaja -->
 <div class="analisis-wait-overlay" id="analisis-wait-overlay" role="status" aria-live="polite">
   <div class="analisis-wait-card">
@@ -19515,7 +19590,7 @@ async function loadCurrentWeekPlans() {
   if (!sbClient || !currentUser) return { dieta: null, rutina: null };
   const [{ data: plans }, { data: cierres }] = await Promise.all([
     sbClient.from('planes_semanales')
-      .select('tipo, contenido, fecha_entrega, semana_iso, updated_at')
+      .select('tipo, contenido, fecha_entrega, semana_iso, updated_at, origen')
       .eq('usuario_id', currentUser.id)
       .order('updated_at', { ascending: false }),
     sbClient.from('cierres_semanales')
@@ -19611,17 +19686,24 @@ function reconcileDietKcal(text) {
   );
 }
 
-async function saveWeeklyPlan(tipo, contenido) {
+// opts (renovación de rutina, docs/renovacion-rutina.md):
+//  - fechaEntrega: override de la fecha (post-cierre debe ser POSTERIOR al último
+//    cierre o el plan nace closed=true — misma regla que autoRepeatPlans).
+//  - origen: 'ia' default — TODOS los callers de esta función son flujos de IA
+//    (chat, prefetch, self-heal). Los planes del coach entran por Studio o la
+//    migración, que marcan 'coach' en sus propios upserts.
+async function saveWeeklyPlan(tipo, contenido, opts) {
   if (!sbClient || !currentUser) return null;
   if (tipo === 'dieta') contenido = reconcileDietKcal(contenido);   // kcal per-comida = sus macros
   const semana = getISOWeekKey();
-  const fecha = getTodayKey();
+  const fecha = (opts && opts.fechaEntrega) || getTodayKey();
   const { data, error } = await sbClient.from('planes_semanales').upsert({
     usuario_id: currentUser.id,
     tipo,
     semana_iso: semana,
     fecha_entrega: fecha,
     contenido,
+    origen: (opts && opts.origen) || 'ia',
     updated_at: new Date().toISOString()
   }, { onConflict: 'usuario_id,tipo,semana_iso' }).select().single();
   if (error) { console.error('saveWeeklyPlan error', error); return null; }
@@ -19740,6 +19822,9 @@ async function autoRepeatPlans() {
         semana_iso: wkNow,
         fecha_entrega: fechaEntrega,
         contenido,
+        // El clon hereda el origen del plan que clona ('ia' sigue siendo
+        // elegible para renovación de rutina; 'coach' sigue protegido).
+        origen: weeklyPlans[tipo].origen || null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'usuario_id,tipo,semana_iso' });
       if (error) { console.error('[CoachAI] auto-repeat upsert error', tipo, error); continue; }
@@ -20136,7 +20221,9 @@ async function getBackupPlan(tipo, target) {
 // Genera UN plan de forma HEADLESS (sin tocar el chat) y lo guarda en planes_semanales.
 // Reintenta para asegurar CALIDAD: la dieta DEBE traer kcal/macros (si no, reformatea
 // o regenera); la rutina DEBE traer ejercicios. Hasta 2 generaciones por tipo.
-async function prefetchPlan(tipo) {
+// opts opcional → pasa directo a saveWeeklyPlan (la renovación de rutina lo usa
+// para entregar con fecha posterior al último cierre; el onboarding no lo pasa).
+async function prefetchPlan(tipo, opts) {
   try {
     const isEs = (lang === 'es');
     const msg = tipo === 'rutina'
@@ -20197,7 +20284,7 @@ async function prefetchPlan(tipo) {
       if (backup) planText = backup;
     }
     if (!planText) throw new Error(tipo + ' inválido y sin plantilla de backup');
-    const saved = await saveWeeklyPlan(tipo, planText);
+    const saved = await saveWeeklyPlan(tipo, planText, opts);
     if (saved) { if (!weeklyPlans) weeklyPlans = {}; weeklyPlans[tipo] = saved; }
     return saved;
   } finally {
@@ -22753,6 +22840,25 @@ ESTILO DE DIETA KING (preferencia, no rompe el formato ni el target):
 - Ofrecé opciones alternativas dentro de cada comida con "/" (ej: "pollo/pescado/huevos 150g", "arroz/camote 150g"). La clienta elige una — mantené las kcal/macros de la comida coherentes con la opción base.
 - 4 comidas por día. Nada de comidas exóticas ni snacks ultraprocesados.`;
 
+// Preferencia de foco muscular (renovación de rutina, docs/renovacion-rutina.md).
+// Línea condicional para el prompt: redistribuye volumen hacia la zona elegida
+// SIN pisar las reglas del método (reloj de arena / V / King) — esas siguen
+// mandando porque se inyectan aparte y el texto lo dice explícito.
+function _focoPromptBlock(isEs) {
+  const f = currentUser && currentUser.foco_entreno;
+  const labels = {
+    gluteos:  { es: 'glúteos y piernas',          en: 'glutes and legs' },
+    superior: { es: 'tren superior',              en: 'upper body' },
+    fullbody: { es: 'cuerpo completo equilibrado', en: 'balanced full body' },
+    core:     { es: 'abdomen y core',             en: 'abs and core' },
+  };
+  const l = f && labels[f];
+  if (!l) return '';
+  return isEs
+    ? `\nPREFERENCIA DE FOCO DEL CLIENTE (la eligió al renovar su rutina): ${l.es}. Al armar la rutina, redistribuí el volumen semanal para PRIORIZAR esa zona (más ejercicios y series ahí), sin abandonar el resto del cuerpo y SIN romper las reglas del método.`
+    : `\nCLIENT FOCUS PREFERENCE (chosen when renewing their routine): ${l.en}. When building the routine, redistribute weekly volume to PRIORITIZE that area (more exercises and sets there), without abandoning the rest of the body and without breaking the method rules.`;
+}
+
 function buildSystemPrompt() {
   // Cohorte King (Fase 4): en el onboarding King, metodo_king ya está estampado
   // ANTES de generar el plan (ver handoff King ~17109), así que kingEsCohorte()
@@ -23041,7 +23147,7 @@ ${_dietTarget ? `- TARGET (ya calculado para este cliente — NO recalcules el T
 ${esKing ? REGLAS_KING_DIETA_ES : ''}
 
 ${sexo === 'femenino' ? METODO_RELOJ_ARENA_ES : METODO_V_MASCULINO_ES}
-${(esKing && sexo === 'femenino') ? REGLAS_KING_MUJER_ES : ''}
+${(esKing && sexo === 'femenino') ? REGLAS_KING_MUJER_ES : ''}${_focoPromptBlock(true)}
 
 EJEMPLO DE REFERENCIA — formato y nivel de detalle de una rutina bien hecha (adaptá los ejercicios, el énfasis y la cantidad de días al perfil de ESTE cliente; NO la copies literal):
 
@@ -23269,7 +23375,7 @@ CRITICAL CONSTRAINTS:
 - For every exercise: sets, reps and rest — no exceptions.
 - For beginners: add a technique note on compound movements.
 - Adapt to location (gym with machines / home with bodyweight or dumbbells).
-- Respect injuries 100% — substitute any exercises that affect them.
+- Respect injuries 100% — substitute any exercises that affect them.${_focoPromptBlock(false)}
 
 FOR ANY OTHER CLIENT QUESTION:
 Answer concisely, directly and motivationally. Maximum 4-6 sentences unless the topic requires more detail. For questions about diet changes or what to train today, answer with precision. At the end of your responses, when relevant, remind them to log in My Day.
@@ -23322,8 +23428,8 @@ async function migrateClientPreloadedPlans() {
     const fechaEntrega = new Date().toISOString().slice(0, 10);
 
     const rows = [];
-    if (inv.pre_rutina) rows.push({ usuario_id: uid, tipo: 'rutina', semana_iso: semanaIso, fecha_entrega: fechaEntrega, contenido: inv.pre_rutina });
-    if (inv.pre_dieta)  rows.push({ usuario_id: uid, tipo: 'dieta',  semana_iso: semanaIso, fecha_entrega: fechaEntrega, contenido: inv.pre_dieta });
+    if (inv.pre_rutina) rows.push({ usuario_id: uid, tipo: 'rutina', semana_iso: semanaIso, fecha_entrega: fechaEntrega, contenido: inv.pre_rutina, origen: 'coach' });
+    if (inv.pre_dieta)  rows.push({ usuario_id: uid, tipo: 'dieta',  semana_iso: semanaIso, fecha_entrega: fechaEntrega, contenido: inv.pre_dieta, origen: 'coach' });
     if (!rows.length) return null;
 
     const { data: insertedRows, error } = await sbClient.from('planes_semanales').insert(rows).select();
@@ -29906,7 +30012,12 @@ function applyCierreGate(navId) {
       try { pweek = pendingAnalisisWeek(); } catch (e) { pweek = null; }
     }
     if (pweek != null && !_cierreOverlayVisto(pweek)) { renderCierreGateLibre(pweek); ov.classList.add('open'); }
-    else { ov.classList.remove('open'); }
+    else {
+      ov.classList.remove('open');
+      // Gate de cierre cerrado → único momento donde puede ofrecerse la
+      // renovación de rutina (cada 4 semanas, docs/renovacion-rutina.md).
+      try { maybeOfferRenovacion(navId); } catch (e) {}
+    }
     return;
   }
   let week = null;
@@ -29955,6 +30066,208 @@ function cierreGateDismiss() {
   if (_cierreGateWeek != null) _cierreOverlayMarcarVisto(_cierreGateWeek);
   const ov = document.getElementById('cierre-gate-overlay');
   if (ov) ov.classList.remove('open');
+  // Recién cerrado el overlay de cierre puede tocar ofrecer la renovación de
+  // rutina (misma semana 4/8/12…) — nunca apilados, siempre en este orden.
+  setTimeout(() => { try { maybeOfferRenovacion(); } catch (e) {} }, 350);
+}
+
+// ── RENOVACIÓN DE RUTINA (cada 4 semanas) ───────────────────────────────────
+// docs/renovacion-rutina.md. Solo self-serve (stores) / cohorte King web con
+// rutina ACTIVA generada por IA (planes_semanales.origen='ia'; el clon semanal
+// lo hereda). Un plan tocado por el coach (origen='coach', Studio/migración)
+// excluye a la clienta — jamás le pisamos el plan a Jesús. Cadencia: el último
+// cierre registrado es semana 4, 8, 12… (mismo ritmo que el checkpoint visual
+// King) y se ofrece UNA vez por checkpoint (localStorage). GATED ?renov=1
+// mientras dura el QA; al liberar, flip a `!== '0'` (escape ?renov=0).
+const RENOV_RUTINA = (() => { try { return new URLSearchParams(location.search).get('renov') === '1'; } catch (e) { return false; } })();
+const _RENOV_NAVS = ['nav-inicio', 'nav-entreno', 'nav-perfil'];
+const _RENOV_DIA_ORDER = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
+let _renovWeek = null;   // semana_num del cierre que disparó la oferta
+let _renovDias = [];     // selección del wizard (NO toca selectedDias hasta generar)
+let _renovFoco = null;
+let _renovBusy = false;  // generación en vuelo (no re-ofrecer ni re-entrar)
+
+function _renovVistoKey(week) { return 'cai_renov_visto_' + ((currentUser && currentUser.id) || 'anon') + '_' + week; }
+function _renovVisto(week) { try { return !!localStorage.getItem(_renovVistoKey(week)); } catch (e) { return false; } }
+function _renovMarcarVisto(week) { try { localStorage.setItem(_renovVistoKey(week), '1'); } catch (e) {} }
+
+function _renovElegible() {
+  if (!RENOV_RUTINA || !currentUser) return false;
+  if (currentUser.role && currentUser.role !== 'user') return false;
+  if (typeof isReviewLogin === 'function' && isReviewLogin(currentUser.email)) return false;   // revisor Apple/Google: app sin interrupciones
+  if (!(currentUser.self_serve === true || (typeof kingEsCohorte === 'function' && kingEsCohorte()))) return false;
+  const r = weeklyPlans && weeklyPlans.rutina;
+  return !!(r && !r.closed && r.origen === 'ia');
+}
+
+// Punto único de entrada: lo llama applyCierreGate cuando el gate de cierre
+// quedó CERRADO (cubre arranque, navegación y post-cierre) + cierreGateDismiss.
+function maybeOfferRenovacion(navId) {
+  try {
+    const ov = document.getElementById('renov-overlay');
+    if (!ov || _renovBusy) return;
+    if (navId == null) navId = _currentNavId();
+    if (_RENOV_NAVS.indexOf(navId) === -1) { ov.classList.remove('open'); return; }
+    if (ov.classList.contains('open')) return;
+    if (!_cierresLoaded || !_renovElegible()) return;
+    const modalOpen = !!document.querySelector('#cierre-gate-overlay.open, #cierre-overlay.open, #cierre-warn-overlay.open, #completar-overlay.open, #analisis-wait-overlay.open');
+    if (modalOpen) return;
+    const last = _lastCierre(typeof cierresSemanales !== 'undefined' ? cierresSemanales : []);
+    if (!last || last.semana_num < 4 || last.semana_num % 4 !== 0) return;
+    if (_renovVisto(last.semana_num)) return;
+    _renovWeek = last.semana_num;
+    _renovFoco = null;
+    const fb = document.getElementById('renov-foco-next'); if (fb) fb.disabled = true;
+    const isEs = (lang === 'es');
+    const tt = document.getElementById('renov-ask-title');
+    if (tt) tt.textContent = isEs ? '¿Renovamos tu rutina?' : 'Time to renew your routine?';
+    const dd = document.getElementById('renov-ask-desc');
+    if (dd) dd.textContent = isEs
+      ? 'Ya llevás ' + _renovWeek + ' semanas entrenando. Cambiar el estímulo cada tanto acelera tu progreso: podés elegir días nuevos y un foco especial, o seguir igual si tu rutina te está funcionando.'
+      : "You've been training for " + _renovWeek + ' weeks. Changing the stimulus every so often speeds up your progress: pick new days and a special focus, or keep going if your routine is working for you.';
+    _renovShowStep('ask');
+    ov.classList.add('open');
+    try { trackEvent('renov_shown', { week: _renovWeek }); } catch (e) {}
+  } catch (e) { console.warn('[renov] offer:', e); }
+}
+
+function _renovShowStep(step) {
+  ['ask', 'dias', 'foco', 'resumen'].forEach(s => {
+    const el = document.getElementById('renov-step-' + s);
+    if (el) el.style.display = (s === step) ? 'block' : 'none';
+  });
+}
+function _renovClose() {
+  const ov = document.getElementById('renov-overlay');
+  if (ov) ov.classList.remove('open');
+}
+function renovKeep() {
+  if (_renovWeek != null) _renovMarcarVisto(_renovWeek);
+  try { trackEvent('renov_keep', { week: _renovWeek }); } catch (e) {}
+  _renovClose();
+}
+function renovDismiss() {
+  if (_renovWeek != null) _renovMarcarVisto(_renovWeek);
+  try { trackEvent('renov_keep', { week: _renovWeek, via: 'x' }); } catch (e) {}
+  _renovClose();
+}
+function renovStart() {
+  _renovDias = Array.isArray(currentUser && currentUser.dias_entreno) && currentUser.dias_entreno.length
+    ? currentUser.dias_entreno.slice()
+    : (Array.isArray(selectedDias) ? selectedDias.slice() : []);
+  document.querySelectorAll('#renov-dias-grid .dia-card').forEach(c => {
+    c.classList.toggle('selected', _renovDias.indexOf(c.dataset.dia) !== -1);
+  });
+  _renovSyncDiasCount();
+  _renovShowStep('dias');
+}
+function renovToggleDia(el, dia) {
+  el.classList.toggle('selected');
+  _renovDias = el.classList.contains('selected')
+    ? _renovDias.filter(d => d !== dia).concat(dia)
+    : _renovDias.filter(d => d !== dia);
+  _renovSyncDiasCount();
+}
+function _renovSyncDiasCount() {
+  const isEs = (lang === 'es');
+  const n = _renovDias.length;
+  const el = document.getElementById('renov-dias-count');
+  if (el) el.textContent = n
+    ? (isEs ? (n + (n === 1 ? ' día' : ' días') + ' por semana') : (n + (n === 1 ? ' day' : ' days') + ' per week'))
+    : (isEs ? 'Elegí al menos 1 día' : 'Pick at least 1 day');
+  const btn = document.getElementById('renov-dias-next');
+  if (btn) btn.disabled = !n;
+}
+function renovDiasNext() { if (_renovDias.length) _renovShowStep('foco'); }
+function renovPickFoco(el, foco) {
+  document.querySelectorAll('#renov-foco-chips .chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  _renovFoco = foco;
+  const btn = document.getElementById('renov-foco-next');
+  if (btn) btn.disabled = false;
+}
+const _RENOV_FOCO_LABELS = {
+  gluteos:  { es: 'glúteos y piernas', en: 'glutes & legs' },
+  superior: { es: 'tren superior',     en: 'upper body' },
+  fullbody: { es: 'cuerpo completo',   en: 'full body' },
+  core:     { es: 'abdomen y core',    en: 'abs & core' },
+  ninguno:  { es: 'sin foco especial', en: 'no special focus' },
+};
+function renovFocoNext() {
+  const isEs = (lang === 'es');
+  const diasTxt = _RENOV_DIA_ORDER.filter(d => _renovDias.indexOf(d) !== -1)
+    .map(d => ({ lun: isEs ? 'Lun' : 'Mon', mar: isEs ? 'Mar' : 'Tue', mie: isEs ? 'Mié' : 'Wed', jue: isEs ? 'Jue' : 'Thu', vie: isEs ? 'Vie' : 'Fri', sab: isEs ? 'Sáb' : 'Sat', dom: isEs ? 'Dom' : 'Sun' }[d]))
+    .join(' · ');
+  const focoTxt = (_RENOV_FOCO_LABELS[_renovFoco || 'ninguno'] || _RENOV_FOCO_LABELS.ninguno)[isEs ? 'es' : 'en'];
+  const el = document.getElementById('renov-resumen-txt');
+  if (el) el.textContent = isEs
+    ? _renovDias.length + ' días por semana (' + diasTxt + ') con foco en ' + focoTxt + '. Tu rutina actual queda guardada hasta que la nueva esté lista.'
+    : _renovDias.length + ' days per week (' + diasTxt + ') focused on ' + focoTxt + '. Your current routine stays in place until the new one is ready.';
+  _renovShowStep('resumen');
+}
+
+// Genera la rutina nueva por el MISMO camino sancionado del onboarding
+// (prefetchPlan: estructura → calidad → plantilla de respaldo → save). La
+// rutina vieja (el clon de la semana) sigue activa hasta que el save la pisa —
+// si la IA falla, la clienta nunca queda sin plan.
+async function renovGenerate() {
+  if (_renovBusy || !_renovDias.length || !currentUser || !sbClient) return;
+  _renovBusy = true;
+  const isEs = (lang === 'es');
+  if (_renovWeek != null) _renovMarcarVisto(_renovWeek);   // pase lo que pase, no la perseguimos
+  _renovClose();
+  const diasOld = (Array.isArray(currentUser.dias_entreno) ? currentUser.dias_entreno : []).join(',');
+  const foco = (_renovFoco && _renovFoco !== 'ninguno') ? _renovFoco : null;
+  try { trackEvent('renov_new', { week: _renovWeek, dias_old: diasOld, dias_new: _renovDias.join(','), foco: foco || 'ninguno' }); } catch (e) {}
+  try {
+    // 1) Persistir preferencias + espejarlas en memoria ANTES de generar: el
+    //    prompt lee selectedDias y currentUser.foco_entreno.
+    selectedDias = _renovDias.slice();
+    currentUser.dias_entreno = _renovDias.slice();
+    currentUser.foco_entreno = foco;
+    try {
+      await sbClient.from('usuarios').update({ dias_entreno: _renovDias, foco_entreno: foco }).eq('id', currentUser.id);
+    } catch (e) { console.warn('[renov] persist prefs:', e); }
+    // 2) Lesiones: el prompt las lee de los chips del DOM, que en un dispositivo
+    //    nuevo arrancan vacíos (solo localStorage las restaura) → rehidratar
+    //    desde usuarios.lesiones para no generar una rutina que las ignore.
+    try {
+      const selCount = document.querySelectorAll('#lesiones-chips .chip.selected').length;
+      if (!selCount && Array.isArray(currentUser.lesiones) && currentUser.lesiones.length) {
+        document.querySelectorAll('#lesiones-chips .chip').forEach(ch => {
+          const oc = ch.getAttribute('onclick') || '';
+          const hit = currentUser.lesiones.some(l => oc.indexOf("'" + l + "'") !== -1 || ch.textContent.trim().toLowerCase() === String(l).toLowerCase());
+          if (hit) ch.classList.add('selected');
+        });
+      }
+    } catch (e) {}
+    // 3) fecha_entrega SIEMPRE posterior al último cierre (regla de
+    //    autoRepeatPlans): si el cierre terminó hoy, con fecha=hoy la rutina
+    //    nueva nacería closed=true y el clon la pisaría en la próxima carga.
+    const ends = ((typeof cierresSemanales !== 'undefined' ? cierresSemanales : []) || [])
+      .map(c => (c && c.fecha_fin || '').slice(0, 10)).filter(Boolean).sort();
+    const maxEnd = ends.length ? ends[ends.length - 1] : null;
+    const hoy = getTodayKey();
+    const fechaEntrega = (maxEnd && maxEnd >= hoy) ? _addDaysStr(maxEnd, 1) : hoy;
+    showPlanLoadingOverlay();
+    // El overlay de carga trae un timeout de 35s (onboarding); una regeneración
+    // puede tardar ~60s (reintento + normalizado) → lo estiramos a 90s.
+    if (_planLoadingTimer) clearTimeout(_planLoadingTimer);
+    _planLoadingTimer = setTimeout(() => { try { hidePlanLoadingOverlay(); } catch (e) {} }, 90000);
+    const saved = await prefetchPlan('rutina', { fechaEntrega });
+    hidePlanLoadingOverlay();
+    if (!saved) throw new Error('prefetch sin resultado');
+    try { trackEvent('renov_ok', { week: _renovWeek, dias: _renovDias.length, foco: foco || 'ninguno' }); } catch (e) {}
+    if (typeof showToast === 'function') showToast(isEs ? '¡Tu nueva rutina está lista! 💪' : 'Your new routine is ready! 💪', 'success');
+    try { showMiEntreno(); setActiveNav('nav-entreno'); } catch (e) {}
+  } catch (e) {
+    console.warn('[renov] generate:', e);
+    try { hidePlanLoadingOverlay(); } catch (e2) {}
+    try { trackEvent('renov_fail', { week: _renovWeek, reason: String((e && e.message) || e).slice(0, 120) }); } catch (e2) {}
+    if (typeof showToast === 'function') showToast(isEs
+      ? 'No pudimos generar tu rutina nueva — seguís con tu rutina actual. Podés pedirla de nuevo en otro momento desde el chat.'
+      : "We couldn't generate your new routine — you keep your current one. You can ask for it again later from the chat.", 'error');
+  } finally { _renovBusy = false; }
 }
 
 function renderHomeCierreCard() {

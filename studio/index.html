@@ -3950,6 +3950,9 @@ Agrupá por día (LUNES, MARTES, ... o "Día 1, Día 2" si así viene) y dentro 
         semana_iso:     semana,
         fecha_entrega:  fecha,
         contenido:      ta.value.trim(),
+        // Plan tocado por el coach → la clienta deja de ser elegible para la
+        // renovación automática de rutina (docs/renovacion-rutina.md).
+        origen:         'coach',
         updated_at:     new Date().toISOString(),
       }, { onConflict: 'usuario_id,tipo,semana_iso' });
       if (error) throw error;
