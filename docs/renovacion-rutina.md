@@ -20,7 +20,7 @@ Cada 4 semanas, a las usuarias self-serve (stores + compra web King) se les ofre
 - **"Seguir con mi rutina"** → 1 tap, todo sigue igual (el clon semanal ya existe).
 - **"Quiero una rutina nueva"** → wizard de 3 pantallas:
   1. **Días**: chips lun-dom (mismo patrón del onboarding), preseleccionados con sus días actuales. Puede subir, mantener o bajar días.
-  2. **Foco**: pregunta nueva — `Glúteos y piernas` / `Tren superior` / `Cuerpo completo` / `Abdomen y core` / `Sin preferencia`.
+  2. **Foco**: pregunta nueva — `Glúteos y piernas` / `Tren superior` / `Cuerpo completo` / `Bíceps y tríceps` / `Sin preferencia`. (Era "Abdomen y core"; Beto lo cambió 2026-10-01 — casi no hay demos de ejercicios de abdomen.)
   3. **Resumen + confirmación**: "4 días (lun·mar·jue·vie) · foco glúteos — ¿Generamos tu nueva rutina?" → loading → rutina nueva.
 
 **Regla de oro (pedida por Beto): nunca queda sin plan.** El clon de `autoRepeatPlans` se crea igual que siempre; la rutina nueva, si sale bien, lo pisa (mismo conflict `usuario_id,tipo,semana_iso`). Si Haiku falla dos veces y el template de respaldo tampoco aplica, sigue con el clon + toast de disculpa.

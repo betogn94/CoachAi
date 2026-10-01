@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261001-2125-deploy">
+<meta name="app-version" content="20261001-2129-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -17853,7 +17853,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
         <div class="chip" data-foco="gluteos" onclick="renovPickFoco(this,'gluteos')" data-es="🍑 Glúteos y piernas" data-en="🍑 Glutes &amp; legs">🍑 Glúteos y piernas</div>
         <div class="chip" data-foco="superior" onclick="renovPickFoco(this,'superior')" data-es="💪 Tren superior" data-en="💪 Upper body">💪 Tren superior</div>
         <div class="chip" data-foco="fullbody" onclick="renovPickFoco(this,'fullbody')" data-es="⚖️ Cuerpo completo" data-en="⚖️ Full body">⚖️ Cuerpo completo</div>
-        <div class="chip" data-foco="core" onclick="renovPickFoco(this,'core')" data-es="🔥 Abdomen y core" data-en="🔥 Abs &amp; core">🔥 Abdomen y core</div>
+        <div class="chip" data-foco="brazos" onclick="renovPickFoco(this,'brazos')" data-es="🔥 Bíceps y tríceps" data-en="🔥 Biceps &amp; triceps">🔥 Bíceps y tríceps</div>
         <div class="chip" data-foco="ninguno" onclick="renovPickFoco(this,'ninguno')" data-es="✨ Sin preferencia" data-en="✨ No preference">✨ Sin preferencia</div>
       </div>
       <button class="cierre-gate-btn" type="button" id="renov-foco-next" onclick="renovFocoNext()" disabled data-es="Continuar" data-en="Continue">Continuar</button>
@@ -22850,7 +22850,7 @@ function _focoPromptBlock(isEs) {
     gluteos:  { es: 'glúteos y piernas',          en: 'glutes and legs' },
     superior: { es: 'tren superior',              en: 'upper body' },
     fullbody: { es: 'cuerpo completo equilibrado', en: 'balanced full body' },
-    core:     { es: 'abdomen y core',             en: 'abs and core' },
+    brazos:   { es: 'bíceps y tríceps',           en: 'biceps and triceps' },
   };
   const l = f && labels[f];
   if (!l) return '';
@@ -30190,7 +30190,7 @@ const _RENOV_FOCO_LABELS = {
   gluteos:  { es: 'glúteos y piernas', en: 'glutes & legs' },
   superior: { es: 'tren superior',     en: 'upper body' },
   fullbody: { es: 'cuerpo completo',   en: 'full body' },
-  core:     { es: 'abdomen y core',    en: 'abs & core' },
+  brazos:   { es: 'bíceps y tríceps',  en: 'biceps & triceps' },
   ninguno:  { es: 'sin foco especial', en: 'no special focus' },
 };
 function renovFocoNext() {
