@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261001-2148-deploy">
+<meta name="app-version" content="20261001-2228-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6424,6 +6424,27 @@ body.theme-king .cai-info-chip.is-new { animation-name: caiInfoPulseKing; }
 .cph-name-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .cai-info-chip-name { width: 22px; height: 22px; flex: none; }
 .cai-info-chip-name svg { width: 12px; height: 12px; }
+
+/* ===== TIPOGRAFÍA ÚNICA (preview gated: cuenta beto131312* / ?font=1; ?font=0 apaga) =====
+   Unifica TODA la app a DM Sans, estilo Apple Fitness: una familia, jerarquía
+   por peso — adiós JetBrains Mono (mono "anticuada") y Bebas Neue (condensada).
+   Si Beto+socio aprueban, el flip real = limpiar las ~205 declaraciones de
+   font-family + podar el link de Google Fonts (la app baja 1 fuente, no 5). */
+body.font-uni :not(svg):not(svg *) { font-family: 'DM Sans', sans-serif !important; }
+/* EXCEPCIÓN: el cronómetro necesita dígitos de ancho fijo — DM Sans NO tiene
+   cifras tabulares (medido: "1:11:11"=66px vs "0:00:00"=148px) y saltaría
+   cada segundo. Queda mono, igual que el cronómetro del propio iPhone. */
+body.font-uni .cai-entses-timer { font-family: 'JetBrains Mono', monospace !important; }
+/* Tallas: estos venían de Bebas (condensada); DM Sans es más ancha → una
+   talla menos + peso 800 para conservar jerarquía sin desbordar a 375px. */
+body.font-uni .cai-home-card-title { font-size: 18px; letter-spacing: 0.1px; line-height: 1.15; font-weight: 800; }
+body.font-uni .cai-alim-header-h2 { font-size: 20px; letter-spacing: 0.4px; font-weight: 800; }
+body.font-uni .cai-alim-summary-count { font-size: 32px; letter-spacing: 0; font-weight: 800; line-height: 1; }
+body.font-uni .cai-home-hero-num { font-size: 44px; letter-spacing: -0.5px; font-weight: 800; line-height: 1; }
+@media (max-width: 400px) {
+  body.font-uni .cai-home-card-title { font-size: 16px; }
+  body.font-uni .cai-home-hero-num { font-size: 38px; }
+}
 
 /* Chips "i" de Home y Perfil como BADGE DE ESQUINA del hero (pedido de Beto
    2026-09-25): con el header fuera quedaban en una fila suelta "en el aire".
@@ -15027,6 +15048,13 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     var _cup = params.get('countup');
     if (_cup === '0') { try { localStorage.setItem('coachai_countup', '0'); } catch (e) {} }
     else if (_cup === '1') { try { localStorage.removeItem('coachai_countup'); } catch (e) {} }
+    // ?font=1 → PREVIEW de tipografía única (DM Sans en toda la app, estilo
+    // Apple Fitness). Default OFF salvo cuenta de prueba de Beto (ver
+    // applyFontUni); ?font=0 la apaga incluso para esa cuenta.
+    var _fp = params.get('font');
+    if (_fp === '1') { try { localStorage.setItem('coachai_font', '1'); } catch (e) {} }
+    else if (_fp === '0') { try { localStorage.setItem('coachai_font', '0'); } catch (e) {} }
+    try { if (localStorage.getItem('coachai_font') === '1') document.body.classList.add('font-uni'); } catch (e) {}
     var applyLightDefault = function(){
       try {
         if (localStorage.getItem('coachai_theme_light') === '0') return;   // opt-out explícito
@@ -29375,6 +29403,18 @@ async function confirmDeleteAccount() {
   }
 }
 
+// ===== Tipografía única (preview gated) — cuenta beto131312* o ?font=1 =====
+// ?font=0 la apaga (gana incluso sobre la cuenta de prueba). El flip real,
+// si se aprueba, limpia las ~205 font-family + el link de Google Fonts.
+function applyFontUni() {
+  try {
+    if (localStorage.getItem('coachai_font') === '0') return;
+    const on = localStorage.getItem('coachai_font') === '1'
+      || (typeof currentUser !== 'undefined' && currentUser && /^beto131312/.test(currentUser.email || ''));
+    if (on) document.body.classList.add('font-uni');
+  } catch (e) {}
+}
+
 // ===== Count-up + anillos animados al entrar a una sección — escape ?countup=0 =====
 // Semántica: cada show<Sección>() ARMA su bandera (_cuArm*); el primer render
 // elegible (sin skeleton encima) la consume y anima UNA vez. Los re-renders
@@ -29590,6 +29630,7 @@ function renderHome() {
   // el primer paint mostraba "Sin dieta activa" un instante (mentira
   // momentánea). Escape ?skel=0. Red de seguridad: 10s máximo.
   try {
+    if (typeof applyFontUni === 'function') applyFontUni();   // preview tipografía (cuenta de Beto)
     const hw = document.getElementById('home-wrapper');
     const skOn = !window._plansLoaded && localStorage.getItem('coachai_skel') !== '0';
     hw.classList.toggle('sk-loading', skOn);
