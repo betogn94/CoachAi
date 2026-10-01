@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261001-2138-deploy">
+<meta name="app-version" content="20261001-2148-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -30081,9 +30081,10 @@ function cierreGateDismiss() {
 // lo hereda). Un plan tocado por el coach (origen='coach', Studio/migración)
 // excluye a la clienta — jamás le pisamos el plan a Jesús. Cadencia: el último
 // cierre registrado es semana 4, 8, 12… (mismo ritmo que el checkpoint visual
-// King) y se ofrece UNA vez por checkpoint (localStorage). GATED ?renov=1
-// mientras dura el QA; al liberar, flip a `!== '0'` (escape ?renov=0).
-const RENOV_RUTINA = (() => { try { return new URLSearchParams(location.search).get('renov') === '1'; } catch (e) { return false; } })();
+// King) y se ofrece UNA vez por checkpoint (localStorage). LIVE PARA TODOS
+// (flip 2026-10-01 tras E2E real en prod con la cuenta de prueba — 2 rondas,
+// ver docs/renovacion-rutina.md). ?renov=0 = escape (apaga sin deploy).
+const RENOV_RUTINA = (() => { try { return new URLSearchParams(location.search).get('renov') !== '0'; } catch (e) { return true; } })();
 const _RENOV_NAVS = ['nav-inicio', 'nav-entreno', 'nav-perfil'];
 const _RENOV_DIA_ORDER = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
 let _renovWeek = null;   // semana_num del cierre que disparó la oferta
