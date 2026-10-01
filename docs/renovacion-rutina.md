@@ -66,6 +66,8 @@ Una línea condicional en la sección de rutina de `buildSystemPrompt()` (ES L23
 
 Las reglas King (`REGLAS_KING_MUJER_ES`, sin pecho) y el método reloj de arena siguen mandando — el foco solo redistribuye volumen. "Sin preferencia" = no se inyecta nada.
 
+**Criterio "ejercicios con demo" (pedido de Beto, 2026-10-01):** garantizado por la MISMA vía que el onboarding — los bloques del método (`METODO_RELOJ_ARENA_ES` / `METODO_V_MASCULINO_ES`) traen listas cerradas de EJERCICIOS PERMITIDOS por músculo, y la biblioteca de demos + aliases se construyó para cubrir esos nombres (verificado para brazos: 11 fichas bíceps + 13 tríceps cubren toda la lista). La línea del foco además refuerza explícito "ejercicios ÚNICAMENTE de las listas de EJERCICIOS PERMITIDOS, con esos nombres exactos". GAP PREEXISTENTE (no de esta feature): el prompt EN no tiene método ni listas de ejercicios — una renovación en inglés solo recibe "common gym exercises, standard names". Si el público EN crece, portar las listas.
+
 ## Interacción con features vivas
 
 - **Candado del chat**: intacto. Este es el camino *sancionado* fuera del chat (como `prefetchPlan` del onboarding). `sendToAI` no se toca.

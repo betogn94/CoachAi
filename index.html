@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261001-2129-deploy">
+<meta name="app-version" content="20261001-2131-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Aldrich&family=Iceland&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -22855,8 +22855,8 @@ function _focoPromptBlock(isEs) {
   const l = f && labels[f];
   if (!l) return '';
   return isEs
-    ? `\nPREFERENCIA DE FOCO DEL CLIENTE (la eligió al renovar su rutina): ${l.es}. Al armar la rutina, redistribuí el volumen semanal para PRIORIZAR esa zona (más ejercicios y series ahí), sin abandonar el resto del cuerpo y SIN romper las reglas del método.`
-    : `\nCLIENT FOCUS PREFERENCE (chosen when renewing their routine): ${l.en}. When building the routine, redistribute weekly volume to PRIORITIZE that area (more exercises and sets there), without abandoning the rest of the body and without breaking the method rules.`;
+    ? `\nPREFERENCIA DE FOCO DEL CLIENTE (la eligió al renovar su rutina): ${l.es}. Al armar la rutina, redistribuí el volumen semanal para PRIORIZAR esa zona (más ejercicios y series ahí), sin abandonar el resto del cuerpo y SIN romper las reglas del método. Los ejercicios salen ÚNICAMENTE de las listas de EJERCICIOS PERMITIDOS del método, con esos nombres exactos — no inventes ejercicios fuera de esas listas.`
+    : `\nCLIENT FOCUS PREFERENCE (chosen when renewing their routine): ${l.en}. When building the routine, redistribute weekly volume to PRIORITIZE that area (more exercises and sets there), without abandoning the rest of the body and without breaking the method rules. Use only common gym exercises (machines, cables, dumbbells, barbell) with their standard names — do not invent obscure exercise variations.`;
 }
 
 function buildSystemPrompt() {
