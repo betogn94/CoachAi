@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261002-1418-deploy">
+<meta name="app-version" content="20261002-1430-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6964,8 +6964,9 @@ body.theme-king .cai-entv2-back-btn {
   position: fixed; left: 50%; transform: translateX(-50%);
   bottom: calc(92px + env(safe-area-inset-bottom, 0px));
   z-index: 5500;
-  display: flex; align-items: center; gap: 10px;
-  padding: 9px 10px 9px 16px; border-radius: 999px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-width: min(240px, 72vw);
+  padding: 11px 12px 11px 20px; border-radius: 999px;
   background: var(--accent); color: #fff;
   box-shadow: 0 10px 30px rgba(124,106,255,0.45);
   cursor: pointer; -webkit-tap-highlight-color: transparent;
@@ -6983,17 +6984,18 @@ body.theme-king .cai-entv2-back-btn {
 .cai-crono-mini.paused .cai-crono-dot { animation: none; }
 .cai-crono-mini-time {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 15px; font-weight: 800; letter-spacing: 0.5px;
+  font-size: 17px; font-weight: 800; letter-spacing: 0.8px;
   font-variant-numeric: tabular-nums;
   color: #fff !important;   /* los temas claros pisan el color heredado */
 }
 .cai-crono-mini-btn {
-  width: 30px; height: 30px; border-radius: 50%;
+  width: 34px; height: 34px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   background: rgba(255,255,255,0.22); border: 0; color: #fff;
   cursor: pointer; -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
 }
-.cai-crono-mini-btn svg { width: 14px; height: 14px; display: block; }
+.cai-crono-mini-btn svg { width: 15px; height: 15px; display: block; }
 
 /* Diálogo de confirmación al Terminar */
 .ent-fin-card { text-align: center; }
@@ -33724,6 +33726,10 @@ function _entSesFmtTimer(ms) {
   const s = Math.max(0, Math.floor(ms / 1000));
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
   const p = n => String(n).padStart(2, '0');
+  // CRONO: siempre HH:MM:SS ("00:00:32") — más cuerpo de instrumento y el
+  // ancho no salta al pasar la hora (pedido de Beto 2026-10-02, como SmartGym).
+  // Sin el flag se mantiene el formato clásico MM:SS para no mover prod.
+  if (typeof CRONO_ENABLED !== 'undefined' && CRONO_ENABLED) return `${p(h)}:${p(m)}:${p(ss)}`;
   return h > 0 ? `${h}:${p(m)}:${p(ss)}` : `${p(m)}:${p(ss)}`;
 }
 function _entSesFmtDur(ms) {
