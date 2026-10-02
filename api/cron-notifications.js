@@ -141,9 +141,8 @@ function buildCierreDia(missing) {
   return { title: '🌙 ¿Registraste tu día?', body, url: '/', tag: 'cierre-dia' };
 }
 
-// Semana del usuario basada en created_at (NO ISO), igual que getWeekNum del app:
-// semana 1 = [alta, alta+6], semana N = [alta+(N-1)*7, +6]. Devuelve
-// {weekNum, dayInWeek} (dayInWeek 0=primer día .. 6=último día) en la tz del user.
+// LEGACY (sin uso desde F4 semanas-calendario — retirar en F5): semana personal
+// basada en created_at, el reloj viejo pre-ISO.
 function userWeek(createdAt, tz, todayLocal) {
   let createdLocal;
   try {
@@ -154,6 +153,24 @@ function userWeek(createdAt, tz, todayLocal) {
   const daysSince = Math.floor((Date.parse(todayLocal + 'T00:00:00Z') - Date.parse(createdLocal + 'T00:00:00Z')) / 86400000);
   if (!isFinite(daysSince) || daysSince < 0) return null;
   return { weekNum: Math.floor(daysSince / 7) + 1, dayInWeek: daysSince % 7 };
+}
+
+// ── Semanas calendario (F4): helpers del reloj ISO ───────────────────────────
+// docs/semanas-calendario.md. La semana de TODAS las usuarias es lunes-domingo;
+// el cierre de una semana (normal o puente de transición) siempre tiene
+// fecha_fin en DOMINGO → el push lo busca por fecha, sin replicar numeración.
+function addDaysIso(dateStr, n) {
+  const d = new Date(dateStr + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+// Fecha local (YYYY-MM-DD) de un instante ISO en la tz dada. null si tz inválida.
+function localDateOf(iso, tz) {
+  try {
+    const f = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
+    const p = {}; for (const x of f.formatToParts(new Date(iso))) p[x.type] = x.value;
+    return `${p.year}-${p.month}-${p.day}`;
+  } catch (e) { return null; }
 }
 
 // CIERRE LIBRE (2026-09-15): la semana se cierra SOLA al abrir la app — el push
@@ -352,18 +369,22 @@ export default async function handler(req, res) {
         }
       }
 
-      // #4 SEMANA LISTA / ANÁLISIS PENDIENTE — ~20:00 del ÚLTIMO día de su semana
-      // (dayInWeek 6) y, como catch-up, el día siguiente (dayInWeek 0). Con CIERRE
-      // LIBRE la semana se cierra sola al abrir la app, así que el push depende del
-      // estado: sin cierre → invitar a entrar; cierre auto sin análisis → invitar
-      // al análisis. (Mismos 2 días → máx 2 avisos, no hostiga.)
+      // #4 SEMANA LISTA / ANÁLISIS PENDIENTE — ~20:00 del DOMINGO (último día de
+      // la semana calendario ISO — semanas-calendario F4) y, como catch-up, el
+      // LUNES siguiente. El cierre se busca por FECHA DE FIN, no por número:
+      // la semana que termina hoy domingo (normal O puente de transición) tiene
+      // fecha_fin = hoy; la de ayer, = ayer. Con CIERRE LIBRE: sin cierre →
+      // invitar a entrar (se cierra sola al abrir); cerrada sin análisis →
+      // invitar al análisis. (Máx 2 avisos por semana, no hostiga.)
       if (lp.hour === 20 && u.created_at) {
-        const w = userWeek(u.created_at, u.timezone, lp.fecha);
-        let targetWeek = null;
-        if (w && w.dayInWeek === 6) targetWeek = w.weekNum;                       // último día
-        else if (w && w.dayInWeek === 0 && w.weekNum > 1) targetWeek = w.weekNum - 1; // día siguiente
-        if (targetWeek) {
-          const cierre = (await sbGet(`cierres_semanales?usuario_id=eq.${u.id}&semana_num=eq.${targetWeek}&select=id,analisis&limit=1`))[0];
+        const dow = new Date(lp.fecha + 'T12:00:00Z').getUTCDay();   // 0=domingo, 1=lunes
+        let finSemana = null;
+        if (dow === 0) finSemana = lp.fecha;                         // último día (domingo)
+        else if (dow === 1) finSemana = addDaysIso(lp.fecha, -1);    // catch-up del lunes
+        // No avisar sobre una semana terminada ANTES del alta (usuaria recién llegada).
+        const createdLocal = localDateOf(u.created_at, u.timezone);
+        if (finSemana && createdLocal && createdLocal <= finSemana) {
+          const cierre = (await sbGet(`cierres_semanales?usuario_id=eq.${u.id}&fecha_fin=eq.${finSemana}&select=id,analisis&limit=1`))[0];
           const payload = !cierre ? buildSemanaLista()
             : (!cierre.analisis ? buildAnalisisPendiente() : null);
           if (payload && await claimLog(u.id, 'cierre_semana', lp.fecha)) {
