@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261002-1457-deploy">
+<meta name="app-version" content="20261002-1844-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6924,9 +6924,11 @@ body.theme-king .cai-entv2-back-btn {
   border: 1px solid rgba(124,106,255,0.28);
   flex-shrink: 0;
 }
+/* Luz de estado tipo semáforo (Beto 2026-10-03): VERDE titilando en marcha,
+   ROJA titilando en pausa — colores del sistema iOS (#34C759 / #FF3B30). */
 .cai-crono-pill .cai-crono-dot {
   width: 7px; height: 7px; border-radius: 50%;
-  background: currentColor;
+  background: #34C759;
   animation: entses-pulse 1.6s ease-in-out infinite;
 }
 .cai-crono-pill.is-paused {
@@ -6934,7 +6936,7 @@ body.theme-king .cai-entv2-back-btn {
   color: #B97A17;
   border-color: rgba(232,161,61,0.40);
 }
-.cai-crono-pill.is-paused .cai-crono-dot { animation: none; opacity: 0.8; }
+.cai-crono-pill.is-paused .cai-crono-dot { background: #FF3B30; }
 .cai-crono-timer {
   /* Look iOS (pedido de Beto 2026-10-03): DM Sans como toda la app, tamaño
      contenido y CENTRADO. tabular-nums queda por si el navegador lo sintetiza;
@@ -7012,13 +7014,13 @@ body.theme-king .cai-entv2-back-btn {
   to { transform: translate(-50%, 0); opacity: 1; }
 }
 .cai-crono-mini .cai-crono-dot {
-  width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+  width: 7px; height: 7px; border-radius: 50%; background: #34C759;
   animation: entses-pulse 1.6s ease-in-out infinite;
 }
 .cai-crono-mini.paused {
   border-color: rgba(232,161,61,0.45);
 }
-.cai-crono-mini.paused .cai-crono-dot { animation: none; background: #B97A17; }
+.cai-crono-mini.paused .cai-crono-dot { background: #FF3B30; }
 .cai-crono-mini-time {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, 'DM Sans', sans-serif;
   font-size: 20px; font-weight: 600; letter-spacing: 0;
