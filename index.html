@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261002-1440-deploy">
+<meta name="app-version" content="20261002-1446-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6940,12 +6940,19 @@ body.theme-king .cai-entv2-back-btn {
      contenido y CENTRADO. tabular-nums queda por si el navegador lo sintetiza;
      el centrado disimula el micro-baile de dígitos no monoespaciados. */
   font-family: 'DM Sans', sans-serif;
-  font-size: 42px; font-weight: 800; letter-spacing: 0.5px;
+  font-size: 42px; font-weight: 800; letter-spacing: 0;
   text-align: center;
-  font-variant-numeric: tabular-nums;
   color: var(--accent);
   margin: 12px 0 6px;
   transition: opacity 0.25s ease;
+}
+/* Cajitas de ancho fijo por dígito (_entCronoDigits): centrado real + cero
+   baile, porque DM Sans no trae cifras tabulares. */
+.cai-crono-timer .d, .cai-crono-mini-time .d {
+  display: inline-block; width: 0.62em; text-align: center;
+}
+.cai-crono-timer .c, .cai-crono-mini-time .c {
+  display: inline-block; width: 0.36em; text-align: center;
 }
 @media (max-width: 380px) { .cai-crono-timer { font-size: 36px; } }
 .cai-entses.cai-crono.paused .cai-crono-timer { opacity: 0.38; }
@@ -6994,8 +7001,7 @@ body.theme-king .cai-entv2-back-btn {
 .cai-crono-mini.paused .cai-crono-dot { animation: none; background: #B97A17; }
 .cai-crono-mini-time {
   font-family: 'DM Sans', sans-serif;
-  font-size: 17px; font-weight: 800; letter-spacing: 0.4px;
-  font-variant-numeric: tabular-nums;
+  font-size: 20px; font-weight: 800; letter-spacing: 0;
   color: var(--text) !important;   /* herencias de tema no lo pisan */
 }
 .cai-crono-mini-btn {
@@ -33667,7 +33673,7 @@ function _entCronoMiniSync(idx) {
     }
     el.classList.toggle('paused', !!s.pau);
     const tEl = document.getElementById('ent-crono-mini-time');
-    if (tEl) tEl.textContent = _entSesFmtTimer(_entSesElapsedMs(s));
+    if (tEl) tEl.innerHTML = _entCronoDigits(_entSesFmtTimer(_entSesElapsedMs(s)));
     const btn = document.getElementById('ent-crono-mini-btn');
     if (btn) {
       btn.innerHTML = s.pau
@@ -33746,6 +33752,14 @@ function _entSesFmtTimer(ms) {
   if (typeof CRONO_ENABLED !== 'undefined' && CRONO_ENABLED) return `${p(h)}:${p(m)}:${p(ss)}`;
   return h > 0 ? `${h}:${p(m)}:${p(ss)}` : `${p(m)}:${p(ss)}`;
 }
+// CRONO: cada dígito en una cajita de ancho fijo (DM Sans no trae cifras
+// tabulares) → el reloj queda centrado de verdad y no "baila" al avanzar.
+function _entCronoDigits(str) {
+  return String(str).split('').map(ch =>
+    ch === ':' ? '<span class="c">:</span>' : `<span class="d">${ch}</span>`
+  ).join('');
+}
+
 function _entSesFmtDur(ms) {
   const min = Math.max(1, Math.round(ms / 60000));
   const h = Math.floor(min / 60), m = min % 60;
@@ -33832,7 +33846,10 @@ function _entSesTickStart(idx) {
     if (!el) { _entSesTickStop(); _entCronoMiniRemove(); return; }
     const s = _entSesGet(getEntrenoWeekState(), idx);
     if (!s || !s.i || s.f) { _entSesTickStop(); _entCronoMiniRemove(); return; }
-    if (!s.pau) el.textContent = _entSesFmtTimer(_entSesElapsedMs(s));
+    if (!s.pau) {
+      if (typeof CRONO_ENABLED !== 'undefined' && CRONO_ENABLED) el.innerHTML = _entCronoDigits(_entSesFmtTimer(_entSesElapsedMs(s)));
+      else el.textContent = _entSesFmtTimer(_entSesElapsedMs(s));
+    }
     _entCronoMiniSync(idx);   // pastilla flotante (solo CRONO; se autogestiona)
   }, 1000);
 }
@@ -33888,7 +33905,7 @@ function _renderEntSesCard(idx, state, day) {
             <div class="cai-entses-eyebrow">${isEs ? 'TIEMPO TRANSCURRIDO' : 'ELAPSED TIME'}</div>
             <span class="cai-crono-pill${paused ? ' is-paused' : ''}"><span class="cai-crono-dot"></span>${paused ? (isEs ? 'Pausado' : 'Paused') : (isEs ? 'En vivo' : 'Live')}</span>
           </div>
-          <div class="cai-entses-timer cai-crono-timer" id="ent-ses-timer">${_entSesFmtTimer(_entSesElapsedMs(s))}</div>
+          <div class="cai-entses-timer cai-crono-timer" id="ent-ses-timer">${_entCronoDigits(_entSesFmtTimer(_entSesElapsedMs(s)))}</div>
           <div class="cai-entses-row">
             <button class="cai-entses-btn" type="button" onclick="entSesFinishAsk(${idx})">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
