@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261002-1350-deploy">
+<meta name="app-version" content="20261002-1418-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6909,6 +6909,123 @@ body.theme-king .cai-entv2-back-btn {
   border-color: #E8A13D !important;
   animation: entses-cele-pulse 1.1s ease-out 2;
 }
+
+/* ======================================================================
+   CRONÓMETRO V2 (gated ?crono=1) — reloj instrumento + pausa + pastilla
+   ====================================================================== */
+.cai-crono-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cai-crono-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 999px;
+  background: rgba(124,106,255,0.12);
+  color: var(--accent-bright);
+  border: 1px solid rgba(124,106,255,0.28);
+  flex-shrink: 0;
+}
+.cai-crono-pill .cai-crono-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: currentColor;
+  animation: entses-pulse 1.6s ease-in-out infinite;
+}
+.cai-crono-pill.is-paused {
+  background: rgba(232,161,61,0.14);
+  color: #B97A17;
+  border-color: rgba(232,161,61,0.40);
+}
+.cai-crono-pill.is-paused .cai-crono-dot { animation: none; opacity: 0.8; }
+.cai-crono-timer {
+  font-size: 58px; letter-spacing: 1.5px;
+  color: var(--accent);
+  margin: 10px 0 4px;
+  transition: opacity 0.25s ease;
+}
+@media (max-width: 380px) { .cai-crono-timer { font-size: 46px; } }
+.cai-entses.cai-crono.paused .cai-crono-timer { opacity: 0.38; }
+.cai-crono-pause {
+  flex: 1;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 13px 16px; border-radius: 999px;
+  background: transparent;
+  border: 1.5px solid rgba(124,106,255,0.35);
+  color: var(--accent-bright);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px; font-weight: 800;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease;
+}
+.cai-crono-pause:active { transform: scale(0.97); }
+.cai-crono-pause svg { width: 15px; height: 15px; flex: none; }
+
+/* Pastilla flotante (va al body: fixed no puede vivir bajo un ancestro con
+   transform — constraint del motion system) */
+.cai-crono-mini {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  z-index: 5500;
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px 9px 16px; border-radius: 999px;
+  background: var(--accent); color: #fff;
+  box-shadow: 0 10px 30px rgba(124,106,255,0.45);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  animation: crono-mini-in 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+@keyframes crono-mini-in {
+  from { transform: translate(-50%, 16px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+.cai-crono-mini .cai-crono-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #fff;
+  animation: entses-pulse 1.6s ease-in-out infinite;
+}
+.cai-crono-mini.paused { background: #B97A17; box-shadow: 0 10px 30px rgba(185,122,23,0.40); }
+.cai-crono-mini.paused .cai-crono-dot { animation: none; }
+.cai-crono-mini-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px; font-weight: 800; letter-spacing: 0.5px;
+  font-variant-numeric: tabular-nums;
+  color: #fff !important;   /* los temas claros pisan el color heredado */
+}
+.cai-crono-mini-btn {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.22); border: 0; color: #fff;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.cai-crono-mini-btn svg { width: 14px; height: 14px; display: block; }
+
+/* Diálogo de confirmación al Terminar */
+.ent-fin-card { text-align: center; }
+.ent-fin-title { font-size: 18px; font-weight: 800; color: var(--text); }
+.ent-fin-sub { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 8px 0 16px; }
+.ent-fin-card .cai-entses-btn { width: 100%; }
+.ent-fin-discard {
+  display: block; width: 100%; margin-top: 10px; padding: 12px;
+  background: transparent;
+  border: 1.5px solid rgba(239,68,68,0.35); border-radius: 999px;
+  color: #dc2626;
+  font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 700;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.ent-fin-cancel {
+  display: block; width: 100%; margin-top: 12px; padding: 10px;
+  background: transparent; border: 0;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 700;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+
+/* --- Tema claro --- */
+body.theme-light .cai-crono-pill { background: rgba(124,106,255,0.08) !important; color: var(--accent) !important; }
+body.theme-light .cai-crono-pill.is-paused { background: rgba(232,161,61,0.12) !important; color: #B97A17 !important; border-color: rgba(232,161,61,0.40) !important; }
+body.theme-light .cai-crono-pause { color: var(--accent) !important; }
+
+/* --- Tema King --- */
+body.theme-king .cai-crono-pill { background: rgba(255,79,123,0.08) !important; color: var(--accent) !important; border-color: rgba(255,79,123,0.30) !important; }
+body.theme-king .cai-crono-pill.is-paused { background: rgba(232,161,61,0.12) !important; color: #B97A17 !important; border-color: rgba(232,161,61,0.40) !important; }
+body.theme-king .cai-crono-pause { border-color: rgba(255,79,123,0.35) !important; color: var(--accent) !important; }
+body.theme-king .cai-crono-mini { box-shadow: 0 10px 30px rgba(255,79,123,0.40) !important; }
 
 /* Stats en el overlay "¡Entreno completado!" */
 .entreno-done-stats {
@@ -18003,6 +18120,18 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     </div>
     <button class="logro-celebr-btn" onclick="shareEntrenoFromMoment()" type="button"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" style="vertical-align:-3px;margin-right:7px" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>Compartir</button>
     <button class="logro-celebr-btn ghost" onclick="closeEntrenoDone()" type="button">Listo</button>
+  </div>
+</div>
+
+<!-- CRONÓMETRO V2: confirmación al Terminar (gated CRONO_ENABLED; textos ES/EN
+     los setea entSesFinishAsk al abrir). Descartar vive acá, no en la card. -->
+<div class="alim-edit-overlay" id="ent-fin-overlay" onclick="closeEntFin(event)" role="dialog" aria-modal="true" aria-label="Terminar entrenamiento">
+  <div class="alim-edit-card ent-fin-card" onclick="event.stopPropagation()">
+    <div class="ent-fin-title" id="ent-fin-title">¿Terminar tu entrenamiento?</div>
+    <div class="ent-fin-sub" id="ent-fin-sub">—</div>
+    <button class="cai-entses-btn" id="ent-fin-go" onclick="entFinConfirm()" type="button">Terminar</button>
+    <button class="ent-fin-discard" id="ent-fin-discard" onclick="entFinDiscard()" type="button">Descartar sesión</button>
+    <button class="ent-fin-cancel" id="ent-fin-cancel" onclick="entFinCancel()" type="button">Seguir entrenando</button>
   </div>
 </div>
 
@@ -32068,7 +32197,7 @@ async function showEntrenoCompletadoMoment(dayIdx){
     if (dayIdx !== undefined && dayIdx !== null && typeof _entSesGet === 'function') {
       const st = getEntrenoWeekState();
       const s = _entSesGet(st, dayIdx);
-      if (s && s.i && s.f) durTxt = _entSesFmtDur(s.f - s.i);
+      if (s && s.i && s.f) durTxt = _entSesFmtDur(_entSesElapsedMs(s));
       const mapping = buildTrainingDayMapping();
       const day = mapping && mapping.days[dayIdx];
       if (day && !day.isRest) dayTxt = _entCleanLabel(day.label) || '';
@@ -33392,6 +33521,147 @@ const GUIADO_ENABLED = (() => {
   } catch { return true; }
 })();
 
+// ---- CRONÓMETRO V2 — rediseño "instrumento" (referencia SmartGym de Beto) ----
+// 4 piezas sobre la sesión existente:
+//   a) Card rediseñada: reloj grande protagonista + pill de estado "● En vivo"
+//      / "● Pausado" (ámbar, dígitos atenuados).
+//   b) PAUSAR/REANUDAR: pause-aware pero siempre por timestamp — `acc` = ms
+//      acumulados hasta la última pausa, `i` = timestamp del último arranque,
+//      `pau` = 1 en pausa, `t` = último cambio de estado (para "colgada").
+//      Elapsed = acc + (ahora − i) corriendo, o acc en pausa. El teléfono
+//      puede morir en el medio y la cuenta sigue exacta.
+//   c) Confirmación al Terminar (diálogo Fin/Descartar/Seguir) — adiós
+//      celebraciones por toque accidental; Descartar se muda al diálogo.
+//   d) Pastilla flotante con el tiempo cuando la card queda fuera de vista.
+// Sesiones viejas {i,f} sin acc/pau siguen funcionando (acc=0).
+// GATED: ?crono=1 prende (persiste para QA), ?crono=0 apaga. Default OFF.
+const CRONO_ENABLED = (() => {
+  try {
+    const v = new URLSearchParams(window.location.search).get('crono');
+    if (v === '1') { try { localStorage.setItem('coachai_crono', '1'); } catch {} return true; }
+    if (v === '0') { try { localStorage.removeItem('coachai_crono'); } catch {} return false; }
+    return localStorage.getItem('coachai_crono') === '1';
+  } catch { return false; }
+})();
+
+// Tiempo transcurrido pause-aware (ver contrato arriba). `now` opcional;
+// con `f` seteado devuelve la duración final.
+function _entSesElapsedMs(s, now) {
+  if (!s) return 0;
+  const base = s.acc || 0;
+  if (s.pau) return base;
+  const end = s.f || now || Date.now();
+  return base + Math.max(0, end - (s.i || end));
+}
+
+function entSesPause(idx) {
+  const st = getEntrenoWeekState();
+  const s = _entSesGet(st, idx);
+  if (!s || !s.i || s.f || s.pau) return;
+  const now = Date.now();
+  s.acc = (s.acc || 0) + Math.max(0, now - s.i);
+  s.pau = 1; s.t = now;
+  saveEntrenoWeekState(st);
+  try { trackEvent('ent_ses_pause', { idx }); } catch (e) {}
+  renderMiEntreno();
+}
+
+function entSesResume(idx) {
+  const st = getEntrenoWeekState();
+  const s = _entSesGet(st, idx);
+  if (!s || !s.i || s.f || !s.pau) return;
+  const now = Date.now();
+  s.i = now; delete s.pau; s.t = now;
+  saveEntrenoWeekState(st);
+  try { trackEvent('ent_ses_resume', { idx }); } catch (e) {}
+  renderMiEntreno();
+}
+
+// Confirmación al Terminar (solo CRONO; sin flag cae directo a entSesFinish).
+let _entFinIdx = null;
+function entSesFinishAsk(idx) {
+  if (!CRONO_ENABLED) { entSesFinish(idx); return; }
+  const ov = document.getElementById('ent-fin-overlay');
+  if (!ov) { entSesFinish(idx); return; }
+  _entFinIdx = idx;
+  const isEs = lang === 'es';
+  const set = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
+  set('ent-fin-title', isEs ? '¿Terminar tu entrenamiento?' : 'Finish your workout?');
+  set('ent-fin-sub', isEs
+    ? 'Se guarda el tiempo de la sesión y el día queda marcado como entrenado.'
+    : 'The session time is saved and the day is marked as trained.');
+  set('ent-fin-go', isEs ? 'Terminar' : 'Finish');
+  set('ent-fin-discard', isEs ? 'Descartar sesión' : 'Discard session');
+  set('ent-fin-cancel', isEs ? 'Seguir entrenando' : 'Keep training');
+  ov.classList.add('open');
+}
+function closeEntFin(event) {
+  // Solo backdrop (los botones tienen sus handlers propios)
+  if (event && event.target && event.target.id !== 'ent-fin-overlay') return;
+  entFinCancel();
+}
+function entFinCancel() {
+  const ov = document.getElementById('ent-fin-overlay'); if (ov) ov.classList.remove('open');
+  _entFinIdx = null;
+}
+function entFinConfirm() {
+  const i = _entFinIdx; entFinCancel();
+  if (i !== null && i !== undefined) entSesFinish(i);
+}
+function entFinDiscard() {
+  const i = _entFinIdx; entFinCancel();
+  if (i !== null && i !== undefined) entSesDiscard(i);
+}
+
+// Pastilla flotante: tiempo siguiéndote cuando la card del cronómetro quedó
+// arriba fuera de vista (scrolleando series). Tocarla vuelve al cronómetro;
+// el botoncito pausa/reanuda. La maneja el tick (1/s): aparece/desaparece
+// según sesión activa + sección visible + card fuera de pantalla.
+function _entCronoMiniRemove() {
+  const el = document.getElementById('ent-crono-mini'); if (el) el.remove();
+}
+function _entCronoMiniSync(idx) {
+  try {
+    if (!CRONO_ENABLED) { _entCronoMiniRemove(); return; }
+    const wrap = document.getElementById('mi-entreno-wrapper');
+    const card = document.querySelector('#ent-ses-card .cai-entses');
+    const s = _entSesGet(getEntrenoWeekState(), idx);
+    const active = s && s.i && !s.f;
+    const sectionVisible = wrap && wrap.style.display !== 'none';
+    let cardOffscreen = false;
+    // bottom < 70: la card puede "asomar" unos px pero ya quedó tapada por el
+    // header sticky — a efectos prácticos el reloj no se ve.
+    if (card) { const r = card.getBoundingClientRect(); cardOffscreen = r.bottom < 70; }
+    if (!(active && sectionVisible && cardOffscreen)) { _entCronoMiniRemove(); return; }
+    let el = document.getElementById('ent-crono-mini');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'ent-crono-mini';
+      el.className = 'cai-crono-mini';
+      el.innerHTML = `
+        <span class="cai-crono-dot"></span>
+        <span class="cai-crono-mini-time" id="ent-crono-mini-time">--:--</span>
+        <button class="cai-crono-mini-btn" id="ent-crono-mini-btn" type="button" aria-label="Pausa"></button>`;
+      el.addEventListener('click', (ev) => {
+        if (ev.target && ev.target.closest && ev.target.closest('#ent-crono-mini-btn')) return;
+        const c = document.getElementById('ent-ses-card');
+        if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      document.body.appendChild(el);
+    }
+    el.classList.toggle('paused', !!s.pau);
+    const tEl = document.getElementById('ent-crono-mini-time');
+    if (tEl) tEl.textContent = _entSesFmtTimer(_entSesElapsedMs(s));
+    const btn = document.getElementById('ent-crono-mini-btn');
+    if (btn) {
+      btn.innerHTML = s.pau
+        ? '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
+      btn.onclick = (ev) => { ev.stopPropagation(); if (s.pau) entSesResume(idx); else entSesPause(idx); };
+    }
+  } catch (e) {}
+}
+
 // Acordeón de la vista previa (efímero, keyed por índice de ejercicio).
 let _entPrevOpen = {};
 function entPrevToggleEx(j) {
@@ -33465,7 +33735,7 @@ function _entSesFmtDur(ms) {
 function entSesStart(idx) {
   const st = getEntrenoWeekState();
   st.sesion = st.sesion || {};
-  st.sesion['d' + idx] = { i: Date.now() };
+  st.sesion['d' + idx] = { i: Date.now(), t: Date.now() };
   saveEntrenoWeekState(st);
   try { trackEvent('ent_ses_start', { idx }); } catch (e) {}
   renderMiEntreno();
@@ -33478,7 +33748,7 @@ function entSesFinish(idx) {
   s.f = Date.now();
   saveEntrenoWeekState(st);
   _entSesCelebrateIdx = idx;   // al cerrar el overlay, festejo sobre la card
-  try { trackEvent('ent_ses_finish', { idx, min: Math.round((s.f - s.i) / 60000) }); } catch (e) {}
+  try { trackEvent('ent_ses_finish', { idx, min: Math.round(_entSesElapsedMs(s) / 60000) }); } catch (e) {}
   if (!st.completed[idx]) {
     // Marca el día por la cadena de siempre (espejo dias_entrenados/progreso,
     // re-render y momento compartible — que ahora sale con los stats).
@@ -33539,10 +33809,11 @@ function _entSesTickStart(idx) {
   _entSesTickStop();
   _entSesTickId = setInterval(() => {
     const el = document.getElementById('ent-ses-timer');
-    if (!el) { _entSesTickStop(); return; }
+    if (!el) { _entSesTickStop(); _entCronoMiniRemove(); return; }
     const s = _entSesGet(getEntrenoWeekState(), idx);
-    if (!s || !s.i || s.f) { _entSesTickStop(); return; }
-    el.textContent = _entSesFmtTimer(Date.now() - s.i);
+    if (!s || !s.i || s.f) { _entSesTickStop(); _entCronoMiniRemove(); return; }
+    if (!s.pau) el.textContent = _entSesFmtTimer(_entSesElapsedMs(s));
+    _entCronoMiniSync(idx);   // pastilla flotante (solo CRONO; se autogestiona)
   }, 1000);
 }
 
@@ -33551,7 +33822,7 @@ function _renderEntSesCard(idx, state, day) {
   const cont = document.getElementById('ent-ses-card');
   if (!cont) return;
   _entSesTickStop();
-  if (!SES_ENABLED || !day || day.isRest) { cont.style.display = 'none'; cont.innerHTML = ''; return; }
+  if (!SES_ENABLED || !day || day.isRest) { cont.style.display = 'none'; cont.innerHTML = ''; _entCronoMiniRemove(); return; }
   const isEs = lang === 'es';
   const s = _entSesGet(state, idx);
   const totalSeries = (day.exercises || []).reduce((n, ex) => n + parseSeriesCount(ex.detail), 0);
@@ -33559,6 +33830,7 @@ function _renderEntSesCard(idx, state, day) {
   let html = '';
   if (!s || !s.i) {
     // IDLE — invitación a arrancar la sesión
+    _entCronoMiniRemove();
     html = `
       <div class="cai-entses">
         <div class="cai-entses-eyebrow">${isEs ? 'SESIÓN DE HOY' : "TODAY'S SESSION"}</div>
@@ -33569,9 +33841,12 @@ function _renderEntSesCard(idx, state, day) {
         </button>
       </div>`;
   } else if (!s.f) {
-    const elapsed = Date.now() - s.i;
-    if (elapsed >= _ENT_SES_STALE_MS) {
+    // "Colgada" se mide desde el último cambio de estado (t: arranque/pausa/
+    // reanudación); sesiones viejas sin t caen al inicio, como siempre.
+    const sinceActive = Date.now() - (s.t || s.i);
+    if (sinceActive >= _ENT_SES_STALE_MS) {
       // COLGADA — quedó abierta de antes
+      _entCronoMiniRemove();
       html = `
         <div class="cai-entses stale">
           <div class="cai-entses-eyebrow">${isEs ? 'SESIÓN SIN CERRAR' : 'UNFINISHED SESSION'}</div>
@@ -33581,12 +33856,37 @@ function _renderEntSesCard(idx, state, day) {
             <button class="cai-entses-ghost" type="button" onclick="entSesDiscard(${idx})">${isEs ? 'Descartar' : 'Discard'}</button>
           </div>
         </div>`;
+    } else if (CRONO_ENABLED) {
+      // CORRIENDO / PAUSADO — cronómetro "instrumento": reloj grande + pill
+      // de estado; Descartar vive en el diálogo de confirmación de Terminar.
+      const paused = !!s.pau;
+      const pauseSvg = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
+      const playSvg2 = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>';
+      html = `
+        <div class="cai-entses running cai-crono${paused ? ' paused' : ''}">
+          <div class="cai-crono-head">
+            <div class="cai-entses-eyebrow">${isEs ? 'TIEMPO TRANSCURRIDO' : 'ELAPSED TIME'}</div>
+            <span class="cai-crono-pill${paused ? ' is-paused' : ''}"><span class="cai-crono-dot"></span>${paused ? (isEs ? 'Pausado' : 'Paused') : (isEs ? 'En vivo' : 'Live')}</span>
+          </div>
+          <div class="cai-entses-timer cai-crono-timer" id="ent-ses-timer">${_entSesFmtTimer(_entSesElapsedMs(s))}</div>
+          <div class="cai-entses-row">
+            <button class="cai-entses-btn" type="button" onclick="entSesFinishAsk(${idx})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              ${isEs ? 'Terminar' : 'Finish'}
+            </button>
+            <button class="cai-crono-pause" type="button" onclick="${paused ? 'entSesResume' : 'entSesPause'}(${idx})">
+              ${paused ? playSvg2 : pauseSvg}
+              ${paused ? (isEs ? 'Reanudar' : 'Resume') : (isEs ? 'Pausar' : 'Pause')}
+            </button>
+          </div>
+        </div>`;
+      _entSesTickStart(idx);
     } else {
-      // CORRIENDO — reloj calculado + finalizar
+      // CORRIENDO — layout clásico (flag crono apagado)
       html = `
         <div class="cai-entses running">
           <div class="cai-entses-eyebrow"><span class="cai-entses-dot"></span>${isEs ? 'ENTRENAMIENTO EN CURSO' : 'WORKOUT IN PROGRESS'}</div>
-          <div class="cai-entses-timer" id="ent-ses-timer">${_entSesFmtTimer(elapsed)}</div>
+          <div class="cai-entses-timer" id="ent-ses-timer">${_entSesFmtTimer(_entSesElapsedMs(s))}</div>
           <div class="cai-entses-row">
             <button class="cai-entses-btn" type="button" onclick="entSesFinish(${idx})">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
@@ -33600,10 +33900,11 @@ function _renderEntSesCard(idx, state, day) {
   } else {
     // CERRADA — resumen chico (la celebración grande ya salió al finalizar).
     // Sin volumen en kg (2026-09-18): el número no comunica nada.
+    _entCronoMiniRemove();
     html = `
       <div class="cai-entses done">
         <div class="cai-entses-eyebrow">${isEs ? 'SESIÓN COMPLETADA' : 'SESSION DONE'}</div>
-        <div class="cai-entses-meta">⏱ ${_entSesFmtDur(s.f - s.i)}</div>
+        <div class="cai-entses-meta">⏱ ${_entSesFmtDur(_entSesElapsedMs(s))}</div>
       </div>`;
   }
   cont.style.display = 'block';
@@ -34682,7 +34983,7 @@ function _entGuiadoHtml(displayIdx, day, state, mapping, ctx) {
          ${isEs ? 'Siguiente ejercicio' : 'Next exercise'}
          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
        </button>`
-    : `<button class="cai-entses-btn cai-entg-next" type="button" onclick="entSesFinish(${displayIdx})">
+    : `<button class="cai-entses-btn cai-entg-next" type="button" onclick="entSesFinishAsk(${displayIdx})">
          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
          ${isEs ? 'Finalizar entrenamiento' : 'Finish workout'}
        </button>`;
@@ -35038,7 +35339,8 @@ function renderMiEntreno() {
       if (ENT_V2_ENABLED && GUIADO_ENABLED) {
         const sesG = _entSesGet(state, displayIdx);
         const runningG = (typeof SES_ENABLED !== 'undefined' && SES_ENABLED)
-          && sesG && sesG.i && !sesG.f && (Date.now() - sesG.i) < _ENT_SES_STALE_MS;
+          && sesG && sesG.i && !sesG.f
+          && (Date.now() - (sesG.t || sesG.i)) < _ENT_SES_STALE_MS;
         hero.innerHTML = runningG
           ? _entGuiadoHtml(displayIdx, day, state, mapping, { eyebrow, cleanLabel, done })
           : _entPreviewHtml(displayIdx, day, state, mapping, { eyebrow, cleanLabel, done });
