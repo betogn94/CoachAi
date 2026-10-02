@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261002-1446-deploy">
+<meta name="app-version" content="20261002-1455-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -6939,13 +6939,33 @@ body.theme-king .cai-entv2-back-btn {
   /* Look iOS (pedido de Beto 2026-10-03): DM Sans como toda la app, tamaño
      contenido y CENTRADO. tabular-nums queda por si el navegador lo sintetiza;
      el centrado disimula el micro-baile de dígitos no monoespaciados. */
-  font-family: 'DM Sans', sans-serif;
-  font-size: 42px; font-weight: 800; letter-spacing: 0;
+  /* Fuente del SISTEMA para los dígitos (Beto 2026-10-03, look iOS literal):
+     en iPhone renderiza SF Pro — la misma tipografía del reloj de la
+     referencia — y en Android cae a Roboto. Peso 600, no black. */
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, 'DM Sans', sans-serif;
+  font-size: 46px; font-weight: 600; letter-spacing: 0;
   text-align: center;
-  color: var(--accent);
-  margin: 12px 0 6px;
+  color: var(--text);
+  margin: 8px 0 6px;
   transition: opacity 0.25s ease;
 }
+/* Layout calcado de la referencia: separador fino edge-to-edge bajo el
+   título + "TIEMPO TRANSCURRIDO" centrado arriba del reloj. */
+.cai-crono-sep {
+  height: 1px; margin: 12px -16px 0;
+  background: var(--border, rgba(0,0,0,0.07));
+}
+.cai-crono-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 14px;
+}
+/* Card estilo iOS: radio grande y SIN borde de color (el estado lo cuenta
+   la pill, no el contorno). */
+.cai-entses.cai-crono { border-radius: 22px; border-color: transparent !important; }
 /* Cajitas de ancho fijo por dígito (_entCronoDigits): centrado real + cero
    baile, porque DM Sans no trae cifras tabulares. */
 .cai-crono-timer .d, .cai-crono-mini-time .d {
@@ -7000,8 +7020,8 @@ body.theme-king .cai-entv2-back-btn {
 }
 .cai-crono-mini.paused .cai-crono-dot { animation: none; background: #B97A17; }
 .cai-crono-mini-time {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 20px; font-weight: 800; letter-spacing: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, 'DM Sans', sans-serif;
+  font-size: 20px; font-weight: 600; letter-spacing: 0;
   color: var(--text) !important;   /* herencias de tema no lo pisan */
 }
 .cai-crono-mini-btn {
@@ -7044,6 +7064,9 @@ body.theme-light .cai-crono-pause { color: var(--accent) !important; }
 body.theme-king .cai-crono-pill { background: rgba(255,79,123,0.08) !important; color: var(--accent) !important; border-color: rgba(255,79,123,0.30) !important; }
 body.theme-king .cai-crono-pill.is-paused { background: rgba(232,161,61,0.12) !important; color: #B97A17 !important; border-color: rgba(232,161,61,0.40) !important; }
 body.theme-king .cai-crono-pause { border-color: rgba(255,79,123,0.35) !important; color: var(--accent) !important; }
+/* Card iOS sin contorno: gana a los overrides de borde de cada tema */
+body.theme-light .cai-entses.cai-crono,
+body.theme-king .cai-entses.cai-crono { border-color: transparent !important; }
 body.theme-king .cai-crono-mini { border-color: rgba(255,79,123,0.28) !important; }
 body.theme-king .cai-crono-mini.paused { border-color: rgba(232,161,61,0.45) !important; }
 body.theme-king .cai-crono-mini-btn { background: rgba(255,79,123,0.10) !important; }
@@ -33902,9 +33925,11 @@ function _renderEntSesCard(idx, state, day) {
       html = `
         <div class="cai-entses running cai-crono${paused ? ' paused' : ''}">
           <div class="cai-crono-head">
-            <div class="cai-entses-eyebrow">${isEs ? 'TIEMPO TRANSCURRIDO' : 'ELAPSED TIME'}</div>
+            <div class="cai-entses-eyebrow">${isEs ? 'SESIÓN ACTIVA' : 'ACTIVE SESSION'}</div>
             <span class="cai-crono-pill${paused ? ' is-paused' : ''}"><span class="cai-crono-dot"></span>${paused ? (isEs ? 'Pausado' : 'Paused') : (isEs ? 'En vivo' : 'Live')}</span>
           </div>
+          <div class="cai-crono-sep"></div>
+          <div class="cai-crono-label">${isEs ? 'TIEMPO TRANSCURRIDO' : 'ELAPSED TIME'}</div>
           <div class="cai-entses-timer cai-crono-timer" id="ent-ses-timer">${_entCronoDigits(_entSesFmtTimer(_entSesElapsedMs(s)))}</div>
           <div class="cai-entses-row">
             <button class="cai-entses-btn" type="button" onclick="entSesFinishAsk(${idx})">
