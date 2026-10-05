@@ -5,7 +5,7 @@
 // Sirve para gestionar bajas cuando la clienta no puede/quiere darse de baja sola.
 
 import { withAuth } from './_auth.js';
-import { getStripe, findUserSubscription } from '../stripe/_subs.js';
+import { getStripe, findUserSubscription, marcarCancelada } from '../stripe/_subs.js';
 
 export default withAuth(async (req, res, session) => {
   if (req.method !== 'POST') {
@@ -33,6 +33,9 @@ export default withAuth(async (req, res, session) => {
       return res.status(200).json({ ok: true, cancelled: true, alreadyCancelled: true, accesoHasta });
     }
     const updated = await stripe.subscriptions.update(s.id, { cancel_at_period_end: true });
+    // Marca inmediata en NUESTRA base: no dependemos de que el webhook llegue
+    // (si llega, el guard is.null evita que pise esta fecha).
+    await marcarCancelada(email, null).catch(() => {});
     console.log('[tower/cancel_subscription] cancelada', s.id, 'para', email, 'por', session?.email || 'tower');
     return res.status(200).json({
       ok: true, cancelled: true,

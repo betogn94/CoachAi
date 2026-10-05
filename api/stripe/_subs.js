@@ -4,6 +4,7 @@
 // solo operamos sobre la suscripción de ESE email.
 
 import Stripe from 'stripe';
+import { sb } from '../tower/_db.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://vmvhlgzwufkardaruutt.supabase.co';
 
@@ -31,7 +32,65 @@ export async function emailFromToken(req) {
   } catch (e) { return null; }
 }
 
-const VIGENTE = new Set(['active', 'trialing', 'past_due', 'unpaid']);
+export const VIGENTE = new Set(['active', 'trialing', 'past_due', 'unpaid']);
+
+// ── Resolución robusta del email de una subscription ──
+// Gotcha conocido: muchos checkouts de King crean el customer SIN email en el
+// objeto (el mail queda en la sesión/factura). Cascada:
+//   1) customer.email (expandido u obtenido por retrieve)
+//   2) customer_email de la última factura de la sub (la factura SIEMPRE lo trae)
+// Devuelve el email en minúsculas, o null si no se pudo resolver.
+export async function resolveSubEmail(stripe, subscription) {
+  // 1) El customer (objeto expandido o id a recuperar)
+  try {
+    let cust = subscription.customer;
+    if (typeof cust === 'string') cust = await stripe.customers.retrieve(cust);
+    const e = cust && !cust.deleted ? (cust.email || '') : '';
+    if (e) return String(e).toLowerCase();
+  } catch (e) { /* seguimos */ }
+  // 2) La última factura de la sub
+  try {
+    let inv = subscription.latest_invoice;
+    if (typeof inv === 'string') inv = await stripe.invoices.retrieve(inv);
+    if (!inv) {
+      const list = await stripe.invoices.list({ subscription: subscription.id, limit: 1 });
+      inv = list?.data?.[0] || null;
+    }
+    const e = inv?.customer_email || '';
+    if (e) return String(e).toLowerCase();
+  } catch (e) { /* noop */ }
+  return null;
+}
+
+// ── Marca/limpieza de cancelación en NUESTRA base (usuarios + beta_invitados) ──
+// marcarCancelada NO pisa una fecha ya registrada (guard is.null): si la baja se
+// registró el día que la clienta canceló (subscription.updated), el deleted del
+// fin de período no la sobreescribe. NUNCA toca acceso_hasta: el acceso caduca
+// solo al vencer el período pagado (modelo existente).
+export async function marcarCancelada(email, cuandoIso) {
+  if (!email) return;
+  const enc = encodeURIComponent(String(email).toLowerCase());
+  const body = { suscripcion_cancelada_at: cuandoIso || new Date().toISOString() };
+  try {
+    await sb(`/usuarios?email=eq.${enc}&suscripcion_cancelada_at=is.null`, { method: 'PATCH', body, prefer: 'return=minimal' });
+  } catch (e) { console.warn('[subs] marcarCancelada usuarios:', e?.message); }
+  try {
+    await sb(`/beta_invitados?email=eq.${enc}&suscripcion_cancelada_at=is.null`, { method: 'PATCH', body, prefer: 'return=minimal' });
+  } catch (e) { console.warn('[subs] marcarCancelada invitados:', e?.message); }
+}
+
+// La clienta volvió (reactivó o se re-suscribió) → ya no está cancelada.
+export async function limpiarCancelada(email) {
+  if (!email) return;
+  const enc = encodeURIComponent(String(email).toLowerCase());
+  const body = { suscripcion_cancelada_at: null };
+  try {
+    await sb(`/usuarios?email=eq.${enc}&suscripcion_cancelada_at=not.is.null`, { method: 'PATCH', body, prefer: 'return=minimal' });
+  } catch (e) { console.warn('[subs] limpiarCancelada usuarios:', e?.message); }
+  try {
+    await sb(`/beta_invitados?email=eq.${enc}&suscripcion_cancelada_at=not.is.null`, { method: 'PATCH', body, prefer: 'return=minimal' });
+  } catch (e) { console.warn('[subs] limpiarCancelada invitados:', e?.message); }
+}
 
 // Busca en Stripe la suscripción recurrente VIGENTE del email. Devuelve
 // { sub, customer } (la de mayor período), o null si no tiene ninguna.

@@ -8,7 +8,7 @@
 // marca suscripcion_cancelada_at y el acceso caduca solo (modelo ya existente).
 
 import { isAllowedOrigin } from '../_origin.js';
-import { getStripe, emailFromToken, findUserSubscription } from './_subs.js';
+import { getStripe, emailFromToken, findUserSubscription, marcarCancelada } from './_subs.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return res.status(405).json({ ok: false, error: 'method_not_allowed' }); }
@@ -32,6 +32,9 @@ export default async function handler(req, res) {
     }
 
     const updated = await stripe.subscriptions.update(s.id, { cancel_at_period_end: true });
+    // Marca inmediata en NUESTRA base: no dependemos de que el webhook llegue
+    // (si llega, el guard is.null evita que pise esta fecha).
+    await marcarCancelada(email, null).catch(() => {});
     console.log('[cancel-subscription] cancelada (fin de período):', s.id, 'para', email);
     return res.status(200).json({
       ok: true,

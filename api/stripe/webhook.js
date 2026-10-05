@@ -11,6 +11,7 @@
 
 import Stripe from 'stripe';
 import { sb } from '../tower/_db.js';
+import { resolveSubEmail, marcarCancelada, limpiarCancelada, VIGENTE } from './_subs.js';
 
 // Stripe necesita el cuerpo SIN parsear para validar la firma.
 export const config = { api: { bodyParser: false } };
@@ -76,6 +77,10 @@ export default async function handler(req, res) {
       await handleCheckoutCompleted(event.data.object, stripe);
     } else if (event.type === 'customer.subscription.deleted') {
       await handleSubscriptionDeleted(event.data.object, stripe);
+    } else if (event.type === 'customer.subscription.updated') {
+      await handleSubscriptionUpdated(event.data.object, stripe);
+    } else if (event.type === 'invoice.payment_failed') {
+      await handlePaymentFailed(event.data.object);
     }
     // Cualquier otro evento: 200 OK para que Stripe no reintente.
     return res.status(200).json({ received: true });
@@ -416,22 +421,65 @@ async function handleCheckoutCompleted(session, stripe) {
 // que ya pagó y se bloquea solo al vencer (modelo "hasta fin del período pagado").
 // Si más adelante se re-suscribe, handleCheckoutCompleted limpia esta marca.
 async function handleSubscriptionDeleted(subscription, stripe) {
-  let email = null;
-  try {
-    const custId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id;
-    if (custId) {
-      const cust = await stripe.customers.retrieve(custId);
-      email = (cust?.email || '').toLowerCase() || null;
-    }
-  } catch (e) { console.warn('[stripe] no se pudo recuperar el customer en cancelación:', e?.message); }
-  if (!email) { console.warn('[stripe] cancelación sin email resoluble:', subscription?.id); return; }
+  const email = await resolveSubEmail(stripe, subscription);
+  if (!email) {
+    // Antes esto se descartaba en silencio (y el gotcha de King "customer sin
+    // email" lo hacía frecuente). Ahora: telemetría en NUESTRA base para verlo,
+    // y el reconciliador diario (sync-subs) actúa como red de seguridad.
+    console.warn('[stripe] cancelación sin email resoluble:', subscription?.id);
+    try {
+      await sb('/beta_eventos', {
+        method: 'POST',
+        body: { evento: 'cancelacion_sin_email', meta: { sub: subscription?.id || null, customer: typeof subscription?.customer === 'string' ? subscription.customer : subscription?.customer?.id || null } },
+        prefer: 'return=minimal',
+      });
+    } catch (e) { /* telemetría best-effort */ }
+    return;
+  }
+  // Fecha real de la baja si Stripe la trae (canceled_at = cuándo pidió cancelar;
+  // ended_at = cuándo murió la sub); si no, ahora.
+  const ts = subscription.canceled_at || subscription.ended_at || null;
+  await marcarCancelada(email, ts ? new Date(ts * 1000).toISOString() : null);
+  console.log('[stripe] baja registrada (sub deleted):', subscription.id, email);
+}
 
-  const enc = encodeURIComponent(email);
-  const canceladaAt = new Date().toISOString();
+// La sub cambió. Dos casos que nos importan, ambos para VISIBILIDAD del churn
+// (acceso_hasta no se toca — de eso se encarga el modelo de períodos pagados):
+//   a) cancel_at_period_end pasó a true → la clienta canceló HOY (el deleted
+//      recién llega al fin del período, hasta un mes después) → marcamos ya.
+//   b) cancel_at_period_end en false y la sub sigue vigente → se arrepintió /
+//      reactivó → limpiamos la marca.
+async function handleSubscriptionUpdated(subscription, stripe) {
+  const email = await resolveSubEmail(stripe, subscription);
+  if (!email) { console.warn('[stripe] sub updated sin email resoluble:', subscription?.id); return; }
+  if (subscription.cancel_at_period_end) {
+    const ts = subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null;
+    await marcarCancelada(email, ts);
+    console.log('[stripe] baja programada registrada (cancel_at_period_end):', subscription.id, email);
+  } else if (VIGENTE.has(subscription.status)) {
+    await limpiarCancelada(email);
+  }
+}
+
+// Pago fallido → SOLO telemetría (la política no cambia: Stripe reintenta solo,
+// no bloqueamos de inmediato; el acceso caduca por acceso_hasta si nunca entra).
+// Con esto el churn involuntario deja de ser invisible.
+async function handlePaymentFailed(invoice) {
+  const email = (invoice?.customer_email || '').toLowerCase() || null;
   try {
-    await sb(`/usuarios?email=eq.${enc}`, { method: 'PATCH', body: { suscripcion_cancelada_at: canceladaAt }, prefer: 'return=minimal' });
-  } catch (err) { console.warn('[stripe] cancel usuarios:', err?.message); }
-  try {
-    await sb(`/beta_invitados?email=eq.${enc}`, { method: 'PATCH', body: { suscripcion_cancelada_at: canceladaAt }, prefer: 'return=minimal' });
-  } catch (err) { console.warn('[stripe] cancel invitados:', err?.message); }
+    await sb('/beta_eventos', {
+      method: 'POST',
+      body: {
+        evento: 'pago_fallido',
+        meta: {
+          email,
+          invoice: invoice?.id || null,
+          intento: invoice?.attempt_count || null,
+          proximo_reintento: invoice?.next_payment_attempt ? new Date(invoice.next_payment_attempt * 1000).toISOString() : null,
+        },
+      },
+      prefer: 'return=minimal',
+    });
+    console.log('[stripe] pago fallido registrado:', invoice?.id, email || '(sin email)');
+  } catch (e) { console.warn('[stripe] telemetría pago_fallido:', e?.message); }
 }
