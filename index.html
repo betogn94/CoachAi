@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261005-1515-deploy">
+<meta name="app-version" content="20261005-1518-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -34486,16 +34486,15 @@ function closeProgresionModal(event) {
 // (el de mejor historia: ≥3 semanas con pesos y delta positivo). Solo LECTURA:
 // reusa el fetch de progresión vía cache compartido (Hero + modal + baseline PR
 // = una sola query por minuto). Sin datos elegibles, Home queda EXACTO al actual.
-// Gate: ?insights=1 prende / ?insights=0 apaga (localStorage coachai_insights).
-// Default OFF hasta QA en celu; al liberar cambiar el return final a `!== '0'`
-// y la rama v==='1' a removeItem (mismo circuito que progresión/PR).
+// Gate: LIVE PARA TODOS (flip 2026-10-05 tras QA de Beto en celu).
+// ?insights=0 apaga (escape, persiste en localStorage) / ?insights=1 re-prende.
 const INSIGHTS_ENABLED = (() => {
   try {
     const v = new URLSearchParams(window.location.search).get('insights');
     if (v === '0') { try { localStorage.setItem('coachai_insights', '0'); } catch {} return false; }
-    if (v === '1') { try { localStorage.setItem('coachai_insights', '1'); } catch {} return true; }
-    return localStorage.getItem('coachai_insights') === '1';
-  } catch { return false; }
+    if (v === '1') { try { localStorage.removeItem('coachai_insights'); } catch {} return true; }
+    return localStorage.getItem('coachai_insights') !== '0';
+  } catch { return true; }
 })();
 
 // Cache compartido (60s) del historial de entreno_semanal. Guarda la PROMESA
