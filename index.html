@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261005-1518-deploy">
+<meta name="app-version" content="20261005-2343-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -19623,17 +19623,33 @@ try { initInfoChips(); } catch (e) { console.warn('[CoachAI] initInfoChips err:'
 
 // Refresh last_active (always) and bump session_count (only on a new entry).
 // Called once per app entry from handleEmailLogin.
-async function trackBetaActivity(isNewSession) {
+// Desde dónde corre la app: dentro del wrapper de iOS, del de Google Play (TWA,
+// abre con ?native=1) o en el navegador. Se guarda en usuarios.origen_alta al
+// darse de alta y viaja en cada session_start.
+function detectOrigenPlataforma() {
+  try {
+    if (typeof isIosWrapper === 'function' && isIosWrapper()) return 'app_store';
+    if (typeof isNativeWrapper === 'function' && isNativeWrapper()) return 'play_store';
+  } catch (e) {}
+  return 'web';
+}
+
+async function trackBetaActivity(isNewSession, isNewAccount) {
   if (!sbClient || !currentUser) return;
   const uid = currentUser.id;
+  const plataforma = detectOrigenPlataforma();
   try {
     const patch = { last_active: new Date().toISOString() };
     if (isNewSession) {
       patch.session_count = (currentUser.session_count || 0) + 1;
       currentUser.session_count = patch.session_count;
     }
+    if (isNewAccount && !currentUser.origen_alta) {
+      patch.origen_alta = plataforma;
+      currentUser.origen_alta = plataforma;
+    }
     await sbClient.from('usuarios').update(patch).eq('id', uid);
-    if (isNewSession) trackEvent('session_start', null);
+    if (isNewSession) trackEvent('session_start', { plataforma });
     // Kick off the heartbeat for time-in-app analytics. Idempotent.
     startHeartbeat();
   } catch (e) { console.warn('trackBetaActivity failed:', e); }
@@ -21338,7 +21354,7 @@ async function proceedAfterAuth(email, nombre, authUid) {
 
     // Beta analytics: bump session_count + last_active, log session_start.
     // Fire-and-forget — does not block the login flow.
-    trackBetaActivity(true);
+    trackBetaActivity(true, !!result.isNew);
 
     // Admin gateway: a user with role='admin' is a coach. Before dropping
     // them into onboarding/launchCoach (which would assume they're here to
