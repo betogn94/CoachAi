@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261005-1457-deploy">
+<meta name="app-version" content="20261005-1506-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -7428,7 +7428,7 @@ body.theme-king .home-plan-banner { background: #FFF0F4; border-color: rgba(255,
 .cai-home-hero.is-rotating { height: 178px; }
 .cai-home-hero.is-rotating .cai-hero-slide {
   position: absolute; inset: 0;
-  padding: 18px 18px 26px; /* reserva abajo para los dots del rotador */
+  padding: 18px;
   opacity: 0; visibility: hidden;
   transition: opacity 0.5s ease, visibility 0.5s;
 }
@@ -7675,8 +7675,6 @@ button.cai-home-card { cursor: pointer; }
   width: 100%;
   height: 100%;
   min-height: 0; /* anula min-heights propios (p.ej. kcal 200) dentro del slot fijo */
-  /* reserva abajo para los dots del rotador → el texto nunca queda debajo */
-  padding-bottom: 22px;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.5s ease, visibility 0.5s;
@@ -30302,8 +30300,9 @@ function renderHomeHoyToca() {
 // HOME: ROTADOR GENÉRICO DE SLOTS — un solo motor para todos (cards + hero)
 // ============================
 // Cicla con cross-fade (8s) las slides VISIBLES ([data-rot-slide] sin
-// display:none inline) de un slot. Los dots se regeneran en cada init según
-// las slides elegibles, así agregar una slide nueva no toca HTML de dots.
+// display:none inline) de un slot. SIN dots (pedido de Beto 2026-10-05:
+// "queda más limpio sin eso") — la rotación es solo automática; los
+// contenedores de dots quedan en el HTML por si se quieren volver.
 // Idempotente: cada render del slot re-llama initSlotRotator y el estado
 // previo (interval incluido) se limpia. Con <2 slides visibles el slot queda
 // estático mostrando la primera (la funcional), igual que sin rotación.
@@ -30311,6 +30310,7 @@ const _rotTimers = {};
 function initSlotRotator(slotId, dotsId) {
   const slot = document.getElementById(slotId);
   const dots = dotsId ? document.getElementById(dotsId) : null;
+  if (dots) { dots.style.display = 'none'; dots.innerHTML = ''; }
   if (!slot) return;
   if (_rotTimers[slotId]) { clearInterval(_rotTimers[slotId]); _rotTimers[slotId] = null; }
   const slides = Array.from(slot.querySelectorAll('[data-rot-slide]'))
@@ -30318,12 +30318,9 @@ function initSlotRotator(slotId, dotsId) {
   const show = (name) => {
     slot.querySelectorAll('[data-rot-slide]').forEach(el =>
       el.classList.toggle('is-active', el.dataset.rotSlide === name));
-    if (dots) dots.querySelectorAll('.rot-dot').forEach(d =>
-      d.classList.toggle('is-active', d.dataset.rotTarget === name));
   };
   if (slides.length < 2) {
     slot.classList.remove('is-rotating');
-    if (dots) { dots.style.display = 'none'; dots.innerHTML = ''; }
     show(slides[0] ? slides[0].dataset.rotSlide : null);
     return;
   }
@@ -30334,20 +30331,6 @@ function initSlotRotator(slotId, dotsId) {
     const i = Math.max(0, names.indexOf(cur && cur.dataset.rotSlide));
     show(names[(i + 1) % names.length]);
   };
-  if (dots) {
-    dots.innerHTML = slides.map(el =>
-      `<button class="rot-dot" type="button" data-rot-target="${el.dataset.rotSlide}" aria-label="${el.dataset.rotLabel || el.dataset.rotSlide}"></button>`).join('');
-    dots.style.display = 'flex';
-    dots.querySelectorAll('.rot-dot').forEach(d => {
-      d.addEventListener('click', (e) => {
-        e.stopPropagation();
-        show(d.dataset.rotTarget);
-        // Reset del autoplay cuando navega a mano
-        if (_rotTimers[slotId]) clearInterval(_rotTimers[slotId]);
-        _rotTimers[slotId] = setInterval(tick, 8000);
-      });
-    });
-  }
   show(names[0]); // arranca SIEMPRE en la slide funcional (la primera del slot)
   _rotTimers[slotId] = setInterval(tick, 8000);
 }
