@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261005-1439-deploy">
+<meta name="app-version" content="20261005-1451-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -7669,10 +7669,7 @@ button.cai-home-card { cursor: pointer; }
 /* TODAS las variantes en absolute → ninguna "define" el alto del slot. El slot
    tiene alto FIJO (abajo) y solo se hace cross-fade del contenido por dentro:
    la card nunca cambia de tamaño al rotar. */
-.cai-home-card-slot.is-rotating .cai-home-card-chat,
-.cai-home-card-slot.is-rotating .cai-home-card-cardio,
-.cai-home-card-slot.is-rotating .cai-home-card-kcal,
-.cai-home-card-slot.is-rotating .cai-home-card-cierre {
+.cai-home-card-slot.is-rotating > [data-rot-slide] {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -7692,6 +7689,62 @@ button.cai-home-card { cursor: pointer; }
    mini-gráfico). Constante en todas las rotaciones → sin saltos ni recortes. */
 .cai-home-card-slot.is-rotating {
   height: 196px;
+}
+/* El slot de entreno vive en la fila 1, cuyo alto lo manda la card de Próxima
+   comida (texto variable): estira al alto de la fila en vez de fijar 196 para
+   que ambas cards de la fila queden SIEMPRE parejas. */
+#home-entreno-rotator.is-rotating {
+  height: 100%;
+  min-height: 172px;
+}
+
+/* ── Slides INSIGHT (Fase 2): íconos + verde progreso ──
+   El verde va anclado a .cai-home-card (0,2,0) para ganarle a la manta de
+   color de King (body.theme-king span/div = 0,1,2); los temas además pisan
+   .cai-home-card-title con !important → override explícito por tema. */
+.cai-home-card .cai-home-card-title-green { color: #16a34a; }
+.cai-home-card .cai-ins-green { color: #16a34a; font-weight: 700; }
+body.theme-light .cai-home-card .cai-home-card-title-green,
+body.theme-king .cai-home-card .cai-home-card-title-green,
+body.theme-light .cai-home-card .cai-ins-green,
+body.theme-king .cai-home-card .cai-ins-green { color: #16a34a !important; }
+/* Dentro del slot de alto fijo la card es flex column y, si el contenido pasa
+   el alto, los títulos se ENCOGEN (flex-shrink) y se recortan a mitad de
+   glifo. En las slides insight: títulos rígidos + body con tope de 2 líneas. */
+.cai-home-card-pr .cai-home-card-title,
+.cai-home-card-peso .cai-home-card-title,
+.cai-home-card-adh .cai-home-card-title { flex: none; }
+.cai-home-card-pr .cai-home-card-body,
+.cai-home-card-peso .cai-home-card-body,
+.cai-home-card-adh .cai-home-card-body {
+  flex: none;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+}
+.cai-home-card-ico.ico-pr {
+  background: linear-gradient(135deg, rgba(255,196,0,0.20), rgba(255,138,0,0.16));
+  color: #d97706;
+}
+.cai-home-card-ico.ico-peso {
+  background: linear-gradient(135deg, rgba(46,207,181,0.18), rgba(91,159,255,0.18));
+  color: var(--accent3);
+}
+.cai-home-card-ico.ico-adh {
+  background: linear-gradient(135deg, rgba(22,163,74,0.16), rgba(46,207,181,0.16));
+  color: #16a34a;
+}
+/* Nombre del ejercicio del PR: tope de 2 líneas, como los textos de las cards */
+.cai-home-card-pr #pr-card-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 /* Cardio card — base palette (default tenant) mirrors Coach AI:
@@ -15966,17 +16019,38 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       <div class="cai-home-card-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
     </button>
 
-    <button class="cai-home-card cai-home-card-entreno" onclick="showMiEntreno(); setActiveNav('nav-entreno')" type="button">
-      <div class="cai-home-card-top">
-        <div class="cai-home-card-eyebrow" data-es="HOY TOCA" data-en="TODAY'S FOCUS">HOY TOCA</div>
-        <div class="cai-home-card-ico ico-entreno">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"/><path d="M21 21l-1-1"/><path d="M3 3l1 1"/><path d="M18 22l4-4"/><path d="M2 6l4-4"/><path d="M3 10l7-7"/><path d="M14 21l7-7"/></svg>
+    <!-- Rotator slot: HOY TOCA (funcional, siempre primera) ↔ RÉCORD PERSONAL
+         (insight, la llena renderHomeInsightCards cuando hay PR fresco). -->
+    <div class="cai-home-card-slot" id="home-entreno-rotator">
+      <button class="cai-home-card cai-home-card-entreno is-active" data-rot-slide="hoy" data-rot-label="Hoy toca" onclick="showMiEntreno(); setActiveNav('nav-entreno')" type="button">
+        <div class="cai-home-card-top">
+          <div class="cai-home-card-eyebrow" data-es="HOY TOCA" data-en="TODAY'S FOCUS">HOY TOCA</div>
+          <div class="cai-home-card-ico ico-entreno">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"/><path d="M21 21l-1-1"/><path d="M3 3l1 1"/><path d="M18 22l4-4"/><path d="M2 6l4-4"/><path d="M3 10l7-7"/><path d="M14 21l7-7"/></svg>
+          </div>
         </div>
-      </div>
-      <div class="cai-home-card-title cai-home-card-title-grad" id="home-hoy-toca-name">—</div>
-      <div class="cai-home-card-body" id="home-hoy-toca-detail"></div>
-      <div class="cai-home-card-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
-    </button>
+        <div class="cai-home-card-title cai-home-card-title-grad" id="home-hoy-toca-name">—</div>
+        <div class="cai-home-card-body" id="home-hoy-toca-detail"></div>
+        <div class="cai-home-card-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+      </button>
+
+      <!-- Slide INSIGHT: récord personal (tap → modal de Progresión) -->
+      <button class="cai-home-card cai-home-card-pr" data-rot-slide="pr" data-rot-label="Récord personal" id="home-card-pr" type="button" style="display:none;">
+        <div class="cai-home-card-top">
+          <div class="cai-home-card-eyebrow" data-es="RÉCORD PERSONAL" data-en="PERSONAL RECORD">RÉCORD PERSONAL</div>
+          <div class="cai-home-card-ico ico-pr">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5.5"/><path d="M15.2 12.6l1.6 8.1-4.8-2.9-4.8 2.9 1.6-8.1"/></svg>
+          </div>
+        </div>
+        <div class="cai-home-card-title" id="pr-card-name">—</div>
+        <div class="cai-home-card-title cai-home-card-title-grad" id="pr-card-kg">—</div>
+        <div class="cai-home-card-body" id="pr-card-sub"></div>
+        <div class="cai-home-card-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+      </button>
+
+      <!-- Dots del rotador: los genera initSlotRotator según las slides elegibles -->
+      <div class="cai-home-card-dots" id="home-entreno-dots" style="display:none;"></div>
+    </div>
   </div>
 
   <!-- Row 2: kcal chart (informational) + coach chat shortcut -->
@@ -16030,6 +16104,21 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
         <div class="cai-home-card-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
       </button>
 
+      <!-- Slide INSIGHT: tendencia de peso a favor del objetivo (tap → Perfil).
+           La llena renderHomeInsightCards; solo aparece con ≥2 registros y
+           dirección buena (bajar si define, subir si volumen). -->
+      <button class="cai-home-card cai-home-card-peso" data-rot-slide="peso" data-rot-label="Tu peso" id="home-card-peso" type="button" style="display:none;" onclick="showPerfil(); setActiveNav('nav-perfil')">
+        <div class="cai-home-card-top">
+          <div class="cai-home-card-eyebrow" data-es="TU PESO" data-en="YOUR WEIGHT">TU PESO</div>
+          <div class="cai-home-card-ico ico-peso">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M8.5 10a5 5 0 0 1 7 0"/><path d="M12 11.5l2-2.6"/></svg>
+          </div>
+        </div>
+        <div class="cai-home-card-title cai-home-card-title-green" id="peso-card-delta">—</div>
+        <div class="cai-home-card-body" id="peso-card-sub"></div>
+        <div class="cai-home-card-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+      </button>
+
       <!-- Dots del rotador: los genera initSlotRotator según las slides elegibles -->
       <div class="cai-home-card-dots" id="home-kcal-dots" style="display:none;"></div>
     </div>
@@ -16068,6 +16157,21 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
         <div class="cai-home-card-title" data-es="HOY TOCAN" data-en="TODAY">HOY TOCAN</div>
         <div class="cai-home-card-title cai-home-card-title-grad" id="cardio-card-duration">— min de cardio</div>
         <div class="cai-home-card-sub" id="cardio-card-sub" style="margin-top:6px; font-size:12px; color:var(--muted); letter-spacing:0.04em;"></div>
+      </button>
+
+      <!-- Slide INSIGHT: adherencia de las últimas 4 semanas (tap → Perfil).
+           La llena renderHomeInsightCards; solo aparece si es motivante (≥70%). -->
+      <button class="cai-home-card cai-home-card-adh" data-rot-slide="adh" data-rot-label="Adherencia" id="home-card-adh" type="button" style="display:none;" onclick="showPerfil(); setActiveNav('nav-perfil')">
+        <div class="cai-home-card-top">
+          <div class="cai-home-card-eyebrow" data-es="ÚLTIMAS 4 SEMANAS" data-en="LAST 4 WEEKS">ÚLTIMAS 4 SEMANAS</div>
+          <div class="cai-home-card-ico ico-adh">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.5l2.4 2.4 4.6-5.2"/></svg>
+          </div>
+        </div>
+        <div class="cai-home-card-title cai-home-card-title-green" id="adh-card-pct">—</div>
+        <div class="cai-home-card-title cai-home-card-title-grad" data-es="DE ADHERENCIA" data-en="ADHERENCE">DE ADHERENCIA</div>
+        <div class="cai-home-card-body" id="adh-card-sub"></div>
+        <div class="cai-home-card-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
       </button>
 
       <!-- Dots del rotador: los genera initSlotRotator según las slides elegibles -->
@@ -29994,6 +30098,7 @@ function renderHome() {
   // Network-dependent widgets
   renderHomeRing().catch(e => console.warn('[home] ring:', e));
   renderHomeHeroInsight().catch(e => console.warn('[home] hero insight:', e));
+  renderHomeInsightCards().catch(e => console.warn('[home] insight cards:', e));
   // Alimentación caches lazy-load on first visit to Mi Alimentación; for the
   // FIRST open of Home (cold session) those caches are empty and the kcal
   // chart would print "Sin dieta activa". Kick the load in the background
@@ -31305,27 +31410,20 @@ async function renderPerfilHeroCard() {
 
   // Adherencia: entrenos cumplidos vs planeados en las últimas 4 semanas, con
   // tendencia (▲/▼) contra las 4 previas. Verde si ≥75%. "—" si aún no hay datos.
+  // El cálculo vive en computeAdherencia4w (compartido con la card de Home).
   const aEl = document.getElementById('cph-adherencia');
   if (aEl) {
     aEl.classList.remove('cph-delta-good');
     try {
-      const target = ((typeof getWeeklyTrainingTarget === 'function' ? getWeeklyTrainingTarget() : 0) || 4);
-      const cut = n => { const d = new Date(); d.setDate(d.getDate() - n); return formatLocalDate(d); };
-      const c28 = cut(28), c56 = cut(56);
-      const trainedIn = (from, to) => diario.filter(r => r.entreno && r.fecha >= from && (to == null || r.fecha < to)).length;
-      const planned = target * 4;
-      const loggedRecent = diario.filter(r => r.fecha >= c28).length;
-      const adhNow = planned > 0 ? Math.min(100, Math.round(trainedIn(c28, null) / planned * 100)) : null;
-      if (adhNow == null || loggedRecent < 2) {
+      const adh = computeAdherencia4w(diario);
+      if (!adh) {
         aEl.textContent = '—';
       } else {
-        const adhPrev = Math.min(100, Math.round(trainedIn(c56, c28) / planned * 100));
-        const delta = adhNow - adhPrev;
         let arrow = '';
-        if (delta >= 3) arrow = ' <span style="font-size:12px;color:#1d9e75">▲</span>';
-        else if (delta <= -3) arrow = ' <span style="font-size:12px;color:#d9534f">▼</span>';
-        aEl.innerHTML = adhNow + '%' + arrow;
-        if (adhNow >= 75) aEl.classList.add('cph-delta-good');
+        if (adh.delta >= 3) arrow = ' <span style="font-size:12px;color:#1d9e75">▲</span>';
+        else if (adh.delta <= -3) arrow = ' <span style="font-size:12px;color:#d9534f">▼</span>';
+        aEl.innerHTML = adh.now + '%' + arrow;
+        if (adh.now >= 75) aEl.classList.add('cph-delta-good');
       }
     } catch (e) { aEl.textContent = '—'; }
   }
@@ -34465,6 +34563,156 @@ async function renderHomeHeroInsight() {
   if (!window._insightHeroTracked) {
     window._insightHeroTracked = true;
     try { trackEvent('insight_hero_prog', { ej: String(feat.name).slice(0, 60), delta: feat.d, pct: feat.pct, sem: feat.pts.length }); } catch (e) {}
+  }
+}
+
+// ── FASE 2: KPIs en las cards chicas (PR / peso / adherencia) ──
+
+// Adherencia de las últimas 4 semanas — MISMO cálculo que el hero de Perfil
+// (extraído a helper para que Home y Perfil cuenten la misma verdad):
+// entrenos cumplidos vs planeados (target semanal × 4), con la ventana previa
+// (sem 5-8) para la tendencia. null si todavía no hay datos (<2 registros).
+function computeAdherencia4w(diario) {
+  const target = ((typeof getWeeklyTrainingTarget === 'function' ? getWeeklyTrainingTarget() : 0) || 4);
+  const cut = n => { const d = new Date(); d.setDate(d.getDate() - n); return formatLocalDate(d); };
+  const c28 = cut(28), c56 = cut(56);
+  const trainedIn = (from, to) => diario.filter(r => r.entreno && r.fecha >= from && (to == null || r.fecha < to)).length;
+  const planned = target * 4;
+  const loggedRecent = diario.filter(r => r.fecha >= c28).length;
+  if (planned <= 0 || loggedRecent < 2) return null;
+  const now = Math.min(100, Math.round(trainedIn(c28, null) / planned * 100));
+  const prev = Math.min(100, Math.round(trainedIn(c56, c28) / planned * 100));
+  return { now, prev, delta: now - prev };
+}
+
+// PR RECIENTE: ejercicio cuyo mejor peso de las últimas 2 semanas ISO superó su
+// máximo histórico previo. Gana el más fresco; empate → el salto más grande.
+// Mismo criterio de "récord real" que _prCheck (contra semanas anteriores).
+function _insightsRecentPR(weeks) {
+  if (!Array.isArray(weeks) || weeks.length < 2) return null;
+  const mapping = (typeof buildTrainingDayMapping === 'function') ? buildTrainingDayMapping() : null;
+  if (!mapping) return null;
+  const since = getISOWeekKey(new Date(Date.now() - 14 * 86400000));
+  let best = null;
+  _progExerciseList(mapping).forEach(x => {
+    const pts = [];
+    weeks.forEach(w => {
+      const slots = _progSlotsForWeek(w, mapping, x.slot, x.norm);
+      if (!slots) return;
+      const v = _progBestForWeek(w, slots);
+      if (v != null) pts.push({ semana: w.semana, val: v });
+    });
+    if (pts.length < 2) return;
+    const last = pts[pts.length - 1];
+    if (!last.semana || last.semana < since) return;      // no es reciente
+    const prevMax = Math.max.apply(null, pts.slice(0, -1).map(p => p.val));
+    if (last.val <= prevMax) return;                      // no superó la historia
+    const jump = Math.round((last.val - prevMax) * 10) / 10;
+    const cand = { name: x.name, norm: x.norm, kg: last.val, prev: prevMax, jump, semana: last.semana };
+    if (!best || cand.semana > best.semana || (cand.semana === best.semana && cand.jump > best.jump)) best = cand;
+  });
+  return best;
+}
+
+// Cache compartido (60s) de progreso_peso — misma tabla que lee Perfil.
+let _pesoFetchCache = null;
+function fetchPesoRangeCached() {
+  if (!currentUser || !sbClient) return Promise.resolve([]);
+  const uid = currentUser.id;
+  const now = Date.now();
+  if (_pesoFetchCache && _pesoFetchCache.uid === uid && (now - _pesoFetchCache.at) < 60000) {
+    return _pesoFetchCache.promise;
+  }
+  const entry = { uid, at: now, promise: null };
+  entry.promise = sbClient.from('progreso_peso').select('peso,fecha')
+    .eq('usuario_id', uid).order('fecha', { ascending: true })
+    .then(({ data, error }) => { if (error) throw error; return data || []; })
+    .catch(e => { if (_pesoFetchCache === entry) _pesoFetchCache = null; throw e; });
+  _pesoFetchCache = entry;
+  return entry.promise;
+}
+
+// Render de las 3 slides KPI. Corre DESPUÉS del primer paint de Home (fire-and-
+// forget desde renderHome). Cada slide decide su elegibilidad; sin datos quedan
+// display:none y el slot rota (o no) exactamente como hasta hoy.
+async function renderHomeInsightCards() {
+  const prCard = document.getElementById('home-card-pr');
+  const pesoCard = document.getElementById('home-card-peso');
+  const adhCard = document.getElementById('home-card-adh');
+  if (!prCard || !pesoCard || !adhCard) return;
+  const reinit = () => {
+    initSlotRotator('home-entreno-rotator', 'home-entreno-dots');
+    initSlotRotator('home-kcal-rotator', 'home-kcal-dots');
+    initSlotRotator('home-card-rotator', 'home-card-dots');
+  };
+  prCard.style.display = 'none';
+  pesoCard.style.display = 'none';
+  adhCard.style.display = 'none';
+  if (!INSIGHTS_ENABLED || !currentUser || !sbClient) return reinit();
+  const es = lang === 'es';
+  const esc2 = (typeof _esc === 'function') ? _esc : (x => String(x));
+  const shown = [];
+
+  // 1) RÉCORD PERSONAL (reusa las weeks ya cacheadas por el Hero)
+  try {
+    const pr = _insightsRecentPR(await fetchEntrenoWeeksCached());
+    if (pr) {
+      document.getElementById('pr-card-name').textContent = String(pr.name).toUpperCase();
+      document.getElementById('pr-card-kg').textContent = _progFmtKg(pr.kg) + ' KG';
+      document.getElementById('pr-card-sub').innerHTML =
+        `<span class="cai-ins-green">+${_progFmtKg(pr.jump)} kg</span> ${es ? 'vs tu máximo anterior' : 'vs your previous best'}`;
+      prCard.onclick = () => {
+        _progSel = pr.norm;
+        try { showProgresionModal(); } catch (e) { console.warn('[insights] pr tap:', e); }
+      };
+      prCard.style.display = '';
+      shown.push('pr');
+    }
+  } catch (e) { console.warn('[insights] pr:', e); }
+
+  // 2) TU PESO — solo si la tendencia acompaña al objetivo (misma lógica que
+  // el hero de Perfil: ganar/volumen → subir es bueno; resto → bajar).
+  try {
+    const rows = await fetchPesoRangeCached();
+    if (rows.length >= 2 || (rows.length === 1 && currentUser.peso_inicial != null)) {
+      const actual = parseFloat(rows[rows.length - 1].peso);
+      let inicial = currentUser.peso_inicial != null ? parseFloat(currentUser.peso_inicial) : parseFloat(rows[0].peso);
+      if (isFinite(actual) && isFinite(inicial)) {
+        const diff = +(actual - inicial).toFixed(1);
+        const objKey = currentUser.objetivo || '';
+        const wantsUp = (objKey === 'ganar_musculo' || objKey === 'volumen');
+        if (diff !== 0 && (wantsUp ? diff > 0 : diff < 0)) {
+          document.getElementById('peso-card-delta').textContent =
+            (diff < 0 ? '▼ ' : '▲ ') + Math.abs(diff) + ' KG';
+          document.getElementById('peso-card-sub').textContent =
+            `${actual} kg ${es ? 'actuales · desde tu inicio' : 'now · since you started'}`;
+          pesoCard.style.display = '';
+          shown.push('peso');
+        }
+      }
+    }
+  } catch (e) { console.warn('[insights] peso:', e); }
+
+  // 3) ADHERENCIA — solo si es motivante (≥70%). Usa recentDiario (ya en
+  // memoria por el chip de racha); si la sesión es fría lo carga aparte.
+  try {
+    let diario = (typeof recentDiario !== 'undefined' && Array.isArray(recentDiario) && recentDiario.length) ? recentDiario : null;
+    if (!diario && typeof loadRecentDiario === 'function') diario = await loadRecentDiario();
+    const adh = computeAdherencia4w(diario || []);
+    if (adh && adh.now >= 70) {
+      document.getElementById('adh-card-pct').textContent = adh.now + '%';
+      document.getElementById('adh-card-sub').textContent = adh.delta >= 3
+        ? (es ? 'Subiendo vs el mes pasado 💪' : 'Trending up vs last month 💪')
+        : (es ? '¡Seguí así!' : 'Keep it up!');
+      adhCard.style.display = '';
+      shown.push('adh');
+    }
+  } catch (e) { console.warn('[insights] adherencia:', e); }
+
+  reinit();
+  if (shown.length && !window._insightCardsTracked) {
+    window._insightCardsTracked = true;
+    try { trackEvent('insight_cards', { slides: shown.join(',') }); } catch (e) {}
   }
 }
 
