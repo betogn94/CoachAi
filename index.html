@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261005-1506-deploy">
+<meta name="app-version" content="20261005-1515-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -7634,10 +7634,14 @@ button.cai-home-card { cursor: pointer; }
   align-self: flex-end;
   width: 30px; height: 30px;
   border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
   border: 1px solid rgba(124,106,255,0.30);
   color: var(--accent-bright);
   background: transparent;
+  /* RETIRADA (pedido de Beto 2026-10-05): con los slots rotadores de alto
+     fijo la flecha se desbordaba por abajo del fondo de la card y quedaba
+     como un circulito fantasma. La card entera es tappeable — la flecha era
+     decorativa. Para volverla: display:flex + align/justify center. */
+  display: none;
 }
 .cai-home-card-cta svg { width: 14px; height: 14px; }
 .cai-home-card-alim .cai-home-card-cta,
@@ -7675,6 +7679,7 @@ button.cai-home-card { cursor: pointer; }
   width: 100%;
   height: 100%;
   min-height: 0; /* anula min-heights propios (p.ej. kcal 200) dentro del slot fijo */
+  overflow: hidden; /* nada se asoma fuera del fondo de la card (alto fijo) */
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.5s ease, visibility 0.5s;
