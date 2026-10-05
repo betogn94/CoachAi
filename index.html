@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261005-1430-deploy">
+<meta name="app-version" content="20261005-1439-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -7456,15 +7456,17 @@ body.theme-king .home-plan-banner { background: #FFF0F4; border-color: rgba(255,
      este aire evita que pise el delta */
   padding-right: 26px;
 }
-.cai-hero-prog-delta {
+/* Anclados a .cai-home-hero a propósito: la manta de King
+   (body.theme-king span/div { color: var(--text) }) especifica (0,1,2) y le
+   gana a una clase sola — con dos clases (0,2,0) ganamos nosotros. */
+.cai-home-hero .cai-hero-prog-delta {
   font-family: 'DM Sans', sans-serif;
   font-size: 12.5px; font-weight: 800; letter-spacing: 0.3px;
-  background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text;
+  /* verde = progreso (mismo verde que el delta "up" del modal de Progresión) */
+  color: #16a34a;
   white-space: nowrap;
 }
-.cai-hero-prog-foot {
+.cai-home-hero .cai-hero-prog-foot {
   font-size: 11px; color: var(--muted); margin-top: 2px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
