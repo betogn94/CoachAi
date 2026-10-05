@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261002-1844-deploy">
+<meta name="app-version" content="20261005-1430-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -7415,6 +7415,60 @@ body.theme-king .home-plan-banner { background: #FFF0F4; border-color: rgba(255,
   margin-top: 2px;
 }
 
+/* ── HERO ROTATOR (insights): anillo ↔ gráfico de progresión ──
+   Mismo patrón que los slots de cards: alto FIJO al rotar + cross-fade de las
+   slides por dentro. SIN rotación el hero queda exacto al actual: la slide del
+   anillo es estática (hereda el flex que antes vivía en .cai-home-hero) y es
+   la que define el alto natural del contenedor. */
+.cai-hero-slide {
+  display: flex; align-items: center; gap: 18px;
+  width: 100%; min-width: 0;
+}
+.cai-home-hero { position: relative; }
+.cai-home-hero.is-rotating { height: 178px; }
+.cai-home-hero.is-rotating .cai-hero-slide {
+  position: absolute; inset: 0;
+  padding: 18px 18px 26px; /* reserva abajo para los dots del rotador */
+  opacity: 0; visibility: hidden;
+  transition: opacity 0.5s ease, visibility 0.5s;
+}
+.cai-home-hero.is-rotating .cai-hero-slide.is-active { opacity: 1; visibility: visible; }
+/* Slide de progresión: eyebrow+delta arriba, gráfico al centro, pie con el ejercicio */
+.cai-hero-slide-prog {
+  flex-direction: column; align-items: stretch; justify-content: center;
+  gap: 0; cursor: pointer;
+  /* neutraliza el chrome de <button> */
+  border: none; background: none; text-align: left;
+  font: inherit; color: inherit; padding: 0; margin: 0;
+}
+/* El gráfico ocupa el alto que sobra y el SVG se ajusta POR DENTRO (viewBox +
+   preserveAspectRatio "meet") → nunca desborda el alto fijo del hero, en
+   cualquier ancho de pantalla. */
+.cai-hero-prog-chart {
+  flex: 1; min-height: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.cai-hero-prog-chart svg { width: 100% !important; height: 100%; }
+.cai-hero-prog-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; margin-bottom: 2px;
+  /* el chip "i" de Home va montado sobre la esquina sup-der del hero (badge);
+     este aire evita que pise el delta */
+  padding-right: 26px;
+}
+.cai-hero-prog-delta {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12.5px; font-weight: 800; letter-spacing: 0.3px;
+  background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  white-space: nowrap;
+}
+.cai-hero-prog-foot {
+  font-size: 11px; color: var(--muted); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
 /* Racha viva (card informativa bajo el hero — iguala el ancho de la hero: 18px a los lados) */
 .home-streak-chip {
   display: flex; align-items: center; gap: 11px;
@@ -7783,6 +7837,7 @@ button.cai-home-card { cursor: pointer; }
   .cai-home-card-title { font-size: 16px; }
   .cai-home-hero-num { font-size: 38px; }
   .cai-home-hero-ring { width: 100px; height: 100px; }
+  .cai-home-hero.is-rotating { height: 162px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -15819,35 +15874,43 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     </div>
   </div>
 
-  <!-- HERO: ENTRENOS DE LA SEMANA — ring widget (informational only, NOT a shortcut) -->
+  <!-- HERO: ENTRENOS DE LA SEMANA — ring widget. Con insights (?insights=1) se
+       vuelve rotator: anillo ↔ gráfico de progresión del ejercicio destacado
+       (lo llena renderHomeHeroInsight; sin datos elegibles queda como siempre). -->
   <div class="cai-home-hero" id="home-hero-entrenos">
-    <div class="cai-home-hero-ring">
-      <!-- SVG gradient defs reused for both the ring fill and the dumbbell icon
-           below, so progress-arc + icon share the same purple→blue→teal sweep
-           that the X/N number already uses (CSS background-clip:text). -->
-      <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-        <defs>
-          <linearGradient id="home-ring-grad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#7c6aff"/>
-            <stop offset="50%" stop-color="#5b9fff"/>
-            <stop offset="100%" stop-color="#2ecfb5"/>
-          </linearGradient>
-        </defs>
-      </svg>
-      <svg viewBox="0 0 124 124" class="cai-home-ring-svg">
-        <circle class="cai-home-ring-track" cx="62" cy="62" r="48"/>
-        <circle class="cai-home-ring-fill" id="home-ring-fill" cx="62" cy="62" r="48" stroke-dasharray="301.6" stroke-dashoffset="301.6"/>
-      </svg>
-      <div class="cai-home-ring-center">
-        <svg viewBox="0 0 24 24" fill="none" stroke="url(#home-ring-grad)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"/><path d="M21 21l-1-1"/><path d="M3 3l1 1"/><path d="M18 22l4-4"/><path d="M2 6l4-4"/><path d="M3 10l7-7"/><path d="M14 21l7-7"/></svg>
+    <div class="cai-hero-slide is-active" data-rot-slide="ring" data-rot-label="Entrenamientos">
+      <div class="cai-home-hero-ring">
+        <!-- SVG gradient defs reused for both the ring fill and the dumbbell icon
+             below, so progress-arc + icon share the same purple→blue→teal sweep
+             that the X/N number already uses (CSS background-clip:text). -->
+        <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+          <defs>
+            <linearGradient id="home-ring-grad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#7c6aff"/>
+              <stop offset="50%" stop-color="#5b9fff"/>
+              <stop offset="100%" stop-color="#2ecfb5"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <svg viewBox="0 0 124 124" class="cai-home-ring-svg">
+          <circle class="cai-home-ring-track" cx="62" cy="62" r="48"/>
+          <circle class="cai-home-ring-fill" id="home-ring-fill" cx="62" cy="62" r="48" stroke-dasharray="301.6" stroke-dashoffset="301.6"/>
+        </svg>
+        <div class="cai-home-ring-center">
+          <svg viewBox="0 0 24 24" fill="none" stroke="url(#home-ring-grad)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"/><path d="M21 21l-1-1"/><path d="M3 3l1 1"/><path d="M18 22l4-4"/><path d="M2 6l4-4"/><path d="M3 10l7-7"/><path d="M14 21l7-7"/></svg>
+        </div>
+      </div>
+      <div class="cai-home-hero-info">
+        <div class="cai-home-hero-eyebrow" data-es="ENTRENAMIENTOS" data-en="WORKOUTS">ENTRENAMIENTOS</div>
+        <div class="cai-home-hero-num"><span id="home-ring-done">0</span><span class="cai-home-hero-sep">/</span><span id="home-ring-target">0</span></div>
+        <div class="cai-home-hero-label" data-es="COMPLETADOS" data-en="COMPLETED">COMPLETADOS</div>
+        <div class="cai-home-hero-sub" data-es="esta semana" data-en="this week">esta semana</div>
       </div>
     </div>
-    <div class="cai-home-hero-info">
-      <div class="cai-home-hero-eyebrow" data-es="ENTRENAMIENTOS" data-en="WORKOUTS">ENTRENAMIENTOS</div>
-      <div class="cai-home-hero-num"><span id="home-ring-done">0</span><span class="cai-home-hero-sep">/</span><span id="home-ring-target">0</span></div>
-      <div class="cai-home-hero-label" data-es="COMPLETADOS" data-en="COMPLETED">COMPLETADOS</div>
-      <div class="cai-home-hero-sub" data-es="esta semana" data-en="this week">esta semana</div>
-    </div>
+    <!-- Slide INSIGHT: gráfico de progresión (tap → modal de Progresión). La
+         llena renderHomeHeroInsight(); display:none hasta ser elegible. -->
+    <button class="cai-hero-slide cai-hero-slide-prog" data-rot-slide="prog" data-rot-label="Tu progresión" id="home-hero-prog" type="button" style="display:none"></button>
+    <div class="cai-home-card-dots" id="home-hero-dots" style="display:none"></div>
   </div>
 
   <!-- Instalar la app — SOLO en navegador (se oculta dentro de la PWA instalada).
@@ -15917,7 +15980,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
   <!-- Row 2: kcal chart (informational) + coach chat shortcut -->
   <div class="cai-home-grid">
     <div class="cai-home-card-slot" id="home-kcal-rotator">
-    <div class="cai-home-card cai-home-card-kcal is-active" data-rot-slide="kcal" id="home-kcal-card">
+    <div class="cai-home-card cai-home-card-kcal is-active" data-rot-slide="kcal" data-rot-label="Calorías" id="home-kcal-card">
       <div class="cai-home-card-top">
         <div class="cai-home-card-eyebrow" data-es="CALORÍAS HOY" data-en="CALORIES TODAY">CALORÍAS HOY</div>
         <div class="cai-home-card-ico ico-kcal">
@@ -15951,7 +16014,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       <!-- Recordatorio de cierre semanal — rota con la card de Calorías cuando
            el cierre está próximo (últimos 2 días + día del cierre, si no cerró).
            Lo puebla/activa renderHomeCierreCard(). -->
-      <button class="cai-home-card cai-home-card-cierre" data-rot-slide="cierre" id="home-card-cierre" type="button" style="display:none;">
+      <button class="cai-home-card cai-home-card-cierre" data-rot-slide="cierre" data-rot-label="Cierre semanal" id="home-card-cierre" type="button" style="display:none;">
         <div class="cai-home-card-top">
           <div class="cai-home-card-eyebrow" data-es="RECORDATORIO" data-en="REMINDER">RECORDATORIO</div>
           <div class="cai-home-card-ico ico-cierre">
@@ -15965,17 +16028,15 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
         <div class="cai-home-card-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
       </button>
 
-      <div class="cai-home-card-dots" id="home-kcal-dots" style="display:none;">
-        <button class="rot-dot is-active" data-rot-target="kcal" aria-label="Calorías"></button>
-        <button class="rot-dot" data-rot-target="cierre" aria-label="Cierre semanal"></button>
-      </div>
+      <!-- Dots del rotador: los genera initSlotRotator según las slides elegibles -->
+      <div class="cai-home-card-dots" id="home-kcal-dots" style="display:none;"></div>
     </div>
 
     <!-- Rotator slot: by default shows the Coach AI card. When parseCardioRule
          finds a rule AND today is a training day, the Cardio reminder card
          rotates in via cross-fade (8s auto + clickable dots). -->
     <div class="cai-home-card-slot" id="home-card-rotator">
-      <button class="cai-home-card cai-home-card-chat is-active" data-rot-slide="chat" onclick="showChat(); setActiveNav('nav-coach')" type="button">
+      <button class="cai-home-card cai-home-card-chat is-active" data-rot-slide="chat" data-rot-label="Coach AI" onclick="showChat(); setActiveNav('nav-coach')" type="button">
         <div class="cai-home-card-top">
           <div class="cai-home-card-eyebrow" data-es="COACH AI" data-en="COACH AI">COACH AI</div>
           <div class="cai-home-card-ico ico-chat">
@@ -15989,7 +16050,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
 
       <!-- Cardio reminder card. Inserted populated by renderCardioCard().
            Same shape/size as Coach AI so the cross-fade works seamlessly. -->
-      <button class="cai-home-card cai-home-card-cardio" data-rot-slide="cardio" id="home-card-cardio" type="button" style="display:none;">
+      <button class="cai-home-card cai-home-card-cardio" data-rot-slide="cardio" data-rot-label="Cardio" id="home-card-cardio" type="button" style="display:none;">
         <div class="cai-home-card-top">
           <div class="cai-home-card-eyebrow" data-es="RECUERDA" data-en="REMINDER">RECUERDA</div>
           <div class="cai-home-card-ico ico-cardio">
@@ -16007,11 +16068,8 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
         <div class="cai-home-card-sub" id="cardio-card-sub" style="margin-top:6px; font-size:12px; color:var(--muted); letter-spacing:0.04em;"></div>
       </button>
 
-      <!-- Rotator dots (only shown when both slides are active) -->
-      <div class="cai-home-card-dots" id="home-card-dots" style="display:none;">
-        <button class="rot-dot is-active" data-rot-target="chat" aria-label="Coach AI"></button>
-        <button class="rot-dot" data-rot-target="cardio" aria-label="Cardio"></button>
-      </div>
+      <!-- Dots del rotador: los genera initSlotRotator según las slides elegibles -->
+      <div class="cai-home-card-dots" id="home-card-dots" style="display:none;"></div>
     </div>
   </div>
 
@@ -29933,6 +29991,7 @@ function renderHome() {
   try { renderStreakChip(); }         catch (e) { console.warn('[home] streak chip:', e); }
   // Network-dependent widgets
   renderHomeRing().catch(e => console.warn('[home] ring:', e));
+  renderHomeHeroInsight().catch(e => console.warn('[home] hero insight:', e));
   // Alimentación caches lazy-load on first visit to Mi Alimentación; for the
   // FIRST open of Home (cold session) those caches are empty and the kcal
   // chart would print "Sin dieta activa". Kick the load in the background
@@ -30103,40 +30162,89 @@ function renderHomeHoyToca() {
 }
 
 // ============================
+// HOME: ROTADOR GENÉRICO DE SLOTS — un solo motor para todos (cards + hero)
+// ============================
+// Cicla con cross-fade (8s) las slides VISIBLES ([data-rot-slide] sin
+// display:none inline) de un slot. Los dots se regeneran en cada init según
+// las slides elegibles, así agregar una slide nueva no toca HTML de dots.
+// Idempotente: cada render del slot re-llama initSlotRotator y el estado
+// previo (interval incluido) se limpia. Con <2 slides visibles el slot queda
+// estático mostrando la primera (la funcional), igual que sin rotación.
+const _rotTimers = {};
+function initSlotRotator(slotId, dotsId) {
+  const slot = document.getElementById(slotId);
+  const dots = dotsId ? document.getElementById(dotsId) : null;
+  if (!slot) return;
+  if (_rotTimers[slotId]) { clearInterval(_rotTimers[slotId]); _rotTimers[slotId] = null; }
+  const slides = Array.from(slot.querySelectorAll('[data-rot-slide]'))
+    .filter(el => el.style.display !== 'none');
+  const show = (name) => {
+    slot.querySelectorAll('[data-rot-slide]').forEach(el =>
+      el.classList.toggle('is-active', el.dataset.rotSlide === name));
+    if (dots) dots.querySelectorAll('.rot-dot').forEach(d =>
+      d.classList.toggle('is-active', d.dataset.rotTarget === name));
+  };
+  if (slides.length < 2) {
+    slot.classList.remove('is-rotating');
+    if (dots) { dots.style.display = 'none'; dots.innerHTML = ''; }
+    show(slides[0] ? slides[0].dataset.rotSlide : null);
+    return;
+  }
+  slot.classList.add('is-rotating');
+  const names = slides.map(el => el.dataset.rotSlide);
+  const tick = () => {
+    const cur = slot.querySelector('[data-rot-slide].is-active');
+    const i = Math.max(0, names.indexOf(cur && cur.dataset.rotSlide));
+    show(names[(i + 1) % names.length]);
+  };
+  if (dots) {
+    dots.innerHTML = slides.map(el =>
+      `<button class="rot-dot" type="button" data-rot-target="${el.dataset.rotSlide}" aria-label="${el.dataset.rotLabel || el.dataset.rotSlide}"></button>`).join('');
+    dots.style.display = 'flex';
+    dots.querySelectorAll('.rot-dot').forEach(d => {
+      d.addEventListener('click', (e) => {
+        e.stopPropagation();
+        show(d.dataset.rotTarget);
+        // Reset del autoplay cuando navega a mano
+        if (_rotTimers[slotId]) clearInterval(_rotTimers[slotId]);
+        _rotTimers[slotId] = setInterval(tick, 8000);
+      });
+    });
+  }
+  show(names[0]); // arranca SIEMPRE en la slide funcional (la primera del slot)
+  _rotTimers[slotId] = setInterval(tick, 8000);
+}
+
+// ============================
 // HOME: CARDIO REMINDER CARD (rotator)
 // ============================
 // Decides whether today has cardio (rule from rutina + today is a training
 // day per buildTrainingDayMapping). If yes, populates the cardio card and
 // activates the rotator (cross-fade with the Coach AI card). If no, hides
 // the cardio card and leaves only Coach AI visible.
-let _cardioRotInterval = null;
 function renderHomeCardioCard(profile) {
   const isEs = lang === 'es';
   const slot      = document.getElementById('home-card-rotator');
   const cardioCard = document.getElementById('home-card-cardio');
-  const dots      = document.getElementById('home-card-dots');
   const durEl     = document.getElementById('cardio-card-duration');
   const subEl     = document.getElementById('cardio-card-sub');
   if (!slot || !cardioCard) return;
 
-  // Tear down any previous rotator state first (re-renders after marking
-  // a day as trained, switching tabs, etc, must not stack intervals).
-  if (_cardioRotInterval) { clearInterval(_cardioRotInterval); _cardioRotInterval = null; }
-  slot.classList.remove('is-rotating');
   cardioCard.style.display = 'none';
-  dots.style.display = 'none';
+
+  const show = () => initSlotRotator('home-card-rotator', 'home-card-dots');
 
   // Need a rutina with a CARDIO line
   const rutina = (typeof weeklyPlans !== 'undefined') ? weeklyPlans?.rutina : null;
-  if (!rutina || !rutina.contenido || rutina.closed) return;
+  if (!rutina || !rutina.contenido || rutina.closed) return show();
 
   const rule = parseCardioRule(rutina.contenido);
-  if (!rule) return;
+  if (!rule) return show();
 
   // Apply the rule's frequency: 'entreno' / 'todos' / 'descanso'
   const mapping = (typeof buildTrainingDayMapping === 'function') ? buildTrainingDayMapping() : null;
-  if (!mapping) return;
-  if (!cardioAppliesToday(rule, mapping.isTodayRest)) return;
+  if (!mapping) return show();
+  if (!cardioAppliesToday(rule, mapping.isTodayRest)) return show();
 
   // Populate the cardio card
   const dur = rule.duracion_min || 30;
@@ -30150,51 +30258,8 @@ function renderHomeCardioCard(profile) {
   if (rule.notas)       subParts.push(rule.notas);
   subEl.textContent = subParts.join(' · ');
 
-  // Activate rotator
   cardioCard.style.display = '';
-  dots.style.display = 'flex';
-  slot.classList.add('is-rotating');
-
-  // Wire dots (idempotent — replace handlers on each render)
-  const dotEls = dots.querySelectorAll('.rot-dot');
-  dotEls.forEach(d => {
-    const clone = d.cloneNode(true);
-    d.parentNode.replaceChild(clone, d);
-  });
-  dots.querySelectorAll('.rot-dot').forEach(d => {
-    d.addEventListener('click', (e) => {
-      e.stopPropagation();
-      _cardioRotShow(d.dataset.rotTarget);
-      // Reset autoplay timer when user manually navigates
-      if (_cardioRotInterval) clearInterval(_cardioRotInterval);
-      _cardioRotInterval = setInterval(_cardioRotTick, 8000);
-    });
-  });
-
-  // Start auto-rotation
-  _cardioRotInterval = setInterval(_cardioRotTick, 8000);
-}
-
-function _cardioRotShow(target) {
-  const slot = document.getElementById('home-card-rotator');
-  if (!slot) return;
-  slot.querySelectorAll('[data-rot-slide]').forEach(el => {
-    el.classList.toggle('is-active', el.dataset.rotSlide === target);
-  });
-  const dots = document.getElementById('home-card-dots');
-  if (dots) {
-    dots.querySelectorAll('.rot-dot').forEach(d => {
-      d.classList.toggle('is-active', d.dataset.rotTarget === target);
-    });
-  }
-}
-
-function _cardioRotTick() {
-  const slot = document.getElementById('home-card-rotator');
-  if (!slot) return;
-  const current = slot.querySelector('[data-rot-slide].is-active');
-  const next = current?.dataset.rotSlide === 'chat' ? 'cardio' : 'chat';
-  _cardioRotShow(next);
+  show();
 }
 
 // ============================
@@ -30203,7 +30268,6 @@ function _cardioRotTick() {
 // Muestra el recordatorio de cierre cuando la semana vigente está por terminar
 // (últimos 2 días + el día del cierre) y todavía NO se cerró. Tap → modal de
 // cierre de esa semana. Mismo patrón de rotación que la card de cardio.
-let _kcalRotInterval = null;
 // ¿La semana `weekNum` es elegible para cierre? Sin cierre + (ya terminó) o (en
 // curso, en sus últimos 2 días). Una semana que YA terminó y quedó sin cerrar es
 // "catch-up": se puede cerrar aunque el cliente ya esté en una semana posterior.
@@ -30555,19 +30619,16 @@ function renderHomeCierreCard() {
   const isEs = lang === 'es';
   const slot  = document.getElementById('home-kcal-rotator');
   const card  = document.getElementById('home-card-cierre');
-  const dots  = document.getElementById('home-kcal-dots');
   const msgEl = document.getElementById('cierre-card-msg');
   if (!slot || !card) return;
 
-  // Teardown previo (re-renders no deben apilar intervals).
-  if (_kcalRotInterval) { clearInterval(_kcalRotInterval); _kcalRotInterval = null; }
-  slot.classList.remove('is-rotating');
   card.style.display = 'none';
-  if (dots) dots.style.display = 'none';
-  _kcalRotShow('kcal'); // sin rotar → solo calorías
+  // initSlotRotator es idempotente: limpia el interval previo y, sin otra slide
+  // visible, deja solo calorías (sin rotar).
+  const show = () => initSlotRotator('home-kcal-rotator', 'home-kcal-dots');
 
-  if (!currentUser || !currentUser.created_at) return;
-  if (typeof getWeekNum !== 'function' || typeof getWeekRange !== 'function') return;
+  if (!currentUser || !currentUser.created_at) return show();
+  if (typeof getWeekNum !== 'function' || typeof getWeekRange !== 'function') return show();
   // Semana PENDIENTE de cerrar: la más vieja sin cerrar que YA terminó (catch-up),
   // o la actual en sus últimos 2 días. Reemplaza el viejo "solo la semana vigente",
   // que ofrecía cerrar la semana nueva vacía cuando el cliente cerraba tarde.
@@ -30580,7 +30641,7 @@ function renderHomeCierreCard() {
     week = pendingAnalisisWeek();
     analisisPend = (week != null);
   }
-  if (week == null) return;
+  if (week == null) return show();
   const range = getWeekRange(currentUser.created_at, week);
 
   // Mensaje de timing (incluye "Pendiente" para una semana que ya terminó)
@@ -30601,39 +30662,7 @@ function renderHomeCierreCard() {
 
   // Activar rotador kcal ↔ cierre
   card.style.display = '';
-  if (dots) dots.style.display = 'flex';
-  slot.classList.add('is-rotating');
-
-  if (dots) {
-    dots.querySelectorAll('.rot-dot').forEach(d => { const c = d.cloneNode(true); d.parentNode.replaceChild(c, d); });
-    dots.querySelectorAll('.rot-dot').forEach(d => {
-      d.addEventListener('click', (e) => {
-        e.stopPropagation();
-        _kcalRotShow(d.dataset.rotTarget);
-        if (_kcalRotInterval) clearInterval(_kcalRotInterval);
-        _kcalRotInterval = setInterval(_kcalRotTick, 8000);
-      });
-    });
-  }
-  _kcalRotInterval = setInterval(_kcalRotTick, 8000);
-}
-function _kcalRotShow(target) {
-  const slot = document.getElementById('home-kcal-rotator');
-  if (!slot) return;
-  slot.querySelectorAll('[data-rot-slide]').forEach(el => {
-    el.classList.toggle('is-active', el.dataset.rotSlide === target);
-  });
-  const dots = document.getElementById('home-kcal-dots');
-  if (dots) dots.querySelectorAll('.rot-dot').forEach(d => {
-    d.classList.toggle('is-active', d.dataset.rotTarget === target);
-  });
-}
-function _kcalRotTick() {
-  const slot = document.getElementById('home-kcal-rotator');
-  if (!slot) return;
-  const current = slot.querySelector('[data-rot-slide].is-active');
-  const next = current?.dataset.rotSlide === 'kcal' ? 'cierre' : 'kcal';
-  _kcalRotShow(next);
+  show();
 }
 
 // Kcal hoy — bars by meal type (Desayuno · Almuerzo · Merienda · Cena, etc.).
@@ -34188,8 +34217,14 @@ function _progBestForWeek(week, slots) {
 function _progFmtKg(v) { return (Math.round(v * 10) / 10).toString(); }
 
 // SVG del gráfico (puro: puntos → string). Colores por var() → hereda tema.
-function _progChartSvg(points) {
-  const W = 340, H = 168, L = 16, R = 30, T = 16, B = 22;
+// opts.H ajusta el alto del viewBox (el Hero usa uno más bajo que el modal);
+// opts.gid da un id ÚNICO al gradiente del área — si el SVG vive dos veces en
+// el DOM (Hero + modal abierto) los ids duplicados rompen el fill en algunos
+// navegadores.
+function _progChartSvg(points, opts) {
+  const o = opts || {};
+  const W = 340, H = o.H || 168, L = 16, R = 30, T = 16, B = 22;
+  const gid = o.gid || 'progArea';
   const n = points.length;
   const vals = points.map(p => p.val);
   let min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
@@ -34202,7 +34237,7 @@ function _progChartSvg(points) {
   const gy = [max, (min + max) / 2, min];
   const grid = gy.map(v => `<line x1="${L}" y1="${y(v).toFixed(1)}" x2="${W - R + 10}" y2="${y(v).toFixed(1)}"/>`).join('');
   const glab = gy.map(v => `<text x="${W - 2}" y="${(y(v) + 3).toFixed(1)}" text-anchor="end">${_progFmtKg(v)}</text>`).join('');
-  const area = n > 1 ? `<path d="M${pts.join(' L')} L${x(n - 1).toFixed(1)},${H - B + 4} L${x(0).toFixed(1)},${H - B + 4} Z" fill="url(#progArea)"/>` : '';
+  const area = n > 1 ? `<path d="M${pts.join(' L')} L${x(n - 1).toFixed(1)},${H - B + 4} L${x(0).toFixed(1)},${H - B + 4} Z" fill="url(#${gid})"/>` : '';
   const line = n > 1 ? `<polyline points="${pts.join(' ')}" fill="none" stroke="var(--accent,#7c6aff)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>` : '';
   const dots = points.slice(0, -1).map((p, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(p.val).toFixed(1)}" r="3.2"/>`).join('');
   const li = n - 1, lx = x(li), ly = y(points[li].val);
@@ -34213,7 +34248,7 @@ function _progChartSvg(points) {
   const xlab = points.map((p, i) => (i % step === 0 || i === n - 1)
     ? `<text x="${x(i).toFixed(1)}" y="${H - 4}" text-anchor="middle">${p.label}</text>` : '').join('');
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block" aria-hidden="true">
-    <defs><linearGradient id="progArea" x1="0" y1="0" x2="0" y2="1">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="var(--accent,#7c6aff)" stop-opacity=".22"/>
       <stop offset="1" stop-color="var(--accent,#7c6aff)" stop-opacity="0"/></linearGradient></defs>
     <g stroke="var(--border,rgba(124,106,255,.18))" stroke-width="1" opacity=".7">${grid}</g>
@@ -34310,7 +34345,7 @@ async function showProgresionModal() {
   if (!_progState || _progState.uid !== currentUser.id || (Date.now() - _progState.at) > 60000) {
     body.innerHTML = `<div class="cai-prog-loading">${es ? 'Cargando tu historial…' : 'Loading your history…'}</div>`;
     try {
-      const weeks = await _progFetchWeeks();
+      const weeks = await fetchEntrenoWeeksCached();
       _progState = { uid: currentUser.id, weeks, at: Date.now() };
     } catch (e) {
       console.warn('prog fetch failed:', e);
@@ -34326,6 +34361,109 @@ function closeProgresionModal(event) {
   if (event && event.target && event.target.id !== 'prog-modal' && !event.target.classList.contains('ej-modal-close')) return;
   const modal = document.getElementById('prog-modal');
   if (modal) modal.classList.remove('open');
+}
+
+// ═══════════ HOME INSIGHTS — KPIs dinámicos en las cards de Home ═══════════
+// Fase 1: el HERO rota anillo ↔ gráfico de progresión del "ejercicio destacado"
+// (el de mejor historia: ≥3 semanas con pesos y delta positivo). Solo LECTURA:
+// reusa el fetch de progresión vía cache compartido (Hero + modal + baseline PR
+// = una sola query por minuto). Sin datos elegibles, Home queda EXACTO al actual.
+// Gate: ?insights=1 prende / ?insights=0 apaga (localStorage coachai_insights).
+// Default OFF hasta QA en celu; al liberar cambiar el return final a `!== '0'`
+// y la rama v==='1' a removeItem (mismo circuito que progresión/PR).
+const INSIGHTS_ENABLED = (() => {
+  try {
+    const v = new URLSearchParams(window.location.search).get('insights');
+    if (v === '0') { try { localStorage.setItem('coachai_insights', '0'); } catch {} return false; }
+    if (v === '1') { try { localStorage.setItem('coachai_insights', '1'); } catch {} return true; }
+    return localStorage.getItem('coachai_insights') === '1';
+  } catch { return false; }
+})();
+
+// Cache compartido (60s) del historial de entreno_semanal. Guarda la PROMESA
+// (no el resultado) para que pedidos concurrentes en el arranque — Hero y
+// baseline de PR a la vez — también colapsen en una sola query.
+let _weeksFetchCache = null;
+function fetchEntrenoWeeksCached() {
+  if (!currentUser || !sbClient) return Promise.resolve([]);
+  const uid = currentUser.id;
+  const now = Date.now();
+  if (_weeksFetchCache && _weeksFetchCache.uid === uid && (now - _weeksFetchCache.at) < 60000) {
+    return _weeksFetchCache.promise;
+  }
+  const entry = { uid, at: now, promise: null };
+  entry.promise = _progFetchWeeks().catch(e => {
+    if (_weeksFetchCache === entry) _weeksFetchCache = null; // un fallo no queda cacheado
+    throw e;
+  });
+  _weeksFetchCache = entry;
+  return entry.promise;
+}
+
+// Ejercicio DESTACADO: el de mejor historia para contar en el Hero. Elegible =
+// ≥3 semanas con pesos y delta positivo; gana el de mayor % de mejora (con la
+// cantidad de semanas como desempate suave). Devuelve null si ninguno aplica.
+function _insightsFeaturedProgress(weeks) {
+  if (!Array.isArray(weeks) || !weeks.length) return null;
+  const mapping = (typeof buildTrainingDayMapping === 'function') ? buildTrainingDayMapping() : null;
+  if (!mapping) return null;
+  let best = null;
+  _progExerciseList(mapping).forEach(x => {
+    const pts = [];
+    weeks.forEach(w => {
+      const slots = _progSlotsForWeek(w, mapping, x.slot, x.norm);
+      if (!slots) return;
+      const v = _progBestForWeek(w, slots);
+      if (v != null) pts.push({ label: _progWeekLabel(w.semana), val: v });
+    });
+    const shown = pts.slice(-12); // misma ventana que el modal
+    if (shown.length < 3) return;
+    const first = shown[0].val, last = shown[shown.length - 1].val;
+    const d = Math.round((last - first) * 10) / 10;
+    if (d <= 0) return;
+    const pct = first > 0 ? Math.round(d / first * 100) : 0;
+    const score = pct * 100 + shown.length;
+    if (!best || score > best.score) best = { name: x.name, norm: x.norm, pts: shown, d, pct, score };
+  });
+  return best;
+}
+
+// Render de la slide de progresión del Hero. Corre DESPUÉS del primer paint de
+// Home (fire-and-forget desde renderHome) → no toca la velocidad de carga.
+async function renderHomeHeroInsight() {
+  const hero = document.getElementById('home-hero-entrenos');
+  const slide = document.getElementById('home-hero-prog');
+  if (!hero || !slide) return;
+  const reset = () => {
+    slide.style.display = 'none';
+    slide.innerHTML = '';
+    initSlotRotator('home-hero-entrenos', 'home-hero-dots');
+  };
+  if (!INSIGHTS_ENABLED || !currentUser || !sbClient) return reset();
+  let feat = null;
+  try { feat = _insightsFeaturedProgress(await fetchEntrenoWeeksCached()); } catch (e) {}
+  if (!feat) return reset();
+  const es = lang === 'es';
+  const esc2 = (typeof _esc === 'function') ? _esc : (x => String(x));
+  const deltaTxt = '+' + _progFmtKg(feat.d) + ' kg' + (feat.pct > 0 ? ` · +${feat.pct}%` : '');
+  slide.innerHTML = `
+    <div class="cai-hero-prog-head">
+      <div class="cai-home-hero-eyebrow" style="margin-bottom:0">${es ? 'TU PROGRESIÓN' : 'YOUR PROGRESS'}</div>
+      <div class="cai-hero-prog-delta">${deltaTxt}</div>
+    </div>
+    <div class="cai-hero-prog-chart">${_progChartSvg(feat.pts, { H: 118, gid: 'progAreaHero' })}</div>
+    <div class="cai-hero-prog-foot">${esc2(feat.name)} · ${es ? 'mejor serie por semana' : 'best set per week'}</div>`;
+  slide.setAttribute('aria-label', es ? 'Ver tu progresión completa' : 'See your full progress');
+  slide.onclick = () => {
+    _progSel = feat.norm; // el modal abre ya parado en el ejercicio del Hero
+    try { showProgresionModal(); } catch (e) { console.warn('[insights] prog modal:', e); }
+  };
+  slide.style.display = '';
+  initSlotRotator('home-hero-entrenos', 'home-hero-dots');
+  if (!window._insightHeroTracked) {
+    window._insightHeroTracked = true;
+    try { trackEvent('insight_hero_prog', { ej: String(feat.name).slice(0, 60), delta: feat.d, pct: feat.pct, sem: feat.pts.length }); } catch (e) {}
+  }
 }
 
 // ═══════════ RÉCORD PERSONAL (PR) — celebración al superar el máximo histórico ═══════════
@@ -34357,7 +34495,7 @@ function _prMaybeInit() {
   const uid = currentUser.id;
   const base = { uid, wk, map: {}, loading: true };
   _prBaseline = base;
-  _progFetchWeeks().then(weeks => {
+  fetchEntrenoWeeksCached().then(weeks => {
     if (_prBaseline !== base || !currentUser || currentUser.id !== uid) return;
     const list = _progExerciseList(mapping);
     weeks.forEach(w => {
