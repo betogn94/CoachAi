@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261005-1451-deploy">
+<meta name="app-version" content="20261005-1457-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -7690,10 +7690,11 @@ button.cai-home-card { cursor: pointer; }
 .cai-home-card-slot.is-rotating {
   height: 196px;
 }
-/* El slot de entreno vive en la fila 1, cuyo alto lo manda la card de Próxima
-   comida (texto variable): estira al alto de la fila en vez de fijar 196 para
-   que ambas cards de la fila queden SIEMPRE parejas. */
-#home-entreno-rotator.is-rotating {
+/* Los slots de la fila 1 (comida + entreno) estiran al alto de la fila en vez
+   de fijar 196: el alto lo manda el contenido funcional (texto variable de
+   Próxima comida) y ambas cards quedan SIEMPRE parejas. */
+#home-entreno-rotator.is-rotating,
+#home-comida-rotator.is-rotating {
   height: 100%;
   min-height: 172px;
 }
@@ -7713,10 +7714,12 @@ body.theme-king .cai-home-card .cai-ins-green { color: #16a34a !important; }
    glifo. En las slides insight: títulos rígidos + body con tope de 2 líneas. */
 .cai-home-card-pr .cai-home-card-title,
 .cai-home-card-peso .cai-home-card-title,
-.cai-home-card-adh .cai-home-card-title { flex: none; }
+.cai-home-card-adh .cai-home-card-title,
+.cai-home-card-nutri .cai-home-card-title { flex: none; }
 .cai-home-card-pr .cai-home-card-body,
 .cai-home-card-peso .cai-home-card-body,
-.cai-home-card-adh .cai-home-card-body {
+.cai-home-card-adh .cai-home-card-body,
+.cai-home-card-nutri .cai-home-card-body {
   flex: none;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -7736,6 +7739,10 @@ body.theme-king .cai-home-card .cai-ins-green { color: #16a34a !important; }
 .cai-home-card-ico.ico-adh {
   background: linear-gradient(135deg, rgba(22,163,74,0.16), rgba(46,207,181,0.16));
   color: #16a34a;
+}
+.cai-home-card-ico.ico-nutri {
+  background: linear-gradient(135deg, rgba(46,207,181,0.18), rgba(124,106,255,0.14));
+  color: var(--accent3);
 }
 /* Nombre del ejercicio del PR: tope de 2 líneas, como los textos de las cards */
 .cai-home-card-pr #pr-card-name {
@@ -16007,17 +16014,40 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
 
   <!-- Row 1: shortcut cards (Próxima comida + Hoy toca) -->
   <div class="cai-home-grid">
-    <button class="cai-home-card cai-home-card-alim" onclick="showDiario(); setActiveNav('nav-diario')" type="button">
-      <div class="cai-home-card-top">
-        <div class="cai-home-card-eyebrow" data-es="PRÓXIMA COMIDA" data-en="NEXT MEAL">PRÓXIMA COMIDA</div>
-        <div class="cai-home-card-ico ico-alim">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18a9 9 0 0 1-18 0z"/><path d="M9 4c0 1-1 2-1 3s1 2 1 3"/><path d="M14 4c0 1-1 2-1 3s1 2 1 3"/></svg>
+    <!-- Rotator slot: PRÓXIMA COMIDA (funcional, siempre primera) ↔ PROMEDIO
+         7 DÍAS (insight nutricional, la llena renderHomeInsightCards). -->
+    <div class="cai-home-card-slot" id="home-comida-rotator">
+      <button class="cai-home-card cai-home-card-alim is-active" data-rot-slide="comida" data-rot-label="Próxima comida" onclick="showDiario(); setActiveNav('nav-diario')" type="button">
+        <div class="cai-home-card-top">
+          <div class="cai-home-card-eyebrow" data-es="PRÓXIMA COMIDA" data-en="NEXT MEAL">PRÓXIMA COMIDA</div>
+          <div class="cai-home-card-ico ico-alim">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18a9 9 0 0 1-18 0z"/><path d="M9 4c0 1-1 2-1 3s1 2 1 3"/><path d="M14 4c0 1-1 2-1 3s1 2 1 3"/></svg>
+          </div>
         </div>
-      </div>
-      <div class="cai-home-card-title" id="home-prox-meal-name">—</div>
-      <div class="cai-home-card-body" id="home-prox-meal-detail"></div>
-      <div class="cai-home-card-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
-    </button>
+        <div class="cai-home-card-title" id="home-prox-meal-name">—</div>
+        <div class="cai-home-card-body" id="home-prox-meal-detail"></div>
+        <div class="cai-home-card-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+      </button>
+
+      <!-- Slide INSIGHT: promedio de kcal de la semana EN RANGO del objetivo
+           (tap → Mi Alimentación). Solo aparece con ≥4 días registrados y el
+           promedio entre 80% y 110% del target (si come mal, no se muestra). -->
+      <button class="cai-home-card cai-home-card-nutri" data-rot-slide="nutri" data-rot-label="Tu nutrición" id="home-card-nutri" type="button" style="display:none;" onclick="showDiario(); setActiveNav('nav-diario')">
+        <div class="cai-home-card-top">
+          <div class="cai-home-card-eyebrow" data-es="PROMEDIO 7 DÍAS" data-en="7-DAY AVERAGE">PROMEDIO 7 DÍAS</div>
+          <div class="cai-home-card-ico ico-nutri">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="0.8"/></svg>
+          </div>
+        </div>
+        <div class="cai-home-card-title cai-home-card-title-green" id="nutri-card-kcal">—</div>
+        <div class="cai-home-card-title cai-home-card-title-grad" data-es="EN TU RANGO" data-en="ON TARGET">EN TU RANGO</div>
+        <div class="cai-home-card-body" id="nutri-card-sub"></div>
+        <div class="cai-home-card-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+      </button>
+
+      <!-- Dots del rotador: los genera initSlotRotator según las slides elegibles -->
+      <div class="cai-home-card-dots" id="home-comida-dots" style="display:none;"></div>
+    </div>
 
     <!-- Rotator slot: HOY TOCA (funcional, siempre primera) ↔ RÉCORD PERSONAL
          (insight, la llena renderHomeInsightCards cuando hay PR fresco). -->
@@ -34639,8 +34669,10 @@ async function renderHomeInsightCards() {
   const prCard = document.getElementById('home-card-pr');
   const pesoCard = document.getElementById('home-card-peso');
   const adhCard = document.getElementById('home-card-adh');
-  if (!prCard || !pesoCard || !adhCard) return;
+  const nutriCard = document.getElementById('home-card-nutri');
+  if (!prCard || !pesoCard || !adhCard || !nutriCard) return;
   const reinit = () => {
+    initSlotRotator('home-comida-rotator', 'home-comida-dots');
     initSlotRotator('home-entreno-rotator', 'home-entreno-dots');
     initSlotRotator('home-kcal-rotator', 'home-kcal-dots');
     initSlotRotator('home-card-rotator', 'home-card-dots');
@@ -34648,6 +34680,7 @@ async function renderHomeInsightCards() {
   prCard.style.display = 'none';
   pesoCard.style.display = 'none';
   adhCard.style.display = 'none';
+  nutriCard.style.display = 'none';
   if (!INSIGHTS_ENABLED || !currentUser || !sbClient) return reinit();
   const es = lang === 'es';
   const esc2 = (typeof _esc === 'function') ? _esc : (x => String(x));
@@ -34695,8 +34728,9 @@ async function renderHomeInsightCards() {
 
   // 3) ADHERENCIA — solo si es motivante (≥70%). Usa recentDiario (ya en
   // memoria por el chip de racha); si la sesión es fría lo carga aparte.
+  let diario = null;
   try {
-    let diario = (typeof recentDiario !== 'undefined' && Array.isArray(recentDiario) && recentDiario.length) ? recentDiario : null;
+    diario = (typeof recentDiario !== 'undefined' && Array.isArray(recentDiario) && recentDiario.length) ? recentDiario : null;
     if (!diario && typeof loadRecentDiario === 'function') diario = await loadRecentDiario();
     const adh = computeAdherencia4w(diario || []);
     if (adh && adh.now >= 70) {
@@ -34708,6 +34742,33 @@ async function renderHomeInsightCards() {
       shown.push('adh');
     }
   } catch (e) { console.warn('[insights] adherencia:', e); }
+
+  // 4) NUTRICIÓN — promedio de kcal de los últimos 7 días EN RANGO del
+  // objetivo del plan (80%–110% del targetKcal). Solo se muestra si viene
+  // comiendo bien: si está fuera de rango, no aparece nada (no castiga).
+  try {
+    if (typeof ensureAlimentacionLoaded === 'function') await ensureAlimentacionLoaded();
+    const target = (typeof _alimHeader !== 'undefined' && _alimHeader && _alimHeader.targetKcal > 0) ? _alimHeader.targetKcal : 0;
+    if (target > 0 && Array.isArray(diario)) {
+      const cut = (n => { const d = new Date(); d.setDate(d.getDate() - n); return formatLocalDate(d); })(7);
+      const last7 = diario.filter(r => r.fecha >= cut && r.calorias_consumidas > 0);
+      if (last7.length >= 4) {
+        const avg = Math.round(last7.reduce((s, r) => s + r.calorias_consumidas, 0) / last7.length);
+        if (avg >= target * 0.8 && avg <= target * 1.1) {
+          const miles = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, es ? '.' : ',');
+          document.getElementById('nutri-card-kcal').textContent = miles(avg) + ' KCAL';
+          const protDays = last7.filter(r => r.proteinas_g > 0);
+          const prot = protDays.length >= 4
+            ? Math.round(protDays.reduce((s, r) => s + r.proteinas_g, 0) / protDays.length) : 0;
+          document.getElementById('nutri-card-sub').textContent = prot > 0
+            ? `~${prot} g ${es ? 'de proteína por día' : 'of protein per day'}`
+            : `${es ? 'objetivo' : 'target'}: ${miles(target)} kcal`;
+          nutriCard.style.display = '';
+          shown.push('nutri');
+        }
+      }
+    }
+  } catch (e) { console.warn('[insights] nutricion:', e); }
 
   reinit();
   if (shown.length && !window._insightCardsTracked) {
