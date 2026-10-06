@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261005-2343-deploy">
+<meta name="app-version" content="20261006-0048-dietas-veganas-vegetarianas-respetadas-por-la-ia">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -16435,7 +16435,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
           <p class="ko-sub">Contanos qué no comés. Si no tenés, seguí.</p>
           <div class="ko-body">
             <div class="ko-chips" id="ko-dieta" data-mode="multi" data-none="ninguna">
-              <button class="ko-chip ko-sel" data-v="ninguna">Ninguna</button><button class="ko-chip" data-v="vegetariana">Vegetariana</button>
+              <button class="ko-chip ko-sel" data-v="ninguna">Ninguna</button><button class="ko-chip" data-v="vegana">Vegana</button><button class="ko-chip" data-v="vegetariana">Vegetariana</button>
               <button class="ko-chip" data-v="sin gluten">Sin gluten</button><button class="ko-chip" data-v="sin lactosa">Sin lactosa</button>
               <button class="ko-chip" data-v="__otra">Otra</button>
             </div>
@@ -23267,6 +23267,84 @@ ESTILO DE DIETA KING (preferencia, no rompe el formato ni el target):
 - Ofrecé opciones alternativas dentro de cada comida con "/" (ej: "pollo/pescado/huevos 150g", "arroz/camote 150g"). La clienta elige una — mantené las kcal/macros de la comida coherentes con la opción base.
 - 4 comidas por día. Nada de comidas exóticas ni snacks ultraprocesados.`;
 
+// ── Bloques "regla suprema" para restricciones que chocan con el set de
+// alimentos del prompt (vegana/vegetariana). Sin esto la IA IGNORA la
+// restricción: la línea "Restricciones: Vegano" pierde contra la tabla de
+// referencia 100% animal + el estilo King (E2E 2026-10-05: dieta con pollo,
+// merluza y whey para un perfil vegano). El bloque anula explícitamente esas
+// señales y trae tabla y reglas de proteína vegetal propias. La regla de
+// proteína en porciones grandes es clave: sin ella la proteína se derrumba
+// (74g vs 108g objetivo en el E2E intermedio).
+const REGLAS_VEGANAS_ES = `
+RESTRICCIÓN VEGANA — REGLA SUPREMA DE ALIMENTOS (manda sobre el ESTILO DE DIETA KING, sobre la TABLA DE REFERENCIA y sobre el EJEMPLO DE REFERENCIA):
+- La clienta es VEGANA. PROHIBIDO TOTAL cualquier alimento de origen animal: carnes de todo tipo (pollo, vaca, cerdo, cordero), pescados y mariscos (merluza, atún, salmón), huevos y claras, TODOS los lácteos (leche de vaca, yogur, yogur griego, queso, ricota, crema, manteca), whey, caseína, miel y gelatina. Si un alimento del método King o de la tabla de referencia es de origen animal, NO EXISTE para esta clienta.
+- El ejemplo con pechuga de pollo NO aplica: es solo formato. Las opciones con "/" también deben ser todas vegetales.
+- TABLA VEGANA DE REFERENCIA (por 100g cocido salvo aclaración):
+  Tofu firme: 125kcal · P14 C2 G7
+  Tempeh: 195kcal · P20 C8 G11
+  Seitán: 140kcal · P25 C4 G2
+  Lentejas cocidas: 115kcal · P9 C20 G0.4
+  Garbanzos cocidos: 165kcal · P9 C27 G2.5
+  Porotos negros cocidos: 130kcal · P9 C23 G0.5
+  Soja texturizada (seca): 350kcal · P50 C30 G1 — hidratada rinde ~3x el peso
+  Edamame: 120kcal · P11 C9 G5
+  Proteína vegetal en polvo 1 scoop (30g): 110kcal · P22 C3 G2
+  Leche de soja (100ml): 40kcal · P3.3 C2 G2
+  Leche de almendras sin azúcar (100ml): 15kcal · P0.5 C0.5 G1
+  Yogur de soja natural (100g): 50kcal · P4 C4 G2
+  Mantequilla de maní (15g): 90kcal · P4 C3 G8
+  Hummus (30g): 50kcal · P2 C4 G3
+- Cada comida lleva una fuente de proteína VEGETAL fuerte (tofu, tempeh, seitán, legumbres, soja texturizada o proteína vegetal en polvo). Combiná legumbres con cereales (arroz+lentejas, etc.) para completar aminoácidos.
+- PROTEÍNA DEL DÍA INNEGOCIABLE: la suma de proteína de cada día DEBE llegar al objetivo del target (no menos del 90%). La comida vegetal es menos densa en proteína, así que las porciones van GRANDES: almuerzo Y cena llevan 180-250g de seitán/tofu firme/tempeh (o soja texturizada equivalente), y el día incluye 1-2 batidos con proteína vegetal en polvo (30-45g de polvo). El yogur de soja, la granola y las almendras NO cuentan como fuente fuerte. Antes de cerrar cada día SUMÁ la proteína: si no llega, subí el seitán/tofu o agregá medio scoop más.
+- EJEMPLO DE COMIDA VEGANA BIEN ARMADA (patrón, no lo copies literal): "Alm: Seitán 220g + arroz integral 150g cocido + ensalada mixta + 1 cda aceite oliva — 600cal · P:60g C:52g G:13g"`;
+
+const REGLAS_VEGETARIANAS_ES = `
+RESTRICCIÓN VEGETARIANA — REGLA SUPREMA DE ALIMENTOS (manda sobre el ESTILO DE DIETA KING y sobre la TABLA DE REFERENCIA):
+- La clienta es VEGETARIANA. PROHIBIDO TOTAL: carnes de todo tipo (pollo, vaca, cerdo, cordero), pescados y mariscos (merluza, atún, salmón) y gelatina. SÍ puede comer: huevos y claras, lácteos (leche, yogur griego, queso), whey y miel.
+- Si un alimento del método King o de la tabla de referencia es carne o pescado, NO EXISTE para esta clienta. Las opciones con "/" también deben respetarlo.
+- Fuentes de proteína fuerte para cada comida: huevos/claras, yogur griego, queso, whey, y las vegetales: tofu firme (125kcal · P14 C2 G7), tempeh (195kcal · P20 C8 G11), seitán (140kcal · P25 C4 G2), lentejas cocidas (115kcal · P9 C20 G0.4), garbanzos cocidos (165kcal · P9 C27 G2.5), soja texturizada seca (350kcal · P50 C30 G1).
+- PROTEÍNA DEL DÍA INNEGOCIABLE: la suma de proteína de cada día DEBE llegar al objetivo del target (no menos del 90%). Sin carne ni pescado las porciones proteicas van GRANDES: almuerzo Y cena llevan una fuente fuerte en porción generosa (3-4 huevos o 2 huevos + 3 claras, 200-250g de yogur griego, 180-250g de tofu/seitán/tempeh) y el día suele necesitar 1 batido de whey. Antes de cerrar cada día SUMÁ la proteína: si no llega, sumá claras, whey, seitán o tofu.`;
+
+const REGLAS_VEGANAS_EN = `
+VEGAN RESTRICTION — SUPREME FOOD RULE (overrides the REFERENCE TABLE and the REFERENCE EXAMPLE):
+- The client is VEGAN. ABSOLUTELY FORBIDDEN: any animal-origin food — all meats (chicken, beef, pork, lamb), fish and seafood (hake, tuna, salmon), eggs and egg whites, ALL dairy (cow milk, yogurt, Greek yogurt, cheese, ricotta, cream, butter), whey, casein, honey and gelatin. If a food in the reference table is animal-based, it DOES NOT EXIST for this client.
+- The chicken-breast example does NOT apply: it is format only. Any "/" alternatives must also be fully plant-based.
+- VEGAN REFERENCE TABLE (per 100g cooked unless noted):
+  Firm tofu: 125kcal · P14 C2 F7
+  Tempeh: 195kcal · P20 C8 F11
+  Seitan: 140kcal · P25 C4 F2
+  Cooked lentils: 115kcal · P9 C20 F0.4
+  Cooked chickpeas: 165kcal · P9 C27 F2.5
+  Cooked black beans: 130kcal · P9 C23 F0.5
+  Textured soy protein (dry): 350kcal · P50 C30 F1 — hydrated yields ~3x the weight
+  Edamame: 120kcal · P11 C9 F5
+  Plant protein powder 1 scoop (30g): 110kcal · P22 C3 F2
+  Soy milk (100ml): 40kcal · P3.3 C2 F2
+  Unsweetened almond milk (100ml): 15kcal · P0.5 C0.5 F1
+  Plain soy yogurt (100g): 50kcal · P4 C4 F2
+  Peanut butter (15g): 90kcal · P4 C3 F8
+  Hummus (30g): 50kcal · P2 C4 F3
+- Every meal carries a strong PLANT protein source (tofu, tempeh, seitan, legumes, textured soy or plant protein powder). Combine legumes with grains (rice+lentils, etc.) to complete amino acids.
+- NON-NEGOTIABLE DAILY PROTEIN: each day's protein sum MUST reach the target (no less than 90%). Plant food is less protein-dense, so portions go BIG: lunch AND dinner carry 180-250g of seitan/firm tofu/tempeh (or equivalent textured soy), and the day includes 1-2 shakes with plant protein powder (30-45g of powder). Soy yogurt, granola and almonds do NOT count as strong sources. Before closing each day ADD UP the protein: if it falls short, raise the seitan/tofu or add half a scoop more.
+- WELL-BUILT VEGAN MEAL EXAMPLE (pattern, do not copy literally): "Lunch: Seitan 220g + brown rice 150g cooked + mixed salad + 1 tbsp olive oil — 600cal · P:60g C:52g F:13g"`;
+
+const REGLAS_VEGETARIANAS_EN = `
+VEGETARIAN RESTRICTION — SUPREME FOOD RULE (overrides the REFERENCE TABLE):
+- The client is VEGETARIAN. ABSOLUTELY FORBIDDEN: all meats (chicken, beef, pork, lamb), fish and seafood (hake, tuna, salmon) and gelatin. ALLOWED: eggs and egg whites, dairy (milk, Greek yogurt, cheese), whey and honey.
+- If a food in the reference table is meat or fish, it DOES NOT EXIST for this client. Any "/" alternatives must also comply.
+- Strong protein sources for every meal: eggs/egg whites, Greek yogurt, cheese, whey, plus plant ones: firm tofu (125kcal · P14 C2 F7), tempeh (195kcal · P20 C8 F11), seitan (140kcal · P25 C4 F2), cooked lentils (115kcal · P9 C20 F0.4), cooked chickpeas (165kcal · P9 C27 F2.5), dry textured soy (350kcal · P50 C30 F1).
+- NON-NEGOTIABLE DAILY PROTEIN: each day's protein sum MUST reach the target (no less than 90%). Without meat or fish, protein portions go BIG: lunch AND dinner carry a strong source in a generous portion (3-4 eggs or 2 eggs + 3 whites, 200-250g Greek yogurt, 180-250g tofu/seitan/tempeh) and the day usually needs 1 whey shake. Before closing each day ADD UP the protein: if it falls short, add egg whites, whey, seitan or tofu.`;
+
+// Selector del bloque según el texto de restricciones (chips del onboarding o
+// texto libre del perfil). /vegan/ matchea vegano/vegan/vegana; "vegetariano"
+// NO contiene "vegan", así que el orden es seguro (vegano gana si hay ambos).
+function _bloqueRestriccionDieta(dieta, isEs) {
+  const d = String(dieta || '').toLowerCase();
+  if (/vegan/.test(d)) return isEs ? REGLAS_VEGANAS_ES : REGLAS_VEGANAS_EN;
+  if (/vegetari/.test(d)) return isEs ? REGLAS_VEGETARIANAS_ES : REGLAS_VEGETARIANAS_EN;
+  return '';
+}
+
 // Preferencia de foco muscular (renovación de rutina, docs/renovacion-rutina.md).
 // Línea condicional para el prompt: redistribuye volumen hacia la zona elegida
 // SIN pisar las reglas del método (reloj de arena / V / King) — esas siguen
@@ -23571,7 +23649,7 @@ ${_dietTarget ? `- TARGET (ya calculado para este cliente — NO recalcules el T
 - Cantidades en gramos/ml. Solo alimentos de supermercado latinoamericano.
 - Respetá restricciones, alergias y lo que no le gusta al 100%.
 - Total del día dentro de ±80kcal del target. Variá menús entre días.
-${esKing ? REGLAS_KING_DIETA_ES : ''}
+${esKing ? REGLAS_KING_DIETA_ES : ''}${_bloqueRestriccionDieta(dieta, true)}
 
 ${sexo === 'femenino' ? METODO_RELOJ_ARENA_ES : METODO_V_MASCULINO_ES}
 ${(esKing && sexo === 'femenino') ? REGLAS_KING_MUJER_ES : ''}${_focoPromptBlock(true)}
@@ -23770,6 +23848,7 @@ CRITICAL RULES:
 - Quantities in grams/ml. Regular supermarket foods only.
 - Respect restrictions, allergies and dislikes 100%.
 - Day total within ±80kcal of target. Vary menus across days.
+${_bloqueRestriccionDieta(dieta, false)}
 
 WHEN CLIENT ASKS FOR "WEEKLY ROUTINE":
 GENERATION RULES (critical — do not ignore):
