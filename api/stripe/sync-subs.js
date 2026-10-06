@@ -89,7 +89,13 @@ export default async function handler(req, res) {
     const plan = { marcar: [], limpiar: [], extender: [], null_con_sub_activa: [], sin_fila: [] };
     for (const [email, d] of deseado) {
       const rows = rowsDe(email);
-      if (!rows.length) { plan.sin_fila.push(email); continue; }
+      if (!rows.length) {
+        // Sub en Stripe sin cuenta/invitación nuestra. CLAVE distinguir: una
+        // 'activa' acá = le estamos cobrando a alguien sin cuenta (ej. purgada
+        // por error) → revisar a mano (restaurar o cancelar en Stripe).
+        plan.sin_fila.push({ email, estado: d.estado, sub: d.sub.id, vence: iso(d.sub.current_period_end) });
+        continue;
+      }
       if (d.estado === 'cancelada') {
         if (rows.some((r) => !r.suscripcion_cancelada_at)) {
           plan.marcar.push({ email, cuando: iso(d.sub.canceled_at || d.sub.ended_at) || new Date().toISOString() });
