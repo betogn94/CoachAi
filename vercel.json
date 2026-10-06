@@ -1,4 +1,10 @@
 {
+  "crons": [
+    {
+      "path": "/api/stripe/sync-subs",
+      "schedule": "0 8 * * *"
+    }
+  ],
   "redirects": [
     {
       "source": "/(.*)",
