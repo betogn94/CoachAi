@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261006-1349-deploy">
+<meta name="app-version" content="20261006-1400-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -33895,11 +33895,25 @@ function entSesFinishAsk(idx) {
   _entFinIdx = idx;
   const isEs = lang === 'es';
   const set = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
-  set('ent-fin-title', isEs ? '¿Terminar tu entrenamiento?' : 'Finish your workout?');
-  set('ent-fin-sub', isEs
-    ? 'Se guarda el tiempo de la sesión y el día queda marcado como entrenado.'
-    : 'The session time is saved and the day is marked as trained.');
-  set('ent-fin-go', isEs ? 'Terminar' : 'Finish');
+  // Sesión corta (<10 min, mismo umbral del autofin): casi siempre es un
+  // arranque sin querer donde tocaron Terminar en vez de Descartar — el copy
+  // avisa y empuja al descarte, pero la que entrenó 8 min de verdad guarda
+  // igual con un toque. NO se bloquea nada: el ✓ siempre fue auto-reportado.
+  const _s = _entSesGet(getEntrenoWeekState(), idx);
+  const corta = _s && _entSesElapsedMs(_s) < _AUTOFIN_MIN_TRAIN_MS;
+  if (corta) {
+    set('ent-fin-title', isEs ? 'Tu sesión duró menos de 10 minutos' : 'Your session lasted under 10 minutes');
+    set('ent-fin-sub', isEs
+      ? '¿La guardamos como entreno igual? Si la empezaste sin querer, descartala.'
+      : 'Save it as a workout anyway? If you started it by accident, discard it.');
+    set('ent-fin-go', isEs ? 'Guardar igual' : 'Save anyway');
+  } else {
+    set('ent-fin-title', isEs ? '¿Terminar tu entrenamiento?' : 'Finish your workout?');
+    set('ent-fin-sub', isEs
+      ? 'Se guarda el tiempo de la sesión y el día queda marcado como entrenado.'
+      : 'The session time is saved and the day is marked as trained.');
+    set('ent-fin-go', isEs ? 'Terminar' : 'Finish');
+  }
   set('ent-fin-discard', isEs ? 'Descartar sesión' : 'Discard session');
   set('ent-fin-cancel', isEs ? 'Seguir entrenando' : 'Keep training');
   ov.classList.add('open');
