@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261006-0048-dietas-veganas-vegetarianas-respetadas-por-la-ia">
+<meta name="app-version" content="20261006-1342-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -33836,6 +33836,21 @@ const CRONO_ENABLED = (() => {
   } catch { return true; }
 })();
 
+// REPETIR DÍAS DEL SPLIT (2026-10-06, pedido de Beto tras el caso Roxana):
+// cualquier día del split se puede volver a entrenar aunque ya esté completado
+// — Comenzar siempre disponible, la sesión nueva suma SU fecha a dias_entrenados
+// sin tocar la marca original del día. Incluye estampar la fecha de INICIO de
+// la sesión (no "hoy") al finalizar, para entrenos de madrugada que se cierran
+// después. Gated `?repetir=1` (persiste) hasta pasar QA; `?repetir=0` apaga.
+const REPETIR_ENABLED = (() => {
+  try {
+    const v = new URLSearchParams(window.location.search).get('repetir');
+    if (v === '1') { try { localStorage.setItem('coachai_repetir', '1'); } catch {} return true; }
+    if (v === '0') { try { localStorage.removeItem('coachai_repetir'); } catch {} return false; }
+    return localStorage.getItem('coachai_repetir') === '1';
+  } catch { return false; }
+})();
+
 // Tiempo transcurrido pause-aware (ver contrato arriba). `now` opcional;
 // con `f` seteado devuelve la duración final.
 function _entSesElapsedMs(s, now) {
@@ -33967,6 +33982,7 @@ function entGuiadoGo(idx, j) {
   const s = _entSesGet(st, idx);
   if (!s || !s.i || s.f) return;
   s.e = j;
+  s.u = Date.now();   // actividad real → el autofin no la toma por abandonada
   saveEntrenoWeekState(st);
   renderMiEntreno();
   setTimeout(() => {
@@ -34039,10 +34055,20 @@ function _entSesFmtDur(ms) {
 function entSesStart(idx) {
   const st = getEntrenoWeekState();
   st.sesion = st.sesion || {};
-  st.sesion['d' + idx] = { i: Date.now(), t: Date.now() };
+  // i0 = inicio ORIGINAL (i se resetea en cada Reanudar — sin i0, la fecha del
+  // entreno y la ventana del autofin se correrían con cada pausa larga).
+  st.sesion['d' + idx] = { i: Date.now(), i0: Date.now(), t: Date.now() };
   saveEntrenoWeekState(st);
   try { trackEvent('ent_ses_start', { idx }); } catch (e) {}
   renderMiEntreno();
+}
+
+// Fecha local de INICIO de una sesión — es la fecha que "cuenta" el entreno
+// (quien entrena 23:50→01:20 entrenó el día que arrancó, no el que terminó).
+// i0 = inicio original (i se resetea al Reanudar); sesiones viejas caen a i.
+function _entSesDateKey(s) {
+  try { if (s && (s.i0 || s.i)) return formatLocalDate(new Date(s.i0 || s.i)); } catch (e) {}
+  return getTodayKey();
 }
 
 function entSesFinish(idx) {
@@ -34053,11 +34079,19 @@ function entSesFinish(idx) {
   saveEntrenoWeekState(st);
   _entSesCelebrateIdx = idx;   // al cerrar el overlay, festejo sobre la card
   try { trackEvent('ent_ses_finish', { idx, min: Math.round(_entSesElapsedMs(s) / 60000) }); } catch (e) {}
+  const dk = REPETIR_ENABLED ? _entSesDateKey(s) : undefined;
   if (!st.completed[idx]) {
     // Marca el día por la cadena de siempre (espejo dias_entrenados/progreso,
     // re-render y momento compartible — que ahora sale con los stats).
-    toggleEntrenoDone(idx);
+    toggleEntrenoDone(idx, dk);
   } else {
+    // REPETICIÓN (caso Roxana invertido): el día del split ya estaba completado
+    // otra fecha — este entreno suma SU PROPIA fecha a dias_entrenados sin
+    // tocar la marca original (completed[idx] queda intacto, nada se borra).
+    if (REPETIR_ENABLED) {
+      try { mirrorTrainedDay(dk || getTodayKey(), true, st); } catch (e) {}
+      try { trackEvent('ent_ses_repeat', { idx, fecha: dk }); } catch (e) {}
+    }
     renderMiEntreno();
     try { showEntrenoCompletadoMoment(idx); } catch (e) {}
   }
@@ -34104,6 +34138,120 @@ function entSesDiscard(idx) {
   }
   renderMiEntreno();
 }
+
+// ===== AUTOFIN — cierre automático de sesiones olvidadas (2026-10-06) =====
+// Caso Roxana: termina de entrenar pero no toca Terminar → la sesión queda
+// abierta horas/días y el entreno se pierde o queda con duración absurda.
+// La PWA no corre en background, así que el cierre solo puede aplicarse
+// RETROACTIVAMENTE al despertar la app: sesión con +3h de reloj y +45min sin
+// actividad (tipeo de pesos/reps, avance del guiado, pausa) → se cierra sola,
+// silenciosa (toast, sin overlay de celebración), con duración reconstruida
+// desde la última actividad y la fecha del día de INICIO. Barre TODAS las
+// semanas locales: una sesión abierta que cruzó el cambio de semana ISO vivía
+// en el estado de la semana vieja y antes se perdía sin finalizarse jamás.
+// Gated `?autofin=1` (persiste) hasta pasar QA; `?autofin=0` apaga.
+const AUTOFIN_ENABLED = (() => {
+  try {
+    const v = new URLSearchParams(window.location.search).get('autofin');
+    if (v === '1') { try { localStorage.setItem('coachai_autofin', '1'); } catch {} return true; }
+    if (v === '0') { try { localStorage.removeItem('coachai_autofin'); } catch {} return false; }
+    return localStorage.getItem('coachai_autofin') === '1';
+  } catch { return false; }
+})();
+const _AUTOFIN_WALL_MS = 3 * 60 * 60 * 1000;   // mínimo de reloj desde el inicio original
+const _AUTOFIN_IDLE_MS = 45 * 60 * 1000;       // mínimo sin actividad
+const _AUTOFIN_PAD_MS  = 10 * 60 * 1000;       // colchón tras la última actividad
+const _AUTOFIN_CAP_MS  = 90 * 60 * 1000;       // tope si no hubo actividad registrada
+const _AUTOFIN_MIN_TRAIN_MS = 10 * 60 * 1000;  // menos que esto = arranque accidental → descartar
+
+// Última actividad del usuario en la sesión (u la setea _entSesTouch; t cubre
+// arranque/pausa/reanudación de sesiones viejas sin u).
+function _entSesTouch(st, idx) {
+  try {
+    const s = _entSesGet(st, idx);
+    if (s && s.i && !s.f) s.u = Date.now();
+  } catch (e) {}
+}
+
+// Cierra UNA sesión si está abandonada. Muta el estado; NO guarda ni renderiza.
+// Devuelve true si la cerró (el caller persiste y notifica).
+function _entSesAutofinClose(stw, idx, s) {
+  if (!s || !s.i || s.f) return false;
+  const now = Date.now();
+  const start = s.i0 || s.i;
+  const lastAct = Math.max(s.u || 0, s.t || 0, s.i || 0);
+  if (now - start < _AUTOFIN_WALL_MS) return false;
+  if (now - lastAct < _AUTOFIN_IDLE_MS) return false;
+  // Duración honesta: hasta la última actividad + colchón. Sin actividad
+  // después del (re)arranque → tope fijo. En pausa, el elapsed ya está
+  // congelado en acc y f es solo formal.
+  if (s.pau) s.f = now;
+  else if (lastAct > s.i) s.f = Math.min(now, lastAct + _AUTOFIN_PAD_MS);
+  else s.f = Math.min(now, s.i + _AUTOFIN_CAP_MS);
+  // Arranque accidental (tocó Comenzar y se fue): menos de 10 min de entreno
+  // reconstruido → descartar en silencio, sin marcar día ni dejar chip.
+  if (_entSesElapsedMs(s) < _AUTOFIN_MIN_TRAIN_MS) {
+    try { delete stw.sesion['d' + idx]; } catch (e) {}
+    try { trackEvent('ent_ses_autofin_discard', { idx }); } catch (e) {}
+    return 'discard';
+  }
+  // El día cuenta con la fecha de inicio real; si el día del split ya estaba
+  // completado otra fecha (repetición), solo suma la fecha nueva al espejo.
+  const dk = _entSesDateKey(s);
+  stw.completed = stw.completed || {};
+  if (!stw.completed[idx]) stw.completed[idx] = dk;
+  try { mirrorTrainedDay(dk, true, stw); } catch (e) {}
+  try { trackEvent('ent_ses_autofin', { idx, fecha: dk, min: Math.round(_entSesElapsedMs(s) / 60000) }); } catch (e) {}
+  return 'close';
+}
+
+// Barrido: recorre todas las semanas del estado local del usuario y cierra lo
+// abandonado. La semana actual persiste por la cadena de siempre; las viejas
+// se escriben directo (sin snapshot ex, que es de la semana visible).
+function entSesAutofinSweep() {
+  if (!AUTOFIN_ENABLED || !currentUser) return;
+  try {
+    const all = loadEntrenoAll();
+    const uid = currentUser.id;
+    const weeks = all[uid] || {};
+    const curWk = entrenoWeekKey();
+    let closed = 0;   // sesiones MARCADAS como entreno (los descartes son silenciosos)
+    Object.keys(weeks).forEach(wk => {
+      const stw = weeks[wk];
+      if (!stw || !stw.sesion) return;
+      let changed = false;
+      Object.keys(stw.sesion).forEach(k => {
+        const idx = parseInt(k.slice(1), 10);
+        if (isNaN(idx)) return;
+        const r = _entSesAutofinClose(stw, idx, stw.sesion[k]);
+        if (r) changed = true;
+        if (r === 'close') closed++;
+      });
+      if (!changed) return;
+      if (wk === curWk) {
+        saveEntrenoWeekState(stw);
+      } else {
+        try { localStorage.setItem(LS_ENTRENO, JSON.stringify(all)); } catch (e) {}
+        try {
+          syncPush({ op: 'upsert', table: 'entreno_semanal',
+            row: { usuario_id: uid, semana_iso: wk, estado: stw, updated_at: new Date().toISOString() },
+            onConflict: 'usuario_id,semana_iso', key: 'entreno_' + wk });
+        } catch (e) {}
+      }
+    });
+    if (closed) {
+      try { showToast(lang === 'es' ? 'Tu entreno sin cerrar quedó guardado ✓' : 'Your unfinished workout was saved ✓'); } catch (e) {}
+    }
+  } catch (e) {}
+}
+
+// La PWA "despierta" acá: al volver del background, barrer antes de que el
+// usuario mire nada (el render de Mi Entreno también barre por su cuenta).
+try {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') entSesAutofinSweep();
+  });
+} catch (e) {}
 
 // Reloj visible: recalcula desde el timestamp cada segundo mientras la card
 // esté en el DOM. Si el nodo desaparece (cambio de sección/vista), se apaga solo.
@@ -34209,11 +34357,18 @@ function _renderEntSesCard(idx, state, day) {
   } else {
     // CERRADA — resumen chico (la celebración grande ya salió al finalizar).
     // Sin volumen en kg (2026-09-18): el número no comunica nada.
+    // Con REPETIR: el mismo Comenzar de siempre queda abajo del chip — la
+    // sesión nueva pisa este slot y al finalizar suma su propia fecha.
     _entCronoMiniRemove();
     html = `
       <div class="cai-entses done">
         <div class="cai-entses-eyebrow">${isEs ? 'SESIÓN COMPLETADA' : 'SESSION DONE'}</div>
         <div class="cai-entses-meta">⏱ ${_entSesFmtDur(_entSesElapsedMs(s))}</div>
+        ${REPETIR_ENABLED ? `
+        <button class="cai-entses-btn" type="button" style="margin-top:12px" onclick="entSesStart(${idx})">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
+          ${isEs ? 'Comenzar entrenamiento' : 'Start workout'}
+        </button>` : ''}
       </div>`;
   }
   cont.style.display = 'block';
@@ -35051,6 +35206,8 @@ async function hydrateEntrenoFromSupabase() {
     remote.completed = remote.completed || {};
     remote.weights = remote.weights || {};
     writeEntrenoLocal(remote);
+    // Dispositivo fresco: la sesión colgada puede venir de la DB — barrer ya.
+    try { entSesAutofinSweep(); } catch (e) {}
   } catch (e) {
     console.warn('Entreno hydrate failed, using localStorage:', e);
   }
@@ -35671,7 +35828,7 @@ function renderEntV2List(mapping, state) {
           <div class="cai-entv2-card-meta">${metaParts.join(' · ')}</div>
         </div>
         ${isSuggested ? `<div class="cai-entv2-card-hoy">${isEs ? 'HOY' : 'TODAY'}</div>` : ''}
-        <div class="cai-entv2-card-go${done ? ' done' : ''}">${done ? checkSvg : playSvg}</div>
+        <div class="cai-entv2-card-go${done ? ' done' : ''}">${(done && !REPETIR_ENABLED) ? checkSvg : playSvg}</div>
       </div>`);
   });
 
@@ -35699,6 +35856,9 @@ function renderEntV2List(mapping, state) {
 }
 
 function renderMiEntreno() {
+  // Antes de pintar nada: cerrar sesiones abandonadas (autofin). Muta estado
+  // y NO renderiza, así que el render de abajo ya lee la verdad.
+  try { entSesAutofinSweep(); } catch (e) {}
   const hero = document.getElementById('ent-hero');
   const otherCard = document.getElementById('ent-other-card');
   const emptyState = document.getElementById('ent-empty-state');
@@ -36058,7 +36218,7 @@ function updateEntrenoSummary(_days) {
 
 function toggleEntrenoDay(_i) { /* no-op — accordion removed in today-only view */ }
 
-function toggleEntrenoDone(i) {
+function toggleEntrenoDone(i, dateStr) {
   const rutina = weeklyPlans.rutina;
   const days = (rutina && rutina.contenido) ? parseRutinaContenido(rutina.contenido) : [];
   const isRestDay = !!(days[i] && days[i].isRest);
@@ -36069,8 +36229,10 @@ function toggleEntrenoDone(i) {
   if (wasDone) {
     delete state.completed[i];
   } else {
-    // Store the date it was marked done (used to mirror dias_entrenados)
-    state.completed[i] = getTodayKey();
+    // Store the date it was marked done (used to mirror dias_entrenados).
+    // `dateStr` (opcional) la pasa entSesFinish con la fecha de INICIO de la
+    // sesión — entrenos de madrugada cerrados a la mañana cuentan el día real.
+    state.completed[i] = dateStr || getTodayKey();
   }
   saveEntrenoWeekState(state);
 
@@ -36106,6 +36268,7 @@ function onEntrenoWeight(dayIdx, exIdx, serie, inputEl) {
   _entrenoWeightTimers[k] = setTimeout(() => {
     const state = getEntrenoWeekState();
     if (clean) state.weights[k] = clean; else delete state.weights[k];
+    _entSesTouch(state, dayIdx);   // tipeo = actividad para el autofin
     saveEntrenoWeekState(state);
     const saved = document.getElementById('ews-' + k);
     if (saved) {
@@ -36135,6 +36298,7 @@ function onEntrenoReps(dayIdx, exIdx, serie, inputEl) {
   _entrenoRepsTimers[k] = setTimeout(() => {
     const state = getEntrenoWeekState();
     if (clean) state.reps[k] = clean; else delete state.reps[k];
+    _entSesTouch(state, dayIdx);   // tipeo = actividad para el autofin
     saveEntrenoWeekState(state);
     const saved = document.getElementById('ews-' + k);
     if (saved) {
