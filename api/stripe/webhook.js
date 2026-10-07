@@ -11,7 +11,7 @@
 
 import Stripe from 'stripe';
 import { sb } from '../tower/_db.js';
-import { resolveSubEmail, marcarCancelada, limpiarCancelada, VIGENTE } from './_subs.js';
+import { resolveSubEmail, marcarCancelada, limpiarCancelada, categoriaDeProducto, VIGENTE } from './_subs.js';
 
 // Stripe necesita el cuerpo SIN parsear para validar la firma.
 export const config = { api: { bodyParser: false } };
@@ -228,6 +228,12 @@ async function handleInvoicePaid(invoice, stripe) {
     ) ||
     (!_subRef && (invoice.metadata?.product === 'foundation_king'));
 
+  // Clasificación F4: producto de la línea → categoría del catálogo
+  // (stripe_productos). Foundation siempre es 'otros'.
+  const _p0 = lines[0]?.price?.product;
+  const productId = typeof _p0 === 'string' ? _p0 : _p0?.id || null;
+  const categoria = isFoundation ? 'otros' : await categoriaDeProducto(productId);
+
   await sb('/tower_revenue', {
     method: 'POST',
     body: {
@@ -246,9 +252,60 @@ async function handleInvoicePaid(invoice, stripe) {
       stripe_fee: stripeFee,
       created_by: 'stripe-webhook',
       notes: (isFoundation ? 'Foundation · ' : 'Stripe · ') + (email || 'sin email'),
+      product_id: productId,
+      categoria,
     },
     prefer: 'return=minimal',
   });
+}
+
+// Pagos ÚNICOS por checkout (links de pago del 1-a-1, combos, etc.): NUNCA
+// llegaban a tower_revenue porque mode:payment sin invoice no dispara
+// invoice.paid — la plata del 1-a-1 era invisible para Tower. Scopeado a
+// checkouts pagados SIN invoice (si la hay, el ingreso lo registra
+// handleInvoicePaid → sin doble conteo) y SIN subscription. El Mapa tiene su
+// propio registro (recordMapaRevenue) y retorna antes de llegar acá.
+async function recordCheckoutRevenue(session, stripe) {
+  const stripeId = session.id;
+  const existing = await sb(`/tower_revenue?stripe_payment_id=eq.${encodeURIComponent(stripeId)}&select=id&limit=1`);
+  if (existing && existing.length) return;
+
+  let productId = null, productName = null;
+  try {
+    const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10, expand: ['data.price.product'] });
+    const pr = items?.data?.[0]?.price;
+    productId = typeof pr?.product === 'string' ? pr.product : pr?.product?.id || null;
+    productName = (pr && typeof pr.product === 'object' && pr.product?.name) || null;
+  } catch (e) { console.warn('[stripe] line items checkout one-time:', e?.message); }
+  const categoria = await categoriaDeProducto(productId);
+
+  const slug = session.metadata?.tenant_slug || 'jesus';
+  const tenantId = await tenantIdBySlug(slug);
+  const email = (session.customer_details?.email || session.customer_email || '').toLowerCase() || null;
+  const name = session.customer_details?.name || email || 'Cliente Stripe';
+  await sb('/tower_revenue', {
+    method: 'POST',
+    body: {
+      payer_type: 'usuario',
+      tenant_id: tenantId,
+      cliente_nombre: name,
+      concept: categoria === 'asesoria_1a1' ? 'asesoria_1a1' : 'venta_unica',
+      amount: (session.amount_total || 0) / 100,
+      currency: normalizeCurrency(session.currency),
+      payment_method: 'stripe',
+      billing_period: 'unico',
+      recurring: false,
+      period_start: (session.created ? new Date(session.created * 1000) : new Date()).toISOString().slice(0, 10),
+      source: 'stripe',
+      stripe_payment_id: stripeId,
+      created_by: 'stripe-webhook',
+      notes: `${productName || 'Pago único'} · ${email || 'sin email'}`,
+      product_id: productId,
+      categoria,
+    },
+    prefer: 'return=minimal',
+  });
+  console.log('[stripe] pago único registrado:', stripeId, productName || '(sin producto)', categoria || '(sin categoría)');
 }
 
 // Mapa Estético ($19.99 one-time): ingreso puntual (NO da acceso). Llega como
@@ -286,6 +343,7 @@ async function recordMapaRevenue(session) {
       stripe_payment_id: stripeId,
       created_by: 'stripe-webhook',
       notes: email ? `Mapa Estético · ${email}` : 'Mapa Estético',
+      categoria: 'otros',
     },
     prefer: 'return=minimal',
   });
@@ -342,6 +400,12 @@ async function handleCheckoutCompleted(session, stripe) {
     try { await recordMapaRevenue(session); } catch (e) { console.error('[stripe] mapa revenue:', e?.message); }
     return;
   }
+  // Ingreso de pagos únicos no-Mapa (el 1-a-1 por link de pago): registrar
+  // ANTES de la lógica de alta — es plata aunque el email no venga.
+  if (session.mode === 'payment' && !session.invoice && session.payment_status === 'paid' && (session.amount_total || 0) > 0) {
+    try { await recordCheckoutRevenue(session, stripe); } catch (e) { console.error('[stripe] checkout revenue:', e?.message); }
+  }
+
   const email = (session.customer_details?.email || session.customer_email || '').toLowerCase();
   const name  = session.customer_details?.name || null;
   if (!email) return;

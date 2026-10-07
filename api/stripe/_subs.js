@@ -79,6 +79,16 @@ export async function marcarCancelada(email, cuandoIso) {
   } catch (e) { console.warn('[subs] marcarCancelada invitados:', e?.message); }
 }
 
+// Categoría de negocio de un producto de Stripe según el catálogo clasificado
+// (stripe_productos, lo mantiene el cron de sync-subs). null si no está.
+export async function categoriaDeProducto(productId) {
+  if (!productId) return null;
+  try {
+    const rows = await sb(`/stripe_productos?product_id=eq.${encodeURIComponent(productId)}&select=categoria&limit=1`);
+    return rows?.[0]?.categoria || null;
+  } catch (e) { return null; }
+}
+
 // La clienta volvió (reactivó o se re-suscribió) → ya no está cancelada.
 export async function limpiarCancelada(email) {
   if (!email) return;

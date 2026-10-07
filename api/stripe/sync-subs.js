@@ -19,7 +19,7 @@
 // Auth: mismo patrón que cron-notifications (Bearer CRON_SECRET o ?secret=).
 // Pensado para correr 1×/día vía cron-job.org.
 
-import { sb } from '../tower/_db.js';
+import { sb, count } from '../tower/_db.js';
 import { getStripe, resolveSubEmail, marcarCancelada, limpiarCancelada, VIGENTE } from './_subs.js';
 
 export const config = { maxDuration: 60 };
@@ -80,6 +80,46 @@ async function refreshCatalogo(stripe, dry) {
   return { total: deStripe.length, nuevos: nuevos.length, porId };
 }
 
+// ── Backfill F4: clasificar ingresos históricos de tower_revenue ──
+// Un pase (&backfill=1) etiqueta hasta 40 filas source=stripe sin categoría:
+// notes de Foundation/Mapa → 'otros'; facturas in_ → producto de la línea →
+// categoría del catálogo; checkouts cs_ → line items. Correr las veces que
+// haga falta hasta que 'restantes' llegue a 0; después queda dormido (las
+// filas nuevas ya nacen clasificadas por el webhook).
+async function backfillRevenue(stripe, porId) {
+  const rows = await sb('/tower_revenue?select=id,stripe_payment_id,notes&source=eq.stripe&categoria=is.null&order=created_at.asc&limit=40');
+  let clasificados = 0;
+  for (const r of rows || []) {
+    let categoria = null, productId = null;
+    const notes = String(r.notes || '');
+    const ref = String(r.stripe_payment_id || '');
+    try {
+      if (/^(Foundation|Mapa Estético)/.test(notes)) {
+        categoria = 'otros';
+      } else if (ref.startsWith('in_')) {
+        const inv = await stripe.invoices.retrieve(ref);
+        const p = inv?.lines?.data?.[0]?.price?.product;
+        productId = typeof p === 'string' ? p : p?.id || null;
+        categoria = (productId && porId.get(productId)?.categoria) || null;
+      } else if (ref.startsWith('cs_')) {
+        const items = await stripe.checkout.sessions.listLineItems(ref, { limit: 10 });
+        const p = items?.data?.[0]?.price?.product;
+        productId = typeof p === 'string' ? p : p?.id || null;
+        categoria = (productId && porId.get(productId)?.categoria) || null;
+      }
+    } catch (e) { console.warn('[sync-subs] backfill', ref, e?.message); }
+    if (!categoria) continue;
+    try {
+      await sb(`/tower_revenue?id=eq.${encodeURIComponent(r.id)}`, {
+        method: 'PATCH', body: { categoria, ...(productId ? { product_id: productId } : {}) }, prefer: 'return=minimal',
+      });
+      clasificados++;
+    } catch (e) { console.warn('[sync-subs] backfill patch', r.id, e?.message); }
+  }
+  const restantes = await count('tower_revenue', 'source=eq.stripe&categoria=is.null');
+  return { procesados: (rows || []).length, clasificados, restantes };
+}
+
 // Lee filas (email, acceso_hasta, suscripcion_cancelada_at) de una tabla para
 // una lista de emails, en tandas (PostgREST in.() con emails entre comillas).
 async function fetchRows(tabla, emails) {
@@ -104,6 +144,7 @@ export default async function handler(req, res) {
   if (!authed) return res.status(401).json({ ok: false, error: 'unauthorized' });
 
   const dry = !!(req.query && (req.query.dry === '1' || req.query.dry === 'true'));
+  const conBackfill = !!(req.query && req.query.backfill === '1');
 
   try {
     const stripe = getStripe();
@@ -248,9 +289,17 @@ export default async function handler(req, res) {
       if (r.intervalo === 'month' && r.moneda === 'USD' && r.monto) porCategoria[cat].mrr_usd = +(porCategoria[cat].mrr_usd + r.monto).toFixed(2);
     }
 
+    // Backfill de ingresos históricos (un pase por corrida, solo si se pide).
+    let backfill = null;
+    if (conBackfill && !dry) {
+      try { backfill = await backfillRevenue(stripe, catalogo.porId); }
+      catch (e) { backfill = { error: String(e?.message || e) }; }
+    }
+
     const resumen = {
       ok: true,
       dry,
+      ...(backfill ? { backfill } : {}),
       subs_en_stripe: snapRows.length,
       emails_con_sub: emails.length,
       catalogo: { productos: catalogo.total, nuevos: catalogo.nuevos },
