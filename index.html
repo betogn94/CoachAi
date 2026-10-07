@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261006-1400-deploy">
+<meta name="app-version" content="20261007-1826-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -27632,11 +27632,17 @@ async function autoCloseEndedWeeks(createdAt, currentWeek) {
     });
   }
   if (!rows.length) return false;
-  const { error } = await sbClient.from('cierres_semanales')
-    .upsert(rows, { onConflict: 'usuario_id,semana_num', ignoreDuplicates: true });
+  const { data: inserted, error } = await sbClient.from('cierres_semanales')
+    .upsert(rows, { onConflict: 'usuario_id,semana_num', ignoreDuplicates: true })
+    .select('semana_num');
   if (error) { console.warn('[cierre-libre] auto-cierre falló:', error.message); return false; }
-  console.info('[cierre-libre] auto-cierre semanas:', rows.map(r => r.semana_num).join(','));
-  try { trackEvent('cierre_auto', { semanas: rows.map(r => r.semana_num).join(',') }); } catch (e) {}
+  // Con ignoreDuplicates, .select() devuelve SOLO lo realmente insertado: una
+  // llamada concurrente que perdió la carrera (doble render / otro tab) inserta 0
+  // y no debe loguear ni trackear — antes trackeaba igual y el evento salía
+  // duplicado/triplicado en beta_eventos (ruido del QA del 2026-10-07).
+  if (!inserted || !inserted.length) return false;
+  console.info('[cierre-libre] auto-cierre semanas:', inserted.map(r => r.semana_num).join(','));
+  try { trackEvent('cierre_auto', { semanas: inserted.map(r => r.semana_num).join(',') }); } catch (e) {}
   return true;
 }
 
