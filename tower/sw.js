@@ -6,7 +6,7 @@
 //
 // Versioning: bump CACHE_VERSION to invalidate the precache on next deploy.
 
-const CACHE_VERSION = 'tower-v13';
+const CACHE_VERSION = 'tower-v14';
 const PRECACHE = [
   '/tower/',
   '/tower/index.html',

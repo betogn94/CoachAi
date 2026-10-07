@@ -3582,9 +3582,23 @@
         return;
       }
       const s = m.subs;
-      const conceptRows = Object.entries(m.by_concept)
-        .sort((a, b) => (b[1].amount.USD || 0) - (a[1].amount.USD || 0))
-        .map(([c, v]) => `<tr><td>${escapeHtml(_REV_CONCEPT_LABEL[c] || c)}</td><td class="cell-right">${fmtInt(v.n)}</td><td class="cell-right cell-mono">${fmtMoney(v.amount.USD || 0, 'USD')}</td></tr>`).join('');
+      // Desglose por PRODUCTO (lo que pidió Beto: el bruto del mes discriminado
+      // por producto, con su categoría). Fallback al viejo by_concept si el
+      // endpoint todavía no manda by_producto (deploy a mitad de camino).
+      const CAT_TXT = { app: 'App', asesoria_1a1: 'Asesoría 1:1', otros: 'Otros', revisar: 'Revisar', sin_categoria: '—' };
+      const prodData = m.by_producto && Object.keys(m.by_producto).length ? m.by_producto : null;
+      const conceptRows = prodData
+        ? Object.entries(prodData)
+            .sort((a, b) => (b[1].amount.USD || 0) - (a[1].amount.USD || 0))
+            .map(([p, v]) => `<tr><td>${escapeHtml(p)}<span class="cell-dim" style="font-size:11px;"> · ${escapeHtml(CAT_TXT[v.categoria] || v.categoria || '—')}</span></td><td class="cell-right">${fmtInt(v.n)}</td><td class="cell-right cell-mono">${fmtMoney(v.amount.USD || 0, 'USD')}${v.amount.EUR ? ` <span class="cell-dim">+ €${fmtMoney(v.amount.EUR)}</span>` : ''}</td></tr>`).join('')
+        : Object.entries(m.by_concept)
+            .sort((a, b) => (b[1].amount.USD || 0) - (a[1].amount.USD || 0))
+            .map(([c, v]) => `<tr><td>${escapeHtml(_REV_CONCEPT_LABEL[c] || c)}</td><td class="cell-right">${fmtInt(v.n)}</td><td class="cell-right cell-mono">${fmtMoney(v.amount.USD || 0, 'USD')}</td></tr>`).join('');
+      const catChips = m.by_categoria
+        ? Object.entries(m.by_categoria)
+            .sort((a, b) => (b[1].amount.USD || 0) - (a[1].amount.USD || 0))
+            .map(([c, v]) => `<span class="fin-seg">${escapeHtml(CAT_TXT[c] || c)}: <b>${fmtMoney(v.amount.USD || 0, 'USD')}</b> <span class="fin-seg-sub">(${fmtInt(v.n)})</span></span>`).join('')
+        : '';
       const bajasChip = enCurso
         ? `<span class="fin-seg" title="En el mes en curso todavía faltan renovar; las bajas se saben al cerrar el mes">↓ bajas: se define al cerrar el mes</span>`
         : `<span class="fin-seg" style="color:var(--text-muted)">↓ ${fmtInt(s.bajas)} bajas</span>`;
@@ -3602,8 +3616,9 @@
             <span class="fin-seg fin-seg-new">✨ ${fmtInt(s.nuevos)} nuevos</span>
             ${bajasChip}
           </div>
+          ${catChips ? `<div class="fin-segs" style="margin-top:10px">${catChips}</div>` : ''}
           <table class="data-table fin-concepts">
-            <thead><tr><th>Concepto</th><th class="cell-right">Pagos</th><th class="cell-right">Ingreso</th></tr></thead>
+            <thead><tr><th>${prodData ? 'Producto' : 'Concepto'}</th><th class="cell-right">Pagos</th><th class="cell-right">Ingreso</th></tr></thead>
             <tbody>${conceptRows}</tbody>
           </table>
           ${mrr != null ? `<div class="fin-mrr">MRR actual (ingreso recurrente): ${fmtMoney(mrr, 'USD')}/mes · Neto ${fmtMoney(_finMrr.USD.net_mrr || 0, 'USD')}</div>` : ''}

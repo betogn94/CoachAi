@@ -48,6 +48,13 @@ async function list(req, res) {
   const rows = await sb(
     `/tower_revenue?select=*,tenants(slug,name),usuarios(nombre,email)&order=period_start.desc,created_at.desc${qs}`
   );
+  // Nombre de producto por id (para el desglose por producto del mes). Sin FK
+  // declarada → no se puede embeber; se resuelve con un GET aparte.
+  let prodPorId = {};
+  try {
+    const prods = await sb('/stripe_productos?select=product_id,nombre,categoria');
+    for (const p of (prods || [])) prodPorId[p.product_id] = p;
+  } catch (e) { /* sin catálogo → desglose cae al concepto */ }
 
   // Mes actual (UTC)
   const now = new Date();
@@ -86,7 +93,7 @@ async function list(req, res) {
     revenue: rows,
     current_month: { year: y, month: m },
     totals: { by_currency: byCurrency, by_method: byMethod, count: rows.length },
-    monthly: buildMonthly(rows),
+    monthly: buildMonthly(rows, prodPorId),
   });
 }
 
@@ -96,7 +103,11 @@ async function list(req, res) {
 // mes que el admin quiso imputar). Motivo: en las renovaciones de Stripe el
 // period_start quedó pegado al mes original, así que no sirve para agrupar.
 function billingMonthKey(r) {
-  const d = (r.source === 'stripe' ? r.created_at : (r.period_start || r.created_at)) || r.created_at || '';
+  // Filas IMPORTADAS del histórico: su created_at es el día del import (todas
+  // juntas) → el mes real del pago viaja en period_start. Sin esto, todo el
+  // histórico aparecería amontonado en el mes en que se corrió el import.
+  const esImport = r.created_by === 'import-historico';
+  const d = (r.source === 'stripe' && !esImport ? r.created_at : (r.period_start || r.created_at)) || r.created_at || '';
   return String(d).slice(0, 7); // 'YYYY-MM'
 }
 function prevMonthKey(k) {
@@ -109,9 +120,9 @@ function roundObj(o) { const r = {}; for (const k in o) r[k] = round2(o[k]); ret
 // Devuelve un array (más nuevo primero) con, por mes: usuarios de suscripción
 // (total / recurrentes del mes anterior / nuevos / bajas), ingreso bruto y neto
 // por moneda, y desglose por concepto. Ignora filas en 0 (tests).
-function buildMonthly(rows) {
+function buildMonthly(rows, prodPorId = {}) {
   const months = {};
-  const ensureM = (k) => (months[k] = months[k] || { mes: k, subsUsers: new Set(), bruto: {}, neto: {}, by_concept: {} });
+  const ensureM = (k) => (months[k] = months[k] || { mes: k, subsUsers: new Set(), bruto: {}, neto: {}, by_concept: {}, by_producto: {}, by_categoria: {} });
 
   for (const r of rows) {
     const amt = Number(r.amount || 0);
@@ -126,6 +137,17 @@ function buildMonthly(rows) {
     m.by_concept[c] = m.by_concept[c] || { n: 0, amount: {} };
     m.by_concept[c].n += 1;
     m.by_concept[c].amount[cur] = (m.by_concept[c].amount[cur] || 0) + amt;
+    // Desglose por PRODUCTO (nombre del catálogo; sin producto → por concepto)
+    // y por CATEGORÍA de negocio (app / asesoria_1a1 / otros).
+    const prod = r.product_id ? prodPorId[r.product_id] : null;
+    const pNombre = prod?.nombre || `(${c})`;
+    m.by_producto[pNombre] = m.by_producto[pNombre] || { n: 0, categoria: r.categoria || prod?.categoria || null, amount: {} };
+    m.by_producto[pNombre].n += 1;
+    m.by_producto[pNombre].amount[cur] = (m.by_producto[pNombre].amount[cur] || 0) + amt;
+    const cat = r.categoria || prod?.categoria || 'sin_categoria';
+    m.by_categoria[cat] = m.by_categoria[cat] || { n: 0, amount: {} };
+    m.by_categoria[cat].n += 1;
+    m.by_categoria[cat].amount[cur] = (m.by_categoria[cat].amount[cur] || 0) + amt;
     if (c === 'suscripcion') {
       const uid = r.usuario_id || (r.cliente_nombre ? r.cliente_nombre.toLowerCase().trim() : 'row-' + r.id);
       m.subsUsers.add(uid);
@@ -141,12 +163,18 @@ function buildMonthly(rows) {
     let bajas = 0; for (const u of prevSet) { if (!m.subsUsers.has(u)) bajas += 1; }
     const by_concept = {};
     for (const c in m.by_concept) by_concept[c] = { n: m.by_concept[c].n, amount: roundObj(m.by_concept[c].amount) };
+    const by_producto = {};
+    for (const p in m.by_producto) by_producto[p] = { n: m.by_producto[p].n, categoria: m.by_producto[p].categoria, amount: roundObj(m.by_producto[p].amount) };
+    const by_categoria = {};
+    for (const c in m.by_categoria) by_categoria[c] = { n: m.by_categoria[c].n, amount: roundObj(m.by_categoria[c].amount) };
     return {
       mes: k,
       subs: { total: m.subsUsers.size, recurrentes, nuevos, bajas, prev_total: prevSet.size },
       bruto: roundObj(m.bruto),
       neto: roundObj(m.neto),
       by_concept,
+      by_producto,
+      by_categoria,
     };
   });
 }
