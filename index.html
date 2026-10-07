@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261007-1826-deploy">
+<meta name="app-version" content="20261007-1835-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -27646,6 +27646,40 @@ async function autoCloseEndedWeeks(createdAt, currentWeek) {
   return true;
 }
 
+// ── STATS FIX (2026-10-07) — refresca los stats de cierres PENDIENTES ────────
+// El autocierre congela los stats con lo que había al momento de cerrar; si la
+// clienta DESPUÉS carga datos retro de esa semana (✓ retro / editar ayer), el
+// cierre pendiente queda mintiendo (caso Roxana W40: totalLogs 0 con la semana
+// entera registrada) y el análisis pendiente la retaría por "no registrar".
+// Solo toca filas con analisis IS NULL (un análisis generado congela sus stats)
+// y solo cuando lo recomputado SUMA (trained/totalLogs mayores) — jamás degrada
+// por una carga parcial de recentDiario. ?statsfix=0 apaga (escape sin deploy).
+const STATS_FIX = (() => { try { return new URLSearchParams(location.search).get('statsfix') !== '0'; } catch (e) { return true; } })();
+async function refreshPendingCierreStats() {
+  if (!STATS_FIX || !sbClient || !currentUser) return;
+  if (currentUser.role && currentUser.role !== 'user') return;   // solo clientes
+  if (!Array.isArray(recentDiario) || !recentDiario.length) return; // sin datos cargados, no recomputar
+  const horizon = new Date(); horizon.setDate(horizon.getDate() - 28);
+  const horizonStr = formatLocalDate(horizon);   // ventana corta, siempre dentro de los 90d de recentDiario
+  for (const c of (cierresSemanales || [])) {
+    if (c.analisis != null) continue;                               // análisis hecho = stats congelados
+    if (!c.fecha_inicio || !c.fecha_fin || c.fecha_fin < horizonStr) continue;
+    const s = computeWeekStats(recentDiario, { start: c.fecha_inicio, end: c.fecha_fin });
+    const old = c.stats || {};
+    const mejora = (s.trained > (old.trained || 0)) || (s.totalLogs > (old.totalLogs || 0));
+    if (!mejora) continue;
+    const statsJson = { trained: s.trained, avgCal: s.avgCal, avgProt: s.avgProt, totalLogs: s.totalLogs, dias: s.dias, parcial: s.parcial };
+    // .is('analisis', null) también en el WHERE: si un análisis se completó en
+    // paralelo (otro tab), no le pisamos los stats que ese flujo acaba de calcular.
+    const { error } = await sbClient.from('cierres_semanales')
+      .update({ stats: statsJson }).eq('id', c.id).is('analisis', null);
+    if (error) { console.warn('[statsfix] semana', c.semana_num, ':', error.message); continue; }
+    c.stats = statsJson;   // cache en memoria coherente sin recargar
+    console.info('[statsfix] semana', c.semana_num, '· trained', (old.trained || 0), '→', s.trained, '· logs', (old.totalLogs || 0), '→', s.totalLogs);
+    try { trackEvent('cierre_stats_refresh', { semana: c.semana_num, trained: s.trained, logs: s.totalLogs }); } catch (e) {}
+  }
+}
+
 // Post auto-cierre: reabrir el ciclo EN CALIENTE — mismo patrón que el cierre
 // manual (ver el success path del análisis): recargar weeklyPlans (recalcula
 // closed), clonar el plan a la semana nueva y refrescar los quick-buttons.
@@ -27694,8 +27728,10 @@ function semanaIsoSombra(createdAt) {
 // Conservado COMPLETO como escape (?semanaiso=0) y para el modo sombra.
 function _getWeekNumLegacy(createdAt) {
   const start = new Date(createdAt.slice(0, 10) + 'T00:00:00');
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // "Hoy" vía getTodayKey(): idéntico en prod (local midnight) pero mockeable
+  // en test-semanas.mjs — con new Date() directo el caso F era una bomba de
+  // tiempo que explotaba cuando el fixture envejecía (falló el 2026-10-06).
+  const today = new Date(getTodayKey() + 'T00:00:00');
   const diff = Math.floor((today - start) / 86400000);
   // Clamp to at least 1: if `created_at` is in the future (clock skew or a
   // manual DB edit), `diff` is negative and we'd produce week 0 or negative,
@@ -27873,6 +27909,10 @@ async function renderSemanas() {
       await reabrirCicloPostCierre();
     }
   } catch (e) { console.warn('[cierre-libre] auto-cierre:', e?.message || e); }
+  // STATS FIX: cierres pendientes cuya semana recibió datos retro DESPUÉS del
+  // autocierre (caso Roxana W40). renderSemanas corre también tras el ✓ retro
+  // y tras editar un día pasado, así que este hook cubre todos los caminos.
+  try { await refreshPendingCierreStats(); } catch (e) {}
   // SOMBRA ISO (semanas-calendario F2b): comparar ambos relojes 1 vez por día —
   // telemetría pura sobre datos ya cargados, jamás afecta el render.
   try { semanaIsoSombra(createdAt); } catch (e) {}
