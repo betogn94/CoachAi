@@ -26,6 +26,60 @@ export const config = { maxDuration: 60 };
 
 const iso = (unix) => (unix ? new Date(unix * 1000).toISOString() : null);
 
+// ── Catálogo clasificado (stripe_productos) ──
+// Heurística de categoría por nombre. Solo aplica a productos NUEVOS: una vez
+// en la tabla, la categoría es editable a mano (clasificado_por='manual') y el
+// cron no la pisa jamás.
+function categoriaAuto(nombre) {
+  const n = String(nombre || '').toLowerCase();
+  if (/upsell|mapa|foundation|combo transformacion|dieta personalizada|rutina personalizada/.test(n)) return 'otros';
+  if (/coach\s?ai/.test(n)) return /programa|rutina/.test(n) ? 'revisar' : 'app';   // híbridos tipo "Programa COACH AI + RUTINA" → decide un humano
+  if (/coaching|programa|m[eé]todo|king|plan premium/.test(n)) return 'asesoria_1a1';
+  return 'revisar';
+}
+
+// Trae TODOS los productos de Stripe (activos y archivados), inserta los nuevos
+// con categoría heurística y refresca nombre/activo de los existentes.
+// Devuelve { total, nuevos, porId: Map(product_id → {nombre, categoria}) }.
+async function refreshCatalogo(stripe, dry) {
+  const deStripe = [];
+  for await (const p of stripe.products.list({ limit: 100 })) {
+    deStripe.push({ product_id: p.id, nombre: p.name || p.id, activo: !!p.active });
+  }
+  const existentes = await sb('/stripe_productos?select=product_id,nombre,categoria,activo');
+  const porIdDb = new Map((existentes || []).map((r) => [r.product_id, r]));
+
+  const nuevos = [];
+  const cambios = [];
+  const porId = new Map();
+  for (const p of deStripe) {
+    const db = porIdDb.get(p.product_id);
+    if (!db) {
+      nuevos.push({ ...p, categoria: categoriaAuto(p.nombre), clasificado_por: 'auto' });
+      porId.set(p.product_id, { nombre: p.nombre, categoria: categoriaAuto(p.nombre) });
+    } else {
+      if (db.nombre !== p.nombre || db.activo !== p.activo) cambios.push(p);
+      porId.set(p.product_id, { nombre: p.nombre, categoria: db.categoria });
+    }
+  }
+  if (!dry) {
+    if (nuevos.length) {
+      await sb('/stripe_productos?on_conflict=product_id', {
+        method: 'POST', body: nuevos,
+        prefer: 'resolution=ignore-duplicates,return=minimal',
+      });
+    }
+    for (const c of cambios) {
+      try {
+        await sb(`/stripe_productos?product_id=eq.${encodeURIComponent(c.product_id)}`, {
+          method: 'PATCH', body: { nombre: c.nombre, activo: c.activo, updated_at: new Date().toISOString() }, prefer: 'return=minimal',
+        });
+      } catch (e) { console.warn('[sync-subs] catálogo patch', c.product_id, e?.message); }
+    }
+  }
+  return { total: deStripe.length, nuevos: nuevos.length, porId };
+}
+
 // Lee filas (email, acceso_hasta, suscripcion_cancelada_at) de una tabla para
 // una lista de emails, en tandas (PostgREST in.() con emails entre comillas).
 async function fetchRows(tabla, emails) {
@@ -53,12 +107,38 @@ export default async function handler(req, res) {
 
   try {
     const stripe = getStripe();
+    const runIso = new Date().toISOString();
 
-    // 1) Todas las subs de Stripe (auto-paginado del SDK), agrupadas por email.
+    // 0) Catálogo de productos clasificado (alta de nuevos + refresco).
+    const catalogo = await refreshCatalogo(stripe, dry);
+
+    // 1) Todas las subs de Stripe (auto-paginado del SDK), agrupadas por email,
+    //    y de paso la fila de snapshot de CADA sub (incluidas las sin email).
     const porEmail = new Map();   // email → [sub]
     const sinEmail = [];
+    const snapRows = [];
     for await (const sub of stripe.subscriptions.list({ status: 'all', limit: 100, expand: ['data.customer'] })) {
       const email = await resolveSubEmail(stripe, sub);
+      const price = sub.items?.data?.[0]?.price || {};
+      const prodId = typeof price.product === 'string' ? price.product : price.product?.id || null;
+      snapRows.push({
+        sub_id: sub.id,
+        email,
+        customer_id: typeof sub.customer === 'string' ? sub.customer : sub.customer?.id || null,
+        product_id: prodId,
+        producto: catalogo.porId.get(prodId)?.nombre || null,
+        price_id: price.id || null,
+        monto: price.unit_amount != null ? price.unit_amount / 100 : null,
+        moneda: price.currency ? String(price.currency).toUpperCase() : null,
+        intervalo: price.recurring?.interval || null,
+        status: sub.status,
+        cancel_at_period_end: !!sub.cancel_at_period_end,
+        renueva_auto: VIGENTE.has(sub.status) && !sub.cancel_at_period_end,
+        inicio: iso(sub.start_date || sub.created),
+        vence: iso(sub.current_period_end),
+        cancelada_at: iso(sub.canceled_at || sub.ended_at),
+        sincronizado_at: runIso,
+      });
       if (!email) { sinEmail.push(sub.id); continue; }
       if (!porEmail.has(email)) porEmail.set(email, []);
       porEmail.get(email).push(sub);
@@ -113,6 +193,17 @@ export default async function handler(req, res) {
 
     // 5) Aplicar (salvo dry-run).
     if (!dry) {
+      // Snapshot full-refresh: upsert de todas las subs en un solo POST y
+      // purga de las que ya no existen en Stripe (quedaron con run viejo).
+      try {
+        if (snapRows.length) {
+          await sb('/stripe_subs?on_conflict=sub_id', {
+            method: 'POST', body: snapRows,
+            prefer: 'resolution=merge-duplicates,return=minimal',
+          });
+          await sb(`/stripe_subs?sincronizado_at=lt.${encodeURIComponent(runIso)}`, { method: 'DELETE', prefer: 'return=minimal' });
+        }
+      } catch (e) { console.error('[sync-subs] snapshot:', e?.message); }
       for (const a of plan.marcar) await marcarCancelada(a.email, a.cuando);
       for (const a of plan.limpiar) await limpiarCancelada(a.email);
       for (const a of plan.extender) {
@@ -132,7 +223,7 @@ export default async function handler(req, res) {
           body: {
             evento: 'sync_subs_run',
             meta: {
-              subs: [...porEmail.values()].reduce((n, arr) => n + arr.length, 0),
+              subs: snapRows.length,
               emails: emails.length,
               marcadas: plan.marcar.length,
               limpiadas: plan.limpiar.length,
@@ -146,11 +237,24 @@ export default async function handler(req, res) {
       } catch (e) { /* bitácora best-effort */ }
     }
 
+    // Resumen por categoría de las subs VIGENTES que renuevan solas (la foto
+    // que piden los análisis mensuales). MRR solo de mensuales en USD.
+    const porCategoria = {};
+    for (const r of snapRows) {
+      if (!r.renueva_auto) continue;
+      const cat = (r.product_id && catalogo.porId.get(r.product_id)?.categoria) || 'revisar';
+      if (!porCategoria[cat]) porCategoria[cat] = { subs: 0, mrr_usd: 0 };
+      porCategoria[cat].subs += 1;
+      if (r.intervalo === 'month' && r.moneda === 'USD' && r.monto) porCategoria[cat].mrr_usd = +(porCategoria[cat].mrr_usd + r.monto).toFixed(2);
+    }
+
     const resumen = {
       ok: true,
       dry,
-      subs_en_stripe: [...porEmail.values()].reduce((n, arr) => n + arr.length, 0),
+      subs_en_stripe: snapRows.length,
       emails_con_sub: emails.length,
+      catalogo: { productos: catalogo.total, nuevos: catalogo.nuevos },
+      vigentes_por_categoria: porCategoria,
       cambios: {
         marcadas_canceladas: plan.marcar,
         limpiadas_reactivadas: plan.limpiar,
