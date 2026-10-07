@@ -129,6 +129,67 @@ async function backfillRevenue(stripe, porId) {
   return { procesados: (rows || []).length, clasificados, restantes };
 }
 
+// ── Importación del histórico de pagos únicos (1-a-1, combos) ──
+// Las ventas por checkout mode:payment ANTERIORES al fix F4 nunca entraron a
+// tower_revenue (el webhook las ignoraba). Un pase (&importar=1) recorre los
+// checkout sessions pagados de Stripe, saltea los ya registrados (dedup por
+// cs_) y los que generaron invoice (ya están como in_), e importa hasta 30
+// por pase con producto/categoría. created_by='import-historico' para poder
+// distinguirlos/revertirlos. Moneda REAL (una venta en EUR queda EUR).
+async function importarHistorico(stripe, porId) {
+  const tRows = await sb('/tenants?slug=eq.jesus&select=id&limit=1');
+  const tenantId = tRows?.[0]?.id || null;
+  const detalle = [];
+  let candidatos = 0, importados = 0, yaRegistrados = 0;
+  for await (const s of stripe.checkout.sessions.list({ limit: 100 })) {
+    if (s.mode !== 'payment' || s.payment_status !== 'paid' || !((s.amount_total || 0) > 0) || s.invoice) continue;
+    candidatos++;
+    if (importados >= 30) continue;   // cap por pase; el resto en la próxima corrida
+    const existing = await sb(`/tower_revenue?stripe_payment_id=eq.${encodeURIComponent(s.id)}&select=id&limit=1`);
+    if (existing && existing.length) { yaRegistrados++; continue; }
+
+    let productId = null, productName = null;
+    try {
+      const items = await stripe.checkout.sessions.listLineItems(s.id, { limit: 10, expand: ['data.price.product'] });
+      const pr = items?.data?.[0]?.price;
+      productId = typeof pr?.product === 'string' ? pr.product : pr?.product?.id || null;
+      productName = (pr && typeof pr.product === 'object' && pr.product?.name) || null;
+    } catch (e) { /* sin producto resoluble */ }
+    const categoria = (productId && porId.get(productId)?.categoria) || null;
+    const email = (s.customer_details?.email || s.customer_email || '').toLowerCase() || null;
+    const fecha = (s.created ? new Date(s.created * 1000) : new Date()).toISOString().slice(0, 10);
+    const monto = (s.amount_total || 0) / 100;
+    const moneda = String(s.currency || 'usd').toUpperCase();
+    try {
+      await sb('/tower_revenue', {
+        method: 'POST',
+        body: {
+          payer_type: 'usuario',
+          tenant_id: tenantId,
+          cliente_nombre: s.customer_details?.name || email || 'Cliente Stripe',
+          concept: categoria === 'asesoria_1a1' ? 'asesoria_1a1' : 'venta_unica',
+          amount: monto,
+          currency: moneda,
+          payment_method: 'stripe',
+          billing_period: 'unico',
+          recurring: false,
+          period_start: fecha,
+          source: 'stripe',
+          stripe_payment_id: s.id,
+          created_by: 'import-historico',
+          notes: `${productName || 'Pago único'} · ${email || 'sin email'} · importado histórico`,
+          product_id: productId,
+          categoria,
+        },
+        prefer: 'return=minimal',
+      });
+      importados++;
+      detalle.push({ fecha, producto: productName || '(sin producto)', monto, moneda, email, categoria });
+    } catch (e) { console.warn('[sync-subs] importar', s.id, e?.message); }
+  }
+  return { candidatos, importados, ya_registrados: yaRegistrados, pendientes: Math.max(0, candidatos - importados - yaRegistrados), detalle };
+}
+
 // Lee filas (email, acceso_hasta, suscripcion_cancelada_at) de una tabla para
 // una lista de emails, en tandas (PostgREST in.() con emails entre comillas).
 async function fetchRows(tabla, emails) {
@@ -154,6 +215,7 @@ export default async function handler(req, res) {
 
   const dry = !!(req.query && (req.query.dry === '1' || req.query.dry === 'true'));
   const conBackfill = !!(req.query && req.query.backfill === '1');
+  const conImport = !!(req.query && req.query.importar === '1');
 
   try {
     const stripe = getStripe();
@@ -305,10 +367,18 @@ export default async function handler(req, res) {
       catch (e) { backfill = { error: String(e?.message || e) }; }
     }
 
+    // Importación del histórico de pagos únicos (un pase por corrida, a pedido).
+    let importHistorico = null;
+    if (conImport && !dry) {
+      try { importHistorico = await importarHistorico(stripe, catalogo.porId); }
+      catch (e) { importHistorico = { error: String(e?.message || e) }; }
+    }
+
     const resumen = {
       ok: true,
       dry,
       ...(backfill ? { backfill } : {}),
+      ...(importHistorico ? { importar: importHistorico } : {}),
       subs_en_stripe: snapRows.length,
       emails_con_sub: emails.length,
       catalogo: { productos: catalogo.total, nuevos: catalogo.nuevos },
