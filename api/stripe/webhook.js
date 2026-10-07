@@ -229,9 +229,18 @@ async function handleInvoicePaid(invoice, stripe) {
     (!_subRef && (invoice.metadata?.product === 'foundation_king'));
 
   // Clasificación F4: producto de la línea → categoría del catálogo
-  // (stripe_productos). Foundation siempre es 'otros'.
+  // (stripe_productos). Foundation siempre es 'otros'. Fallback: algunas
+  // facturas (vistas en el backfill 2026-10-07) vienen con la línea SIN
+  // price.product → lo resolvemos vía la subscription.
   const _p0 = lines[0]?.price?.product;
-  const productId = typeof _p0 === 'string' ? _p0 : _p0?.id || null;
+  let productId = typeof _p0 === 'string' ? _p0 : _p0?.id || null;
+  if (!productId && subRef) {
+    try {
+      const s = await stripe.subscriptions.retrieve(typeof subRef === 'string' ? subRef : subRef.id);
+      const p = s?.items?.data?.[0]?.price?.product;
+      productId = typeof p === 'string' ? p : p?.id || null;
+    } catch (e) { /* queda null → backfill */ }
+  }
   const categoria = isFoundation ? 'otros' : await categoriaDeProducto(productId);
 
   await sb('/tower_revenue', {

@@ -100,6 +100,15 @@ async function backfillRevenue(stripe, porId) {
         const inv = await stripe.invoices.retrieve(ref);
         const p = inv?.lines?.data?.[0]?.price?.product;
         productId = typeof p === 'string' ? p : p?.id || null;
+        // Fallback: línea sin price.product → resolver vía la subscription.
+        if (!productId) {
+          const sr = inv?.subscription || inv?.parent?.subscription_details?.subscription || null;
+          if (sr) {
+            const s = await stripe.subscriptions.retrieve(typeof sr === 'string' ? sr : sr.id);
+            const ps = s?.items?.data?.[0]?.price?.product;
+            productId = typeof ps === 'string' ? ps : ps?.id || null;
+          }
+        }
         categoria = (productId && porId.get(productId)?.categoria) || null;
       } else if (ref.startsWith('cs_')) {
         const items = await stripe.checkout.sessions.listLineItems(ref, { limit: 10 });
