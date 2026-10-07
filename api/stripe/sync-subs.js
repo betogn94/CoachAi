@@ -190,6 +190,71 @@ async function importarHistorico(stripe, porId) {
   return { candidatos, importados, ya_registrados: yaRegistrados, pendientes: Math.max(0, candidatos - importados - yaRegistrados), detalle };
 }
 
+// ── Importación de FACTURAS históricas (&facturas=1) ──
+// Las invoices pagadas ANTES de que existiera el webhook (pre ~10-jun) nunca
+// se registraron (quedaron apenas unas filas manuales a ojo). Recorre todas
+// las invoices status=paid de Stripe, dedup por in_, importa hasta 40 por
+// pase. Mismo esquema que el webhook (concept suscripcion si tiene sub).
+async function importarFacturas(stripe, porId) {
+  const tRows = await sb('/tenants?slug=eq.jesus&select=id&limit=1');
+  const tenantId = tRows?.[0]?.id || null;
+  const detalle = [];
+  let candidatos = 0, importados = 0, yaRegistrados = 0;
+  for await (const inv of stripe.invoices.list({ status: 'paid', limit: 100 })) {
+    if (!((inv.amount_paid || 0) > 0)) continue;
+    candidatos++;
+    if (importados >= 40) continue;
+    const existing = await sb(`/tower_revenue?stripe_payment_id=eq.${encodeURIComponent(inv.id)}&select=id&limit=1`);
+    if (existing && existing.length) { yaRegistrados++; continue; }
+
+    const subRef = inv.subscription || inv.parent?.subscription_details?.subscription || null;
+    let productId = null;
+    const p0 = inv.lines?.data?.[0]?.price?.product;
+    productId = typeof p0 === 'string' ? p0 : p0?.id || null;
+    if (!productId && subRef) {
+      try {
+        const s = await stripe.subscriptions.retrieve(typeof subRef === 'string' ? subRef : subRef.id);
+        const ps = s?.items?.data?.[0]?.price?.product;
+        productId = typeof ps === 'string' ? ps : ps?.id || null;
+      } catch (e) { /* noop */ }
+    }
+    const prodInfo = productId ? porId.get(productId) : null;
+    const categoria = prodInfo?.categoria || null;
+    const email = (inv.customer_email || '').toLowerCase() || null;
+    const fecha = (inv.created ? new Date(inv.created * 1000) : new Date()).toISOString().slice(0, 10);
+    const monto = (inv.amount_paid || 0) / 100;
+    const moneda = String(inv.currency || 'usd').toUpperCase();
+    const esSub = !!subRef;
+    try {
+      await sb('/tower_revenue', {
+        method: 'POST',
+        body: {
+          payer_type: 'usuario',
+          tenant_id: tenantId,
+          cliente_nombre: inv.customer_name || email || 'Cliente Stripe',
+          concept: esSub ? 'suscripcion' : (categoria === 'asesoria_1a1' ? 'asesoria_1a1' : 'venta_unica'),
+          amount: monto,
+          currency: moneda,
+          payment_method: 'stripe',
+          billing_period: esSub ? 'mensual' : 'unico',
+          recurring: esSub,
+          period_start: inv.period_start ? new Date(inv.period_start * 1000).toISOString().slice(0, 10) : fecha,
+          source: 'stripe',
+          stripe_payment_id: inv.id,
+          created_by: 'import-historico',
+          notes: `${prodInfo?.nombre || 'Factura'} · ${email || 'sin email'} · importado histórico`,
+          product_id: productId,
+          categoria,
+        },
+        prefer: 'return=minimal',
+      });
+      importados++;
+      detalle.push({ fecha, producto: prodInfo?.nombre || '(sin producto)', monto, moneda, email, categoria });
+    } catch (e) { console.warn('[sync-subs] importar factura', inv.id, e?.message); }
+  }
+  return { candidatos, importados, ya_registrados: yaRegistrados, pendientes: Math.max(0, candidatos - importados - yaRegistrados), detalle };
+}
+
 // Lee filas (email, acceso_hasta, suscripcion_cancelada_at) de una tabla para
 // una lista de emails, en tandas (PostgREST in.() con emails entre comillas).
 async function fetchRows(tabla, emails) {
@@ -216,6 +281,7 @@ export default async function handler(req, res) {
   const dry = !!(req.query && (req.query.dry === '1' || req.query.dry === 'true'));
   const conBackfill = !!(req.query && req.query.backfill === '1');
   const conImport = !!(req.query && req.query.importar === '1');
+  const conFacturas = !!(req.query && req.query.facturas === '1');
 
   try {
     const stripe = getStripe();
@@ -374,11 +440,19 @@ export default async function handler(req, res) {
       catch (e) { importHistorico = { error: String(e?.message || e) }; }
     }
 
+    // Importación de facturas históricas (pre-webhook), a pedido.
+    let importFacturas = null;
+    if (conFacturas && !dry) {
+      try { importFacturas = await importarFacturas(stripe, catalogo.porId); }
+      catch (e) { importFacturas = { error: String(e?.message || e) }; }
+    }
+
     const resumen = {
       ok: true,
       dry,
       ...(backfill ? { backfill } : {}),
       ...(importHistorico ? { importar: importHistorico } : {}),
+      ...(importFacturas ? { facturas: importFacturas } : {}),
       subs_en_stripe: snapRows.length,
       emails_con_sub: emails.length,
       catalogo: { productos: catalogo.total, nuevos: catalogo.nuevos },
