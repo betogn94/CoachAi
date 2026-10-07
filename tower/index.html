@@ -1034,6 +1034,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
         API / Costos
       </div>
+      <div class="nav-item" data-route="subs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        Suscripciones
+      </div>
 
       <div class="nav-section">Calidad</div>
       <div class="nav-item" data-route="dieta_alerts">
@@ -1371,6 +1375,7 @@
       team:         { label: 'Team',          render: renderTeam },
       financiero:   { label: 'Facturación',   render: renderFinanciero },
       costos:       { label: 'API / Costos',  render: renderCostos },
+      subs:         { label: 'Suscripciones', render: renderSubs },
       dieta_alerts: { label: 'Alertas', render: renderAlertas },
       logs:         { label: 'Logs',          render: () => placeholder('Logs', 'Eventos del sistema, errores, bug reports de usuarios. Próxima iteración.') },
       config:       { label: 'Configuración', render: () => placeholder('Configuración', 'Precios por tenant, splits, notificaciones, alertas internas.') },
@@ -3341,6 +3346,143 @@
     const FIN_MES_FULL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     let _finMonthly = [], _finMes = null, _finCurMes = '', _finMrr = {};
     function finMonthLabel(mes) { const [y, m] = mes.split('-'); return `${FIN_MES_FULL[+m - 1]} ${y}`; }
+
+    // ---------- Views: SUSCRIPCIONES (snapshot diario de Stripe) ----------
+    // Fuente: stripe_subs + stripe_productos (los refresca el sereno de las 5am).
+    const SUBS_CAT_LABEL = { app: 'App', asesoria_1a1: 'Asesoría 1:1', otros: 'Otros', revisar: 'Revisar' };
+    const SUBS_STYLE = `<style>
+      .subs-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+      .subs-chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+      .subs-chip{border:1px solid var(--border);background:transparent;border-radius:999px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--text-muted)}
+      .subs-chip.on{border-color:var(--accent);color:var(--accent);font-weight:600}
+      .subs-badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;border:1px solid var(--border)}
+      .subs-badge.cat-app{color:#2563eb;border-color:rgba(37,99,235,.4)}
+      .subs-badge.cat-asesoria_1a1{color:#7c3aed;border-color:rgba(124,58,237,.4)}
+      .subs-badge.cat-otros{color:#b45309;border-color:rgba(180,83,9,.4)}
+      .subs-badge.cat-revisar{color:#dc2626;border-color:rgba(220,38,38,.45)}
+      .subs-est-ok{color:#16a34a;font-weight:500}.subs-est-warn{color:#d97706;font-weight:500}
+      .subs-revisar{margin:14px 0;padding:12px 14px;border:1px solid rgba(220,38,38,.35);border-radius:10px}
+      .subs-revisar h3{margin:0 0 8px;font-size:13px}
+      .subs-catsel{padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:inherit;font-size:12px}
+      .subs-prodrow{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:13px}
+      .subs-catalogo{margin-top:16px}
+      .subs-snapat{font-size:11px;color:var(--text-muted);margin-bottom:10px}
+    </style>`;
+    let _subsData = null, _subsFiltro = 'todas';
+
+    async function renderSubs(el) {
+      el.innerHTML = SUBS_STYLE + `
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Suscripciones</h1>
+            <p class="page-sub">La foto viva de Stripe: quién paga qué, si renueva sola y cuándo vence. Se actualiza cada madrugada.</p>
+          </div>
+        </div>
+        <div id="subsBody"><div class="placeholder"><span class="spinner"></span> &nbsp; Cargando…</div></div>
+      `;
+      const { ok, data } = await api('/api/tower/subs');
+      const body = document.getElementById('subsBody');
+      if (!ok || !data?.ok) { body.innerHTML = '<div class="placeholder">No se pudo cargar el snapshot de suscripciones.</div>'; return; }
+      _subsData = data; _subsFiltro = 'todas';
+      subsPaint();
+    }
+
+    function subsEstado(s) {
+      if (s.renueva_auto) return `<span class="subs-est-ok">🔁 renueva ${fmtDate(s.vence)}</span>`;
+      if (s.cancel_at_period_end && s.status !== 'canceled') return `<span class="subs-est-warn">✂️ cancelada · acceso hasta ${fmtDate(s.vence)}</span>`;
+      if (s.status === 'past_due' || s.status === 'unpaid') return `<span class="subs-est-warn">⚠️ pago pendiente</span>`;
+      return `<span class="cell-dim">baja ${s.cancelada_at ? fmtDate(s.cancelada_at) : ''}</span>`;
+    }
+
+    function subsPaint() {
+      const body = document.getElementById('subsBody'); if (!body || !_subsData) return;
+      const subs = _subsData.subs || [];
+      const productos = _subsData.productos || [];
+      const hoy = Date.now(), en7d = hoy + 7 * 86400000, hace30d = hoy - 30 * 86400000;
+
+      const renovando = subs.filter((s) => s.renueva_auto);
+      const mrrUsd = renovando.filter((s) => s.intervalo === 'month' && s.moneda === 'USD').reduce((n, s) => n + (Number(s.monto) || 0), 0);
+      const vencen7 = renovando.filter((s) => s.vence && Date.parse(s.vence) < en7d);
+      const bajas30 = subs.filter((s) => s.cancelada_at && Date.parse(s.cancelada_at) >= hace30d);
+      const porCat = {};
+      renovando.forEach((s) => { porCat[s.categoria] = (porCat[s.categoria] || 0) + 1; });
+
+      // Filtro activo
+      let lista = subs;
+      if (_subsFiltro === 'renovando') lista = renovando;
+      else if (_subsFiltro === 'canceladas') lista = subs.filter((s) => !s.renueva_auto);
+      else if (_subsFiltro.startsWith('cat:')) lista = subs.filter((s) => s.categoria === _subsFiltro.slice(4));
+      lista = [...lista].sort((a, b) => (b.renueva_auto - a.renueva_auto) || String(a.vence || '').localeCompare(String(b.vence || '')));
+
+      const chips = [
+        ['todas', `Todas (${subs.length})`], ['renovando', `🔁 Renovando (${renovando.length})`], ['canceladas', `Bajas (${subs.length - renovando.length})`],
+        ...Object.keys(SUBS_CAT_LABEL).filter((c) => c !== 'revisar').map((c) => [`cat:${c}`, `${SUBS_CAT_LABEL[c]} (${porCat[c] || 0})`]),
+      ].map(([k, l]) => `<button class="subs-chip${_subsFiltro === k ? ' on' : ''}" data-filtro="${k}">${l}</button>`).join('');
+
+      const filas = lista.map((s) => `
+        <tr>
+          <td><div style="font-weight:500;">${escapeHtml(s.email || '(sin email)')}</div></td>
+          <td>${escapeHtml(s.producto || s.product_id || '—')}</td>
+          <td><span class="subs-badge cat-${s.categoria}">${SUBS_CAT_LABEL[s.categoria] || s.categoria}</span></td>
+          <td class="cell-right cell-mono">${s.monto != null ? fmtMoney(s.monto) + ' ' + escapeHtml(s.moneda || '') + (s.intervalo === 'month' ? '/mes' : s.intervalo === 'year' ? '/año' : '') : '—'}</td>
+          <td>${subsEstado(s)}</td>
+        </tr>`).join('');
+
+      // Productos activos sin clasificar → panel destacado; catálogo completo en details.
+      const sinClasificar = productos.filter((p) => p.activo && p.categoria === 'revisar');
+      const selectCat = (p) => `<select class="subs-catsel" data-prod="${escapeHtml(p.product_id)}">${Object.entries(SUBS_CAT_LABEL).map(([k, l]) => `<option value="${k}"${p.categoria === k ? ' selected' : ''}>${l}</option>`).join('')}</select>`;
+      const revisarHtml = sinClasificar.length ? `
+        <div class="subs-revisar">
+          <h3>🏷️ Productos sin clasificar (${sinClasificar.length})</h3>
+          ${sinClasificar.map((p) => `<div class="subs-prodrow"><span style="flex:1">${escapeHtml(p.nombre)}</span>${selectCat(p)}</div>`).join('')}
+        </div>` : '';
+      const catalogoHtml = `
+        <details class="subs-catalogo">
+          <summary>Catálogo completo (${productos.length} productos — editá la categoría de cualquiera)</summary>
+          <div style="margin-top:10px">${productos.map((p) => `
+            <div class="subs-prodrow">
+              <span style="flex:1">${escapeHtml(p.nombre)}${p.activo ? '' : ' <span class="cell-dim" style="font-size:11px">(archivado)</span>'}${p.clasificado_por === 'manual' ? ' <span class="cell-dim" style="font-size:11px">✍️</span>' : ''}</span>
+              ${selectCat(p)}
+            </div>`).join('')}</div>
+        </details>`;
+
+      body.innerHTML = `
+        <div class="subs-snapat">Snapshot: ${_subsData.snapshotAt ? new Date(_subsData.snapshotAt).toLocaleString('es-AR') : '—'} · se renueva solo a las ~5am</div>
+        <div class="subs-kpis">
+          ${statCard('MRR (renovando, USD)', fmtMoney(mrrUsd), `${renovando.length} suscripciones activas`)}
+          ${statCard('Vencen en 7 días', fmtInt(vencen7.length), vencen7.map((s) => (s.email || '').split('@')[0]).slice(0, 3).join(', ') || 'ninguna')}
+          ${statCard('Bajas últimos 30 días', fmtInt(bajas30.length), 'canceladas (voluntarias o fin de sub)')}
+        </div>
+        <div class="subs-chips">${chips}</div>
+        ${revisarHtml}
+        <div class="table-wrap"><table class="data-table">
+          <thead><tr><th>Clienta</th><th>Producto</th><th>Categoría</th><th class="cell-right">Monto</th><th>Estado</th></tr></thead>
+          <tbody>${filas || '<tr><td colspan="5" class="cell-dim">Sin suscripciones en este filtro.</td></tr>'}</tbody>
+        </table></div>
+        ${catalogoHtml}
+      `;
+      body.querySelectorAll('[data-filtro]').forEach((b) => b.addEventListener('click', () => { _subsFiltro = b.dataset.filtro; subsPaint(); }));
+      body.querySelectorAll('.subs-catsel').forEach((sel) => sel.addEventListener('change', () => subsSetCategoria(sel)));
+    }
+
+    async function subsSetCategoria(sel) {
+      const productId = sel.dataset.prod, categoria = sel.value;
+      sel.disabled = true;
+      try {
+        const { ok, data } = await api('/api/tower/producto_categoria', { method: 'POST', body: JSON.stringify({ product_id: productId, categoria }) });
+        if (!ok || !data?.ok) throw new Error(data?.error || 'error');
+        // Refresco local: catálogo + categoría de las subs de ese producto.
+        const p = (_subsData.productos || []).find((x) => x.product_id === productId);
+        if (p) { p.categoria = categoria; p.clasificado_por = 'manual'; }
+        (_subsData.subs || []).forEach((s) => { if (s.product_id === productId) s.categoria = categoria; });
+        toast('Categoría guardada');
+        subsPaint();
+      } catch (e) {
+        console.error('[tower/subs] categoria:', e);
+        toast('No se pudo guardar la categoría', 'error');
+        sel.disabled = false;
+      }
+    }
 
     const FIN_STYLE = `<style>
       .fin-monthnav{margin-bottom:16px}
