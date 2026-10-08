@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261008-2033-reto-mensual-gated">
+<meta name="app-version" content="20261008-2040-reto-colores-tenant-king">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -3300,6 +3300,26 @@ body.theme-king #home-ring-grad stop:nth-child(3) { stop-color: var(--accent3) !
    style here because inline style precedence is overridden by !important. */
 body.theme-king .cai-home-ring-fill {
   filter: drop-shadow(0 0 6px rgba(255,79,123,0.55)) !important;
+}
+
+/* RETO MENSUAL en KING: los números y barras usan el gradiente violeta→teal
+   de la marca default → acá van al gradiente coral del tenant (mismo trío
+   accent-bright/accent/accent3 que ya usan ring-done y title-grad). */
+body.theme-king .home-reto-chip .hrc-count,
+body.theme-king .reto-progress .reto-progress-n b {
+  background: linear-gradient(135deg, var(--accent-bright), var(--accent), var(--accent3)) !important;
+  -webkit-background-clip: text !important; -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+body.theme-king .cai-home-card-reto .cai-reto-bar-fill,
+body.theme-king .home-reto-chip .hrc-fill,
+body.theme-king .reto-progress .reto-progress-fill {
+  background: linear-gradient(90deg, var(--accent-bright), var(--accent), var(--accent3)) !important;
+}
+body.theme-king .cai-home-card-reto .cai-reto-bar,
+body.theme-king .home-reto-chip .hrc-bar,
+body.theme-king .reto-progress .reto-progress-bar {
+  background: rgba(255,79,123,0.12) !important;
 }
 
 /* Card CTA circles (the arrow buttons in Próxima Comida / Hoy Toca / Coach AI).
