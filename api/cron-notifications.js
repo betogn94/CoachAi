@@ -192,6 +192,51 @@ function buildAnalisisPendiente() {
   };
 }
 
+// ── RETO MENSUAL (#6/#7) ────────────────────────────────────────────────────
+// Interruptor: OFF hasta que el feature flippee a default ON en el cliente
+// (?reto). El modo test (?test=reto_inicio / reto_recta_final) lo bypassa.
+const RETO_NOTIFS_ON = false;
+// Mantener en sync con RETO_START_YM / RETO_OBJETIVO_DEFAULT / RETO_MES_OVERRIDES
+// del cliente (index.html). MVP: 16 entrenos por mes, sin overrides.
+const RETO_CRON_START = '2026-10';
+function retoObjetivoForYm(ym) {
+  if (!ym || ym < RETO_CRON_START) return null;
+  return 16;
+}
+function retoMesNombre(ym) {
+  try {
+    const n = new Intl.DateTimeFormat('es-ES', { month: 'long' }).format(new Date(ym + '-15T12:00:00Z'));
+    return n.charAt(0).toUpperCase() + n.slice(1);
+  } catch (e) { return ym; }
+}
+function buildRetoInicio(ym, objetivo) {
+  return {
+    title: `🏁 ¡Arrancó el Reto de ${retoMesNombre(ym)}!`,
+    body: `Completá ${objetivo} entrenos este mes y ganate la medalla. Cada entreno registrado suma. 💪`,
+    url: '/', tag: 'reto-inicio',
+  };
+}
+function buildRetoRectaFinal(n, objetivo, daysLeft) {
+  const faltan = objetivo - n;
+  return {
+    title: '🔥 Recta final del reto',
+    body: `Llevás ${n}/${objetivo} — te falta${faltan === 1 ? '' : 'n'} ${faltan} entreno${faltan === 1 ? '' : 's'} y queda${daysLeft === 1 ? '' : 'n'} ${daysLeft} día${daysLeft === 1 ? '' : 's'}. ¡Lo tenés! 💪`,
+    url: '/', tag: 'reto-recta-final',
+  };
+}
+// Días de entreno DISTINTOS del mes (unión dias_entrenados ∪ progreso_diario
+// .entreno=true — las mismas reglas que computeWeekStats en el cliente).
+async function retoCountMonthServer(usuario_id, ym) {
+  const [trained, pd] = await Promise.all([
+    sbGet(`dias_entrenados?usuario_id=eq.${usuario_id}&fecha=gte.${ym}-01&fecha=lte.${ym}-31&select=fecha`),
+    sbGet(`progreso_diario?usuario_id=eq.${usuario_id}&entreno=eq.true&fecha=gte.${ym}-01&fecha=lte.${ym}-31&select=fecha`),
+  ]);
+  const dates = new Set();
+  for (const r of (Array.isArray(trained) ? trained : [])) if (r && r.fecha) dates.add(r.fecha);
+  for (const r of (Array.isArray(pd) ? pd : [])) if (r && r.fecha) dates.add(r.fecha);
+  return dates.size;
+}
+
 // #5 LOGRO — push del logro recién desbloqueado. El título destaca el momento;
 // el cuerpo invita a verlo en Perfil (donde está la colección + el futuro botón
 // compartir). tag único por logro → no se pisa con otras notis en la bandeja.
@@ -311,6 +356,19 @@ export default async function handler(req, res) {
         const lg = (await sbGet(`user_logros?usuario_id=eq.${u.id}&select=logro_key,titulo,descripcion&order=awarded_at.desc&limit=1`))[0];
         payload = buildLogroNotif(lg || { logro_key: 'sample', titulo: 'Semana perfecta' });
       }
+      else if (testTipo === 'reto_inicio') {
+        const ym = lp.fecha.slice(0, 7);
+        payload = buildRetoInicio(ym, retoObjetivoForYm(ym) || 16);
+      }
+      else if (testTipo === 'reto_recta_final') {
+        // Con el conteo REAL del mes del usuario (verifica la query server-side).
+        const ym = lp.fecha.slice(0, 7);
+        const obj = retoObjetivoForYm(ym) || 16;
+        const n = await retoCountMonthServer(u.id, ym);
+        const last = new Date(Date.UTC(parseInt(ym.slice(0, 4), 10), parseInt(ym.slice(5, 7), 10), 0)).getUTCDate();
+        const daysLeftIncl = Math.max(1, last - parseInt(lp.fecha.slice(8, 10), 10) + 1);
+        payload = buildRetoRectaFinal(Math.min(n, obj - 1), obj, daysLeftIncl);
+      }
       else return res.status(400).json({ error: 'unknown_test_tipo' });
       const sent = await pushToUser(u.id, payload);
       return res.status(200).json({ ok: true, mode: 'test', tipo: testTipo, sent, training, payload });
@@ -390,6 +448,36 @@ export default async function handler(req, res) {
           if (payload && await claimLog(u.id, 'cierre_semana', lp.fecha)) {
             const n = await pushToUser(u.id, payload);
             sentLog.push({ uid: u.id.slice(0, 8), tipo: 'cierre_semana', sent: n });
+          }
+        }
+      }
+
+      // #6/#7 RETO MENSUAL — OFF hasta el flip del feature (RETO_NOTIFS_ON).
+      // #6 inicio: día 1 del mes ~10am local. #7 recta final: cuando quedan 5
+      // días (incluido hoy) ~18h, SOLO si no completó y todavía es ALCANZABLE
+      // (faltantes ≤ días restantes) — no restregar un reto ya perdido.
+      if (RETO_NOTIFS_ON) {
+        const ym = lp.fecha.slice(0, 7);
+        const objetivo = retoObjetivoForYm(ym);
+        if (objetivo) {
+          const dayN = parseInt(lp.fecha.slice(8, 10), 10);
+          if (dayN === 1 && lp.hour === 10) {
+            if (await claimLog(u.id, 'reto_inicio', lp.fecha)) {
+              const n = await pushToUser(u.id, buildRetoInicio(ym, objetivo));
+              sentLog.push({ uid: u.id.slice(0, 8), tipo: 'reto_inicio', sent: n });
+            }
+          }
+          const last = new Date(Date.UTC(parseInt(ym.slice(0, 4), 10), parseInt(ym.slice(5, 7), 10), 0)).getUTCDate();
+          const daysLeftIncl = last - dayN + 1;
+          if (daysLeftIncl === 5 && lp.hour === 18) {
+            const count = await retoCountMonthServer(u.id, ym);
+            const faltan = objetivo - count;
+            if (faltan > 0 && faltan <= daysLeftIncl) {
+              if (await claimLog(u.id, 'reto_recta_final', lp.fecha)) {
+                const n = await pushToUser(u.id, buildRetoRectaFinal(count, objetivo, daysLeftIncl));
+                sentLog.push({ uid: u.id.slice(0, 8), tipo: 'reto_recta_final', sent: n });
+              }
+            }
           }
         }
       }

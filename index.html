@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261007-1835-deploy">
+<meta name="app-version" content="20261008-2033-reto-mensual-gated">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -7755,6 +7755,94 @@ body.theme-king .cai-home-card .cai-ins-green { color: #16a34a !important; }
   overflow: hidden;
   text-overflow: ellipsis;
   word-break: break-word;
+}
+
+/* ── RETO MENSUAL (gated ?reto=1) ──
+   Dos presencias en Home (decisión de Beto 2026-10-08: "las dos"): la card en
+   el rotador de entreno + el chip ancho bajo la racha. Ambas → modal detalle.
+   Selectores SIEMPRE con 2 clases (0,2,0) para ganarle a la manta de King
+   (body.theme-king span/div = 0,1,2), igual que las slides insight. */
+.cai-home-card-ico.ico-reto {
+  background: linear-gradient(135deg, rgba(124,106,255,0.18), rgba(255,196,0,0.15));
+  color: var(--accent-bright);
+}
+.cai-home-card-reto .cai-home-card-title { flex: none; }
+.cai-home-card-reto .cai-home-card-body {
+  flex: none;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; text-overflow: ellipsis; word-break: break-word;
+}
+.cai-home-card-reto .cai-reto-bar {
+  width: 100%; height: 7px; border-radius: 99px;
+  background: rgba(124,106,255,0.16);
+  overflow: hidden; margin-top: 10px;
+}
+.cai-home-card-reto .cai-reto-bar-fill,
+.home-reto-chip .hrc-fill,
+.reto-progress .reto-progress-fill {
+  display: block; height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, #7c6aff 0%, #5b9fff 55%, #2ecfb5 100%);
+  transition: width 0.6s cubic-bezier(0.32, 0.72, 0, 1);
+}
+/* Chip ancho bajo la racha — mismo molde visual que .home-streak-chip */
+.home-reto-chip {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0 18px 14px; padding: 11px 14px;
+  width: calc(100% - 36px);
+  background: var(--surface, #fff); border: 1px solid var(--border);
+  border-radius: 14px; box-shadow: var(--subcard-shadow);
+  cursor: pointer; text-align: left;
+  font-family: 'DM Sans', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+.home-reto-chip:active { transform: scale(.99); }
+.home-reto-chip .hrc-medal { width: 38px; height: 38px; flex-shrink: 0; object-fit: contain; }
+.home-reto-chip .hrc-main { flex: 1; min-width: 0; }
+.home-reto-chip .hrc-top {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  font-size: 13.5px; color: var(--text);
+}
+.home-reto-chip .hrc-top b { font-weight: 700; }
+.home-reto-chip .hrc-count {
+  font-weight: 800; font-size: 13.5px; letter-spacing: 0.3px;
+  background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  white-space: nowrap;
+}
+.home-reto-chip .hrc-bar {
+  display: block; height: 6px; border-radius: 99px;
+  background: rgba(124,106,255,0.14);
+  overflow: hidden; margin-top: 7px;
+}
+.home-reto-chip .hrc-sub {
+  display: block; margin-top: 6px;
+  font-size: 11px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Modal detalle (reusa alim-edit-overlay + logro-celebr-card) */
+.reto-detail-medal { width: 118px; height: 118px; object-fit: contain; }
+.reto-detail-medal.reto-medal-locked { filter: grayscale(1) opacity(.5); }
+.reto-progress { margin: 2px 6px 22px; }
+.reto-progress .reto-progress-top {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 8px; font-family: 'DM Sans', sans-serif;
+}
+.reto-progress .reto-progress-n { font-size: 14px; color: var(--muted); }
+.reto-progress .reto-progress-n b {
+  font-size: 24px; font-weight: 800; letter-spacing: -0.3px;
+  background: linear-gradient(135deg, #7c6aff 0%, #5b9fff 50%, #2ecfb5 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin-right: 2px;
+}
+.reto-progress .reto-progress-days { font-size: 12px; color: var(--muted); font-weight: 600; }
+.reto-progress .reto-progress-bar {
+  height: 9px; border-radius: 99px;
+  background: rgba(124,106,255,0.14);
+  overflow: hidden;
+}
+.reto-detail-card .reto-detail-foot {
+  font-size: 11.5px; color: var(--muted2);
+  margin: -10px auto 18px; max-width: 280px; line-height: 1.45;
 }
 
 /* Cardio card — base palette (default tenant) mirrors Coach AI:
@@ -16015,6 +16103,17 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     <span class="hsc-text"><b id="home-streak-num">0</b> <span id="home-streak-label">días en racha</span></span>
   </div>
 
+  <!-- RETO MENSUAL — chip ancho (gated ?reto=1). Lo puebla renderRetoHome();
+       la medalla del mes es la zanahoria. Tap → modal detalle. -->
+  <button id="home-reto-chip" class="home-reto-chip" style="display:none" type="button" onclick="openRetoDetail()">
+    <img class="hrc-medal" id="reto-chip-medal" src="medals/reto_mensual.webp" alt="" draggable="false">
+    <span class="hrc-main">
+      <span class="hrc-top"><b id="reto-chip-title">—</b><span class="hrc-count" id="reto-chip-count">—</span></span>
+      <span class="hrc-bar"><span class="hrc-fill" id="reto-chip-fill" style="width:0%"></span></span>
+      <span class="hrc-sub" id="reto-chip-sub"></span>
+    </span>
+  </button>
+
   <!-- Row 1: shortcut cards (Próxima comida + Hoy toca) -->
   <div class="cai-home-grid">
     <!-- Rotator slot: PRÓXIMA COMIDA (funcional, siempre primera) ↔ PROMEDIO
@@ -16079,6 +16178,20 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
         <div class="cai-home-card-title cai-home-card-title-grad" id="pr-card-kg">—</div>
         <div class="cai-home-card-body" id="pr-card-sub"></div>
         <div class="cai-home-card-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+      </button>
+
+      <!-- Slide RETO MENSUAL (gated ?reto=1): progreso del reto del mes
+           (tap → modal detalle). La puebla renderRetoHome(). -->
+      <button class="cai-home-card cai-home-card-reto" data-rot-slide="reto" data-rot-label="Reto del mes" id="home-card-reto" type="button" style="display:none;" onclick="openRetoDetail()">
+        <div class="cai-home-card-top">
+          <div class="cai-home-card-eyebrow" id="reto-card-eyebrow">RETO DEL MES</div>
+          <div class="cai-home-card-ico ico-reto">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4.5c2.5-1.6 5-1.6 7.5 0s5 1.6 7.5 0V13c-2.5 1.6-5 1.6-7.5 0s-5-1.6-7.5 0"/></svg>
+          </div>
+        </div>
+        <div class="cai-home-card-title cai-home-card-title-grad" id="reto-card-count">—</div>
+        <div class="cai-reto-bar"><div class="cai-reto-bar-fill" id="reto-card-fill" style="width:0%"></div></div>
+        <div class="cai-home-card-body" id="reto-card-sub" style="margin-top:10px"></div>
       </button>
 
       <!-- Dots del rotador: los genera initSlotRotator según las slides elegibles -->
@@ -18329,6 +18442,30 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     <div class="logro-celebr-desc" id="logro-celebr-desc">—</div>
     <button class="logro-celebr-btn" onclick="shareLogroFromCele()" type="button"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" style="vertical-align:-3px;margin-right:7px" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>Compartir mi logro</button>
     <button class="logro-celebr-btn ghost" onclick="closeLogro()" type="button">Listo</button>
+  </div>
+</div>
+
+<!-- Reto mensual — detalle (gated ?reto=1): progreso, días restantes y la
+     medalla en gris como zanahoria. Lo puebla openRetoDetail(). -->
+<div class="alim-edit-overlay" id="reto-overlay" onclick="closeRetoDetail(event)" role="dialog" aria-modal="true" aria-label="Reto del mes">
+  <div class="alim-edit-card logro-celebr-card reto-detail-card" onclick="event.stopPropagation()">
+    <button class="alim-edit-close" onclick="closeRetoDetail()" aria-label="Cerrar">×</button>
+    <div class="logro-celebr-eyebrow" id="reto-detail-eyebrow">RETO DEL MES</div>
+    <div class="logro-celebr-medal">
+      <img class="reto-detail-medal reto-medal-locked" id="reto-detail-medal" src="medals/reto_mensual.webp" alt="Medalla del reto" draggable="false">
+    </div>
+    <div class="logro-celebr-title" id="reto-detail-title">—</div>
+    <div class="logro-celebr-desc" id="reto-detail-desc">—</div>
+    <div class="reto-progress">
+      <div class="reto-progress-top">
+        <span class="reto-progress-n" id="reto-detail-n">—</span>
+        <span class="reto-progress-days" id="reto-detail-days"></span>
+      </div>
+      <div class="reto-progress-bar"><div class="reto-progress-fill" id="reto-detail-fill" style="width:0%"></div></div>
+    </div>
+    <div class="reto-detail-foot" id="reto-detail-foot"></div>
+    <button class="logro-celebr-btn" id="reto-detail-cta" onclick="retoDetailCta()" type="button">Ir a Mi Entreno</button>
+    <button class="logro-celebr-btn ghost" onclick="closeRetoDetail()" type="button">Listo</button>
   </div>
 </div>
 
@@ -30269,6 +30406,7 @@ function renderHome() {
   try { renderHomeCardioCard(p); }    catch (e) { console.warn('[home] cardio card:', e); }
   try { renderHomeCierreCard(); }     catch (e) { console.warn('[home] cierre card:', e); }
   try { renderStreakChip(); }         catch (e) { console.warn('[home] streak chip:', e); }
+  try { renderRetoHome(); }           catch (e) { console.warn('[home] reto:', e); }
   // Network-dependent widgets
   renderHomeRing().catch(e => console.warn('[home] ring:', e));
   renderHomeHeroInsight().catch(e => console.warn('[home] hero insight:', e));
@@ -32033,6 +32171,9 @@ const LOGROS_CATALOG = [
   { key:'quinientas_comidas', titulo:'500 comidas',  desc:'500 comidas registradas. Un hábito de verdad.',             color:'amber', emblem:'utensils', num:500 },
   // — Fuerza —
   { key:'primer_record', titulo:'Rompe-récords', desc:'Superaste tu mejor marca por primera vez. ¡A por la próxima!', color:'amber', emblem:'star' },
+  // — Retos mensuales (recurrente: una medalla por mes completado; las keys
+  //   concretas son 'reto_mensual_YYYY-MM' — título/desc del mes vía retoLogroInfo) —
+  { key:'reto_mensual', titulo:'Reto mensual', desc:'Completaste el reto de entrenos del mes.', color:'amber', emblem:'flag', recurring:true, prefix:'reto_mensual_' },
   // — Permanencia —
   { key:'primer_mes', titulo:'Primer mes', desc:'Un mes entero en CoachAI. ¡Esto es un estilo de vida!', color:'rose', emblem:'calendar', num:1 },
   { key:'tres_meses', titulo:'3 meses',    desc:'Tres meses sostenidos. Pocos llegan acá.',             color:'rose', emblem:'calendar', num:3 },
@@ -32119,9 +32260,13 @@ async function renderPerfilLogros() {
   const tplEarned = (l) => tplCount(l) >= 1;
   const earnedTotal = LOGROS_CATALOG.filter(tplEarned).length;
 
-  // Grilla completa
+  // Grilla completa. La medalla del reto mensual queda FUERA del catálogo
+  // visible mientras el feature esté gated (RETO_ENABLED off) y no se haya
+  // ganado ninguna — que el gate no se filtre como medalla bloqueada.
   if (grid) {
-    grid.innerHTML = LOGROS_CATALOG.map(l => {
+    const visibles = LOGROS_CATALOG.filter(l =>
+      l.key !== 'reto_mensual' || (typeof RETO_ENABLED !== 'undefined' && RETO_ENABLED) || tplCount(l) >= 1);
+    grid.innerHTML = visibles.map(l => {
       const c = tplCount(l);
       return medalHtml(l, c >= 1, { mult: l.recurring ? c : 0 });
     }).join('');
@@ -32265,6 +32410,23 @@ async function computeEarnedLogroKeys() {
   if (best >= 14)  keys.add('racha_14');
   if (best >= 30)  keys.add('racha_30');
   if (best >= 100) keys.add('racha_100');
+  // Retos mensuales (gated hasta el flip): una key por mes calendario con el
+  // objetivo cumplido, desde RETO_START_YM (no premiar meses pre-feature).
+  // Cuenta la UNIÓN entreno ∪ dias_entrenados — el loadRecentDiario(370) de
+  // arriba ya refrescó _trainedDatesSet con la misma ventana.
+  try {
+    if (RETO_ENABLED) {
+      const months = new Set();
+      for (const d of diario) { if (d && d.entreno === true && d.fecha) months.add(String(d.fecha).slice(0, 7)); }
+      for (const f of _trainedDatesSet) months.add(String(f).slice(0, 7));
+      const nowYm = retoCurrentYm();
+      for (const ym of months) {
+        if (ym > nowYm) continue;
+        const reto = retoForYm(ym);
+        if (reto && retoCountMonth(ym, diario) >= reto.objetivo) keys.add('reto_mensual_' + ym);
+      }
+    }
+  } catch (e) {}
   // Primera foto de inicio
   try {
     const fotos = await loadFotosProgreso();
@@ -32299,7 +32461,10 @@ async function checkAndAwardLogros() {
     if (newKeys.length) {
       const rows = newKeys.map(k => {
         const c = logroTemplateForKey(k);
-        return { usuario_id: currentUser.id, logro_key: k, titulo: c.titulo, descripcion: c.desc, icon: c.emblem, notificado: firstSession, celebrado: false };
+        // Las keys de reto guardan el título del MES ("Reto de Octubre") — es lo
+        // que muestra el push del cron (buildLogroNotif lee titulo de la fila).
+        const reto = (typeof retoLogroInfo === 'function') ? retoLogroInfo(k) : null;
+        return { usuario_id: currentUser.id, logro_key: k, titulo: (reto && reto.titulo) || c.titulo, descripcion: (reto && reto.desc) || c.desc, icon: c.emblem, notificado: firstSession, celebrado: false };
       });
       await sbClient.from('user_logros').upsert(rows, { onConflict: 'usuario_id,logro_key', ignoreDuplicates: true });
       try { renderPerfilLogros(); } catch (e) {}
@@ -32327,6 +32492,11 @@ async function checkAndAwardLogros() {
         const total = [...have, ...newKeys].filter(x => x.indexOf(tpl.prefix) === 0).length;
         cele = { ...tpl, _mult: total, descripcion: total >= 2 ? `¡Tu semana perfecta N°${total}! Seguí sumando.` : tpl.desc };
       }
+      // Reto mensual: la celebración lleva el título/desc del MES concreto
+      // (pisa el texto genérico de la rama recurring de arriba) y sin el chip
+      // ×N (el título del mes ya cuenta la ocurrencia; el ×N queda en la colección).
+      const retoInfo = (typeof retoLogroInfo === 'function') ? retoLogroInfo(k) : null;
+      if (retoInfo) cele = { ...cele, titulo: retoInfo.titulo, descripcion: retoInfo.desc, _mult: 0 };
       queueLogroCele(cele);
     }
   } catch (e) { console.warn('[logros] award:', e); }
@@ -34803,6 +34973,203 @@ function closeProgresionModal(event) {
 // = una sola query por minuto). Sin datos elegibles, Home queda EXACTO al actual.
 // Gate: LIVE PARA TODOS (flip 2026-10-05 tras QA de Beto en celu).
 // ?insights=0 apaga (escape, persiste en localStorage) / ?insights=1 re-prende.
+/* ════════════════════════════════════════════════════════════════
+   RETO MENSUAL — reto global por mes calendario ("16 entrenos en
+   octubre"), con barra de progreso, fecha de fin y medalla al
+   completarlo (recurrente, una por mes, patrón semana_perfecta).
+   El progreso se CALCULA de los datos existentes (unión
+   progreso_diario.entreno ∪ dias_entrenados — mismas reglas que
+   computeWeekStats para no subcontar): CERO estado nuevo en DB.
+   Gated ?reto=1 (default OFF hasta QA en celu; al liberar: flip a
+   `!== '0'` + rama v==='1' a removeItem, patrón insights).
+   ════════════════════════════════════════════════════════════════ */
+const RETO_ENABLED = (() => {
+  try {
+    const v = new URLSearchParams(window.location.search).get('reto');
+    if (v === '0') { try { localStorage.setItem('coachai_reto', '0'); } catch {} return false; }
+    if (v === '1') { try { localStorage.setItem('coachai_reto', '1'); } catch {} return true; }
+    return localStorage.getItem('coachai_reto') === '1';
+  } catch { return false; }
+})();
+
+// El reto arranca en octubre 2026 (no premiar meses previos al feature) y por
+// defecto es "16 entrenos en el mes". Overrides puntuales por mes acá (MVP
+// hardcodeado; tabla `retos` recién en V2 si funciona).
+const RETO_START_YM = '2026-10';
+const RETO_OBJETIVO_DEFAULT = 16;
+const RETO_MES_OVERRIDES = {
+  // '2026-12': { objetivo: 12 },   // ej.: diciembre más corto por fiestas
+};
+function retoForYm(ym) {
+  if (!ym || ym < RETO_START_YM) return null;
+  const o = RETO_MES_OVERRIDES[ym] || {};
+  return { ym, objetivo: o.objetivo || RETO_OBJETIVO_DEFAULT };
+}
+function retoCurrentYm() {
+  const t = (typeof getTodayKey === 'function') ? getTodayKey() : new Date().toISOString().slice(0, 10);
+  return String(t).slice(0, 7);
+}
+// "octubre" / "October" a partir de 'YYYY-MM' (con mayúscula inicial).
+function retoMonthName(ym, es) {
+  try {
+    const d = new Date(ym + '-15T12:00:00');
+    const n = new Intl.DateTimeFormat(es ? 'es-ES' : 'en-US', { month: 'long' }).format(d);
+    return n.charAt(0).toUpperCase() + n.slice(1);
+  } catch { return ym; }
+}
+// Días de entreno DISTINTOS del mes: unión de progreso_diario.entreno (del
+// array que se pase) y dias_entrenados (_trainedDatesSet global, que
+// loadRecentDiario mantiene con la misma ventana que el array).
+function retoCountMonth(ym, diario) {
+  const pre = ym + '-';
+  const dates = new Set();
+  for (const d of (diario || [])) {
+    if (d && d.entreno === true && d.fecha && String(d.fecha).indexOf(pre) === 0) dates.add(d.fecha);
+  }
+  try { for (const f of _trainedDatesSet) { if (String(f).indexOf(pre) === 0) dates.add(f); } } catch {}
+  return dates.size;
+}
+// Días que le quedan al mes DESPUÉS de hoy (0 = hoy es el último día).
+function retoDaysLeft(ym) {
+  const t = (typeof getTodayKey === 'function') ? getTodayKey() : new Date().toISOString().slice(0, 10);
+  const day = parseInt(String(t).slice(8, 10), 10);
+  const y = parseInt(ym.slice(0, 4), 10), m = parseInt(ym.slice(5, 7), 10);
+  const last = new Date(y, m, 0).getDate();
+  return Math.max(0, last - day);
+}
+// Título/desc del logro de un reto concreto ('reto_mensual_2026-10' →
+// "Reto de Octubre"). null si la key no es de reto.
+function retoLogroInfo(key) {
+  if (!key || key.indexOf('reto_mensual_') !== 0) return null;
+  const ym = key.slice('reto_mensual_'.length);
+  const es = (typeof lang === 'undefined') || lang === 'es';
+  const mes = retoMonthName(ym, es);
+  const reto = retoForYm(ym) || { objetivo: RETO_OBJETIVO_DEFAULT };
+  return {
+    titulo: es ? ('Reto de ' + mes) : (mes + ' Challenge'),
+    desc: es
+      ? `Completaste los ${reto.objetivo} entrenos del mes. Imparable. 🏆`
+      : `You completed all ${reto.objetivo} workouts this month. Unstoppable. 🏆`,
+  };
+}
+
+// Estado del reto del mes ACTUAL para la UI (null = no mostrar nada).
+function retoHomeState() {
+  if (!RETO_ENABLED || !currentUser) return null;
+  const ym = retoCurrentYm();
+  const reto = retoForYm(ym);
+  if (!reto) return null;
+  const diario = Array.isArray(recentDiario) ? recentDiario : [];
+  const n = retoCountMonth(ym, diario);
+  // Sin plan de entreno Y sin progreso → no mostrar un reto imposible.
+  const target = (typeof getWeeklyTrainingTarget === 'function') ? getWeeklyTrainingTarget() : 0;
+  if (target <= 0 && n === 0) return null;
+  const es = lang === 'es';
+  return {
+    ym, objetivo: reto.objetivo, n,
+    done: n >= reto.objetivo,
+    pct: Math.min(100, Math.round(n / reto.objetivo * 100)),
+    daysLeft: retoDaysLeft(ym),
+    mes: retoMonthName(ym, es),
+    es,
+  };
+}
+
+// Pinta las DOS presencias del reto en Home: el chip ancho bajo la racha y la
+// slide del rotador de entreno. Elegibilidad propia; sin reto todo queda oculto
+// y Home es idéntico a hoy.
+function renderRetoHome() {
+  const chip = document.getElementById('home-reto-chip');
+  const card = document.getElementById('home-card-reto');
+  const st = retoHomeState();
+  if (!st) {
+    if (chip) chip.style.display = 'none';
+    if (card) { card.style.display = 'none'; initSlotRotator('home-entreno-rotator', 'home-entreno-dots'); }
+    return;
+  }
+  const es = st.es;
+  const countTxt = `${st.n}/${st.objetivo}`;
+  const daysTxt = st.done
+    ? (es ? '¡Reto completado! Medalla desbloqueada 🏆' : 'Challenge complete! Medal unlocked 🏆')
+    : (st.daysLeft === 0
+        ? (es ? `${st.objetivo} entrenos en el mes · ¡último día!` : `${st.objetivo} workouts this month · last day!`)
+        : (es ? `${st.objetivo} entrenos en el mes · faltan ${st.daysLeft} día${st.daysLeft === 1 ? '' : 's'}`
+              : `${st.objetivo} workouts this month · ${st.daysLeft} day${st.daysLeft === 1 ? '' : 's'} left`));
+  if (chip) {
+    const t = document.getElementById('reto-chip-title');
+    const c = document.getElementById('reto-chip-count');
+    const f = document.getElementById('reto-chip-fill');
+    const s = document.getElementById('reto-chip-sub');
+    if (t) t.textContent = es ? `Reto de ${st.mes}` : `${st.mes} Challenge`;
+    if (c) c.textContent = countTxt;
+    if (f) f.style.width = st.pct + '%';
+    if (s) s.textContent = daysTxt;
+    chip.style.display = 'flex';
+  }
+  if (card) {
+    const ey = document.getElementById('reto-card-eyebrow');
+    const c  = document.getElementById('reto-card-count');
+    const f  = document.getElementById('reto-card-fill');
+    const s  = document.getElementById('reto-card-sub');
+    if (ey) ey.textContent = es ? `RETO DE ${st.mes.toUpperCase()}` : `${st.mes.toUpperCase()} CHALLENGE`;
+    if (c) c.textContent = countTxt;
+    if (f) f.style.width = st.pct + '%';
+    if (s) s.textContent = daysTxt;
+    card.style.display = '';
+    initSlotRotator('home-entreno-rotator', 'home-entreno-dots');
+  }
+}
+
+// Modal detalle del reto (desde el chip o la card).
+function openRetoDetail() {
+  const ov = document.getElementById('reto-overlay');
+  const st = retoHomeState();
+  if (!ov || !st) return;
+  const es = st.es;
+  const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  set('reto-detail-eyebrow', es ? `RETO DE ${st.mes.toUpperCase()}` : `${st.mes.toUpperCase()} CHALLENGE`);
+  const medal = document.getElementById('reto-detail-medal');
+  if (medal) medal.classList.toggle('reto-medal-locked', !st.done);
+  if (st.done) {
+    set('reto-detail-title', es ? '¡Reto completado!' : 'Challenge complete!');
+    set('reto-detail-desc', es
+      ? `Completaste los ${st.objetivo} entrenos de ${st.mes.toLowerCase()}. La medalla ya es tuya.`
+      : `You completed all ${st.objetivo} workouts. The medal is yours.`);
+    set('reto-detail-days', '');
+    set('reto-detail-foot', '');
+    set('reto-detail-cta', es ? 'Ver mis logros' : 'See my achievements');
+  } else {
+    set('reto-detail-title', es ? `${st.objetivo} entrenos en el mes` : `${st.objetivo} workouts this month`);
+    set('reto-detail-desc', es
+      ? `Completá ${st.objetivo} entrenos antes de fin de ${st.mes.toLowerCase()} y desbloqueá la medalla del reto.`
+      : `Complete ${st.objetivo} workouts before the end of ${st.mes} and unlock the challenge medal.`);
+    set('reto-detail-days', st.daysLeft === 0
+      ? (es ? '¡último día!' : 'last day!')
+      : (es ? `faltan ${st.daysLeft} día${st.daysLeft === 1 ? '' : 's'}` : `${st.daysLeft} day${st.daysLeft === 1 ? '' : 's'} left`));
+    set('reto-detail-foot', es
+      ? 'Cada día de entreno registrado suma 1. Los que ya hiciste este mes ya están contados.'
+      : 'Each logged training day counts as 1. This month\'s workouts are already in.');
+    set('reto-detail-cta', es ? 'Ir a Mi Entreno' : 'Go to My Training');
+  }
+  const nEl = document.getElementById('reto-detail-n');
+  if (nEl) nEl.innerHTML = `<b>${st.n}</b> ${es ? 'de' : 'of'} ${st.objetivo}`;
+  const fill = document.getElementById('reto-detail-fill');
+  if (fill) fill.style.width = st.pct + '%';
+  ov.classList.add('open');
+  try { if (typeof trackEvent === 'function') trackEvent('reto_detalle_open', { ym: st.ym, n: st.n, objetivo: st.objetivo, done: st.done }); } catch {}
+}
+function closeRetoDetail(event) {
+  if (event && event.target !== event.currentTarget) return;
+  const ov = document.getElementById('reto-overlay');
+  if (ov) ov.classList.remove('open');
+}
+function retoDetailCta() {
+  const st = retoHomeState();
+  closeRetoDetail();
+  if (st && st.done) { showPerfil(); setActiveNav('nav-perfil'); }
+  else { showMiEntreno(); setActiveNav('nav-entreno'); }
+}
+
 const INSIGHTS_ENABLED = (() => {
   try {
     const v = new URLSearchParams(window.location.search).get('insights');
