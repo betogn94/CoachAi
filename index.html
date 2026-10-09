@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261009-1331-deploy">
+<meta name="app-version" content="20261009-1344-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -159,13 +159,21 @@ html[data-cai-nav-dir="back"]::view-transition-new(root) { animation: vt-sec-in-
     /* conserva sus transiciones propias (border-color/background) */
     transition: border-color .2s, background .2s, transform .38s cubic-bezier(.34,1.56,.64,1);
   }
+  /* .spring-pressed la pone el JS por pointer events (ver instalador junto
+     al de vt-nav): en Android el :active de estos botones resultó poco
+     confiable (Home no springeaba en el celu de Beto aunque el CSS computaba
+     bien) → la clase es el camino determinístico y :active queda de respaldo. */
   body.springs-on :is(.cai-home-card, .cai-hero-slide-prog, .cai-entv2-card,
     .alimv2-meal, .cai-entses-btn, .cai-entses-ghost, .cai-crono-pause,
-    .logro-celebr-btn):active {
+    .logro-celebr-btn):active,
+  body.springs-on :is(.cai-home-card, .cai-hero-slide-prog, .cai-entv2-card,
+    .alimv2-meal, .cai-entses-btn, .cai-entses-ghost, .cai-crono-pause,
+    .logro-celebr-btn).spring-pressed {
     transform: scale(.965);
     transition: transform .09s ease-out;
   }
-  body.springs-on .alimv2-check:active {
+  body.springs-on .alimv2-check:active,
+  body.springs-on .alimv2-check.spring-pressed {
     transform: scale(.82);   /* botón chico → hundimiento más notorio */
     transition: transform .09s ease-out;
   }
@@ -183,10 +191,14 @@ html[data-cai-nav-dir="back"]::view-transition-new(root) { animation: vt-sec-in-
                 transform .38s cubic-bezier(.34,1.56,.64,1);
   }
   body.springs-on .cai-home-card-slot.is-rotating > [data-rot-slide]:active,
-  body.springs-on .cai-home-hero.is-rotating .cai-hero-slide:active {
+  body.springs-on .cai-home-card-slot.is-rotating > [data-rot-slide].spring-pressed,
+  body.springs-on .cai-home-hero.is-rotating .cai-hero-slide:active,
+  body.springs-on .cai-home-hero.is-rotating .cai-hero-slide.spring-pressed {
     transform: scale(.965);
     transition: opacity 0.5s ease, visibility 0.5s, transform .09s ease-out;
   }
+  /* La card OFF tampoco por la vía de la clase */
+  body.springs-on .cai-entv2-card.rest.spring-pressed { transform: none; }
 }
 
 /* ---- Cascada de Home: al entrar (showHome → navegación o apertura de la
@@ -31482,6 +31494,39 @@ window.addEventListener('resize', () => {
   // (y todos los <script> inline) ya parsearon.
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install);
   else install();
+})();
+
+// ============================================================
+// PRESS-SPRINGS por pointer events — Horizonte Gravl F1.2 (GATED ?springs=1)
+// ============================================================
+// El :active de CSS resultó poco confiable en Android para las cards de Home
+// (el navegador lo suprime/demora según su heurística de scroll) → la clase
+// .spring-pressed, puesta por pointerdown y sacada en up/cancel/leave, es
+// determinística en todo dispositivo. pointercancel cubre el caso "el dedo
+// empezó a scrollear": el navegador lo dispara al tomar el gesto y la card
+// se libera sola (rebote), sin quedar hundida.
+(function () {
+  const SPRING_SEL = '.cai-home-card, .cai-hero-slide, .cai-entv2-card, '
+    + '.alimv2-meal, .alimv2-check, .cai-entses-btn, .cai-entses-ghost, '
+    + '.cai-crono-pause, .logro-celebr-btn';
+  let cur = null;
+  const release = () => {
+    if (cur) { cur.classList.remove('spring-pressed'); cur = null; }
+  };
+  document.addEventListener('pointerdown', (e) => {
+    if (!document.body.classList.contains('springs-on')) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const t = e.target && e.target.closest ? e.target.closest(SPRING_SEL) : null;
+    if (!t) return;
+    release();            // por si quedó una presa de un gesto raro anterior
+    cur = t;
+    t.classList.add('spring-pressed');
+  }, { passive: true });
+  document.addEventListener('pointerup', release, { passive: true });
+  document.addEventListener('pointercancel', release, { passive: true });
+  // Nota: si el elemento se re-renderiza bajo el dedo (innerHTML), el nodo
+  // viejo se descarta con clase y todo y el nuevo nace limpio → no hay
+  // forma de que una card quede "hundida" huérfana.
 })();
 
 // ============================================================
