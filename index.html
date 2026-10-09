@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261009-0329-deploy">
+<meta name="app-version" content="20261009-0335-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -7340,6 +7340,7 @@ body.theme-king .home-plan-banner { background: #FFF0F4; border-color: rgba(255,
 /* Pantalla de carga full-screen al entrar desde el onboarding */
 #plan-loading-overlay {
   position: fixed; inset: 0; z-index: 9999;
+  height: 100vh; height: 100lvh;  /* alto estable (ver nota en #app-splash) */
   display: none; align-items: center; justify-content: center;
   background: var(--bg);
   padding: 24px;
@@ -7380,6 +7381,10 @@ body.theme-king .home-plan-banner { background: #FFF0F4; border-color: rgba(255,
    pinta el script sync del tema, así matchea King (crema) o el default (oscuro). */
 #app-splash {
   position: fixed; inset: 0; z-index: 100001;
+  /* Alto ESTABLE: con inset:0 el centro flex se corre unos px cuando las
+     barras del sistema/URL se acomodan al arrancar → el icono "saltaba"
+     hacia arriba y volvía. 100lvh (large viewport) no cambia con las barras. */
+  height: 100vh; height: 100lvh;
   display: none; align-items: center; justify-content: center;
   background: var(--bg, #0d0d12);
   transition: opacity .34s ease;
@@ -31342,6 +31347,18 @@ window.addEventListener('resize', () => {
   function vtOn() {
     try { return localStorage.getItem('coachai_trans') === '1'; } catch (e) { return false; }
   }
+  // Overlays de carga a pantalla completa: una transición debajo no se ve, y
+  // el bottom-nav aislado se pinta en la top layer de la VT — POR ENCIMA del
+  // overlay (la top layer le gana a cualquier z-index, incluso 100001) → la
+  // barra se asomaba unos ms sobre el splash al arrancar la app.
+  function overlayUp() {
+    const ids = ['app-splash', 'plan-loading-overlay'];
+    for (let i = 0; i < ids.length; i++) {
+      const el = document.getElementById(ids[i]);
+      if (el && el.style.display === 'flex') return true;
+    }
+    return false;
+  }
   function install() {
     if (!document.startViewTransition) return;
     document.documentElement.classList.add('vt-nav'); // aísla el bottom-nav (CSS)
@@ -31355,6 +31372,7 @@ window.addEventListener('resize', () => {
         if (!vtOn()
             || !document.body.classList.contains('app-active')
             || document.hidden
+            || overlayUp()
             || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)
             || (wrap && wrap.style.display === 'block')) {
           return orig.apply(this, args);
