@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261009-0312-deploy">
+<meta name="app-version" content="20261009-0321-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -31351,7 +31351,14 @@ window.addEventListener('resize', () => {
         if (d) document.documentElement.setAttribute('data-cai-nav-dir', d);
         else document.documentElement.removeAttribute('data-cai-nav-dir');
         window._vtNavActive = true;
-        const t = document.startViewTransition(function () { orig.apply(window, args); });
+        const t = document.startViewTransition(function () {
+          orig.apply(window, args);
+          // El caser de tipografía corre con debounce de 120ms tras el
+          // MutationObserver — la transición pintaría ese primer frame con las
+          // etiquetas EN CAPS del markup (flash "ESTA SEMANA" → "Esta semana").
+          // Corriéndolo acá, sincrónico, el snapshot nuevo ya nace caseado.
+          try { if (typeof fontUniCase === 'function') fontUniCase(); } catch (e) {}
+        });
         const cleanup = function () {
           window._vtNavActive = false;
           document.documentElement.removeAttribute('data-cai-nav-dir');
