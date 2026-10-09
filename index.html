@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261009-0349-deploy">
+<meta name="app-version" content="20261009-1326-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -130,6 +130,47 @@ html[data-cai-nav-dir="back"]::view-transition-old(root) { animation: vt-sec-out
 html[data-cai-nav-dir="back"]::view-transition-new(root) { animation: vt-sec-in-left   var(--mo-dur, .34s) var(--mo-ease, ease) both; }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+}
+
+/* ============================================================
+   PRESS-SPRINGS — Horizonte Gravl F1.2 (GATED ?springs=1)
+   Feedback táctil con física de resorte en los elementos más tocados:
+   el press hunde rápido (.09s, respuesta inmediata al dedo) y el release
+   vuelve con mini-rebote (bezier con overshoot → pasa apenas de 1 y
+   asienta, estilo iOS). El truco: la transición "lenta con rebote" vive
+   en el estado base (gobierna el RELEASE) y :active la pisa con una
+   rápida (gobierna el PRESS).
+   Solo transform EN EL PROPIO elemento, nunca contenedores → no rompe
+   ningún backdrop-filter hijo (regla de la casa, ver cascada de Home).
+   .cai-entv2-card tiene blur propio SOLO en el dark legacy (?light=0);
+   en claro/King los overrides lo apagan → scale seguro en los temas vivos. */
+@media (prefers-reduced-motion: no-preference) {
+  body.springs-on .cai-home-card,
+  body.springs-on .cai-hero-slide-prog,
+  body.springs-on .cai-entv2-card,
+  body.springs-on .cai-entses-btn,
+  body.springs-on .cai-entses-ghost,
+  body.springs-on .cai-crono-pause,
+  body.springs-on .logro-celebr-btn,
+  body.springs-on .alimv2-check {
+    transition: transform .38s cubic-bezier(.34,1.56,.64,1);
+  }
+  body.springs-on .alimv2-meal {
+    /* conserva sus transiciones propias (border-color/background) */
+    transition: border-color .2s, background .2s, transform .38s cubic-bezier(.34,1.56,.64,1);
+  }
+  body.springs-on :is(.cai-home-card, .cai-hero-slide-prog, .cai-entv2-card,
+    .alimv2-meal, .cai-entses-btn, .cai-entses-ghost, .cai-crono-pause,
+    .logro-celebr-btn):active {
+    transform: scale(.965);
+    transition: transform .09s ease-out;
+  }
+  body.springs-on .alimv2-check:active {
+    transform: scale(.82);   /* botón chico → hundimiento más notorio */
+    transition: transform .09s ease-out;
+  }
+  /* La card OFF (descanso) no es tocable → sin feedback que mienta */
+  body.springs-on .cai-entv2-card.rest:active { transform: none; }
 }
 
 /* ---- Cascada de Home: al entrar (showHome → navegación o apertura de la
@@ -15489,6 +15530,12 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     var _vtp = params.get('trans');
     if (_vtp === '1') { try { localStorage.setItem('coachai_trans', '1'); } catch (e) {} }
     else if (_vtp === '0') { try { localStorage.removeItem('coachai_trans'); } catch (e) {} }
+    // Press-springs (Horizonte Gravl F1.2): feedback táctil con rebote en cards
+    // y botones. GATED: ?springs=1 enciende (persistido), ?springs=0 apaga.
+    var _spg = params.get('springs');
+    if (_spg === '1') { try { localStorage.setItem('coachai_springs', '1'); } catch (e) {} }
+    else if (_spg === '0') { try { localStorage.removeItem('coachai_springs'); } catch (e) {} }
+    try { if (localStorage.getItem('coachai_springs') === '1') document.body.classList.add('springs-on'); } catch (e) {}
     try { if (localStorage.getItem('coachai_font') !== '0') document.body.classList.add('font-uni'); } catch (e) {}
     var applyLightDefault = function(){
       try {
