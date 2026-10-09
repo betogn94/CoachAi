@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261009-0321-deploy">
+<meta name="app-version" content="20261009-0325-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -30671,6 +30671,22 @@ function initSlotRotator(slotId, dotsId) {
   _rotTimers[slotId] = setInterval(tick, 8000);
 }
 
+// Reset sincrónico de los rotadores de Home a su primera slide visible.
+// Los intervals siguen corriendo con Home oculta → al volver, la slide activa
+// puede ser cualquiera; el render posterior la resetea a la primera
+// (initSlotRotator → show(names[0])) y la View Transition dejaba ver ese
+// salto (anillos ↔ progresión en la hero). Pintar ya reseteado = sin salto.
+function _rotResetToFirst() {
+  document.querySelectorAll('#home-wrapper .is-rotating').forEach(slot => {
+    const slides = Array.from(slot.querySelectorAll('[data-rot-slide]'))
+      .filter(el => el.style.display !== 'none');
+    if (!slides.length) return;
+    const first = slides[0].dataset.rotSlide;
+    slot.querySelectorAll('[data-rot-slide]').forEach(el =>
+      el.classList.toggle('is-active', el.dataset.rotSlide === first));
+  });
+}
+
 // ============================
 // HOME: CARDIO REMINDER CARD (rotator)
 // ============================
@@ -31358,6 +31374,10 @@ window.addEventListener('resize', () => {
           // etiquetas EN CAPS del markup (flash "ESTA SEMANA" → "Esta semana").
           // Corriéndolo acá, sincrónico, el snapshot nuevo ya nace caseado.
           try { if (typeof fontUniCase === 'function') fontUniCase(); } catch (e) {}
+          // Ídem rotadores de Home: sus intervals corren con la sección oculta
+          // y la slide activa puede ser cualquiera; el render la resetea a la
+          // primera un beat después → el primer frame mostraba el salto.
+          try { if (typeof _rotResetToFirst === 'function') _rotResetToFirst(); } catch (e) {}
         });
         const cleanup = function () {
           window._vtNavActive = false;
