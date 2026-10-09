@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261009-1326-deploy">
+<meta name="app-version" content="20261009-1331-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -171,6 +171,22 @@ html[data-cai-nav-dir="back"]::view-transition-new(root) { animation: vt-sec-in-
   }
   /* La card OFF (descanso) no es tocable → sin feedback que mienta */
   body.springs-on .cai-entv2-card.rest:active { transform: none; }
+
+  /* ── Cards DENTRO de slots rotadores de Home ──
+     El crossfade del rotador define su propia transition (opacity+visibility)
+     con MÁS especificidad que la regla genérica de arriba → pisaba el spring
+     y Home quedaba sin feedback. Estas reglas re-declaran el crossfade TAL
+     CUAL y le suman el transform del resorte. */
+  body.springs-on .cai-home-card-slot.is-rotating > [data-rot-slide],
+  body.springs-on .cai-home-hero.is-rotating .cai-hero-slide {
+    transition: opacity 0.5s ease, visibility 0.5s,
+                transform .38s cubic-bezier(.34,1.56,.64,1);
+  }
+  body.springs-on .cai-home-card-slot.is-rotating > [data-rot-slide]:active,
+  body.springs-on .cai-home-hero.is-rotating .cai-hero-slide:active {
+    transform: scale(.965);
+    transition: opacity 0.5s ease, visibility 0.5s, transform .09s ease-out;
+  }
 }
 
 /* ---- Cascada de Home: al entrar (showHome → navegación o apertura de la
