@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261009-0344-deploy">
+<meta name="app-version" content="20261009-0346-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -34774,6 +34774,9 @@ function _renderEntSesCard(idx, state, day) {
   }
   cont.style.display = 'block';
   cont.innerHTML = html;
+  // Caser sincrónico (patrón View Transitions): el eyebrow de la sesión se
+  // escribe en caps en cada estado (SESIÓN DE HOY / ACTIVA / COMPLETADA).
+  try { if (typeof fontUniCase === 'function') fontUniCase(); } catch (e) {}
 }
 
 function buildEntrenoExSnapshot() {
@@ -35425,6 +35428,9 @@ async function renderHomeHeroInsight() {
   };
   slide.style.display = '';
   initSlotRotator('home-hero-entrenos', 'home-hero-dots');
+  // Caser sincrónico (patrón View Transitions): TU PROGRESIÓN se escribe en
+  // caps y este render llega async (fetchEntrenoWeeksCached) tras la entrada.
+  try { if (typeof fontUniCase === 'function') fontUniCase(); } catch (e) {}
   if (!window._insightHeroTracked) {
     window._insightHeroTracked = true;
     try { trackEvent('insight_hero_prog', { ej: String(feat.name).slice(0, 60), delta: feat.d, pct: feat.pct, sem: feat.pts.length }); } catch (e) {}
