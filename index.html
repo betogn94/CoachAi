@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261009-1359-deploy">
+<meta name="app-version" content="20261009-1403-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -31540,7 +31540,21 @@ window.addEventListener('resize', () => {
             const anims = (t.getAnimations ? t.getAnimations() : [])
               .map(a => (a.animationName || '?') + ':' + a.playState).join(',') || 'ninguna';
             const rm = (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'SI' : 'no';
-            const msg = 'tf=' + cs.transform + ' | anim=' + anims + ' | reduceMotion=' + rm;
+            // ¿La clase sigue viva a los 200ms? (pointercancel de iOS la mataría al toque)
+            const vivo = t.classList.contains('spring-pressed') ? 'SI' : 'NO';
+            // ¿Cuántas reglas .spring-pressed parseó este motor? (0 = WebKit las tiró)
+            let nR = 0;
+            try {
+              for (const sh of document.styleSheets) {
+                let rs; try { rs = sh.cssRules; } catch (eS) { continue; }
+                const walk = (l) => { for (const rr of l) {
+                  if (rr.selectorText && rr.selectorText.indexOf('spring-pressed') !== -1) nR++;
+                  if (rr.cssRules) walk(rr.cssRules);
+                } };
+                walk(rs);
+              }
+            } catch (eW) { nR = -1; }
+            const msg = 'tf=' + cs.transform + ' | clase@200ms=' + vivo + ' | reglas=' + nR + ' | rm=' + rm + ' | anim=' + anims;
             if (typeof showToast === 'function') showToast(msg, 'ok', 6000);
             else console.log('[springsdebug]', msg);
           } catch (e4) {}
