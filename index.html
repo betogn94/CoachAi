@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261009-0325-deploy">
+<meta name="app-version" content="20261009-0329-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -36429,6 +36429,10 @@ function renderEntV2List(mapping, state) {
       <div class="cai-entv2-list-title">${isEs ? 'TU SPLIT DE LA SEMANA' : 'YOUR WEEKLY SPLIT'}</div>
       <div class="cai-entv2-list">${cards.join('')}</div>`;
   }
+  // Caser sincrónico: este render llega DESPUÉS del callback de la View
+  // Transition (datos async), y esperar el debounce de 120ms del observer
+  // dejaba ver "TU SPLIT DE LA SEMANA" en caps durante la transición.
+  try { if (typeof fontUniCase === 'function') fontUniCase(); } catch (e) {}
 }
 
 function renderMiEntreno() {
@@ -36784,6 +36788,9 @@ function renderMiEntreno() {
       otherCard.style.display = 'none';
     }
   }
+  // Caser sincrónico (ídem render del split): "ESTA SEMANA" se escribe acá en
+  // caps y el debounce del observer lo convertía recién a mitad de transición.
+  try { if (typeof fontUniCase === 'function') fontUniCase(); } catch (e) {}
 }
 
 // Back-compat shim — old summary card no longer rendered, but other code paths
