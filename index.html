@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261009-1420-deploy">
+<meta name="app-version" content="20261009-1425-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -133,7 +133,8 @@ html[data-cai-nav-dir="back"]::view-transition-new(root) { animation: vt-sec-in-
 }
 
 /* ============================================================
-   PRESS-SPRINGS — Horizonte Gravl F1.2 (GATED ?springs=1)
+   PRESS-SPRINGS — Horizonte Gravl F1.2 (🎉 FLIP LIVE 2026-10-09, escape
+   ?springs=0 · los bloques F1.2b/c de abajo siguen GATED ?mot2=1)
    Feedback táctil con física de resorte en los elementos más tocados:
    el press hunde rápido (.09s, respuesta inmediata al dedo) y el release
    vuelve con mini-rebote (bezier con overshoot → pasa apenas de 1 y
@@ -212,8 +213,8 @@ html[data-cai-nav-dir="back"]::view-transition-new(root) { animation: vt-sec-in-
     60%  { opacity: 1; transform: scale(1.015) translateY(-2px); }
     to   { opacity: 1; transform: scale(1) translateY(0); }
   }
-  body.springs-on .ej-modal-overlay.open .ej-modal-card,
-  body.springs-on .alim-edit-overlay.open .alim-edit-card {
+  body.mot2-on .ej-modal-overlay.open .ej-modal-card,
+  body.mot2-on .alim-edit-overlay.open .alim-edit-card {
     animation: modal-card-spring .42s cubic-bezier(.22,.9,.3,1) both;
   }
 
@@ -226,18 +227,18 @@ html[data-cai-nav-dir="back"]::view-transition-new(root) { animation: vt-sec-in-
     from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
   }
-  body.springs-on #mi-entreno-wrapper.sec-stagger .cai-entv2-card,
-  body.springs-on #diario-wrapper.sec-stagger .alimv2-meal {
+  body.mot2-on #mi-entreno-wrapper.sec-stagger .cai-entv2-card,
+  body.mot2-on #diario-wrapper.sec-stagger .alimv2-meal {
     animation: sec-item-in 340ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
   }
-  body.springs-on .sec-stagger :is(.cai-entv2-card, .alimv2-meal):nth-child(1) { animation-delay: 0ms; }
-  body.springs-on .sec-stagger :is(.cai-entv2-card, .alimv2-meal):nth-child(2) { animation-delay: 45ms; }
-  body.springs-on .sec-stagger :is(.cai-entv2-card, .alimv2-meal):nth-child(3) { animation-delay: 90ms; }
-  body.springs-on .sec-stagger :is(.cai-entv2-card, .alimv2-meal):nth-child(4) { animation-delay: 135ms; }
-  body.springs-on .sec-stagger :is(.cai-entv2-card, .alimv2-meal):nth-child(5) { animation-delay: 180ms; }
-  body.springs-on .sec-stagger :is(.cai-entv2-card, .alimv2-meal):nth-child(6) { animation-delay: 225ms; }
-  body.springs-on .sec-stagger :is(.cai-entv2-card, .alimv2-meal):nth-child(7) { animation-delay: 270ms; }
-  body.springs-on .sec-stagger :is(.cai-entv2-card, .alimv2-meal):nth-child(8) { animation-delay: 315ms; }
+  body.mot2-on .sec-stagger :is(.cai-entv2-card, .alimv2-meal):nth-child(1) { animation-delay: 0ms; }
+  body.mot2-on .sec-stagger :is(.cai-entv2-card, .alimv2-meal):nth-child(2) { animation-delay: 45ms; }
+  body.mot2-on .sec-stagger :is(.cai-entv2-card, .alimv2-meal):nth-child(3) { animation-delay: 90ms; }
+  body.mot2-on .sec-stagger :is(.cai-entv2-card, .alimv2-meal):nth-child(4) { animation-delay: 135ms; }
+  body.mot2-on .sec-stagger :is(.cai-entv2-card, .alimv2-meal):nth-child(5) { animation-delay: 180ms; }
+  body.mot2-on .sec-stagger :is(.cai-entv2-card, .alimv2-meal):nth-child(6) { animation-delay: 225ms; }
+  body.mot2-on .sec-stagger :is(.cai-entv2-card, .alimv2-meal):nth-child(7) { animation-delay: 270ms; }
+  body.mot2-on .sec-stagger :is(.cai-entv2-card, .alimv2-meal):nth-child(8) { animation-delay: 315ms; }
 }
 
 /* ---- Cascada de Home: al entrar (showHome → navegación o apertura de la
@@ -15592,21 +15593,28 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     var _fp = params.get('font');
     if (_fp === '1') { try { localStorage.removeItem('coachai_font'); } catch (e) {} }
     else if (_fp === '0') { try { localStorage.setItem('coachai_font', '0'); } catch (e) {} }
-    // Transiciones de navegación con View Transitions API (Horizonte Gravl F1.1).
-    // GATED: ?trans=1 enciende (persistido), ?trans=0 apaga. Default OFF hasta flip.
+    // Transiciones de navegación (View Transitions, Horizonte Gravl F1.1).
+    // 🎉 FLIP LIVE (2026-10-09 tras QA 10/10 de Beto): default ON.
+    // ?trans=0 = escape persistido; ?trans=1 re-enciende.
     var _vtp = params.get('trans');
-    if (_vtp === '1') { try { localStorage.setItem('coachai_trans', '1'); } catch (e) {} }
-    else if (_vtp === '0') { try { localStorage.removeItem('coachai_trans'); } catch (e) {} }
-    // Press-springs (Horizonte Gravl F1.2): feedback táctil con rebote en cards
-    // y botones. GATED: ?springs=1 enciende (persistido), ?springs=0 apaga.
+    if (_vtp === '0') { try { localStorage.setItem('coachai_trans', '0'); } catch (e) {} }
+    else if (_vtp === '1') { try { localStorage.removeItem('coachai_trans'); } catch (e) {} }
+    // Press-springs (Horizonte Gravl F1.2). 🎉 FLIP LIVE (2026-10-09): default
+    // ON. ?springs=0 = escape persistido; ?springs=1 re-enciende.
     var _spg = params.get('springs');
-    if (_spg === '1') { try { localStorage.setItem('coachai_springs', '1'); } catch (e) {} }
-    else if (_spg === '0') { try { localStorage.removeItem('coachai_springs'); } catch (e) {} }
+    if (_spg === '0') { try { localStorage.setItem('coachai_springs', '0'); } catch (e) {} }
+    else if (_spg === '1') { try { localStorage.removeItem('coachai_springs'); } catch (e) {} }
+    // Motion 2 (modales con rebote + stagger de listas, F1.2b/c). GATED:
+    // ?mot2=1 enciende (persistido), ?mot2=0 apaga. Default OFF hasta QA.
+    var _m2 = params.get('mot2');
+    if (_m2 === '1') { try { localStorage.setItem('coachai_mot2', '1'); } catch (e) {} }
+    else if (_m2 === '0') { try { localStorage.removeItem('coachai_mot2'); } catch (e) {} }
     // ?springsdebug=1 → borde rojo al registrar un press (diagnóstico en device)
     var _spd = params.get('springsdebug');
     if (_spd === '1') { try { localStorage.setItem('coachai_springsdebug', '1'); } catch (e) {} }
     else if (_spd === '0') { try { localStorage.removeItem('coachai_springsdebug'); } catch (e) {} }
-    try { if (localStorage.getItem('coachai_springs') === '1') document.body.classList.add('springs-on'); } catch (e) {}
+    try { if (localStorage.getItem('coachai_springs') !== '0') document.body.classList.add('springs-on'); } catch (e) {}
+    try { if (localStorage.getItem('coachai_mot2') === '1') document.body.classList.add('mot2-on'); } catch (e) {}
     try { if (localStorage.getItem('coachai_font') !== '0') document.body.classList.add('font-uni'); } catch (e) {}
     var applyLightDefault = function(){
       try {
@@ -31473,7 +31481,8 @@ window.addEventListener('resize', () => {
     showPerfil:    { nav: 'nav-perfil',  dir: true  },
   };
   function vtOn() {
-    try { return localStorage.getItem('coachai_trans') === '1'; } catch (e) { return false; }
+    // FLIP LIVE: default ON, '0' = escape persistido (?trans=0)
+    try { return localStorage.getItem('coachai_trans') !== '0'; } catch (e) { return false; }
   }
   // Overlays de carga a pantalla completa: una transición debajo no se ve, y
   // el bottom-nav aislado se pinta en la top layer de la VT — POR ENCIMA del
@@ -31633,7 +31642,7 @@ window.addEventListener('resize', () => {
       if (typeof orig !== 'function') return;
       window[name] = function () {
         try {
-          if (document.body.classList.contains('springs-on')) {
+          if (document.body.classList.contains('mot2-on')) {
             const w = document.getElementById(MAP[name]);
             if (w && w.style.display !== 'block') {
               w.classList.add('sec-stagger');
