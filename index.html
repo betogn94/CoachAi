@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261009-1353-deploy">
+<meta name="app-version" content="20261009-1356-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -31532,6 +31532,18 @@ window.addEventListener('resize', () => {
       if (localStorage.getItem('coachai_springsdebug') === '1') {
         t.style.outline = '3px solid red';
         setTimeout(() => { try { t.style.outline = ''; } catch (e2) {} }, 800);
+        // A los 200ms (press-in ya debería estar aplicado): mostrar qué computó
+        // el device de verdad — transform final + animaciones vivas en el nodo.
+        setTimeout(() => {
+          try {
+            const cs = getComputedStyle(t);
+            const anims = (t.getAnimations ? t.getAnimations() : [])
+              .map(a => (a.animationName || '?') + ':' + a.playState).join(',') || 'ninguna';
+            const msg = 'tf=' + cs.transform + ' | anim=' + anims;
+            if (typeof showToast === 'function') showToast(msg, 'ok', 6000);
+            else console.log('[springsdebug]', msg);
+          } catch (e4) {}
+        }, 200);
       }
     } catch (e3) {}
   }, { passive: true });
