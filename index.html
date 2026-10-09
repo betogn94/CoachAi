@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261008-2040-reto-colores-tenant-king">
+<meta name="app-version" content="20261009-0312-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -104,6 +104,33 @@
 .sec-slide-right { animation: sec-from-right var(--mo-dur) var(--mo-ease); }
 .sec-slide-left  { animation: sec-from-left  var(--mo-dur) var(--mo-ease); }
 .sec-fade        { animation: sec-fade-in    var(--mo-dur)      var(--mo-ease); }
+
+/* ============================================================
+   VIEW TRANSITIONS DE NAVEGACIÓN — Horizonte Gravl F1.1 (GATED ?trans=1)
+   Cuando el navegador soporta document.startViewTransition y el flag está
+   encendido, el cambio de sección lo anima la API: la sección VIEJA sale
+   mientras la NUEVA entra (el slide legacy sec-slide-* de arriba solo
+   animaba la entrante — la vieja desaparecía en seco). La dirección la
+   pone el JS en <html data-cai-nav-dir="fwd|back">; sin atributo
+   (Chat/Home) queda el crossfade default del navegador, así la cascada
+   de Home y el fade de Chat conservan su entrada propia.
+   El bottom-nav se aísla con view-transition-name propio: el slide de la
+   página no lo arrastra, y como el snapshot "new" es vivo, el thumb sigue
+   deslizando su .42s adentro sin cortes.
+   Sin soporte (iOS <18 / Safari viejo) nada de esto aplica y queda el
+   comportamiento actual intacto. ============================================================ */
+html.vt-nav .cai-bottom-nav { view-transition-name: cai-nav; }
+@keyframes vt-sec-out-left  { to   { transform: translateX(-56px); opacity: 0; } }
+@keyframes vt-sec-in-right  { from { transform: translateX(56px);  opacity: .35; } }
+@keyframes vt-sec-out-right { to   { transform: translateX(56px);  opacity: 0; } }
+@keyframes vt-sec-in-left   { from { transform: translateX(-56px); opacity: .35; } }
+html[data-cai-nav-dir="fwd"]::view-transition-old(root)  { animation: vt-sec-out-left  var(--mo-dur, .34s) var(--mo-ease, ease) both; }
+html[data-cai-nav-dir="fwd"]::view-transition-new(root)  { animation: vt-sec-in-right  var(--mo-dur, .34s) var(--mo-ease, ease) both; }
+html[data-cai-nav-dir="back"]::view-transition-old(root) { animation: vt-sec-out-right var(--mo-dur, .34s) var(--mo-ease, ease) both; }
+html[data-cai-nav-dir="back"]::view-transition-new(root) { animation: vt-sec-in-left   var(--mo-dur, .34s) var(--mo-ease, ease) both; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+}
 
 /* ---- Cascada de Home: al entrar (showHome → navegación o apertura de la
    app), los bloques aparecen uno tras otro de arriba hacia abajo, en vez de
@@ -15452,6 +15479,11 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     var _fp = params.get('font');
     if (_fp === '1') { try { localStorage.removeItem('coachai_font'); } catch (e) {} }
     else if (_fp === '0') { try { localStorage.setItem('coachai_font', '0'); } catch (e) {} }
+    // Transiciones de navegación con View Transitions API (Horizonte Gravl F1.1).
+    // GATED: ?trans=1 enciende (persistido), ?trans=0 apaga. Default OFF hasta flip.
+    var _vtp = params.get('trans');
+    if (_vtp === '1') { try { localStorage.setItem('coachai_trans', '1'); } catch (e) {} }
+    else if (_vtp === '0') { try { localStorage.removeItem('coachai_trans'); } catch (e) {} }
     try { if (localStorage.getItem('coachai_font') !== '0') document.body.classList.add('font-uni'); } catch (e) {}
     var applyLightDefault = function(){
       try {
@@ -31227,7 +31259,9 @@ function setActiveNav(id) {
     const _dir = _newIdx === _navCurrentIdx ? 0 : (_newIdx > _navCurrentIdx ? 1 : -1);
     _navCurrentIdx = _newIdx;
     const _wrap = document.getElementById(_NAV_WRAPPER[id]);
-    if (_wrap && _dir !== 0) {
+    // _vtNavActive: la View Transition ya anima ambas secciones — el slide
+    // legacy encima sería doble movimiento (ver instalador vt-nav más abajo).
+    if (_wrap && _dir !== 0 && !window._vtNavActive) {
       _wrap.classList.remove('sec-slide-left', 'sec-slide-right', 'sec-fade');
       void _wrap.offsetWidth; // reflow → reinicia la animación aunque ya estuviera puesta
       // Chat: fade puro (su footer fixed + alto JS se rompen con transform).
@@ -31268,6 +31302,69 @@ window.addEventListener('resize', () => {
   const active = document.querySelector('.cai-bottom-nav .nav-item.active');
   if (active) setActiveNav(active.id);
 });
+
+// ============================================================
+// TRANSICIONES DE NAVEGACIÓN — View Transitions API (Horizonte Gravl F1.1)
+// ============================================================
+// GATED ?trans=1 (apagar: ?trans=0). Envuelve las 5 show* de sección en
+// document.startViewTransition para que la sección saliente se anime JUNTO
+// con la entrante. Cae al camino de siempre (cero cambio) cuando: no hay
+// soporte, flag apagado, app no activa (login/onboarding), reduce-motion,
+// pestaña oculta, o la sección destino ya está visible (re-entrada al mismo
+// tab y el reveal post-swipe de Home, que llamaría a un doble movimiento).
+// OJO: el callback NO devuelve la promesa de las show* async — el switch de
+// DOM es sincrónico al inicio de cada una; esperar sus fetch congelaría la
+// pantalla snapshoteada hasta que vuelva la red.
+(function () {
+  const VT_SECTIONS = {
+    showHome:      { nav: 'nav-inicio',  dir: false }, // Home: entrada = cascada propia → crossfade
+    showChat:      { nav: 'nav-coach',   dir: false }, // Chat: fade (footer fixed, sin transform)
+    showDiario:    { nav: 'nav-diario',  dir: true  },
+    showMiEntreno: { nav: 'nav-entreno', dir: true  },
+    showPerfil:    { nav: 'nav-perfil',  dir: true  },
+  };
+  function vtOn() {
+    try { return localStorage.getItem('coachai_trans') === '1'; } catch (e) { return false; }
+  }
+  function install() {
+    if (!document.startViewTransition) return;
+    document.documentElement.classList.add('vt-nav'); // aísla el bottom-nav (CSS)
+    Object.keys(VT_SECTIONS).forEach(function (name) {
+      const orig = window[name];
+      if (typeof orig !== 'function') return;
+      const meta = VT_SECTIONS[name];
+      window[name] = function () {
+        const args = arguments;
+        const wrap = document.getElementById(_NAV_WRAPPER[meta.nav]);
+        if (!vtOn()
+            || !document.body.classList.contains('app-active')
+            || document.hidden
+            || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)
+            || (wrap && wrap.style.display === 'block')) {
+          return orig.apply(this, args);
+        }
+        // Dirección del viaje (misma lógica que el slide legacy): se calcula
+        // ANTES de que setActiveNav actualice _navCurrentIdx.
+        const ni = _NAV_ORDER.indexOf(meta.nav);
+        const d = (meta.dir && ni !== -1 && ni !== _navCurrentIdx)
+          ? (ni > _navCurrentIdx ? 'fwd' : 'back') : '';
+        if (d) document.documentElement.setAttribute('data-cai-nav-dir', d);
+        else document.documentElement.removeAttribute('data-cai-nav-dir');
+        window._vtNavActive = true;
+        const t = document.startViewTransition(function () { orig.apply(window, args); });
+        const cleanup = function () {
+          window._vtNavActive = false;
+          document.documentElement.removeAttribute('data-cai-nav-dir');
+        };
+        t.finished.then(cleanup, cleanup);
+      };
+    });
+  }
+  // Las show* viven en distintos puntos del archivo: instalar cuando el DOM
+  // (y todos los <script> inline) ya parsearon.
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install);
+  else install();
+})();
 
 // ============================================================
 // BOTÓN "ATRÁS" DE ANDROID / SWIPE-BACK — navegación por historial
