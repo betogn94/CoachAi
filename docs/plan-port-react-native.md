@@ -30,10 +30,35 @@ Tenemos tres ventajas que casi nadie tiene al encarar un port así:
 - [x] **0.1 — Repo nuevo `coachai-native`** (separado del actual; el backend queda donde está). ✅ 2026-10-11 — [github.com/betogn94/coachai-native](https://github.com/betogn94/coachai-native) (privado), local en `Desktop/coachai-native`. README con reglas de oro + tabla del stack; .gitignore Expo.
 - [x] **0.2 — Cuenta Expo + EAS** (el sistema de builds en la nube de Expo; evita pelear con Xcode/Android Studio local). Gravl usa exactamente esto. ✅ 2026-10-11 — cuenta personal `betogn` (beto131312@gmail.com, plan gratis) + `eas-cli` 24.12.1 global en la PC, `eas whoami` OK. Expo también creó la organización `betogns-team` (vacía, la dejamos). Gotcha Windows: PowerShell bloquea los `.ps1` → usar **`eas.cmd`** (no tocamos la política de ejecución). El login es por navegador (OAuth), no pide contraseña en la terminal.
 - [x] **0.3 — Hello World en tu iPhone**: proyecto Expo vacío corriendo en tu celu vía Expo Go. Tarea de una tarde, y es el momento "esto es real". ✅ 2026-10-11 — Expo SDK 57 (RN 0.86, expo-router en `src/app`, Reanimated 4 y expo-image ya incluidos), proyecto EAS `@betogn/coachai-native`. Pantalla violeta `#7c6aff` en el iPhone de Beto + cambio en vivo desde la PC verificado (hot reload OK). Gotcha: por LAN el iPhone no llega a la PC (firewall/red) → **arrancar siempre con `npx.cmd expo start --tunnel`** (`@expo/ngrok` quedó como devDependency).
-- [ ] **0.4 — Decisiones de stack cerradas por escrito** (propuesta: calcar Gravl — Expo SDK estable, TypeScript, expo-router para navegación, Reanimated para animación, Rive para ilustradas, RevenueCat para suscripciones, Sentry para crashes; estado con Zustand o similar liviano).
+- [ ] **0.4 — Decisiones de stack cerradas por escrito** (propuesta: calcar Gravl — Expo SDK estable, TypeScript, expo-router para navegación, Reanimated para animación, Rive para ilustradas, RevenueCat para suscripciones, Sentry para crashes; estado con Zustand o similar liviano). → ver **📌 Decisiones de stack** abajo.
 - [ ] **0.5 — Inventario de pantallas y flujos de la PWA** (el documento-espec: lista de cada pantalla, qué muestra, qué endpoints consume). Se puede generar casi entero leyendo el código actual.
 - [ ] **0.6 — Inventario de endpoints** de la API que consume el frontend hoy (contrato que la app RN va a respetar tal cual).
 - [ ] **0.7 — Login OTP de prueba desde RN**: mini-pantalla que haga el flujo Supabase OTP real. Si auth funciona temprano, el resto es renderizar datos.
+
+### 📌 Decisiones de stack (0.4 — cerradas el 2026-10-11)
+
+**Criterio general:** calcamos el stack de Gravl (probado con 1M+ de usuarios en nuestro rubro) **salvo** donde ya tenemos algo propio que funciona. No adivinamos tecnología.
+
+| Capa | Herramienta | ¿Gravl? | Por qué (en una línea) |
+|---|---|---|---|
+| Framework | **Expo** (SDK 57) + **TypeScript** + Hermes | ✅ igual | Un solo código para iPhone y Android, con cámara/notificaciones/navegación ya resueltas; TypeScript marca errores antes de que lleguen a una clienta. |
+| Builds y deploy | **EAS** + **TestFlight** + actualizaciones **OTA** | ✅ igual | Builds en la nube sin Mac ni certificados a mano; OTA nos conserva la velocidad de hoy (arreglar sin esperar la review de Apple). |
+| Navegación | **expo-router** | ✅ igual | Transiciones y swipe-back reales de iOS; cada archivo en `src/app/` es una pantalla. |
+| Animación | **Reanimated** + **Rive** | ✅ igual | Springs físicos a 120fps en un hilo aparte (adiós peleas con WebKit); Rive para celebraciones y medallas ilustradas. |
+| Suscripciones in-app | **RevenueCat** (recién Fase 4) | ✅ igual | Maneja los pagos de Apple/Google (recibos, renovaciones, restaurar). Convive con Stripe; el balance entre las dos puertas se decide con Jesús antes de F4. |
+| Crashes | **Sentry** | ✅ igual | Nos enteramos de cada error con pantalla y modelo de teléfono antes de que la clienta escriba. |
+| Pagos web | **Stripe** (el circuito actual) | ❌ Gravl usa Paddle | Ya tenemos webhooks, sync-subs y Tower funcionando; no se toca. |
+| IA | **Nuestra `/api/chat`** en Vercel | ❌ Gravl usa Vercel AI Gateway | Auth, límites por plan y clamps ya viven del lado del servidor; la app solo la llama. |
+| Estado | **TanStack Query** + **Zustand** | elección nuestra | Query cachea y refresca datos del servidor (cargas instantáneas); Zustand para el estado chico de pantalla. Estándar 2026 en Expo, sin el peso de Redux. |
+| Datos y sesión | **supabase-js** + **expo-secure-store** | elección nuestra | Mismo Supabase, mismo OTP, misma RLS; la sesión va al llavero cifrado del iPhone. Las clientas entran y está todo — no se migra nada. |
+| Estilos | **StyleSheet** + **tokens propios** (`tokens.ts`) | elección nuestra | Look 100% CoachAI, sin librería de UI de terceros (ni Tamagui ni NativeWind). Los tokens salen de la PWA en la tarea 1.1. |
+| Listas / imágenes | **FlashList** / **expo-image** | elección nuestra | Scroll perfecto en historiales largos; fotos de comidas y progreso cacheadas en disco. |
+
+**Otras decisiones que quedaron tomadas en el camino:**
+- **Repo aparte** (`coachai-native`), no monorepo: el backend sigue viviendo en el repo de la PWA y ninguno de los dos se ensucia con el otro.
+- **Versiones fijadas por Expo:** paquetes nuevos siempre con `npx expo install` (elige la versión compatible con el SDK), nunca `npm install` a mano. Se actualiza de SDK de a uno y a propósito, no "porque salió".
+- **Desarrollo diario:** Expo Go en el iPhone de Beto vía **túnel** (la red local no llega). Cuando aparezca la primera librería nativa que Expo Go no soporte (probablemente Rive o RevenueCat), pasamos a **development build** propia vía EAS.
+- **Cuenta Expo personal** (`betogn`); si se suma alguien del equipo, se crea una organización y se transfiere el proyecto.
 
 ## FASE 1 — Design System (noviembre-diciembre) 🎨
 
