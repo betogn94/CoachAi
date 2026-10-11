@@ -27,7 +27,7 @@ Tenemos tres ventajas que casi nadie tiene al encarar un port así:
 
 *Objetivo: que el día que arranque el port de verdad, no haya NADA administrativo ni decisiones abiertas en el camino. Cada ítem es una tarea de un rato libre.*
 
-- [ ] **0.1 — Repo nuevo `coachai-native`** (separado del actual; el backend queda donde está).
+- [x] **0.1 — Repo nuevo `coachai-native`** (separado del actual; el backend queda donde está). ✅ 2026-10-11 — [github.com/betogn94/coachai-native](https://github.com/betogn94/coachai-native) (privado), local en `Desktop/coachai-native`. README con reglas de oro + tabla del stack; .gitignore Expo.
 - [ ] **0.2 — Cuenta Expo + EAS** (el sistema de builds en la nube de Expo; evita pelear con Xcode/Android Studio local). Gravl usa exactamente esto.
 - [ ] **0.3 — Hello World en tu iPhone**: proyecto Expo vacío corriendo en tu celu vía Expo Go. Tarea de una tarde, y es el momento "esto es real".
 - [ ] **0.4 — Decisiones de stack cerradas por escrito** (propuesta: calcar Gravl — Expo SDK estable, TypeScript, expo-router para navegación, Reanimated para animación, Rive para ilustradas, RevenueCat para suscripciones, Sentry para crashes; estado con Zustand o similar liviano).
