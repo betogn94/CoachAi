@@ -33,7 +33,9 @@ Tenemos tres ventajas que casi nadie tiene al encarar un port así:
 - [x] **0.4 — Decisiones de stack cerradas por escrito** ✅ 2026-10-11 (OK de Beto) (propuesta: calcar Gravl — Expo SDK estable, TypeScript, expo-router para navegación, Reanimated para animación, Rive para ilustradas, RevenueCat para suscripciones, Sentry para crashes; estado con Zustand o similar liviano). → ver **📌 Decisiones de stack** abajo.
 - [x] **0.5 — Inventario de pantallas y flujos de la PWA** ✅ 2026-10-11 (OK de Beto) (el documento-espec: lista de cada pantalla, qué muestra, qué endpoints consume). Se puede generar casi entero leyendo el código actual. → borrador en [`docs/port-rn/inventario-pantallas.md`](port-rn/inventario-pantallas.md).
 - [x] **0.6 — Inventario de endpoints** ✅ 2026-10-11 (OK de Beto; B3 queda como decisión abierta) de la API que consume el frontend hoy (contrato que la app RN va a respetar tal cual). → borrador en [`docs/port-rn/contrato-api.md`](port-rn/contrato-api.md) — trae 3 cambios de backend necesarios (B1 origen, B2 push, B3 cerebro al servidor).
-- [ ] **0.7 — Login OTP de prueba desde RN**: mini-pantalla que haga el flujo Supabase OTP real. Si auth funciona temprano, el resto es renderizar datos.
+- [x] **0.7 — Login OTP de prueba desde RN**: mini-pantalla que haga el flujo Supabase OTP real. Si auth funciona temprano, el resto es renderizar datos. ✅ 2026-10-11 — verificado en los logs de Supabase desde el iPhone de Beto (`Expo/Darwin`): `otp` 200 → `verify` 200 → `usuarios` 200 (fila propia leída con RLS). `shouldCreateUser:false`, solo lectura. Sesión persistida en AsyncStorage (pasar a almacenamiento cifrado en 2.2). Login directo a Supabase → no necesitó el cambio B1.
+
+> 🎉 **FASE 0 COMPLETA (2026-10-11).** Los cimientos quedaron: repo, Expo/EAS, app corriendo en el iPhone, stack decidido, espec de pantallas, contrato de API y login real. Abierto para decidir: **B3** (llevar el "cerebro" al servidor) — ver [contrato-api.md](port-rn/contrato-api.md).
 
 ### 📌 Decisiones de stack (0.4 — cerradas el 2026-10-11)
 
