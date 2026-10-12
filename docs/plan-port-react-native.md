@@ -66,6 +66,8 @@ Tenemos tres ventajas que casi nadie tiene al encarar un port así:
 
 *Objetivo: definir UNA vez cómo se ve y se siente todo, al nivel Gravl, con identidad CoachAI Pro. Acá se gana la batalla visual.*
 
+> 🎨 **Dirección visual (Beto, 2026-10-11):** lo más **iOS-native posible** — controles, navegación, sheets, listas, gestos y haptics se comportan como iOS. La identidad va **solo en los detalles de color**: violeta `#7c6aff` para CoachAI Pro default y rosa `#FF4F7B` para el tenant King. Dos temas que solo cambian la paleta de acento.
+
 - [ ] **1.1 — Tokens desde la app actual**: colores (violeta + tema King), DM Sans, radios, sombras, espaciados, duraciones/curvas del motion system Snappy → archivo de tokens compartible.
 - [ ] **1.2 — Componentes base**: Button, Card, Chip, BottomSheet, Toast, Input, Anillo de progreso, Barra de adherencia — cada uno con sus springs nativos (acá Reanimated brilla de verdad: 120fps, gestos).
 - [ ] **1.3 — Pantalla muestrario** (catálogo interno de componentes para QA visual rápido en el celu).
