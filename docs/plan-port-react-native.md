@@ -76,6 +76,11 @@ Tenemos tres ventajas que casi nadie tiene al encarar un port así:
 
 > 🎉 **FASE 1 COMPLETA (2026-10-12, en un solo día con Fable 5.1).** Tokens + 13 componentes + muestrario + tab bar. Queda la **1.5 (pasada de color)** para cuando haya pantallas reales.
 
+> 🎨 **Decisiones de Beto con pantallas reales (2026-10-13, 4 iteraciones con capturas) — actualizan lo de arriba:**
+> - **Tab bar en claro = vidrio BLANCO** (tinte blanco 85 % sobre el Liquid Glass + sombra suave). Causa del gris que se veía: el vidrio translúcido dejaba ver la sombra de abajo. En oscuro sigue `#14161C`.
+> - **La burbuja del tab activo SÍ lleva color de marca, suave** (tint al 13 % + ícono en tint), compacta (56 pt) alrededor del ícono. Reemplaza la regla "cero marca en la navegación": sobre la barra blanca, un toque de marca en el activo "aparece justo donde estás parado y nada más", mismo lenguaje que los cuadraditos "Día N" y los chips. La barra entera sigue sin marca.
+> - **Tema CLARO por default** (como la PWA), con **Perfil → Apariencia: Claro / Oscuro / Automático** guardado en el dispositivo y aplicado también a iOS (`Appearance.setColorScheme`) para que header, hojas, menús y teclado acompañen.
+
 ## FASE 2 — Esqueleto navegable (diciembre-enero) 🦴
 
 *Objetivo: una app real en tu bolsillo, aunque vacía: navegación + login + datos reales.*
