@@ -91,7 +91,16 @@ Tenemos tres ventajas que casi nadie tiene al encarar un port así:
 
 *Orden elegido por valor y por dificultad creciente. Cada sección se da por cerrada cuando, lado a lado con la PWA, no le falta nada.*
 
-1. [ ] **Mi Entreno** (el corazón: split, sesión guiada, cronómetro, arrastre de pesos, PR)
+1. [ ] **Mi Entreno** (el corazón: split, sesión guiada, cronómetro, arrastre de pesos, PR) — partición en [handoff-2026-10-13.md](port-rn/handoff-2026-10-13.md) §7
+   - [x] **3.1.a — Rutina real + lista del split** ✅ 2026-10-13 (QA de Beto en el iPhone, commit nativo `c38ee2c`) — `features/entreno/rutina.ts` = port 1:1 de `parseRutinaContenido` + `buildTrainingDayMapping`; **`scripts/paridad-rutina.mjs`** las compara contra el `index.html` vivo (red de regresión + rutinas reales gitignored + 2.500 fuzz × 7 días × varios `dias_entreno` = 703k comparaciones idénticas). Rutina vigente + "cerrada" como `loadCurrentWeekPlans`, con TanStack Query y caché persistida (se borra al cerrar sesión). Tab Entreno: saludo, split con número de día + día de la semana, HOY, card Descanso, vacío/cargando/error, pull-to-refresh; Día muestra los ejercicios reales. **Extra: la semana nueva llega sola en la nativa** — port de `autoRepeatPlans` **solo rutina** (clon idéntico a la semana ISO actual al detectar la rutina cerrada). Verificado end-to-end con la cuenta de Beto: el iPhone creó la rutina W42 (POST 201) + evento `plan_auto_repeated` con `app: native`. HALLAZGO del QA: sin esto, quien abra la nativa antes que la PWA tras un cierre veía "Sin rutina activa".
+   - [ ] 3.1.b — Vista del día (acordeón, series×reps, cue, nota/intensificador, ✓ manual)
+   - [ ] 3.1.c — Registro de pesos/reps + cola offline (`entreno_semanal`)
+   - [ ] 3.1.d — Sesión: card con estados, cronómetro por timestamps, modo guiado
+   - [ ] 3.1.e — Terminar/descartar + espejo a `dias_entrenados`/`progreso_diario` + autocierre + celebración
+   - [ ] 3.1.f — Arrastre de pesos + récord personal
+   - [ ] 3.1.g — Demo de ejercicio + guía de intensificadores + progresión de fuerza
+
+> 🧭 **Decisión de Beto (2026-10-13): la nativa va a ser LA app y la PWA se desactiva** (no queda "como versión web"). Consecuencia: toda lógica que hoy corre *en el cliente al abrir la PWA* tiene que portarse a la nativa o pasar al servidor antes de apagarla. Primer caso: `autoRepeatPlans` — la rutina ya la clona la nativa; **la dieta se clona Y se ajusta con IA (`autoAdjustDiet`) → va al servidor junto con B3** (pendiente; mientras la PWA viva, la clona ella). Inventariar el resto de estos "efectos al abrir" (prefetch de planes del onboarding, self-heal con IA, logros, renovación) antes del cutover.
 2. [ ] **Mi Alimentación** (días, comidas, tildes, anillos, fotos)
 3. [ ] **Home** (hero + rotadores de KPIs + cascada)
 4. [ ] **Chat / Coach IA** (misma API, streaming)
@@ -102,7 +111,7 @@ Tenemos tres ventajas que casi nadie tiene al encarar un port así:
 
 - [ ] Push notifications nativas (mejores que las de PWA) · deep links · RevenueCat/IAP
 - [ ] Beta con grupito de clientas reales vía TestFlight
-- [ ] Cutover gradual: la app nativa reemplaza al wrapper en las stores; la PWA queda como versión web
+- [ ] Cutover gradual: la app nativa reemplaza al wrapper en las stores; ~~la PWA queda como versión web~~ → **la PWA se desactiva** (Beto, 2026-10-13) — antes, portar/llevar al servidor todos sus "efectos al abrir" (ver nota en Fase 3)
 - [ ] Post-cutover: lo que la PWA no podía — **HealthKit/Health Connect, widgets, Live Activities**
 
 ## Rama paralela — Apple Watch (Swift) ⌚
