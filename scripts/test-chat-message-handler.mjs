@@ -4,17 +4,8 @@
 // Supabase (auth, REST, RPC del tope) y Anthropic se simulan con un fetch falso: no pega a ninguna
 // API ni toca la base. Verifica interruptor, allowlist, origin, auth, validación, tope diario, la
 // llamada a Haiku (prompt cacheado), el upsert de historial_chat con el formato de la PWA y los errores.
-// Node no parsea ESM en api/*.js (Vercel sí): el handler se copia a un .mjs temporal dentro de api/.
+// (Node ≥ 22.7 detecta la sintaxis ESM de api/*.js aunque package.json no declare "type": "module".)
 // ============================================================================
-import { copyFileSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-
-const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
-const TMP = join(RAIZ, 'api', '_chat', '_handler-test-copia.mjs');
-const ORIGEN_TMP = join(RAIZ, 'api', '_chat', '_origin-copia.mjs');
-writeFileSync(TMP, readFileSync(join(RAIZ, 'api', 'chat-message.js'), 'utf8').replace("'./_chat/cerebro-pwa.mjs'", "'./cerebro-pwa.mjs'").replace("'./_chat/contexto.mjs'", "'./contexto.mjs'").replace("'./_origin.js'", "'./_origin-copia.mjs'"));
-copyFileSync(join(RAIZ, 'api', '_origin.js'), ORIGEN_TMP);
 
 process.env.ANTHROPIC_API_KEY = 'sk-test';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'srk-test';
@@ -53,8 +44,8 @@ globalThis.fetch = async (url, init = {}) => {
 
 let fallas = 0;
 const ok = (c, m, extra = '') => { if (c) console.log('  ✓', m); else { fallas++; console.log('  ✗', m, extra); } };
-try {
-  const { default: handler } = await import(pathToFileURL(TMP).href);
+{
+  const { default: handler } = await import('../api/chat-message.js');
   const run = async (body, { token = 'tok-beto', origin = 'https://coachaipro.ai', method = 'POST' } = {}) => {
     const out = { status: 0, headers: {}, body: null };
     const res = { setHeader: (k, v) => (out.headers[k] = v), status: (s) => { out.status = s; return res; }, json: (b) => { out.body = b; return out; } };
@@ -107,9 +98,6 @@ try {
   ok(r.status === 404 && r.body.error === 'sin_perfil', 'sin allowlist y sin ficha en usuarios → 404 sin_perfil');
   r = await run({ mensaje: 'x', fecha: hoy }, { method: 'GET' });
   ok(r.status === 405, 'GET → 405');
-} finally {
-  try { unlinkSync(TMP); } catch {}
-  try { unlinkSync(ORIGEN_TMP); } catch {}
 }
 console.log(fallas ? `\n✗ ${fallas} falla(s)` : '\n✓ handler OK offline (18 chequeos)');
 process.exit(fallas ? 1 : 0);

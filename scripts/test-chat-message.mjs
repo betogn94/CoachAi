@@ -1,7 +1,7 @@
 // ============================================================================
 // TEST-CHAT-MESSAGE — paridad OFFLINE del cerebro en el servidor (3.4.b / B3). No pega a ninguna API.
 //   node scripts/test-chat-message.mjs
-// 1. api/_chat/cerebro-pwa.mjs está al día con index.html (lo que corre en Vercel = lo que corre la PWA).
+// 1. api/_chat-cerebro.js está al día con index.html (lo que corre en Vercel = lo que corre la PWA).
 // 2. Con los MISMOS datos, el prompt del servidor (crearCerebro(ctx)) es IDÉNTICO byte a byte al de
 //    la PWA (buildSystemPrompt real corriendo con un DOM stub, como test-generation.mjs) para varios
 //    perfiles: mujer King, varón con foco, vegana, inglés, planes activos / cerrados / sin planes.
@@ -12,8 +12,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { crearCerebro } from '../api/_chat/cerebro-pwa.mjs';
-import { armarCtx, armarWeeklyPlans, fechaMas, fechaValida, turnosPrevios } from '../api/_chat/contexto.mjs';
+import { crearCerebro } from '../api/_chat-cerebro.js';
+import { armarCtx, armarWeeklyPlans, fechaMas, fechaValida, turnosPrevios } from '../api/_chat-contexto.js';
 import { CONSTANTES, extractConst, extractFunction, FUNCIONES, generar } from './build-chat-prompt.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -24,7 +24,7 @@ const ok = (cond, msg) => { if (cond) console.log('  ✓', msg); else { fallas++
 
 // 1. Generado al día
 console.log('1. cerebro-pwa.mjs vs index.html');
-ok(readFileSync(join(RAIZ, 'api', '_chat', 'cerebro-pwa.mjs'), 'utf8') === generar(), 'el archivo generado coincide con lo que sale de index.html hoy');
+ok(readFileSync(join(RAIZ, 'api', '_chat-cerebro.js'), 'utf8') === generar(), 'el archivo generado coincide con lo que sale de index.html hoy');
 
 // 2. PWA real con DOM stub (globals como los tiene la PWA en memoria) vs servidor
 console.log('2. prompt PWA (DOM stub) vs prompt servidor (ctx)');

@@ -2,9 +2,9 @@
 // BUILD-CHAT-PROMPT — mueve el "cerebro" del chat (3.4.b / B3) de index.html al servidor
 // SIN reescribirlo: extrae del index.html vivo las funciones y constantes REALES que arman el
 // system prompt (buildSystemPrompt + métodos + reglas), los detectores de planes, el saneado de
-// turnos y formatResponse, y las envuelve en `crearCerebro(ctx)` (api/_chat/cerebro-pwa.mjs).
+// turnos y formatResponse, y las envuelve en `crearCerebro(ctx)` (api/_chat-cerebro.js).
 //
-//   node scripts/build-chat-prompt.mjs          → regenera api/_chat/cerebro-pwa.mjs
+//   node scripts/build-chat-prompt.mjs          → regenera api/_chat-cerebro.js
 //   node scripts/build-chat-prompt.mjs --check  → falla si el archivo commiteado no coincide
 //                                                  con lo que sale de index.html HOY (paridad)
 //
@@ -19,7 +19,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const RAIZ = join(__dirname, '..');
 const html = readFileSync(join(RAIZ, 'index.html'), 'utf8');
-const SALIDA = join(RAIZ, 'api', '_chat', 'cerebro-pwa.mjs');
+const SALIDA = join(RAIZ, 'api', '_chat-cerebro.js');
 
 // Scanner con stack (copia de test-generation.mjs): templates anidados, strings, comentarios, regex.
 export function extractFunction(src, name) {
@@ -152,7 +152,7 @@ if (!esScript) {
     console.error(`✗ ${SALIDA} está DESACTUALIZADO respecto de index.html → node scripts/build-chat-prompt.mjs`);
     process.exit(1);
   }
-  console.log('✓ api/_chat/cerebro-pwa.mjs coincide con index.html');
+  console.log('✓ api/_chat-cerebro.js coincide con index.html');
 } else {
   mkdirSync(dirname(SALIDA), { recursive: true });
   writeFileSync(SALIDA, nuevo);

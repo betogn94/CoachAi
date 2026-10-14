@@ -2,7 +2,7 @@
 // /api/chat-message — el chat del Coach IA con el CEREBRO EN EL SERVIDOR (B3, 3.4.b del port RN).
 // ============================================================================
 // La app nativa manda solo { mensaje, fecha } con su Bearer de Supabase. Acá se arma el system
-// prompt con los datos de la usuaria (api/_chat/cerebro-pwa.mjs = el código REAL de index.html,
+// prompt con los datos de la usuaria (api/_chat-cerebro.js = el código REAL de index.html,
 // generado por scripts/build-chat-prompt.mjs), se manda el historial saneado a Haiku, se descuenta
 // del mismo tope diario que /api/chat y se guarda el turno en historial_chat con el MISMO formato
 // que la PWA (el HTML de formatResponse en `mensajes`, los turnos crudos en `conversation_history`).
@@ -15,8 +15,8 @@
 // cruda, como hace la PWA cuando no persiste ("honest display").
 import Anthropic from '@anthropic-ai/sdk';
 
-import { crearCerebro } from './_chat/cerebro-pwa.mjs';
-import { cargarContexto, fechaValida, guardarTurno } from './_chat/contexto.mjs';
+import { crearCerebro } from './_chat-cerebro.js';
+import { cargarContexto, fechaValida, guardarTurno } from './_chat-contexto.js';
 import { isAllowedOrigin } from './_origin.js';
 
 export const config = { maxDuration: 60 };
