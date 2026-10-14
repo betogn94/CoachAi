@@ -8,7 +8,10 @@
     "test:parsers": "node scripts/test-parsers.mjs",
     "setup:hooks": "git config core.hooksPath .githooks",
     "prepare": "git config core.hooksPath .githooks || exit 0",
-    "test:semanas": "node scripts/test-semanas.mjs"
+    "test:semanas": "node scripts/test-semanas.mjs",
+    "chat:cerebro": "node scripts/build-chat-prompt.mjs",
+    "chat:cerebro:check": "node scripts/build-chat-prompt.mjs --check",
+    "test:chat-message": "node scripts/test-chat-message.mjs && node scripts/test-chat-message-handler.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
