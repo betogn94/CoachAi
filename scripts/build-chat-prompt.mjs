@@ -80,6 +80,9 @@ export const FUNCIONES = [
   '_bloqueRestriccionDieta', '_focoPromptBlock', 'countUniqueDays', 'getISOWeekKey', 'formatLocalDate',
   'parseDietaContenido', 'parseRutinaContenido', 'sanitizeTurnsForAPI', 'detectPlanRequest', 'detectPlanInReply',
   'planReplyHasStructure', 'formatResponse', 'computeDietTarget',
+  // 3.4.c — planes por chat: vara de calidad, reconciliación de kcal, aviso "plan listo", alertas Tower.
+  'evaluatePlanQuality', 'dietaHasMacros', 'dietaAvgDayKcal', 'rutinaEntrenaPecho', 'reconcileDietKcal',
+  'buildPlanReadyNotification', 'validateDietaConsistency',
 ];
 export const CONSTANTES = [
   'METODO_RELOJ_ARENA_ES', 'METODO_V_MASCULINO_ES', 'REGLAS_KING_MUJER_ES', 'REGLAS_KING_DIETA_ES',

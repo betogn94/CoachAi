@@ -17,7 +17,7 @@
 //   ctx.lang          'es' | 'en'
 //   ctx.ahora         ms del "hoy" de la usuaria (mediodía UTC de su fecha local): fija new Date()
 //                     sin argumentos para getISOWeekKey / formatLocalDate.
-// Funciones: buildSystemPrompt, buildHistorySummary, buildDiarioSummary, kingEsCohorte, _koMapaPromptBlock, _koNormArq, _bloqueRestriccionDieta, _focoPromptBlock, countUniqueDays, getISOWeekKey, formatLocalDate, parseDietaContenido, parseRutinaContenido, sanitizeTurnsForAPI, detectPlanRequest, detectPlanInReply, planReplyHasStructure, formatResponse, computeDietTarget
+// Funciones: buildSystemPrompt, buildHistorySummary, buildDiarioSummary, kingEsCohorte, _koMapaPromptBlock, _koNormArq, _bloqueRestriccionDieta, _focoPromptBlock, countUniqueDays, getISOWeekKey, formatLocalDate, parseDietaContenido, parseRutinaContenido, sanitizeTurnsForAPI, detectPlanRequest, detectPlanInReply, planReplyHasStructure, formatResponse, computeDietTarget, evaluatePlanQuality, dietaHasMacros, dietaAvgDayKcal, rutinaEntrenaPecho, reconcileDietKcal, buildPlanReadyNotification, validateDietaConsistency
 // Constantes: METODO_RELOJ_ARENA_ES, METODO_V_MASCULINO_ES, REGLAS_KING_MUJER_ES, REGLAS_KING_DIETA_ES, REGLAS_VEGANAS_ES, REGLAS_VEGETARIANAS_ES, REGLAS_VEGANAS_EN, REGLAS_VEGETARIANAS_EN, DAY_REGEX
 
 export function crearCerebro(ctx) {
@@ -1644,5 +1644,229 @@ function computeDietTarget(p) {
   return { kcal, prot, carbs, fat, floor };
 }
 
-  return { buildSystemPrompt, buildHistorySummary, buildDiarioSummary, kingEsCohorte, _koMapaPromptBlock, _koNormArq, _bloqueRestriccionDieta, _focoPromptBlock, countUniqueDays, getISOWeekKey, formatLocalDate, parseDietaContenido, parseRutinaContenido, sanitizeTurnsForAPI, detectPlanRequest, detectPlanInReply, planReplyHasStructure, formatResponse, computeDietTarget };
+function evaluatePlanQuality(tipo, contenido, opts) {
+  opts = opts || {};
+  const reasons = [];
+  try {
+    if (tipo === 'dieta') {
+      const p = parseDietaContenido(contenido);
+      const days = (p && p.days) || [];
+      if (days.length < 7) reasons.push('menos de 7 dias');
+      let totalMeals = 0, mealsWithK = 0, fewMeals = false;
+      const dayK = [], dayP = [];
+      for (const d of days) {
+        const meals = d.meals || [];
+        if (meals.length < 3) fewMeals = true;
+        let dk = 0, dp = 0, hasK = false;
+        for (const m of meals) { totalMeals++; if (m.kcal != null) { mealsWithK++; dk += m.kcal; dp += (m.prot || 0); hasK = true; } }
+        if (hasK) { dayK.push(dk); dayP.push(dp); }
+      }
+      if (fewMeals) reasons.push('algun dia con menos de 3 comidas');
+      const t = opts.target;
+      const headerK = p && p.header && p.header.targetKcal, headerP = p && p.header && p.header.targetProt;
+      const effK = dayK.length ? Math.round(dayK.reduce((a, b) => a + b, 0) / dayK.length) : (headerK || null);
+      const effP = dayP.length ? Math.round(dayP.reduce((a, b) => a + b, 0) / dayP.length) : (headerP || null);
+      if (effK == null) reasons.push('sin kcal');
+      else if (t && t.kcal && Math.abs(effK - t.kcal) / t.kcal > 0.15) reasons.push('kcal lejos del target');
+      if (effP == null) reasons.push('sin proteina objetivo');
+      else if (t && t.prot && effP < t.prot * 0.85) reasons.push('proteina baja');
+    } else if (tipo === 'rutina') {
+      const days = parseRutinaContenido(contenido) || [];
+      const trainDays = days.filter(d => !d.isRest && d.exercises && d.exercises.length > 0);
+      if (!trainDays.length) reasons.push('sin dias de entreno');
+      else if (opts.expectedDays && trainDays.length < opts.expectedDays) reasons.push('menos dias de entreno de los esperados');
+      if (trainDays.some(d => d.exercises.length < 3)) reasons.push('algun dia con menos de 3 ejercicios');
+      if (trainDays.length && trainDays.reduce((a, d) => a + d.exercises.length, 0) / trainDays.length < 4) reasons.push('promedio bajo de ejercicios');
+      if (!/cardio/i.test(contenido)) reasons.push('falta cardio');
+      if (!/descanso/i.test(contenido)) reasons.push('falta descanso');
+      // Método King (Fase 4): en generación proactiva de mujer King, entrenar
+      // pecho viola el método → cae al backup (plantilla King, sin pecho). El
+      // caller pasa opts.noChest sólo cuando corresponde (mujer + cohorte King).
+      if (opts.noChest && rutinaEntrenaPecho(contenido)) reasons.push('pecho proactivo (metodo King)');
+    }
+  } catch (e) { reasons.push('error al parsear'); }
+  return { ok: reasons.length === 0, reasons };
+}
+
+function dietaHasMacros(reply) {
+  try {
+    const p = parseDietaContenido(reply);
+    if (!p || !p.days || !p.days.length) return false;
+    let total = 0, withK = 0;
+    for (const d of p.days) for (const m of (d.meals || [])) { total++; if (m.kcal != null) withK++; }
+    return total > 0 && (withK / total) >= 0.8;
+  } catch (e) { return false; }
+}
+
+function dietaAvgDayKcal(parsed) {
+  const days = (parsed && parsed.days) || [];
+  const totals = [];
+  for (const d of days) {
+    let k = 0, has = false;
+    for (const m of (d.meals || [])) if (m.kcal != null) { k += m.kcal; has = true; }
+    if (has) totals.push(k);
+  }
+  return totals.length ? Math.round(totals.reduce((a, b) => a + b, 0) / totals.length) : null;
+}
+
+function rutinaEntrenaPecho(contenido) {
+  try {
+    const days = (typeof parseRutinaContenido === 'function' ? parseRutinaContenido(contenido) : []) || [];
+    const norm = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const PECHO_EJ = /\b(press de banca|press plano|press inclinado|apertura|pec deck|peck deck|crossover|press pectoral|press de pecho)\b/;
+    for (const d of days) {
+      if (!d || d.isRest) continue;
+      if (/\bpecho\b/.test(norm(d.label))) return true;              // día titulado con pecho
+      for (const e of (d.exercises || [])) {
+        const n = norm(e && e.name);
+        if (/\b(jalon|remo)\b/.test(n)) continue;                    // espalda con "pecho" en el nombre → NO cuenta
+        if (PECHO_EJ.test(n)) return true;
+      }
+    }
+    return false;
+  } catch (e) { return false; }
+}
+
+function reconcileDietKcal(text) {
+  if (!text || typeof text !== 'string') return text;
+  // La "g" tras cada macro es OPCIONAL (g?): Haiku a veces emite "P:19 C:36 G:11"
+  // sin unidad, y sin esto el reconciliador no matcheaba → quedaban las kcal
+  // inconsistentes de Haiku y saltaban alertas macros_math (caso Cindy).
+  return text.replace(
+    /(\d+)(\s*(?:kcal|cal))(\s*·\s*P:?\s*)(\d+)(\s*g?\s*C:?\s*)(\d+)(\s*g?\s*G:?\s*)(\d+)/gi,
+    (m, kcal, unit, s1, P, s2, C, s3, G) => Math.round(4 * (+P) + 4 * (+C) + 9 * (+G)) + unit + s1 + P + s2 + C + s3 + G
+  );
+}
+
+function buildPlanReadyNotification(tipo) {
+  const isRutina = tipo === 'rutina';
+  const titleEs = isRutina ? '💪 Tu rutina de la semana está lista' : '🥗 Tu dieta de la semana está lista';
+  const titleEn = isRutina ? '💪 Your weekly routine is ready'      : '🥗 Your weekly meal plan is ready';
+  const bodyEs  = isRutina
+    ? `La armé personalizada para vos. Pasala a revisar en <a onclick="showMiEntreno();return false" style="cursor:pointer;color:var(--accent-bright);text-decoration:underline;font-weight:700">Mi Entreno</a> — la tenés organizada día por día, podés marcar tus entrenos cumplidos y cargar tu peso por serie.`
+    : `La armé con tus gustos y restricciones. En <a onclick="showDiario();return false" style="cursor:pointer;color:var(--accent-bright);text-decoration:underline;font-weight:700">Mi Alimentación</a> tenés las comidas de <strong>hoy</strong> para tildar cumplidas o editarlas si comiste otra cosa.`;
+  const bodyEn  = isRutina
+    ? `I built it custom for you. Check it out in <a onclick="showMiEntreno();return false" style="cursor:pointer;color:var(--accent-bright);text-decoration:underline;font-weight:700">My Training</a> — organized day by day, ready to track completed workouts and per-set weights.`
+    : `I built it around your preferences. In <a onclick="showDiario();return false" style="cursor:pointer;color:var(--accent-bright);text-decoration:underline;font-weight:700">My Nutrition</a> you'll find <strong>today's</strong> meals to tick off as done or edit if you ate something else.`;
+  const noteEs  = isRutina
+    ? `📍 También podés acceder desde tu <a onclick="showPerfil();return false" style="cursor:pointer;color:var(--accent2);text-decoration:underline">Perfil</a>.`
+    : `📍 ¿Querés ver tu dieta de la semana completa? Está en tu <a onclick="showPerfil();return false" style="cursor:pointer;color:var(--accent2);text-decoration:underline">Perfil</a>.`;
+  const noteEn  = isRutina
+    ? `📍 You can also access it from your <a onclick="showPerfil();return false" style="cursor:pointer;color:var(--accent2);text-decoration:underline">Profile</a>.`
+    : `📍 Want to see the whole week at once? It's in your <a onclick="showPerfil();return false" style="cursor:pointer;color:var(--accent2);text-decoration:underline">Profile</a>.`;
+  const title = lang === 'es' ? titleEs : titleEn;
+  const body  = lang === 'es' ? bodyEs  : bodyEn;
+  const note  = lang === 'es' ? noteEs  : noteEn;
+  return `<div style="font-size:14.5px;line-height:1.65">
+    <div style="font-size:15.5px;font-weight:700;color:var(--text);margin-bottom:8px">${title}</div>
+    <div style="margin-bottom:8px">${body}</div>
+    <div style="font-size:12.5px;color:var(--muted);margin-top:6px">${note}</div>
+  </div>`;
+}
+
+function validateDietaConsistency(parsed) {
+  const issues = [];
+  if (!parsed || !parsed.days || !parsed.days.length) return issues;
+
+  // Minimum kcal per gram for common protein-dense foods (cooked).
+  // Conservative lower-bounds so we only flag clear errors, not normal variance.
+  const KCAL_PER_G = {
+    pollo: 1.5, pechuga: 1.5, pavo: 1.5,
+    carne: 1.7, lomo: 1.7, vacio: 1.7, bife: 1.7,
+    merluza: 0.7, pescado: 0.7, atun: 1.0,
+    salmon: 2.0,
+    papa: 0.75, batata: 0.85,
+    arroz: 1.2, // cooked. Raw would be ~3.5 but coaches usually mean cooked.
+    avena: 3.7, // raw
+  };
+
+  const stripAcc = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  function expectedMinKcalFromContent(content) {
+    if (!content) return 0;
+    const lower = stripAcc(content.toLowerCase());
+    let total = 0;
+    // Split into "+"/","-separated food segments FIRST. Two reasons:
+    //   1) grams stay with their own food — otherwise "pollo 200g + arroz 150g"
+    //      would let the arroz rule grab the 200g of the chicken (contaminación).
+    //   2) synonyms don't double-count — "pechuga de pollo 200g" matches BOTH
+    //      `pechuga` y `pollo`; contar la mayor tasa UNA vez = 200g de pollo, no 400g.
+    // Conservative lower-bound: solo dispara ante sub-declaraciones groseras.
+    // Separadores de componentes que se SUMAN (se comen juntos): + , ; y · (el
+    // "·" separa grupos en el formato Diana migrado). Dentro de un componente,
+    // "/" = ALTERNATIVAS (elegís UNA opción), NO se suman: contamos solo la
+    // porción menor (lower-bound). Sin esto, "100g arroz / 100g quinoa / 120g
+    // papa / 100g pasta" (una sola elección) se sumaba como 420g → falsos
+    // meal_kcal_low en toda dieta con opciones (caso Vanesa).
+    // "/" = ALTERNATIVAS (elegís UNA de varias opciones). Con "+" combinando
+    // DENTRO de una opción, la precedencia es imposible de estimar con un
+    // lower-bound simple; sumar todas las alternativas inflaba el mínimo →
+    // falsos meal_kcal_low en toda dieta con opciones (caso Vanesa). Si hay "/",
+    // no evaluamos. Los errores groseros reales no usan "/" → se siguen cazando.
+    if (lower.includes('/')) return 0;
+    for (const seg of lower.split(/[·+,;]/)) {
+      let best = 0;
+      for (const food in KCAL_PER_G) if (seg.includes(food)) best = Math.max(best, KCAL_PER_G[food]);
+      if (!best) continue;
+      const re = /(\d{2,4})\s*g\b/g;
+      let m;
+      while ((m = re.exec(seg)) !== null) {
+        const g = parseInt(m[1]);
+        if (g >= 30 && g <= 600) total += g * best;
+      }
+    }
+    return Math.round(total);
+  }
+
+  for (const day of parsed.days) {
+    let dayKcalSum = 0;
+    for (const m of day.meals) {
+      if (m.kcal == null) continue;
+      dayKcalSum += m.kcal;
+
+      // Issue 1: macros math (only if macros present)
+      if (m.prot != null && m.carbs != null && m.fat != null) {
+        const computed = m.prot * 4 + m.carbs * 4 + m.fat * 9;
+        const delta = Math.abs(m.kcal - computed);
+        const deltaPct = m.kcal > 0 ? delta / m.kcal : 0;
+        if (deltaPct > 0.05) {
+          issues.push({
+            type: 'macros_math',
+            severity: deltaPct > 0.15 ? 'error' : 'warning',
+            dayName: day.dayName, mealName: m.name,
+            kcal: m.kcal, computed, deltaPct: Math.round(deltaPct * 1000) / 10,
+          });
+        }
+      }
+
+      // Issue 2: meal kcal implausibly low for the food quantities
+      const expectedMin = expectedMinKcalFromContent(m.content);
+      if (expectedMin > 0 && m.kcal < expectedMin * 0.7) {
+        issues.push({
+          type: 'meal_kcal_low',
+          severity: m.kcal < expectedMin * 0.5 ? 'error' : 'warning',
+          dayName: day.dayName, mealName: m.name,
+          kcal: m.kcal, expectedMinKcal: expectedMin, content: m.content,
+        });
+      }
+    }
+
+    // Issue 3: day total vs header target (if header has one)
+    if (parsed.header && parsed.header.targetKcal && dayKcalSum > 0) {
+      const target = parsed.header.targetKcal;
+      const deltaPct = Math.abs(dayKcalSum - target) / target;
+      if (deltaPct > 0.10) {
+        issues.push({
+          type: 'day_total',
+          severity: deltaPct > 0.20 ? 'error' : 'warning',
+          dayName: day.dayName,
+          sumKcal: dayKcalSum, targetKcal: target,
+          deltaPct: Math.round(deltaPct * 1000) / 10,
+        });
+      }
+    }
+  }
+  return issues;
+}
+
+  return { buildSystemPrompt, buildHistorySummary, buildDiarioSummary, kingEsCohorte, _koMapaPromptBlock, _koNormArq, _bloqueRestriccionDieta, _focoPromptBlock, countUniqueDays, getISOWeekKey, formatLocalDate, parseDietaContenido, parseRutinaContenido, sanitizeTurnsForAPI, detectPlanRequest, detectPlanInReply, planReplyHasStructure, formatResponse, computeDietTarget, evaluatePlanQuality, dietaHasMacros, dietaAvgDayKcal, rutinaEntrenaPecho, reconcileDietKcal, buildPlanReadyNotification, validateDietaConsistency };
 }

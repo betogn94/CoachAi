@@ -49,7 +49,7 @@ export function fechaValida(fecha) {
   return fecha === hoyUtc || fecha === fechaMas(hoyUtc, -1) || fecha === fechaMas(hoyUtc, 1);
 }
 
-const COLS_USUARIO = 'id,nombre,edad,sexo,peso,altura,cuello,cintura,cadera,objetivo,nivel,actividad,dias_entreno,lugar_entreno,lesiones,restricciones_dieta,alergias,comidas_dia,no_le_gusta,metodo_king,foco_entreno';
+const COLS_USUARIO = 'id,nombre,edad,sexo,peso,altura,cuello,cintura,cadera,objetivo,nivel,actividad,dias_entreno,lugar_entreno,lesiones,restricciones_dieta,alergias,comidas_dia,no_le_gusta,metodo_king,foco_entreno,es_interno';
 
 const arr = (v) => (Array.isArray(v) ? v.map((x) => String(x).trim()).filter(Boolean) : []);
 const str = (v) => (v == null ? '' : String(v));
@@ -126,6 +126,79 @@ export async function cargarContexto({ authUid, fecha, lang }) {
   const ctx = armarCtx({ usuario, planes, cierres, historial, diario, fecha, lang });
   const hoy = (historial || []).find((r) => r.fecha === fecha) || null;
   return { usuario, ctx, historial: historial || [], hoy, turnos: turnosPrevios(historial) };
+}
+
+// ─── 3.4.c — planes entregados por chat (lo que `sendToAI` L25153-25290 hacía en el cliente) ───
+
+/**
+ * Plantilla de Jesús más apropiada (port de `getBackupPlan` L20931): mismo sexo si hay, dieta por kcal
+ * más cercano, rutina por días; inyecta el nombre y (dieta) el Target. null si no hay o falla.
+ */
+export async function getBackupPlan(tipo, target, usuario, expectedDays) {
+  try {
+    const data = await sb(`/plan_templates?tipo=eq.${tipo}&select=contenido,dias,kcal_base,sexo`);
+    if (!data || !data.length) return null;
+    const sexo = usuario && usuario.sexo;
+    const sameSex = data.filter((t) => t.sexo === sexo);
+    const pool = sameSex.length ? sameSex : data;
+    let tpl;
+    if (tipo === 'rutina') {
+      const want = expectedDays || 4;
+      tpl = pool.reduce((a, b) => (Math.abs((b.dias || 4) - want) < Math.abs((a.dias || 4) - want) ? b : a));
+    } else {
+      const want = (target && target.kcal) || 1400;
+      tpl = pool.reduce((a, b) => (Math.abs((b.kcal_base || 1400) - want) < Math.abs((a.kcal_base || 1400) - want) ? b : a));
+    }
+    let c = tpl.contenido;
+    c = c.replace(/\{NOMBRE\}/g, ((usuario && usuario.nombre) || '').trim() || 'vos');
+    if (tipo === 'dieta') {
+      const tgtStr = target
+        ? `Target: ${target.kcal} kcal/día | P:${target.prot}g C:${target.carbs}g G:${target.fat}g`
+        : (tpl.kcal_base ? `Target: ${tpl.kcal_base} kcal/día` : '');
+      c = tgtStr ? c.replace(/\{TARGET\}/g, tgtStr) : c.replace(/\s*\|?\s*\{TARGET\}/g, '');
+    } else {
+      c = c.replace(/\s*\|?\s*\{TARGET\}/g, '');
+    }
+    return c;
+  } catch (e) {
+    console.warn('[chat-message] getBackupPlan:', e?.message || e);
+    return null;
+  }
+}
+
+/** Upsert del plan de la semana (misma clave que `saveWeeklyPlan` L20438: usuario_id + tipo + semana_iso). Devuelve la fila o null. */
+export async function guardarPlan({ usuarioId, tipo, contenido, semanaIso, fecha, origen = 'ia' }) {
+  try {
+    const rows = await sb(`/planes_semanales?on_conflict=usuario_id,tipo,semana_iso`, {
+      method: 'POST',
+      prefer: 'resolution=merge-duplicates,return=representation',
+      body: { usuario_id: usuarioId, tipo, semana_iso: semanaIso, fecha_entrega: fecha, contenido, origen, updated_at: new Date().toISOString() },
+    });
+    return (rows && rows[0]) || null;
+  } catch (e) {
+    console.error('[chat-message] guardarPlan:', e?.message || e);
+    return null;
+  }
+}
+
+/** `trackEvent` de la PWA: fila en beta_eventos (best-effort, nunca rompe el chat). */
+export async function registrarEvento(usuarioId, evento, meta) {
+  try {
+    await sb('/beta_eventos', { method: 'POST', prefer: 'return=minimal', body: { usuario_id: usuarioId, evento, meta: { ...(meta || {}), app: 'native' } } });
+  } catch (e) {
+    console.warn('[chat-message] beta_eventos', evento, e?.message || e);
+  }
+}
+
+/** Alertas de consistencia de la dieta para Tower (saveWeeklyPlan L20454): limpia las no resueltas del plan y escribe las nuevas. */
+export async function guardarAlertasDieta({ usuarioId, planId, issues }) {
+  try {
+    await sb(`/dieta_consistency_alerts?plan_id=eq.${planId}&source=eq.ai&resolved=is.false`, { method: 'DELETE', prefer: 'return=minimal' });
+    if (!issues || !issues.length) return;
+    await sb('/dieta_consistency_alerts', { method: 'POST', prefer: 'return=minimal', body: issues.map((i) => ({ usuario_id: usuarioId, plan_id: planId, source: 'ai', severity: i.severity, issue_type: i.type, details: i })) });
+  } catch (e) {
+    console.warn('[chat-message] dieta_consistency_alerts:', e?.message || e);
+  }
 }
 
 /** Upsert de la fila del día (misma clave que `saveChatToSupabase`: usuario_id + fecha). */
