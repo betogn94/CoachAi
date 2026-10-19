@@ -27,6 +27,7 @@
     var q=location.search; // ?nowebgl / ?reducido → solo para QA de los respaldos
     if(!ok || q.indexOf('nowebgl')>-1) d.classList.add('no-webgl');
     if((window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches) || q.indexOf('reducido')>-1) d.classList.add('reduced');
+    if(q.indexOf('nosnap')<0) d.classList.add('snap');   // navegación sección por sección (scroll snap nativo)
   })();
 </script>
 </head>
