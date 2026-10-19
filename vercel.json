@@ -23,7 +23,7 @@
     {
       "source": "/",
       "has": [{ "type": "host", "value": "coachaipro.com" }],
-      "destination": "/index-landing.html"
+      "destination": "/landing/index.html"
     },
     {
       "source": "/.well-known/assetlinks.json",

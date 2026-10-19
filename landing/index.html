@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CoachAI Pro — Tu propia app con IA para coaches y gimnasios</title>
+<meta name="description" content="La app con inteligencia artificial que arma la nutrición y el entrenamiento de tus alumnos, con tu marca. Vos supervisás todo desde un solo panel.">
+<meta name="theme-color" content="#121117">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CoachAI Pro">
+<meta property="og:title" content="CoachAI Pro — Tu propia app con IA para coaches y gimnasios">
+<meta property="og:description" content="Nutrición, entrenamiento y seguimiento diario con IA, bajo tu marca. Vos supervisás; la IA hace el trabajo pesado.">
+<link rel="canonical" href="https://coachaipro.com/">
+<meta property="og:url" content="https://coachaipro.com/">
+<meta property="og:image" content="https://coachaipro.ai/icon-512.png">
+<link rel="apple-touch-icon" href="/landing/assets/apple-touch-icon.png">
+<link rel="icon" href="/landing/assets/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700;9..40,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/landing/landing.min.css">
+<script>
+  // Antes de pintar: soporte WebGL + preferencia de movimiento → clases en <html>
+  (function(){
+    var d=document.documentElement, ok=false;
+    try{ var c=document.createElement('canvas'); ok=!!(window.WebGLRenderingContext&&(c.getContext('webgl2')||c.getContext('webgl'))); }catch(e){}
+    var q=location.search; // ?nowebgl / ?reducido → solo para QA de los respaldos
+    if(!ok || q.indexOf('nowebgl')>-1) d.classList.add('no-webgl');
+    if((window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches) || q.indexOf('reducido')>-1) d.classList.add('reduced');
+  })();
+</script>
+</head>
+<body>
+
+<!-- íconos de la app (línea, stroke 1.8, puntas redondas — como en la PWA) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="gBrand" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9d8dff"/><stop offset=".55" stop-color="#7c6aff"/><stop offset="1" stop-color="#2ecfb5"/></linearGradient>
+    <linearGradient id="gRing" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c6aff"/><stop offset=".5" stop-color="#5b9fff"/><stop offset="1" stop-color="#2ecfb5"/></linearGradient>
+    <linearGradient id="gFlame" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#FF3D00"/><stop offset=".45" stop-color="#FF8A00"/><stop offset="1" stop-color="#FFD400"/></linearGradient>
+  </defs>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3.5 10.5 12 4l8.5 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-4v-6h-6v6H5A1.5 1.5 0 0 1 3.5 19z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20.5 11.5a8 8 0 0 1-11.7 7.1L4 20l1.4-4.4A8 8 0 1 1 20.5 11.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-bowl" viewBox="0 0 24 24"><path d="M3.5 12h17a8.5 8.5 0 0 1-17 0zM9 8.5c0-1.6 1.6-1.6 1.6-3.2M13.5 8.5c0-1.6 1.6-1.6 1.6-3.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-dumb" viewBox="0 0 24 24"><path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5.5 12.5 4.2 4.2L18.5 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 32 32"><path d="M16 2.5c2 5 7 7.2 7 13.2a7 7 0 0 1-14 0c0-2.2.9-3.9 2.1-5.3-.3 2.1.6 3.5 2 3.5 1.7 0 2.3-1.7 1-4.6C16.4 7 16 4.7 16 2.5z" fill="url(#gFlame)"/><path d="M16 15.5c1.5 0 3.2 1.7 3.2 3.8A3.2 3.2 0 0 1 12.8 19.3c0-1.5 1.5-3.8 3.2-3.8z" fill="#FFE9A8"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M4 12 20 4l-6 16-2.5-6.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+</svg>
+
+<!-- ══════════ Región (bloqueante, como en producción) ══════════ -->
+<div id="gate" class="hide" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+  <div class="gate-lang"><div class="seg" role="group" aria-label="Idioma"><button data-lang="es">ES</button><button data-lang="en">EN</button></div></div>
+  <div class="gate-in">
+    <img class="gate-logo" src="/landing/assets/logo-icon.png" alt="CoachAI Pro" width="72" height="72">
+    <h1 id="gateTitle" data-k="gateTitle">¿Desde dónde nos visitás?</h1>
+    <p data-k="gateSub">Elegí tu región para ver los precios en tu moneda.</p>
+    <div class="gate-opts">
+      <button class="gate-btn" data-region="ars">
+        <svg viewBox="0 0 60 42" aria-hidden="true"><defs><clipPath id="agf"><rect width="60" height="42" rx="7"/></clipPath></defs><g clip-path="url(#agf)"><rect width="60" height="42" fill="#fff"/><rect width="60" height="14" fill="#74ACDF"/><rect y="28" width="60" height="14" fill="#74ACDF"/><circle cx="30" cy="21" r="4.6" fill="#F6B40E"/></g></svg>
+        <span><b data-k="gateAr">Argentina</b><small data-k="gateArSub">Precios en pesos (ARS)</small></span>
+      </button>
+      <button class="gate-btn" data-region="usd">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21" fill="#5AA9E6"/><g fill="none" stroke="#fff" stroke-width="1.4" opacity=".85"><ellipse cx="24" cy="24" rx="21" ry="8"/><ellipse cx="24" cy="24" rx="8" ry="21"/><line x1="3" y1="24" x2="45" y2="24"/><line x1="24" y1="3" x2="24" y2="45"/></g></svg>
+        <span><b data-k="gateWorld">Resto del mundo</b><small data-k="gateWorldSub">Precios en dólares (USD)</small></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<canvas id="stage3d" aria-hidden="true"></canvas>
+<div id="stageCss"></div>
+
+<!-- ══════════ Barra superior ══════════ -->
+<header class="top" id="top">
+  <div class="top-in">
+    <a class="brand" href="#inicio"><img src="/landing/assets/logo-icon.png" alt="" width="30" height="30">CoachAI Pro</a>
+    <nav class="nav" aria-label="Secciones">
+      <a href="#ch-train" data-k="navHow">Cómo funciona</a>
+      <a href="#studio" data-k="navStudio">Studio</a>
+      <a href="#precios" data-k="navPricing">Precios</a>
+      <a href="#contacto" data-k="navContact">Contacto</a>
+    </nav>
+    <div class="seg" role="group" aria-label="Idioma"><button data-lang="es">ES</button><button data-lang="en">EN</button></div>
+    <a class="btn btn-main btn-sm" href="#contacto" data-k="ctaDemoShort">Pedir demo</a>
+  </div>
+</header>
+
+<main>
+<!-- ══════════ SHOWCASE: un solo teléfono, cuatro escenas ══════════ -->
+<section class="showcase" id="inicio" aria-label="La app de tus alumnos">
+  <!-- capa del 3D: sticky DENTRO de la página (no fixed) → la mueve el scroll nativo del navegador, sin desfase en iOS -->
+  <div class="stage-layer" id="layerShowcase" aria-hidden="true"></div>
+  <div class="chapters">
+    <!-- A · Inicio -->
+    <article class="chapter hero-ch on" data-chapter data-screen="home">
+      <h1 class="h-xl" id="heroTitle">
+        <span class="ln"><span data-k="heroL1">Tu método,</span></span>
+        <span class="ln"><span data-k="heroL2">en una app</span></span>
+        <span class="ln"><span data-k="heroL3">con tu marca.</span></span>
+      </h1>
+      <p class="lead hero-lead" data-k="heroLead" data-html>La IA arma y ajusta la nutrición y el entrenamiento de cada alumno. <strong>Vos supervisás todo desde un solo panel</strong> y escalás sin sumar horas.</p>
+      <div class="cta-row hero-cta">
+        <a class="btn btn-main" href="#contacto" data-k="ctaDemo">Pedir una demo</a>
+        <a class="btn btn-line" href="https://coachaipro.ai" target="_blank" rel="noopener" data-k="ctaSeeApp">Ver la app</a>
+      </div>
+      <div class="avail hero-avail">
+        <span><i></i><span data-k="availWeb">Google Play, Chrome y Safari</span></span>
+        <span><i class="soon"></i><span data-k="availStores">App Store, próximamente</span></span>
+      </div>
+    </article>
+
+    <!-- B · Mi entreno -->
+    <article class="chapter" id="ch-train" data-chapter data-screen="train">
+      <div class="ch-kicker"><svg aria-hidden="true"><use href="#i-dumb"/></svg><span data-k="trKicker">Mi entreno</span></div>
+      <h2 class="h-l" data-k="trTitle">Cada serie, registrada en el gimnasio</h2>
+      <p class="lead" data-k="trLead">Tu alumno entrena con una sesión guiada: ejercicio por ejercicio, con cronómetro y los pesos de la semana pasada como referencia.</p>
+      <ul class="facts">
+        <li><span data-k="tr1" data-html><b>Rutina armada por la IA</b> según objetivo, nivel y días disponibles.</span></li>
+        <li><span data-k="tr2" data-html><b>“Cómo se hace”</b>: el video de cada ejercicio, a un toque.</span></li>
+        <li><span data-k="tr3" data-html><b>Progresión y récords personales</b> que se celebran solos.</span></li>
+      </ul>
+    </article>
+
+    <!-- C · Mi alimentación -->
+    <article class="chapter" data-chapter data-screen="food" data-side="left">
+      <div class="ch-kicker"><svg aria-hidden="true"><use href="#i-bowl"/></svg><span data-k="fdKicker">Mi alimentación</span></div>
+      <h2 class="h-l" data-k="fdTitle">Su dieta del día, comida por comida</h2>
+      <p class="lead" data-k="fdLead">La IA arma el plan según su objetivo y sus restricciones. Tu alumno tilda lo que come y ve calorías y macros en tiempo real.</p>
+      <ul class="facts">
+        <li><span data-k="fd1" data-html><b>Calorías, proteínas, carbos y grasas</b> del día, siempre a la vista.</span></li>
+        <li><span data-k="fd2" data-html><b>¿No le sirve una comida?</b> La cambia con IA, sin salirse del plan.</span></li>
+        <li><span data-k="fd3" data-html><b>Semana navegable</b> día por día.</span></li>
+      </ul>
+    </article>
+
+    <!-- D · Coach AI -->
+    <article class="chapter" data-chapter data-screen="chat">
+      <div class="ch-kicker"><svg aria-hidden="true"><use href="#i-chat"/></svg><span>Coach AI</span></div>
+      <h2 class="h-l" data-k="chTitle">Respuestas al instante, a cualquier hora</h2>
+      <p class="lead" data-k="chLead">El Coach AI responde las dudas de entrenamiento y nutrición del día a día, para que vos no tengas que contestar lo mismo veinte veces.</p>
+      <ul class="facts">
+        <li><span data-k="ch1" data-html><b>Dudas de comidas, ejercicios y hábitos</b>, resueltas en segundos.</span></li>
+        <li><span data-k="ch2" data-html><b>Lo personal sigue siendo tuyo:</b> tus alumnos te escriben a vos por su propio canal.</span></li>
+      </ul>
+    </article>
+  </div>
+
+  <div class="stage" aria-hidden="true">
+    <div class="slot" id="slotShowcase" data-phone-slot><div class="slot-inner"></div>
+      <p class="drag-hint" id="dragHint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16M8 8l-4 4 4 4M16 8l4 4-4 4"/></svg><span data-k="dragHint">Arrastralo para girarlo</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ Studio ══════════ -->
+<section class="sec surface" id="studio">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 class="h-l" data-k="stTitle">Studio, tu panel de control</h2>
+      <p class="lead" data-k="stLead">Todos tus alumnos en una pantalla: quién viene bien, quién necesita un empujón y qué planes tocan esta semana. Sin planillas y sin perseguir a nadie por WhatsApp.</p>
+    </div>
+    <div class="studio-stage">
+      <div class="win" id="studioWin">
+        <div class="win-bar"><span><i></i><i></i><i></i></span><span class="win-url">tumarca.coachaipro.ai/studio</span></div>
+        <div class="win-body">
+          <div class="wb-main">
+            <div class="wb-h" data-k="wHello">Hola, coach</div>
+            <div class="wb-sub" data-k="wSub">Resumen de tus alumnos, hoy</div>
+            <div class="kpis">
+              <div class="kpi"><small data-k="kActive">Activos</small><b>24</b></div>
+              <div class="kpi"><small data-k="kOk">Al día</small><b><span class="dot d-ok"></span>19</b></div>
+              <div class="kpi"><small data-k="kWarn">Atención</small><b><span class="dot d-warn"></span>3</b></div>
+              <div class="kpi"><small data-k="kRisk">En riesgo</small><b><span class="dot d-risk"></span>2</b></div>
+            </div>
+            <table class="tbl">
+              <thead><tr><th data-k="tState">Estado</th><th data-k="tClient">Alumno</th><th data-k="tLast">Última actividad</th><th data-k="tWeek">Semana</th></tr></thead>
+              <tbody>
+                <tr class="sel"><td><span class="dot d-ok"></span></td><td class="n">Sofía P.</td><td class="num" data-k="t1h">hace 1 h</td><td class="num">4/4</td></tr>
+                <tr><td><span class="dot d-ok"></span></td><td class="n">Martina G.</td><td class="num" data-k="t3h">hace 3 h</td><td class="num">3/4</td></tr>
+                <tr><td><span class="dot d-warn"></span></td><td class="n">Lucas R.</td><td class="num" data-k="t2d">hace 2 días</td><td class="num">1/4</td></tr>
+                <tr><td><span class="dot d-risk"></span></td><td class="n">Camila T.</td><td class="num" data-k="t5d">hace 5 días</td><td class="num">0/4</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="wb-side">
+            <div class="an-h"><div class="wb-h" data-k="anTitle">Sofía · semana 1</div><span class="an-chip" data-k="anDone">Completa</span></div>
+            <div class="an-ai"><span data-k="anText">Semana superada: completaste el 100% de los entrenamientos y mantuviste un buen promedio de calorías. Tu racha sigue creciendo.</span><small data-k="anBy">Análisis de la IA en el cierre semanal</small></div>
+            <div class="photos">
+              <figure><img src="/landing/assets/progress/an-inicio-frente.jpg" alt="Inicio, frente" loading="lazy"><figcaption data-k="pStart">Inicio</figcaption></figure>
+              <figure><img src="/landing/assets/progress/an-inicio-espalda.jpg" alt="Inicio, espalda" loading="lazy"><figcaption data-k="pStart">Inicio</figcaption></figure>
+              <figure><img src="/landing/assets/progress/an-sem1-frente.jpg" alt="Semana 1, frente" loading="lazy"><figcaption data-k="pW1">Sem 1</figcaption></figure>
+              <figure><img src="/landing/assets/progress/an-sem1-espalda.jpg" alt="Semana 1, espalda" loading="lazy"><figcaption data-k="pW1">Sem 1</figcaption></figure>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ul class="studio-list">
+      <li><b data-k="sf1t">Invitás en segundos</b><span data-k="sf1d">Sumás un alumno y recibe su acceso con tu marca.</span></li>
+      <li><b data-k="sf2t">Semáforo de seguimiento</b><span data-k="sf2d">Verde, amarillo o rojo según su actividad real.</span></li>
+      <li><b data-k="sf3t">Editás dieta y rutina</b><span data-k="sf3d">La IA propone; vos tenés la última palabra.</span></li>
+      <li><b data-k="sf4t">Mensajes y notas</b><span data-k="sf4d">Lo que tus alumnos te cuentan, en un solo lugar.</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════ Logros ══════════ -->
+<section class="sec" id="logros">
+  <div class="wrap logros">
+    <figure class="story-fig"><img class="story" src="/landing/assets/logro-story.jpg" alt="Story de logro: entreno completado, día 5 de racha" width="720" height="1280" loading="lazy"><figcaption data-k="gmCap">Una story real generada por la app, lista para compartir.</figcaption></figure>
+    <div>
+      <h2 class="h-l" data-k="gmTitle">La constancia tiene premio</h2>
+      <p class="lead" style="margin-top:22px" data-k="gmLead">Los resultados llegan con la constancia. La app celebra cada avance para que tus alumnos no abandonen, y vos retenés más clientes.</p>
+      <div class="medals">
+        <img src="/landing/assets/medals/racha_7.webp" alt="Racha de 7 días" title="Racha de 7 días" loading="lazy">
+        <img src="/landing/assets/medals/semana_perfecta.webp" alt="Semana perfecta" title="Semana perfecta" loading="lazy">
+        <img src="/landing/assets/medals/entreno_completado.webp" alt="Entreno completado" title="Entreno completado" loading="lazy">
+        <img src="/landing/assets/medals/primer_record.webp" alt="Primer récord" title="Primer récord" loading="lazy">
+        <img src="/landing/assets/medals/racha_30.webp" alt="Racha de 30 días" title="Racha de 30 días" loading="lazy">
+        <img src="/landing/assets/medals/primer_mes.webp" alt="Primer mes" title="Primer mes" loading="lazy">
+      </div>
+      <ul class="ideas">
+        <li><b data-k="gm1t">Racha diaria</b><span data-k="gm1d">Cada día cumplido suma. Nadie quiere cortar su racha.</span></li>
+        <li><b data-k="gm2t">Medallas por cada hito</b><span data-k="gm2d">Primer entreno, semana perfecta, primer récord: cada logro se celebra en el momento.</span></li>
+        <li><b data-k="gm3t">Historias listas para Instagram</b><span data-k="gm3d">Cada logro genera una story con la marca de tu negocio. Publicidad que hacen tus propios alumnos.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ Precios ══════════ -->
+<section class="sec surface" id="precios">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 class="h-l" data-k="priceTitle">Pagás por cupo de alumnos</h2>
+      <p class="lead" data-k="priceLead">Cuanto más crecés, menos pagás por alumno. Cambiás de plan cuando quieras.</p>
+    </div>
+    <div class="price-tbl" id="plans"></div>
+    <div class="price-foot">
+      <div>
+        <h3 class="h-m" style="margin-bottom:22px" data-k="inclTitle">Todos los planes incluyen</h3>
+        <ul class="incl">
+          <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10.5 8 14l8-9"/></svg><span data-k="in1">App con tu marca</span></li>
+          <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10.5 8 14l8-9"/></svg><span data-k="in2">Dietas y rutinas con IA</span></li>
+          <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10.5 8 14l8-9"/></svg><span data-k="in3">Cierres y análisis semanales</span></li>
+          <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10.5 8 14l8-9"/></svg><span data-k="in4">Panel Studio</span></li>
+          <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10.5 8 14l8-9"/></svg><span data-k="in5">Recordatorios automáticos</span></li>
+          <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10.5 8 14l8-9"/></svg><span data-k="in6">Rachas, medallas y stories</span></li>
+        </ul>
+      </div>
+      <p class="price-note"><span id="plansNote"></span> <button type="button" id="regionLink2" data-k="footerRegion">Cambiar región</button></p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ White-label ══════════ -->
+<section class="sec" id="whitelabel">
+  <div class="wrap wl">
+    <div>
+      <h2 class="h-l" data-k="wlTitle">¿Querés que tus alumnos vean solo tu marca?</h2>
+      <p class="lead" style="margin-top:22px" data-k="wlLead">Con white-label, la app lleva tu logo, tus colores y tu nombre, sin ninguna mención a CoachAI Pro.</p>
+      <a class="btn btn-line" href="#contacto" data-k="wlCta">Pedir cotización</a>
+    </div>
+    <ul class="wl-list">
+      <li><span data-k="wl1a">Logo</span><b data-k="wl1b">El tuyo</b></li>
+      <li><span data-k="wl2a">Colores</span><b data-k="wl2b">Los tuyos</b></li>
+      <li><span data-k="wl3a">Nombre de la app</span><b data-k="wl3b">El tuyo</b></li>
+      <li><span data-k="wl4a">Marcas de terceros</span><b data-k="wl4b">Ninguna</b></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════ E · CTA final: el teléfono vuelve ══════════ -->
+<!-- grid: texto | teléfono, botones debajo del texto (en celular, a todo el ancho). El 3D se monta DENTRO de
+     esta sección mientras está activa, así el scroll la mueve de forma nativa. -->
+<section class="final" id="contacto">
+  <div class="final-txt">
+    <h2 class="h-xl" data-k="contactTitle">Mirala funcionando con tu marca.</h2>
+    <p class="lead" data-k="contactLead">Escribinos y coordinamos una demo de 15 minutos.</p>
+  </div>
+  <div class="final-cta">
+    <div class="cta-row">
+      <a class="btn btn-main" id="waLink" href="#" target="_blank" rel="noopener"><svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.5 15.2L2 22l4.9-1.5A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1-.4-.1-.9-.3-1.5-.6-2.7-1.2-4.4-3.9-4.6-4.1-.1-.2-1-1.4-1-2.6 0-1.2.6-1.8.9-2.1.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5.2.5.7 1.8.8 1.9.1.1.1.3 0 .5-.1.2-.2.3-.3.5-.2.2-.3.4-.5.5-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.5.1.6-.1.2-.2.7-.8.9-1.1.2-.3.4-.2.6-.1.2.1 1.5.7 1.7.8.2.1.4.2.4.3.1.2.1.7-.1 1.3z"/></svg><span data-k="ctaWa">Escribir por WhatsApp</span></a>
+      <a class="btn btn-line" id="mailLink" href="#"><span data-k="ctaMail">Escribir por email</span></a>
+    </div>
+  </div>
+  <div class="stage-final" aria-hidden="true">
+    <div class="slot slot-static" id="slotCta" data-phone-slot data-screen="home"><div class="slot-inner"></div></div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <a class="brand" href="#inicio"><img src="/landing/assets/icon-192.png" alt="" width="26" height="26">CoachAI Pro</a>
+      <a href="https://coachaipro.ai" target="_blank" rel="noopener" data-k="fApp">Ir a la app</a>
+      <a href="/terminos.html" data-k="fTerms">Términos</a>
+      <a href="/privacidad.html" data-k="fPrivacy">Privacidad</a>
+      <button type="button" id="regionLink" data-k="footerRegion">Cambiar región</button>
+    </div>
+    <div class="copy">© <span id="year"></span> CoachAI Pro. <span data-k="fRights">Todos los derechos reservados.</span></div>
+  </div>
+</footer>
+
+<!-- ══════════ LA PANTALLA DEL TELÉFONO (390×844) — réplica fiel de la PWA, tema claro ══════════ -->
+<div id="phoneScreen" role="region" aria-label="Demo interactivo de la app">
+  <div class="sb"><span>9:41</span><span class="ic"><svg viewBox="0 0 18 12"><rect x="0" y="7" width="3" height="5" rx="1" fill="currentColor"/><rect x="5" y="5" width="3" height="7" rx="1" fill="currentColor"/><rect x="10" y="2.5" width="3" height="9.5" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg><svg viewBox="0 0 16 12"><path d="M8 11.5 5.6 9a3.4 3.4 0 0 1 4.8 0zM3.2 6.6a6.8 6.8 0 0 1 9.6 0l-1.4 1.4a4.8 4.8 0 0 0-6.8 0zM.8 4.2a10.2 10.2 0 0 1 14.4 0l-1.4 1.4a8.2 8.2 0 0 0-11.6 0z" fill="currentColor"/></svg><svg viewBox="0 0 27 12"><rect x=".5" y=".5" width="23" height="11" rx="3.5" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="17" height="8" rx="2" fill="currentColor"/><rect x="25" y="4" width="1.6" height="4" rx=".8" fill="currentColor" opacity=".4"/></svg></span></div>
+  <div class="island"></div>
+
+  <!-- A · INICIO -->
+  <div class="app a-home on" data-app="home">
+    <div class="pg">
+      <div class="info-row"><span class="info">i</span></div>
+      <div class="card hero-card">
+        <svg class="ring" viewBox="0 0 124 124" aria-hidden="true"><circle cx="62" cy="62" r="48" fill="none" stroke="#E9E7F5" stroke-width="10"/><circle cx="62" cy="62" r="48" fill="none" stroke="url(#gRing)" stroke-width="10" stroke-linecap="round" stroke-dasharray="301.6" stroke-dashoffset="75.4" transform="rotate(-90 62 62)"/><use href="#i-dumb" x="44" y="44" width="36" height="36" style="color:#7c6aff"/></svg>
+        <div class="hero-tx"><small data-k="phTrain">Entrenamientos</small><div class="big"><span class="grad">3</span><span class="sl">/</span>4</div><b data-k="phDone">Completados</b><span class="mut" data-k="phThisWeek">esta semana</span></div>
+      </div>
+      <div class="streak"><svg aria-hidden="true"><use href="#i-flame"/></svg><span data-k="phStreak" data-html><b>5</b> días en racha</span></div>
+      <div class="grid2">
+        <div class="card tile"><div class="t-top"><small data-k="phNext">Próxima comida</small><span class="t-ic"><svg><use href="#i-bowl"/></svg></span></div><b class="t-title" data-k="phNextT">Almuerzo</b><b class="t-title grad" data-k="phNextT2">Pollo con arroz</b><p data-k="phNextB">561 kcal · 13:30</p><i class="dots"><i class="on"></i><i></i></i></div>
+        <div class="card tile"><div class="t-top"><small data-k="phToday">Hoy toca</small><span class="t-ic"><svg><use href="#i-dumb"/></svg></span></div><b class="t-title">Día 4</b><b class="t-title grad" data-k="phTodayT">Tren inferior</b><p data-k="phTodayB">6 ejercicios</p><i class="dots"><i class="on"></i><i></i></i></div>
+        <div class="card tile"><div class="t-top"><small data-k="phKcal">Calorías hoy</small><span class="t-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span></div><b class="kc grad">1.064</b><span class="kc-of">/ 2100 KCAL</span>
+          <div class="mbars" aria-hidden="true"><span><i style="height:88%"></i>DES</span><span><i style="height:100%"></i>ALM</span><span><i class="off" style="height:60%"></i>MER</span><span><i class="off" style="height:80%"></i>CEN</span></div></div>
+        <div class="card tile"><div class="t-top"><small>Coach AI</small><span class="t-ic"><svg><use href="#i-chat"/></svg></span></div><b class="t-title" data-k="phAsk1">Consulta</b><b class="t-title grad" data-k="phAsk2">Lo que necesites</b><i class="dots"><i class="on"></i><i></i></i></div>
+      </div>
+    </div>
+    <div class="tabbar" data-tab="0"><div class="pill"><span class="thumb"></span><span class="tab"><svg><use href="#i-home"/></svg></span><span class="tab"><svg><use href="#i-chat"/></svg></span><span class="tab"><svg><use href="#i-bowl"/></svg></span><span class="tab"><svg><use href="#i-dumb"/></svg></span><span class="tab"><svg><use href="#i-user"/></svg></span></div><span class="tab-lbl" data-k="tabHome">Inicio</span></div>
+  </div>
+
+  <!-- B · MI ENTRENO (sesión guiada en curso) -->
+  <div class="app a-train" data-app="train">
+    <div class="pg">
+      <div class="hdr"><span class="h-ic"><svg><use href="#i-dumb"/></svg></span><div><h4 class="grad" data-k="phTrainT">Mi entreno</h4><small data-k="phTrainSub">Martes · hoy</small></div><span class="chips"><span data-k="phInt">Intensificadores</span><span data-k="phProg">Progresión</span></span></div>
+      <div class="card timer">
+        <div class="tm-top"><b data-k="phActive">Sesión activa</b><span class="live"><i></i><span data-k="phLive">En vivo</span></span></div>
+        <small class="tm-lbl" data-k="phElapsed">TIEMPO TRANSCURRIDO</small>
+        <div class="clock" id="clock">24:18</div>
+        <div class="tm-btns"><span class="tb-fill">✓ <span data-k="phFinish">Terminar</span></span><span class="tb-line">❚❚ <span data-k="phPause">Pausar</span></span></div>
+      </div>
+      <div class="guide"><small data-k="phExN">EJERCICIO 2 DE 6</small>
+        <div class="gdots"><i class="done">1</i><i class="cur">2</i><i>3</i><i>4</i><i>5</i><i>6</i></div>
+        <div class="gbar"><i style="width:33%"></i></div></div>
+      <div class="card ex">
+        <b class="ex-name" data-k="e1">Sentadilla goblet</b>
+        <span class="ex-chip" data-k="e1c">4×10-12 · descanso 90 s</span>
+        <p class="cue" data-k="e1cue">Pecho arriba, rodillas hacia afuera y bajá controlado.</p>
+        <span class="how">▶ <span data-k="phHow">Cómo se hace</span></span>
+        <div class="sets" id="sets">
+          <div class="set"><span data-k="set1">Serie 1</span><input type="number" inputmode="numeric" value="12" aria-label="reps"><em>reps</em>×<input type="number" inputmode="decimal" value="18" aria-label="kg"><em>kg</em><button class="sck done" type="button" aria-pressed="true" aria-label="Serie hecha"><svg><use href="#i-check"/></svg></button></div>
+          <div class="set"><span data-k="set2">Serie 2</span><input type="number" inputmode="numeric" placeholder="12" aria-label="reps"><em>reps</em>×<input type="number" inputmode="decimal" placeholder="16" aria-label="kg"><em>kg</em><button class="sck" type="button" aria-pressed="false" aria-label="Marcar serie"><svg><use href="#i-check"/></svg></button></div>
+          <div class="set"><span data-k="set3">Serie 3</span><input type="number" inputmode="numeric" placeholder="10" aria-label="reps"><em>reps</em>×<input type="number" inputmode="decimal" placeholder="16" aria-label="kg"><em>kg</em><button class="sck" type="button" aria-pressed="false" aria-label="Marcar serie"><svg><use href="#i-check"/></svg></button></div>
+        </div>
+      </div>
+    </div>
+    <div class="tabbar" data-tab="3"><div class="pill"><span class="thumb"></span><span class="tab"><svg><use href="#i-home"/></svg></span><span class="tab"><svg><use href="#i-chat"/></svg></span><span class="tab"><svg><use href="#i-bowl"/></svg></span><span class="tab"><svg><use href="#i-dumb"/></svg></span><span class="tab"><svg><use href="#i-user"/></svg></span></div><span class="tab-lbl" data-k="tabTrain">Mi entreno</span></div>
+  </div>
+
+  <!-- C · MI ALIMENTACIÓN -->
+  <div class="app a-food" data-app="food">
+    <div class="pg">
+      <div class="hdr"><span class="h-ic"><svg><use href="#i-bowl"/></svg></span><div><h4 class="grad" data-k="phFood">Mi alimentación</h4><small data-k="phFoodSub">Martes · hoy</small></div></div>
+      <div class="days" aria-hidden="true"><span><small>LUN</small><b>13</b><i></i></span><span class="sel"><small>MAR</small><b>14</b><i></i></span><span><small>MIÉ</small><b>15</b><i class="no"></i></span><span><small>JUE</small><b>16</b><i class="no"></i></span><span><small>VIE</small><b>17</b><i class="no"></i></span><span><small>SÁB</small><b>18</b><i class="no"></i></span><span><small>DOM</small><b>19</b><i class="no"></i></span></div>
+      <div class="card sum">
+        <div class="sum-row"><div><small data-k="phTodayTue">Hoy · martes</small><b class="cnt grad" id="fCount">1/4</b><small data-k="phMealsDone">Comidas cumplidas</small></div><div class="kcal" id="fKcalWrap"><small>kcal</small><b><span id="fKcal">503</span> <em>/ 2100</em></b></div></div>
+        <div class="rings">
+          <div class="rg"><svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="24" class="tr"/><circle cx="28" cy="28" r="24" class="fl" stroke="#7c6aff" data-max="150" id="rP"/><text x="28" y="28">P</text></svg><span><b id="vP">28</b>/150g</span></div>
+          <div class="rg"><svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="24" class="tr"/><circle cx="28" cy="28" r="24" class="fl" stroke="#ff9f43" data-max="230" id="rC"/><text x="28" y="28">C</text></svg><span><b id="vC">72</b>/230g</span></div>
+          <div class="rg"><svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="24" class="tr"/><circle cx="28" cy="28" r="24" class="fl" stroke="#2ecfb5" data-max="65" id="rG"/><text x="28" y="28">G</text></svg><span><b id="vG">15</b>/65g</span></div>
+        </div>
+        <div class="bar"><i id="fBar" style="width:25%"></i></div>
+      </div>
+      <div class="meals" id="meals">
+        <button class="meal done" type="button" data-kcal="503" data-p="28" data-c="72" data-g="15" aria-pressed="true"><img src="/landing/assets/food/desayuno-1.webp" alt=""><span class="mt"><b data-k="m1">Desayuno</b><small data-k="m1d">Avena 65g · leche 200ml · banana</small></span><span class="mck"><svg><use href="#i-check"/></svg></span></button>
+        <button class="meal" type="button" data-kcal="561" data-p="50" data-c="62" data-g="14" aria-pressed="false"><img src="/landing/assets/food/almuerzo-2.webp" alt=""><span class="mt"><b data-k="m2">Almuerzo</b><small data-k="m2d">Pollo 150g · arroz 80g · ensalada</small></span><span class="mck"><svg><use href="#i-check"/></svg></span></button>
+        <button class="meal" type="button" data-kcal="420" data-p="32" data-c="38" data-g="16" aria-pressed="false"><img src="/landing/assets/food/merienda-1.webp" alt=""><span class="mt"><b data-k="m3">Merienda</b><small data-k="m3d">Yogur proteico · frutos secos 30g</small></span><span class="mck"><svg><use href="#i-check"/></svg></span></button>
+        <button class="meal" type="button" data-kcal="616" data-p="40" data-c="58" data-g="20" aria-pressed="false"><img src="/landing/assets/food/cena-1.webp" alt=""><span class="mt"><b data-k="m4">Cena</b><small data-k="m4d">Merluza 200g · papa 200g · verduras</small></span><span class="mck"><svg><use href="#i-check"/></svg></span></button>
+      </div>
+    </div>
+    <div class="tabbar" data-tab="2"><div class="pill"><span class="thumb"></span><span class="tab"><svg><use href="#i-home"/></svg></span><span class="tab"><svg><use href="#i-chat"/></svg></span><span class="tab"><svg><use href="#i-bowl"/></svg></span><span class="tab"><svg><use href="#i-dumb"/></svg></span><span class="tab"><svg><use href="#i-user"/></svg></span></div><span class="tab-lbl" data-k="tabFood">Mi alimentación</span></div>
+  </div>
+
+  <!-- D · COACH AI (el chat oculta la barra de pestañas, como en la app) -->
+  <div class="app a-chat" data-app="chat">
+    <div class="c-hdr"><img src="/landing/assets/logo-wordmark.png" alt="CoachAI Pro"><span class="c-menu"><svg><use href="#i-menu"/></svg></span></div>
+    <div class="c-body" id="chatBody">
+      <div class="msg u" data-step="0" data-k="cq1">Hoy no tengo pollo para el almuerzo. ¿Con qué lo reemplazo?</div>
+      <div class="msg a" data-step="1" data-k="ca1" data-html>Podés cambiarlo por <b>200 g de merluza</b> o <b>2 latas de atún al natural</b>: mantenés casi la misma proteína y calorías. El resto del plato queda igual.</div>
+      <div class="msg u" data-step="2" data-k="cq2">¿Y si me duelen las piernas por el entreno de ayer?</div>
+      <div class="msg a" data-step="3" data-k="ca2" data-html>Si es la molestia típica post-entreno, podés entrenar: <b>bajá un 20% la carga</b> y priorizá la técnica. Si el dolor es punzante o en una articulación, <i>descansá y consultalo con tu coach</i>.</div>
+      <div class="typing" id="typing"><i></i><span data-k="cThinking">Pensando...</span></div>
+    </div>
+    <div class="c-input"><span class="c-field" data-k="cPh">Escribí tu pregunta...</span><span class="c-send"><svg><use href="#i-send"/></svg></span></div>
+  </div>
+
+  <div class="home-ind"></div>
+</div>
+
+<script src="/landing/vendor/gsap/gsap.min.js"></script>
+<script src="/landing/vendor/gsap/ScrollTrigger.min.js"></script>
+<script src="/landing/app.min.js"></script>
+<script type="module" src="/landing/phone3d.min.js"></script>
+</body>
+</html>

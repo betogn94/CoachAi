@@ -41,12 +41,13 @@ export default function middleware(request) {
     const isCom = /(^|\.)coachaipro\.com$/.test(host);   // landing B2B (coaches y gimnasios)
 
     if (!PREVIEW_BOTS.test(ua)) {
-      // Usuario real. En coachaipro.com la raíz sirve la LANDING (index-landing.html).
+      // Usuario real. En coachaipro.com la raíz sirve la LANDING 3D (/landing/index.html; sus recursos
+      // usan rutas absolutas /landing/…). Rollback: volver a '/index-landing.html' (la landing anterior).
       // Hace falta rewrite acá en el middleware: los rewrites de vercel.json corren
       // DESPUÉS del filesystem, y "/" ya matchea index.html (la app) → nunca aplicarían.
       if (isCom) {
         return new Response(null, {
-          headers: { 'x-middleware-rewrite': new URL('/index-landing.html', request.url).toString() },
+          headers: { 'x-middleware-rewrite': new URL('/landing/index.html', request.url).toString() },
         });
       }
       return;   // resto de hosts → passthrough (la app de siempre)
