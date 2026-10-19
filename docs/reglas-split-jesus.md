@@ -64,5 +64,10 @@ Ejercicios por día resultantes (5 días): 6 · 6 · ? · 5 · 4 — (6A: 6 · 6
 - El servidor (`api/_chat-cerebro.js`, chat + app nativa) recibe el mismo prompt al regenerar.
 - QA 2026-10-19 contra la IA real (8 perfiles F/M 3-6 días): prod 0/8 cumple · nuevo 15/16
   al primer intento (el que falla: 1 ejercicio de menos en un día → lo cubre el reintento).
-- Pendiente: plantilla de respaldo de varón (5 días) no sigue este split; prompt en inglés
-  sin QA.
+- Plantillas de respaldo de varón (2026-10-19): 4 nuevas en `plan_templates` (3, 4, 5 y 6
+  días) con este split y el estilo de la plantilla real de Jesús; fuentes y validación en
+  `scripts/seed-varon-split-templates.mjs` + `migra_king/backup_varon_*d_split.txt`. La vieja
+  de 5 días quedó en la base con `sexo='masculino_v1'` (fuera del pool, intacta). Volver atrás:
+  `update plan_templates set sexo='masculino' where nombre_origen='varon_5d_rutina.txt'` + borrar
+  las 4 `backup_varon_*d_split.txt`.
+- Pendiente: prompt en inglés sin QA.
