@@ -77,7 +77,7 @@ export function extractConst(src, name) {
 // un sandbox que registra identificadores libres — no falta ninguno).
 export const FUNCIONES = [
   'buildSystemPrompt', 'buildHistorySummary', 'buildDiarioSummary', 'kingEsCohorte', '_koMapaPromptBlock', '_koNormArq',
-  '_bloqueRestriccionDieta', '_focoPromptBlock', 'countUniqueDays', 'getISOWeekKey', 'formatLocalDate',
+  '_bloqueRestriccionDieta', '_focoPromptBlock', '_splitSemanal', '_splitPromptBlock', 'validarRutinaEsqueleto', 'countUniqueDays', 'getISOWeekKey', 'formatLocalDate',
   'parseDietaContenido', 'parseRutinaContenido', 'sanitizeTurnsForAPI', 'detectPlanRequest', 'detectPlanInReply',
   'planReplyHasStructure', 'formatResponse', 'computeDietTarget',
   // 3.4.c — planes por chat: vara de calidad, reconciliación de kcal, aviso "plan listo", alertas Tower.

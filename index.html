@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261009-1425-deploy">
+<meta name="app-version" content="20261019-1356-split-jesus">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -20871,6 +20871,7 @@ function rutinaEntrenaPecho(contenido) {
       for (const e of (d.exercises || [])) {
         const n = norm(e && e.name);
         if (/\b(jalon|remo)\b/.test(n)) continue;                    // espalda con "pecho" en el nombre → NO cuenta
+        if (/\b(reverse|invers[oa]|posterior(es)?)\b/.test(n)) continue; // "Reverse pec deck" = hombro posterior, NO pecho
         if (PECHO_EJ.test(n)) return true;
       }
     }
@@ -20977,6 +20978,12 @@ async function prefetchPlan(tipo, opts) {
       if (tipo === 'dieta') return dietaHasMacros(txt);   // dieta: exige kcal/macros
       return true;                                        // rutina: estructura + ejercicios (ya en planReplyHasStructure)
     };
+    // Rutina: además de la estructura, medimos si respeta el ESQUELETO DE LA SEMANA
+    // (reglas de split de Jesús). Si no, se pide otra; si ninguna lo cumple, queda la
+    // primera que parseó (_rutinaFueraEsqueleto) → nunca peor que antes del esqueleto.
+    const _sexoSplit = currentUser && currentUser.sexo;
+    const _diasSplit = (opts && opts.expectedDays) || selectedDias.length;
+    let _rutinaFueraEsqueleto = null, _splitReasons = [];
     let planText = null;
     for (let attempt = 0; attempt < 2 && !planText; attempt++) {
       const res = await callChatAPI({
@@ -20987,6 +20994,12 @@ async function prefetchPlan(tipo, opts) {
       const data = await res.json();
       const reply = data && data.content && data.content[0] && data.content[0].text;
       if (!reply) continue;
+      if (valid(reply) && tipo === 'rutina') {
+        const _r = validarRutinaEsqueleto(reply, _sexoSplit, _diasSplit);
+        if (!_r.length) { planText = reply; break; }
+        if (!_rutinaFueraEsqueleto) { _rutinaFueraEsqueleto = reply; _splitReasons = _r; }
+        continue;
+      }
       if (valid(reply)) { planText = reply; break; }
       // No vino bien (p.ej. dieta sin macros) → reformatear al formato canónico.
       try {
@@ -20994,6 +21007,10 @@ async function prefetchPlan(tipo, opts) {
         if (normalized && valid(normalized)) { planText = normalized; break; }
       } catch (e) {}
       // Si sigue mal, el loop regenera de cero (segundo intento).
+    }
+    if (!planText && _rutinaFueraEsqueleto) {
+      planText = _rutinaFueraEsqueleto;
+      try { if (typeof trackEvent === 'function') trackEvent('rutina_fuera_esqueleto', { reasons: _splitReasons.join(' | ').slice(0, 500) }); } catch (e) {}
     }
     // ── VARA DE CALIDAD + FALLBACK A PLANTILLA ──
     // Arriba garantizamos ESTRUCTURA. Acá medimos CALIDAD (kcal en target, ejercicios
@@ -21015,10 +21032,9 @@ async function prefetchPlan(tipo, opts) {
     // vara rechazaría la rutina nueva correcta por "menos días" (bug E2E 2026-10-01).
     const _expDays = (opts && opts.expectedDays)
       || ((typeof getWeeklyTrainingTarget === 'function') ? getWeeklyTrainingTarget() : 0);
-    // Método King (Fase 4): mujer de cohorte King → la rutina proactiva NO
-    // entrena pecho. Si la IA lo mete igual, la vara la manda al backup.
-    const _noChest = (currentUser && currentUser.sexo === 'femenino')
-      && (typeof kingEsCohorte === 'function' && kingEsCohorte());
+    // Mujeres: la rutina NUNCA entrena pecho (regla de Beto/Jesús 2026-10-19; antes
+    // solo cohorte King). Si la IA lo mete igual, la vara la manda al backup.
+    const _noChest = !!(currentUser && currentUser.sexo === 'femenino');
     let _useBackup = false, _reasons = [];
     if (!planText) { _useBackup = true; _reasons = ['no se genero']; }
     else {
@@ -23190,14 +23206,11 @@ Combinaciones permitidas TREN INFERIOR:
 Glúteos · Cuádriceps · Isquios · Glúteos/Cuádriceps · Glúteos/Isquios · Cuádriceps/Glúteos · Isquios/Glúteos · Pierna completa
 
 Combinaciones permitidas TREN SUPERIOR:
-Espalda · Hombros · Bíceps · Tríceps · Pecho · Espalda/Bíceps · Espalda/Hombros · Hombros/Tríceps · Hombros/Bíceps · Bíceps/Tríceps · Pecho/Hombros · Pecho/Tríceps · Tren superior completo
+Espalda · Hombros · Bíceps · Tríceps · Espalda/Bíceps · Espalda/Hombros · Hombros/Tríceps · Hombros/Bíceps · Bíceps/Tríceps · Hombros/Bíceps/Tríceps · Espalda/Hombros/Bíceps/Tríceps
 
-DISTRIBUCIÓN SEGÚN DÍAS DISPONIBLES:
-- 2 días: Glúteos/Cuádriceps + Espalda/Hombros
-- 3 días: Glúteos/Cuádriceps + Espalda/Hombros + Glúteos/Isquios
-- 4 días: Glúteos/Cuádriceps + Espalda/Hombros + Glúteos/Isquios + Hombros/Tríceps
-- 5 días: agregá Pecho/Hombros o Bíceps/Tríceps
-- 6 días: ciclo completo
+PECHO: NUNCA en mujeres (ni días ni ejercicios de pecho, aunque lo pida).
+
+DISTRIBUCIÓN SEGÚN DÍAS DISPONIBLES: la define el ESQUELETO DE LA SEMANA (más abajo). Es obligatorio y manda sobre todo lo demás. Reglas que lo arman: ningún músculo se repite sin al menos 1 día de por medio, nunca se mezcla tren inferior con superior el mismo día, y el glúteo es el músculo que más se repite.
 
 REGLAS DE ESTRUCTURA:
 - Rutina de 1 músculo: máximo 15 sets totales, 2-5 ejercicios, 2-3 sets por ejercicio.
@@ -23276,8 +23289,6 @@ Bíceps: Curl barra/barra Z/alternado mancuernas/martillo/inclinado/predicador/p
 
 Tríceps: Pushdown polea/cuerda, Extensión overhead, Extensión unilateral polea, Skull crushers, Press francés, Fondos asistidos/banco, Kickbacks, Extensión máquina, JM press.
 
-Pecho: Press plano/inclinado/máquina/convergente, Aperturas mancuernas/máquina, Crossover polea, Press inclinado mancuernas, Flexiones, Pec deck.
-
 Transicionales Espalda/Bíceps: Jalón supino, Chin ups asistidas, Remo supino/cerrado, Jalón agarre cerrado, Remo unilateral supino.
 
 Transicionales Espalda/Hombros: Face pull, Remo alto, High row, Rear delt row, Reverse pec deck, Remo abierto.
@@ -23286,10 +23297,6 @@ Transicionales Hombros/Tríceps: Press militar, Shoulder press, Press Arnold, Fo
 
 Transicionales Hombros/Bíceps: Curl martillo cruzado, Face pull, Remo alto ligero, Curl polea hombro estabilizado.
 
-Transicionales Pecho/Hombros: Press inclinado, Press Arnold, Landmine press, Press convergente, Aperturas inclinadas.
-
-Transicionales Pecho/Tríceps: Press cerrado, Fondos asistidos, Press en máquina, Flexiones cerradas.
-
 DESCANSOS:
 - Multiarticulares pesados: 90-120s
 - Aislamiento: 45-75s
@@ -23297,14 +23304,14 @@ DESCANSOS:
 - Supersets: descansar después de completar ambos ejercicios
 
 CRITERIO ESTÉTICO FEMENINO (prioridades):
-1. Glúteos — prioridad alta
+1. Glúteos — prioridad alta (el músculo que más se repite en la semana)
 2. Hombros laterales y posteriores — clave para forma de reloj de arena
 3. Espalda — postura, forma y amplitud controlada
 4. Cuádriceps — desarrollar sin perder armonía
-5. Isquios — forma lateral y posterior de pierna
+5. Isquios (femorales) — forma lateral y posterior de pierna
 6. Brazos — tonificados, no necesariamente voluminosos
-7. Pecho — solo si la usuaria lo pide específicamente
-8. Abdomen — control, core y composición corporal, no crunches infinitos
+7. Abdomen — control, core y composición corporal, no crunches infinitos
+Pecho: NUNCA.
 
 FORMATO DE SALIDA OBLIGATORIO (compacto — priorizá DENSIDAD de información):
 
@@ -23343,13 +23350,13 @@ REGLAS DE FORMATO ESTRICTAS:
 - Sin **bold** decorativo. Sin emojis.
 
 VALIDACIÓN INTERNA OBLIGATORIA — antes de entregar revisá:
-1. ¿Máximo 6 ejercicios si son 2 músculos?
-2. ¿Máximo 17 sets si son 2 músculos? ¿Máximo 15 si es 1 músculo?
-3. ¿Cada ejercicio tiene 2-3 sets?
+1. ¿Los días, sus títulos y la cantidad de ejercicios de cada día son EXACTAMENTE los del ESQUELETO DE LA SEMANA?
+2. ¿Ningún día mezcla tren inferior con superior? ¿Cero ejercicios de pecho?
+3. ¿Cada ejercicio tiene 2-3 sets (hasta 4 solo en días de 3 músculos)?
 4. ¿Ningún ejercicio tiene menos de 12 reps?
 5. ¿El primer ejercicio corresponde al primer músculo del día?
 6. ¿Los transicionales están entre el bloque 1 y el bloque 2?
-7. ¿Máximo 2 intensificadores por músculo? ¿Cada uno explicado?
+7. ¿Máximo 2 intensificadores por músculo, cada uno en un ejercicio distinto (1 solo si el músculo está repetido en la semana)? ¿Cada uno explicado?
 8. ¿La carga está indicada correctamente?
 9. ¿La rutina tiene lógica estética y biomecánica?
 10. ¿El volumen total es recuperable?
@@ -23389,12 +23396,7 @@ Cuádriceps · Isquios · Glúteos · Cuádriceps/Isquios · Cuádriceps/Glúteo
 Combinaciones permitidas TREN SUPERIOR:
 Pecho · Espalda · Hombros · Bíceps · Tríceps · Trapecios · Pecho/Tríceps · Espalda/Bíceps · Hombros/Tríceps · Hombros/Bíceps · Espalda/Hombros · Pecho/Hombros · Pecho/Espalda · Bíceps/Tríceps · Tren superior completo
 
-DISTRIBUCIÓN SEGÚN DÍAS DISPONIBLES:
-- 2 días: Tren superior + Pierna completa
-- 3 días: Pecho/Tríceps + Espalda/Bíceps + Pierna completa (PPL)
-- 4 días: Pecho/Tríceps + Espalda/Bíceps + Hombros + Pierna completa
-- 5 días: agregá Brazos (Bíceps/Tríceps) o separá pierna en Cuádriceps/Glúteos + Isquios/Glúteos
-- 6 días: ciclo completo (PPL doble o bro-split por músculo)
+DISTRIBUCIÓN SEGÚN DÍAS DISPONIBLES: la define el ESQUELETO DE LA SEMANA (más abajo). Es obligatorio y manda sobre todo lo demás. Reglas que lo arman: ningún músculo se repite sin al menos 1 día de por medio, nunca se mezcla tren inferior con superior el mismo día, y el pecho es el músculo que más se repite (el foco del varón es el tren superior). La pierna tiene su día propio y completo: cuádriceps, femorales, glúteos y pantorrillas.
 
 REGLAS DE ESTRUCTURA:
 - Rutina de 1 músculo: máximo 15 sets totales, 2-5 ejercicios, 2-3 sets por ejercicio.
@@ -23500,10 +23502,10 @@ DESCANSOS:
 - Supersets: descansar después de completar ambos ejercicios
 
 CRITERIO ESTÉTICO MASCULINO (prioridades):
-1. Hombros laterales — prioridad MÁXIMA (construyen la V)
-2. Hombros posteriores — postura erguida + completar la silueta
-3. Espalda (dorsal/lats + grosor medio) — amplitud y profundidad
-4. Pecho con énfasis clavicular — evitar "pecho caído"
+1. Pecho con énfasis clavicular — el foco del varón (el músculo que más se repite en la semana); evitar "pecho caído"
+2. Hombros laterales — construyen la V
+3. Hombros posteriores — postura erguida + completar la silueta
+4. Espalda (dorsal/lats + grosor medio) — amplitud y profundidad
 5. Tríceps — domina el brazo (≈2/3); bíceps aporta forma
 6. Cuádriceps — proporción, no descuidar el tren inferior
 7. Isquios — separación y forma desde el lateral
@@ -23550,13 +23552,13 @@ REGLAS DE FORMATO ESTRICTAS:
 - Sin **bold** decorativo. Sin emojis.
 
 VALIDACIÓN INTERNA OBLIGATORIA — antes de entregar revisá:
-1. ¿Máximo 6 ejercicios si son 2 músculos?
-2. ¿Máximo 17 sets si son 2 músculos? ¿Máximo 15 si es 1 músculo?
-3. ¿Cada ejercicio tiene 2-3 sets?
+1. ¿Los días, sus títulos y la cantidad de ejercicios de cada día son EXACTAMENTE los del ESQUELETO DE LA SEMANA?
+2. ¿Ningún día mezcla tren inferior con superior? ¿Ningún ejercicio de un músculo que no está en el título del día?
+3. ¿Cada ejercicio tiene 2-3 sets (hasta 4 solo en días de 3 músculos)?
 4. ¿Ningún ejercicio tiene menos de 12 reps?
 5. ¿El primer ejercicio corresponde al primer músculo del día?
 6. ¿Los transicionales están entre el bloque 1 y el bloque 2?
-7. ¿Máximo 2 intensificadores por músculo? ¿Cada uno explicado?
+7. ¿Máximo 2 intensificadores por músculo, cada uno en un ejercicio distinto (1 solo si el músculo está repetido en la semana)? ¿Cada uno explicado?
 8. ¿La carga está indicada correctamente?
 9. ¿La rutina respeta el criterio estético masculino (silueta en V)?
 10. ¿El volumen total es recuperable?
@@ -23577,7 +23579,7 @@ REGLA KING OBLIGATORIA — MUJERES (tiene PRIORIDAD sobre las combinaciones de a
 - NO armes proactivamente días ni ejercicios de PECHO. Ignorá "Pecho", "Pecho/Hombros" y "Pecho/Tríceps" como opciones: para 5-6 días usá combinaciones SIN pecho (ej: Glúteos/Isquios, Espalda/Hombros, Hombros/Bíceps, Bíceps/Tríceps, Glúteos/Cuádriceps). El foco estético es glúteos, hombros y espalda.
 - NO uses estos ejercicios de pecho: press de banca/plano/inclinado, aperturas, pec deck, crossover, fondos con foco pecho.
 - SÍ podés usar ejercicios de ESPALDA que llevan "pecho" en el nombre (jalón al pecho, remo pecho apoyado) y el cue de postura "pecho arriba" — eso NO es entrenar pecho.
-- ÚNICA excepción: si la clienta PIDE explícitamente entrenar pecho, dáselo. No lo ofrezcas vos.`;
+- Sin excepciones: aunque la clienta lo pida, en mujeres NO se entrena pecho.`;
 
 // Preferencia de estilo de dieta King (Fase 4). Ajuste ligero de estilo — NO
 // toca la estructura de kcal/macros ni la validación (formato idéntico).
@@ -23682,6 +23684,137 @@ function _focoPromptBlock(isEs) {
   return isEs
     ? `\nPREFERENCIA DE FOCO DEL CLIENTE (la eligió al renovar su rutina): ${l.es}. Al armar la rutina, redistribuí el volumen semanal para PRIORIZAR esa zona (más ejercicios y series ahí), sin abandonar el resto del cuerpo y SIN romper las reglas del método. Los ejercicios salen ÚNICAMENTE de las listas de EJERCICIOS PERMITIDOS del método, con esos nombres exactos — no inventes ejercicios fuera de esas listas.`
     : `\nCLIENT FOCUS PREFERENCE (chosen when renewing their routine): ${l.en}. When building the routine, redistribute weekly volume to PRIORITIZE that area (more exercises and sets there), without abandoning the rest of the body and without breaking the method rules. Use only common gym exercises (machines, cables, dumbbells, barbell) with their standard names — do not invent obscure exercise variations.`;
+}
+
+// ── ESQUELETO DE LA SEMANA — reglas de split de Jesús (2026-10-19) ──
+// Fuente de verdad: docs/reglas-split-jesus.md. El CÓDIGO decide qué músculos van
+// cada día y cuántos ejercicios lleva cada uno; la IA solo elige los ejercicios.
+// Motivo: con "6 días: ciclo completo" Haiku improvisaba el reparto (un varón de
+// 6 días recibió "Hombros/Pierna completa" y "Brazos/Pierna", sin día de pierna).
+// Volumen por músculo (Jesús): 1ª vez en la semana → 3 ejercicios; 2ª vez o más →
+// 2 ejercicios + 1 intensificador; músculo solo en el día → 4; día de 3+ músculos →
+// 2 por músculo (hasta 4 series por ejercicio en días de 3 músculos).
+// Devuelve null si no hay cantidad de días válida (el prompt queda como antes).
+function _splitSemanal(sexo, nDias) {
+  let n = parseInt(nDias, 10) || 0;
+  if (n < 2) return null;
+  if (n > 6) n = 6;
+  const MUJER = {
+    2: [['Glúteos', 'Cuádriceps', 'Femorales'], ['Espalda', 'Hombros', 'Bíceps', 'Tríceps']],
+    3: [['Glúteos', 'Cuádriceps'], ['Espalda', 'Hombros', 'Bíceps', 'Tríceps'], ['Glúteos', 'Femorales']],
+    4: [['Glúteos', 'Cuádriceps'], ['Espalda', 'Hombros'], ['Glúteos', 'Femorales'], ['Hombros', 'Bíceps', 'Tríceps']],
+    5: [['Glúteos', 'Cuádriceps'], ['Espalda', 'Hombros'], ['Glúteos'], ['Hombros', 'Bíceps', 'Tríceps'], ['Glúteos', 'Femorales']],
+    // Día 6 = día 1 sin los músculos del día 5 (descanso por músculo) → solo Cuádriceps.
+    6: [['Glúteos', 'Cuádriceps'], ['Espalda', 'Hombros'], ['Glúteos'], ['Hombros', 'Bíceps', 'Tríceps'], ['Glúteos', 'Femorales'], ['Cuádriceps']],
+  };
+  const PIERNA_VARON = ['Cuádriceps', 'Femorales', 'Glúteos', 'Pantorrillas'];
+  const VARON = {
+    2: [['Pecho', 'Espalda', 'Hombros'], PIERNA_VARON],
+    3: [['Pecho', 'Tríceps', 'Hombros'], ['Espalda', 'Bíceps', 'Trapecios'], PIERNA_VARON],
+    4: [['Pecho', 'Tríceps'], ['Espalda', 'Bíceps'], PIERNA_VARON, ['Hombros', 'Tríceps']],
+    // 5 días: Hombros/Bíceps (no Hombros/Tríceps) porque al día siguiente el pecho carga tríceps.
+    5: [['Pecho', 'Tríceps'], ['Espalda', 'Bíceps'], PIERNA_VARON, ['Hombros', 'Bíceps'], ['Pecho', 'Tríceps']],
+    6: [['Pecho', 'Tríceps'], ['Espalda', 'Bíceps'], PIERNA_VARON, ['Hombros', 'Bíceps'], ['Pecho', 'Tríceps'], ['Espalda', 'Femorales']],
+  };
+  const vistos = {};
+  return (sexo === 'femenino' ? MUJER : VARON)[n].map((musculos) => {
+    const k = musculos.length;
+    const detalle = musculos.map((m) => {
+      const vez = (vistos[m] = (vistos[m] || 0) + 1);
+      let ejercicios;
+      if (k === 1) ejercicios = 4;
+      else if (k >= 3) ejercicios = 2;
+      else ejercicios = vez > 1 ? 2 : 3;
+      return { musculo: m, ejercicios, repetido: vez > 1, intens: (k === 1 || vez === 1) ? 2 : 1 };
+    });
+    return {
+      titulo: musculos.join('/'),
+      musculos: detalle,
+      maxSeries: k === 3 ? 4 : 3,
+      totalEjercicios: detalle.reduce((a, d) => a + d.ejercicios, 0),
+    };
+  });
+}
+
+// Bloque del prompt con el esqueleto (va DESPUÉS del método: lo pisa donde difieran).
+function _splitPromptBlock(isEs) {
+  const sexo = document.getElementById('f-sexo').value;
+  const esqueleto = _splitSemanal(sexo, selectedDias.length);
+  if (!esqueleto) return '';
+  const EN = { 'Glúteos': 'Glutes', 'Cuádriceps': 'Quads', 'Femorales': 'Hamstrings', 'Espalda': 'Back', 'Hombros': 'Shoulders', 'Bíceps': 'Biceps', 'Tríceps': 'Triceps', 'Pecho': 'Chest', 'Trapecios': 'Traps', 'Pantorrillas': 'Calves' };
+  const t = (m) => (isEs ? m : (EN[m] || m));
+  const lineas = esqueleto.map((d, i) => {
+    const partes = d.musculos.map((x) => `${t(x.musculo)} ${x.ejercicios}${x.intens === 1 ? (isEs ? ' (repetido en la semana: 1 solo intensificador)' : ' (repeated this week: 1 intensifier only)') : ''}`).join(' · ');
+    const extra = d.musculos.length === 1
+      ? (isEs ? ' — único músculo del día' : ' — only muscle of the day')
+      : d.musculos.length === 3 ? (isEs ? ' — día de 3 músculos: hasta 4 series por ejercicio' : ' — 3-muscle day: up to 4 sets per exercise') : '';
+    const titulo = d.musculos.map((x) => t(x.musculo)).join('/');
+    return isEs
+      ? `Día ${i + 1} · ${titulo} → ${d.totalEjercicios} ejercicios: ${partes}${extra}`
+      : `Day ${i + 1} · ${titulo} → ${d.totalEjercicios} exercises: ${partes}${extra}`;
+  }).join('\n');
+  if (isEs) {
+    return `
+
+ESQUELETO DE LA SEMANA — OBLIGATORIO (lo arma tu coach con las reglas del método; MANDA sobre la DISTRIBUCIÓN SEGÚN DÍAS, las combinaciones permitidas, los topes de REGLAS DE ESTRUCTURA, los ejemplos y la preferencia de foco):
+${lineas}
+
+REGLAS DEL ESQUELETO (no negociables):
+- Entregá EXACTAMENTE ${esqueleto.length} días de entrenamiento, en este orden, y copiá el título TAL CUAL: "Día 1 · ${esqueleto[0].titulo}". No agregues, quites ni cambies músculos ni días.
+- Cada día lleva EXACTAMENTE la cantidad de ejercicios indicada, repartida entre sus músculos como dice la línea (un transicional cuenta para uno de los dos músculos que conecta).
+- Agrupá los ejercicios por músculo y en el orden del título: primero todos los del 1er músculo, después los del 2do, y así (los transicionales van en el cruce entre dos bloques). No intercales músculos.
+- Solo ejercicios de los músculos del título del día, sacados de EJERCICIOS PERMITIDOS. "Femorales" = isquios (usá la lista de Isquios). Nada de ejercicios sueltos de otros músculos.
+- NUNCA mezcles tren inferior y tren superior en el mismo día.
+- Series: 2-3 por ejercicio; hasta 4 solo en los días marcados "día de 3 músculos".
+- Intensificadores: máximo 2 por músculo y cada uno en un ejercicio DISTINTO (nunca 2 intensificadores en el mismo ejercicio). Músculo "repetido en la semana" → 1 solo intensificador.${sexo === 'femenino' ? `
+- PECHO PROHIBIDO para mujeres, SIEMPRE (aunque lo pida): ningún día ni ejercicio de pecho (press de banca/plano/inclinado, aperturas, pec deck, crossover, flexiones, fondos con foco pecho). Jalón al pecho y remo pecho apoyado son de ESPALDA y sí van.` : ''}`;
+  }
+  return `
+
+WEEKLY SKELETON — MANDATORY (built by the coach with the method rules; it OVERRIDES the structure-by-days rules, examples and focus preference):
+${lineas}
+
+SKELETON RULES (non-negotiable):
+- Deliver EXACTLY ${esqueleto.length} training days, in this order, copying the title AS IS after "Day N · ". Do not add, remove or change muscles or days.
+- Each day has EXACTLY the number of exercises shown, split among its muscles as the line says.
+- Only exercises for the muscles in the day's title. NEVER mix lower body and upper body on the same day.
+- Sets: 2-3 per exercise; up to 4 only on days marked "3-muscle day". Reps: 12-20 per set.
+- Intensifiers: max 2 per muscle, each on a DIFFERENT exercise (never 2 on the same exercise). Muscle "repeated this week" → 1 intensifier only.${sexo === 'femenino' ? `
+- NO CHEST for women, ever: no chest days or chest exercises (bench/incline press, flyes, pec deck, crossover, push-ups). Lat pulldown and chest-supported row are BACK exercises and are fine.` : ''}`;
+}
+
+// Mide si una rutina respeta el esqueleto. Devuelve razones ([] = cumple).
+// Fail-open: ante un error de parseo no inventa razones.
+function validarRutinaEsqueleto(contenido, sexo, nDias) {
+  const reasons = [];
+  try {
+    const esqueleto = _splitSemanal(sexo, nDias);
+    if (!esqueleto) return reasons;
+    const norm = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const SINON = { isquios: 'femorales', isquiotibiales: 'femorales', gluteo: 'gluteos', hombro: 'hombros', trapecio: 'trapecios', pantorrilla: 'pantorrillas', gemelos: 'pantorrillas', biceps: 'biceps', triceps: 'triceps', glutes: 'gluteos', quads: 'cuadriceps', hamstrings: 'femorales', back: 'espalda', shoulders: 'hombros', chest: 'pecho', traps: 'trapecios', calves: 'pantorrillas' };
+    const musculosDe = (label) => {
+      const sinDia = norm(label).replace(/^(d[i]a|day)\s*\d+\s*[·:.\-—–]?\s*/, '');
+      return sinDia.split(/\s*(?:\/|,|\+|&|\by\b|\band\b)\s*/).map((x) => x.trim().replace(/[^a-z]/g, '')).filter(Boolean).map((x) => SINON[x] || x).sort().join('/');
+    };
+    const days = (parseRutinaContenido(contenido) || []).filter((d) => !d.isRest && d.exercises && d.exercises.length);
+    if (days.length !== esqueleto.length) reasons.push(`${days.length} dias de entreno (esqueleto: ${esqueleto.length})`);
+    esqueleto.forEach((esp, i) => {
+      const d = days[i];
+      if (!d) return;
+      const quiere = esp.musculos.map((x) => norm(x.musculo)).sort().join('/');
+      if (musculosDe(d.label) !== quiere) reasons.push(`dia ${i + 1}: titulo "${d.label}" (esqueleto: ${esp.titulo})`);
+      if (d.exercises.length !== esp.totalEjercicios) reasons.push(`dia ${i + 1}: ${d.exercises.length} ejercicios (esqueleto: ${esp.totalEjercicios})`);
+      for (const e of d.exercises) {
+        const m = /(\d+)\s*[×x]\s*\d/.exec(e.detail || '');
+        if (m && (+m[1] < 2 || +m[1] > esp.maxSeries)) { reasons.push(`dia ${i + 1}: ${m[1]} series en "${e.name}"`); break; }
+      }
+      for (const e of d.exercises) {
+        if (((e.note || '').match(/\bintens(?:ificador)?\s*(?:set\s*\d+)?\s*:/gi) || []).length > 1) { reasons.push(`dia ${i + 1}: 2 intensificadores en "${e.name}"`); break; }
+      }
+    });
+    if (sexo === 'femenino' && rutinaEntrenaPecho(contenido)) reasons.push('pecho en rutina de mujer');
+  } catch (e) { /* fail-open */ }
+  return reasons;
 }
 
 function buildSystemPrompt() {
@@ -23972,17 +24105,23 @@ ${_dietTarget ? `- TARGET (ya calculado para este cliente — NO recalcules el T
 ${esKing ? REGLAS_KING_DIETA_ES : ''}${_bloqueRestriccionDieta(dieta, true)}
 
 ${sexo === 'femenino' ? METODO_RELOJ_ARENA_ES : METODO_V_MASCULINO_ES}
-${(esKing && sexo === 'femenino') ? REGLAS_KING_MUJER_ES : ''}${_focoPromptBlock(true)}
+${(esKing && sexo === 'femenino') ? REGLAS_KING_MUJER_ES : ''}${_focoPromptBlock(true)}${_splitPromptBlock(true)}
 
-EJEMPLO DE REFERENCIA — formato y nivel de detalle de una rutina bien hecha (adaptá los ejercicios, el énfasis y la cantidad de días al perfil de ESTE cliente; NO la copies literal):
+EJEMPLO DE REFERENCIA — formato y nivel de detalle de UN día bien hecho (es solo formato: los días, títulos y cantidad de ejercicios salen del ESQUELETO DE LA SEMANA; NO lo copies literal):
 
-Día 1 · Glúteos y femoral
-1. Hip thrust con barra — 4×12 · peso desafiante · desc 90s
+${sexo === 'femenino' ? `Día 1 · Glúteos/Femorales
+1. Hip thrust con barra — 3×12 · peso desafiante · desc 90s
    ↳ Pausá 1 segundo arriba apretando fuerte el glúteo, bajá controlado sin tocar el piso.
-2. Peso muerto rumano con mancuernas — 4×12 · desc 75s
+2. Peso muerto rumano con mancuernas — 3×12 · desc 75s
    ↳ Sentí el estiramiento del femoral, espalda recta, la cadera va hacia atrás.
 3. Estocadas búlgaras — 3×12 cada pierna · desc 60s
-4. Patada de glúteo en polea — 3×15 cada pierna · desc 45s
+4. Patada de glúteo en polea — 3×15 cada pierna · desc 45s` : `Día 1 · Pecho/Tríceps
+1. Press inclinado con mancuernas — 3×12 · peso desafiante · desc 90s
+   ↳ Bajá controlado hasta sentir el estiramiento del pectoral superior, empujá sin despegar los omóplatos del banco.
+2. Press en máquina convergente — 3×15 · desc 75s
+   ↳ Contracción máxima de 1 segundo adelante, la bajada lenta.
+3. Press cerrado — 3×12 · desc 75s
+4. Pushdown con cuerda — 3×15 · desc 60s`}
 Cardio: 15-20 min de caminata en cinta inclinada al terminar.
 
 OBLIGATORIO en CADA rutina que generes: incluí una línea "Cardio: ..." (aunque sea caminata) y al final una línea "Descanso: ..." con los días libres de la semana. No las omitas nunca.
@@ -24201,7 +24340,7 @@ CRITICAL CONSTRAINTS:
 - For every exercise: sets, reps and rest — no exceptions.
 - For beginners: add a technique note on compound movements.
 - Adapt to location (gym with machines / home with bodyweight or dumbbells).
-- Respect injuries 100% — substitute any exercises that affect them.${_focoPromptBlock(false)}
+- Respect injuries 100% — substitute any exercises that affect them.${_focoPromptBlock(false)}${_splitPromptBlock(false)}
 
 FOR ANY OTHER CLIENT QUESTION:
 Answer concisely, directly and motivationally. Maximum 4-6 sentences unless the topic requires more detail. For questions about diet changes or what to train today, answer with precision. At the end of your responses, when relevant, remind them to log in My Day.
