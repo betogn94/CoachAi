@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261019-1356-split-jesus">
+<meta name="app-version" content="20261019-1417-split-orden">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -23217,23 +23217,23 @@ REGLAS DE ESTRUCTURA:
 - Rutina de 2 músculos: máximo 6 ejercicios, máximo 17 sets totales. Distribución equilibrada. Si es impar, el músculo prioritario estéticamente recibe el extra (glúteos > cuádriceps; hombros > espalda en mujeres con foco reloj de arena).
 
 ORDEN OBLIGATORIO:
-Empezá SIEMPRE con un ejercicio específico del primer músculo del título de la rutina. Luego ejercicios transicionales (al final del bloque 1 y al inicio del bloque 2). Terminá con específicos del segundo músculo.
+Los músculos del día van del MÁS GRANDE al más chico (el título del ESQUELETO ya viene en ese orden). Dentro del bloque del primer músculo arrancá por el ejercicio MÁS AISLADO y avanzá hacia los más compuestos, hasta llegar al que más se acerca al músculo siguiente (transicional). El bloque siguiente arranca por el ejercicio que conecta con el anterior y sigue con sus específicos. La selección es una cadena: cada ejercicio acerca un poco más al músculo que viene.
 
-EJEMPLO Glúteos/Cuádriceps (6 ejercicios):
-1. Hip thrust (específico glúteos)
-2. Abducción de caderas (específico glúteos)
-3. Sentadilla búlgara (transicional)
-4. Prensa con pies arriba (transicional)
-5. Sentadilla hack (específico cuádriceps)
-6. Extensión de cuádriceps (específico cuádriceps)
+EJEMPLO Cuádriceps/Glúteos (6 ejercicios — ejemplo del coach):
+1. Extensión de cuádriceps (aislado de cuádriceps)
+2. Sentadilla hack (cuádriceps, ya involucra glúteo)
+3. Sentadilla búlgara (sigue cuádriceps pero involucra mucho más el glúteo)
+4. Hip thrust (transición a puro glúteo)
+5. Patada de glúteo en polea (específico glúteo)
+6. Abducción de caderas (específico glúteo)
 
 EJEMPLO Espalda/Hombros (6 ejercicios):
-1. Jalón al pecho
-2. Remo pecho apoyado
-3. Remo alto (transicional)
-4. Face pull (transicional)
-5. Elevaciones laterales
-6. Reverse pec deck
+1. Pull over en polea (aislado de espalda)
+2. Jalón al pecho
+3. Remo pecho apoyado
+4. Face pull (transición a hombro posterior)
+5. Reverse pec deck (hombro posterior)
+6. Elevaciones laterales (hombro lateral)
 
 RANGOS DE REPETICIONES PERMITIDOS:
 - 12 reps · 12-15 · 15 · 15-20 · 20
@@ -23403,23 +23403,23 @@ REGLAS DE ESTRUCTURA:
 - Rutina de 2 músculos: máximo 6 ejercicios, máximo 17 sets totales. Distribución equilibrada. Si es impar, el músculo prioritario estéticamente recibe el extra (pecho > tríceps; espalda > bíceps; hombros laterales > frontales).
 
 ORDEN OBLIGATORIO:
-Empezá SIEMPRE con un ejercicio específico del primer músculo del título de la rutina. Luego ejercicios transicionales (al final del bloque 1 y al inicio del bloque 2). Terminá con específicos del segundo músculo.
+Los músculos del día van del MÁS GRANDE al más chico (el título del ESQUELETO ya viene en ese orden). Dentro del bloque del primer músculo arrancá por el ejercicio MÁS AISLADO y avanzá hacia los más compuestos, hasta llegar al que más se acerca al músculo siguiente (transicional). El bloque siguiente arranca por el ejercicio que conecta con el anterior y sigue con sus específicos. La selección es una cadena: cada ejercicio acerca un poco más al músculo que viene.
 
 EJEMPLO Pecho/Tríceps (6 ejercicios):
-1. Press inclinado con mancuernas (específico pecho — clavicular primero)
-2. Press en máquina convergente (específico pecho)
-3. Aperturas en máquina (transicional)
-4. Press cerrado (transicional)
+1. Aperturas en máquina (aislado de pecho)
+2. Press inclinado con mancuernas (compuesto — clavicular)
+3. Press en máquina convergente (compuesto)
+4. Press cerrado (transición a tríceps)
 5. Pushdown con cuerda (específico tríceps)
 6. Extensión por encima de la cabeza (específico tríceps)
 
 EJEMPLO Espalda/Hombros (6 ejercicios — ideal para silueta en V):
-1. Jalón al pecho agarre abierto
-2. Remo pecho apoyado
-3. Remo alto (transicional)
-4. Face pull (transicional)
-5. Elevaciones laterales
-6. Reverse pec deck
+1. Pull over en polea (aislado de espalda)
+2. Jalón al pecho agarre abierto
+3. Remo pecho apoyado
+4. Face pull (transición a hombro posterior)
+5. Reverse pec deck (hombro posterior)
+6. Elevaciones laterales (hombro lateral)
 
 RANGOS DE REPETICIONES PERMITIDOS:
 - 12 reps · 12-15 · 15 · 15-20 · 20
@@ -23716,8 +23716,13 @@ function _splitSemanal(sexo, nDias) {
     5: [['Pecho', 'Tríceps'], ['Espalda', 'Bíceps'], PIERNA_VARON, ['Hombros', 'Bíceps'], ['Pecho', 'Tríceps']],
     6: [['Pecho', 'Tríceps'], ['Espalda', 'Bíceps'], PIERNA_VARON, ['Hombros', 'Bíceps'], ['Pecho', 'Tríceps'], ['Espalda', 'Femorales']],
   };
+  // Regla de Jesús (2026-10-19): el día empieza por el músculo MÁS GRANDE. Orden por tamaño
+  // (Cuádriceps/Glúteos → arranca cuádriceps, ejemplo del propio Jesús). La cadena de
+  // transicionales cae natural: cuádriceps → glúteos → femorales → pantorrillas.
+  const TAMANO = ['Cuádriceps', 'Espalda', 'Glúteos', 'Pecho', 'Femorales', 'Hombros', 'Trapecios', 'Tríceps', 'Bíceps', 'Pantorrillas'];
   const vistos = {};
-  return (sexo === 'femenino' ? MUJER : VARON)[n].map((musculos) => {
+  return (sexo === 'femenino' ? MUJER : VARON)[n].map((dia) => {
+    const musculos = dia.slice().sort((a, b) => TAMANO.indexOf(a) - TAMANO.indexOf(b));
     const k = musculos.length;
     const detalle = musculos.map((m) => {
       const vez = (vistos[m] = (vistos[m] || 0) + 1);
@@ -23762,7 +23767,8 @@ ${lineas}
 REGLAS DEL ESQUELETO (no negociables):
 - Entregá EXACTAMENTE ${esqueleto.length} días de entrenamiento, en este orden, y copiá el título TAL CUAL: "Día 1 · ${esqueleto[0].titulo}". No agregues, quites ni cambies músculos ni días.
 - Cada día lleva EXACTAMENTE la cantidad de ejercicios indicada, repartida entre sus músculos como dice la línea (un transicional cuenta para uno de los dos músculos que conecta).
-- Agrupá los ejercicios por músculo y en el orden del título: primero todos los del 1er músculo, después los del 2do, y así (los transicionales van en el cruce entre dos bloques). No intercales músculos.
+- Agrupá los ejercicios por músculo y en el orden del título (va del músculo más grande al más chico): primero todos los del 1er músculo, después los del 2do, y así. No intercales músculos.
+- ORDEN DENTRO DEL DÍA: el 1er músculo arranca por su ejercicio MÁS AISLADO y avanza hacia los más compuestos, hasta el que más se acerca al músculo siguiente (transicional); el bloque siguiente arranca por el ejercicio que conecta con el anterior y sigue con sus específicos. Ejemplo del coach, Cuádriceps/Glúteos: Extensión de cuádriceps (aislado) → Sentadilla hack (cuádriceps, ya involucra glúteo) → Sentadilla búlgara (mucho más glúteo) → Hip thrust (transición a puro glúteo) → resto de glúteos.
 - Solo ejercicios de los músculos del título del día, sacados de EJERCICIOS PERMITIDOS. "Femorales" = isquios (usá la lista de Isquios). Nada de ejercicios sueltos de otros músculos.
 - NUNCA mezcles tren inferior y tren superior en el mismo día.
 - Series: 2-3 por ejercicio; hasta 4 solo en los días marcados "día de 3 músculos".
@@ -23794,14 +23800,14 @@ function validarRutinaEsqueleto(contenido, sexo, nDias) {
     const SINON = { isquios: 'femorales', isquiotibiales: 'femorales', gluteo: 'gluteos', hombro: 'hombros', trapecio: 'trapecios', pantorrilla: 'pantorrillas', gemelos: 'pantorrillas', biceps: 'biceps', triceps: 'triceps', glutes: 'gluteos', quads: 'cuadriceps', hamstrings: 'femorales', back: 'espalda', shoulders: 'hombros', chest: 'pecho', traps: 'trapecios', calves: 'pantorrillas' };
     const musculosDe = (label) => {
       const sinDia = norm(label).replace(/^(d[i]a|day)\s*\d+\s*[·:.\-—–]?\s*/, '');
-      return sinDia.split(/\s*(?:\/|,|\+|&|\by\b|\band\b)\s*/).map((x) => x.trim().replace(/[^a-z]/g, '')).filter(Boolean).map((x) => SINON[x] || x).sort().join('/');
+      return sinDia.split(/\s*(?:\/|,|\+|&|\by\b|\band\b)\s*/).map((x) => x.trim().replace(/[^a-z]/g, '')).filter(Boolean).map((x) => SINON[x] || x).join('/');
     };
     const days = (parseRutinaContenido(contenido) || []).filter((d) => !d.isRest && d.exercises && d.exercises.length);
     if (days.length !== esqueleto.length) reasons.push(`${days.length} dias de entreno (esqueleto: ${esqueleto.length})`);
     esqueleto.forEach((esp, i) => {
       const d = days[i];
       if (!d) return;
-      const quiere = esp.musculos.map((x) => norm(x.musculo)).sort().join('/');
+      const quiere = esp.musculos.map((x) => norm(x.musculo)).join('/');
       if (musculosDe(d.label) !== quiere) reasons.push(`dia ${i + 1}: titulo "${d.label}" (esqueleto: ${esp.titulo})`);
       if (d.exercises.length !== esp.totalEjercicios) reasons.push(`dia ${i + 1}: ${d.exercises.length} ejercicios (esqueleto: ${esp.totalEjercicios})`);
       for (const e of d.exercises) {
@@ -24110,16 +24116,17 @@ ${(esKing && sexo === 'femenino') ? REGLAS_KING_MUJER_ES : ''}${_focoPromptBlock
 EJEMPLO DE REFERENCIA — formato y nivel de detalle de UN día bien hecho (es solo formato: los días, títulos y cantidad de ejercicios salen del ESQUELETO DE LA SEMANA; NO lo copies literal):
 
 ${sexo === 'femenino' ? `Día 1 · Glúteos/Femorales
-1. Hip thrust con barra — 3×12 · peso desafiante · desc 90s
+1. Patada de glúteo en polea — 3×15 cada pierna · desc 45s
+   ↳ Llevá la pierna atrás y arriba apretando el glúteo, sin arquear la espalda baja.
+2. Hip thrust con barra — 3×12 · peso desafiante · desc 90s
    ↳ Pausá 1 segundo arriba apretando fuerte el glúteo, bajá controlado sin tocar el piso.
-2. Peso muerto rumano con mancuernas — 3×12 · desc 75s
+3. Peso muerto rumano con mancuernas — 3×12 · desc 75s
    ↳ Sentí el estiramiento del femoral, espalda recta, la cadera va hacia atrás.
-3. Estocadas búlgaras — 3×12 cada pierna · desc 60s
-4. Patada de glúteo en polea — 3×15 cada pierna · desc 45s` : `Día 1 · Pecho/Tríceps
-1. Press inclinado con mancuernas — 3×12 · peso desafiante · desc 90s
+4. Curl femoral acostado — 3×15 · desc 60s` : `Día 1 · Pecho/Tríceps
+1. Aperturas en máquina — 3×15 · peso medio · desc 60s
+   ↳ Abrí hasta sentir el estiramiento del pecho y cerrá apretando 1 segundo adelante.
+2. Press inclinado con mancuernas — 3×12 · peso desafiante · desc 90s
    ↳ Bajá controlado hasta sentir el estiramiento del pectoral superior, empujá sin despegar los omóplatos del banco.
-2. Press en máquina convergente — 3×15 · desc 75s
-   ↳ Contracción máxima de 1 segundo adelante, la bajada lenta.
 3. Press cerrado — 3×12 · desc 75s
 4. Pushdown con cuerda — 3×15 · desc 60s`}
 Cardio: 15-20 min de caminata en cinta inclinada al terminar.

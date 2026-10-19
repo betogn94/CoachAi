@@ -16,6 +16,12 @@ esqueleto de la semana con estas reglas y la IA solo completa los ejercicios.
      (única excepción al tope de 3 series).
 4. **Intensificadores:** máx 2 por músculo, siempre en ejercicios distintos (nunca 2 en el mismo).
 5. Mínimo 3 días por semana, cubriendo todos los músculos principales.
+6. **Orden del día** (Jesús, 2026-10-19): se empieza por el músculo MÁS GRANDE; ese bloque va
+   del ejercicio más aislado al más compuesto, hasta el que más se acerca al músculo siguiente
+   (transicional). Ejemplo Cuádriceps/Glúteos: Extensiones (aislado) → Sentadillas (cuádriceps,
+   involucra glúteo) → Búlgaras (mucho más glúteo) → Hip thrust (puro glúteo) → resto de glúteos.
+   Orden por tamaño que usa el código (criterio nuestro, a confirmar con Jesús): Cuádriceps ·
+   Espalda · Glúteos · Pecho · Femorales · Hombros · Trapecios · Tríceps · Bíceps · Pantorrillas.
 
 ## Mujeres — enfoque tren inferior (glúteo)
 
