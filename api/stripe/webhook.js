@@ -234,11 +234,17 @@ async function handleInvoicePaid(invoice, stripe) {
   // price.product → lo resolvemos vía la subscription.
   const _p0 = lines[0]?.price?.product;
   let productId = typeof _p0 === 'string' ? _p0 : _p0?.id || null;
-  if (!productId && subRef) {
+  // Intervalo de facturación (month/year). OJO: va con el MISMO fallback que el
+  // producto — la primera venta real del anual (QA 2026-10-20) vino con la
+  // línea sin price y quedó registrada 'mensual' por leer solo lines[0].
+  let interval = lines[0]?.price?.recurring?.interval || null;
+  if ((!productId || !interval) && subRef) {
     try {
       const s = await stripe.subscriptions.retrieve(typeof subRef === 'string' ? subRef : subRef.id);
-      const p = s?.items?.data?.[0]?.price?.product;
-      productId = typeof p === 'string' ? p : p?.id || null;
+      const price = s?.items?.data?.[0]?.price;
+      const p = price?.product;
+      if (!productId) productId = typeof p === 'string' ? p : p?.id || null;
+      if (!interval) interval = price?.recurring?.interval || null;
     } catch (e) { /* queda null → backfill */ }
   }
   const categoria = isFoundation ? 'otros' : await categoriaDeProducto(productId);
@@ -253,7 +259,7 @@ async function handleInvoicePaid(invoice, stripe) {
       amount,
       currency,
       payment_method: 'stripe',
-      billing_period: isFoundation ? 'unico' : (lines[0]?.price?.recurring?.interval === 'year' ? 'anual' : 'mensual'),
+      billing_period: isFoundation ? 'unico' : (interval === 'year' ? 'anual' : 'mensual'),
       recurring: !isFoundation,
       period_start: periodStart,
       source: 'stripe',
