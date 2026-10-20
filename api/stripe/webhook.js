@@ -253,7 +253,7 @@ async function handleInvoicePaid(invoice, stripe) {
       amount,
       currency,
       payment_method: 'stripe',
-      billing_period: isFoundation ? 'unico' : 'mensual',
+      billing_period: isFoundation ? 'unico' : (lines[0]?.price?.recurring?.interval === 'year' ? 'anual' : 'mensual'),
       recurring: !isFoundation,
       period_start: periodStart,
       source: 'stripe',
@@ -386,14 +386,19 @@ async function isMapaCheckout(session, stripe) {
   } catch (e) { console.warn('[stripe] no se pudieron leer line items del checkout:', e?.message); return false; }
 }
 
-// Price del producto "CoachAI Pro King clásico" ($19.99/mes recurrente): marca King
-// (tenant jesus) pero SIN el Método King. Se reconoce por su price → la invitación
-// nace con metodo_king=false y el RPC de alta la crea FUERA de la cohorte King.
-const COACHAI_CLASICO_PRICE_ID = 'price_1TqlNC0MxxlML2QQc31yqj2p';
+// Prices cuyas altas nacen SIN el Método King (metodo_king=false → el RPC las
+// crea fuera de la cohorte King). El Método está DISCONTINUADO (2026-10): todo
+// producto NUEVO de la app se agrega acá.
+//   - "CoachAI Pro · Mensual (solo)" $19.99/mes — el "King clásico" original.
+//   - "CoachAI Pro KING · Anual" $119/año (creado 2026-10-20).
+const COACHAI_CLASICO_PRICE_IDS = new Set([
+  'price_1TqlNC0MxxlML2QQc31yqj2p',
+  'price_1USiw80MxxlML2QQuhvvX7T9',
+]);
 async function checkoutEsClasico(session, stripe) {
   try {
     const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 10 });
-    return (items?.data || []).some(li => li && li.price && li.price.id === COACHAI_CLASICO_PRICE_ID);
+    return (items?.data || []).some(li => li && li.price && COACHAI_CLASICO_PRICE_IDS.has(li.price.id));
   } catch (e) { console.warn('[stripe] no se pudieron leer line items (clasico):', e?.message); return false; }
 }
 
