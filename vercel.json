@@ -38,6 +38,10 @@
       "destination": "/manual-coach.html"
     },
     {
+      "source": "/presentacion",
+      "destination": "/presentacion.html"
+    },
+    {
       "source": "/jesus",
       "destination": "/index.html"
     },

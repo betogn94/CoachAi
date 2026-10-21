@@ -15,4 +15,7 @@ const out = src.replace(/src="(img\/[^"]+)"/g, (m, p) => {
 });
 const dest = resolve(here, 'CoachAI-Pro-Presentacion.html');
 writeFileSync(dest, out);
-console.log(`OK · ${n} imágenes incrustadas · ${(statSync(dest).size / 1024 / 1024).toFixed(2)} MB → ${dest}`);
+// Copia servida públicamente en coachaipro.ai/presentacion (docs/ está excluida de Vercel).
+const pub = resolve(here, '..', '..', 'presentacion.html');
+writeFileSync(pub, out);
+console.log(`OK · ${n} imágenes incrustadas · ${(statSync(dest).size / 1024 / 1024).toFixed(2)} MB → ${dest}\n   + copia pública → ${pub}`);
