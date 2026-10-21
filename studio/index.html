@@ -632,6 +632,36 @@
     }
     .markdown-body::-webkit-scrollbar { width: 6px; }
     .markdown-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    /* Historial de análisis semanales (devoluciones de la IA): una fila por cierre. */
+    .cierre-row {
+      background: var(--bg-elev-2);
+      border: 1px solid var(--border-soft);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+    .cierre-row-head {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .cierre-row-head strong { font-size: 13px; }
+    .cierre-row-head .meta {
+      font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+      font-size: 11px; color: var(--text-muted); letter-spacing: 0.02em;
+    }
+    .cierre-row .collapsible-preview::after { background: linear-gradient(to bottom, transparent, var(--bg-elev-2)); }
+    .cierre-row .macro-row { margin-bottom: 10px; }
+    /* Markdown renderizado (mdLite). A diferencia de .markdown-body NO usa
+       pre-wrap: los bloques (h4/p/ul) ya traen su propio espaciado. */
+    .md-rendered { font-size: 13px; line-height: 1.6; color: var(--text); }
+    .md-rendered h4 { font-size: 13.5px; font-weight: 700; margin: 14px 0 6px; color: var(--text); }
+    .md-rendered h4:first-child { margin-top: 0; }
+    .md-rendered p { margin: 0 0 10px; }
+    .md-rendered ul, .md-rendered ol { margin: 0 0 10px 18px; padding: 0; }
+    .md-rendered li { margin: 3px 0; }
+    .md-rendered strong { font-weight: 700; }
+    .md-rendered em { color: var(--text-muted); }
+    .md-rendered hr { border: 0; border-top: 1px solid var(--border-soft); margin: 12px 0; }
     .timeline {
       display: flex;
       flex-direction: column;
@@ -2630,7 +2660,7 @@
           <div class="empty-row"><span class="spinner"></span> &nbsp; Cargando…</div>
         </section>
         <section class="detail-section full-width" id="cli-analisis">
-          <div class="detail-section-title">Último análisis semanal <span class="meta">cargando…</span></div>
+          <div class="detail-section-title">Análisis semanales <span class="meta">cargando…</span></div>
           <div class="empty-row"><span class="spinner"></span> &nbsp; Cargando…</div>
         </section>
         <section class="detail-section full-width" id="cli-transformacion">
@@ -2683,15 +2713,14 @@
     // only selects a few columns to keep the table fast — for the drill-down
     // we need the rest (sexo/edad/objetivo/nivel/dias/etc) so we re-fetch.
     const uid = clienta.id;
-    const [fullUserRes, planes, cierres, allCierres, fotos, bugs, notasCoach, inviteRes] = await Promise.all([
+    const [fullUserRes, planes, allCierres, fotos, bugs, notasCoach, inviteRes] = await Promise.all([
       sb.from('usuarios').select('*').eq('id', uid).maybeSingle(),
       sb.from('planes_semanales').select('tipo,fecha_entrega,semana_iso,contenido,updated_at').eq('usuario_id', uid).order('fecha_entrega', { ascending: false }).limit(10),
-      sb.from('cierres_semanales').select('*').eq('usuario_id', uid).order('semana_num', { ascending: false }).limit(1),
-      // Full list of cierres (newest first) for the Transformación timeline.
-      // Limit 50 = ~1 year of weekly closures; if a client somehow blows
-      // past that we'd add pagination, but for the migration cohort this
-      // is way more than needed.
-      sb.from('cierres_semanales').select('semana_num,fecha_inicio,fecha_fin,foto_url,foto_url_espalda').eq('usuario_id', uid).order('semana_num', { ascending: true }).limit(50),
+      // Lista completa de cierres (ascendente). Alimenta la Transformación
+      // (fotos) Y el historial de análisis semanales (analisis + stats) — una
+      // sola consulta en vez de dos. Limit 50 = ~1 año de cierres; si alguien
+      // lo pasa agregamos paginación, pero hoy sobra.
+      sb.from('cierres_semanales').select('semana_num,semana_iso,fecha_inicio,fecha_fin,foto_url,foto_url_espalda,analisis,stats,created_at').eq('usuario_id', uid).order('semana_num', { ascending: true }).limit(50),
       // Inicio photos — the baseline both vistas. We don't fetch every
       // progreso photo; just the immutable 'inicio' row(s).
       sb.from('fotos_progreso').select('vista,url_foto,fecha,tipo').eq('usuario_id', uid).eq('tipo', 'inicio'),
@@ -2723,7 +2752,6 @@
       for (const r of rows) for (const f of fields) { const p = pathOf(r && r[f]); if (p && byPath[p]) r[f] = byPath[p]; }
     };
     await signStudioPhotos(allCierres.data || [], ['foto_url', 'foto_url_espalda']);
-    await signStudioPhotos(cierres.data || [], ['foto_url', 'foto_url_espalda']);
     await signStudioPhotos(fotos.data || [], ['url_foto']);
 
     // Re-render datos personales with the full row (the initial paint used
@@ -2754,7 +2782,7 @@
 
     paintDieta(planes.data || []);
     paintRutina(planes.data || []);
-    paintAnalisis((cierres.data || [])[0] || null);
+    paintAnalisis(allCierres.data || []);
     paintTransformacion(fotos.data || [], allCierres.data || []);
     paintBugs(bugs.data || []);
     paintNotas(notasCoach.data || []);
@@ -3060,28 +3088,115 @@
     return matches ? matches.length : 0;
   }
 
-  function paintAnalisis(cierre) {
+  // ---- Análisis semanales (historial de devoluciones) ----
+  // Una fila por cierre, de la más reciente a la más vieja. Con el cierre libre
+  // la semana se cierra SOLA y el análisis (fotos + IA) queda pendiente, así que
+  // muchas filas no traen texto: las marcamos "Análisis pendiente" (mismo ámbar
+  // que el badge "📸 N pend." del roster) en vez de esconderlas — el coach ve de
+  // un vistazo qué semanas tienen devolución y cuáles tiene que recordar.
+  // La más reciente CON devolución arranca abierta; el resto colapsadas.
+  const CIERRE_STAT_LABEL = { trained: 'Entrenos', dias: 'Días registrados', totalLogs: 'Registros', avgCal: 'Kcal prom.', avgProt: 'Prot. prom.', avgCarbs: 'Carbos prom.', avgFat: 'Grasas prom.' };
+  const CIERRE_STAT_ORDER = ['trained', 'dias', 'totalLogs', 'avgCal', 'avgProt', 'avgCarbs', 'avgFat'];
+  function cierreStatsHtml(stats) {
+    if (!stats || typeof stats !== 'object') return '';
+    const chips = Object.entries(stats)
+      // 'qa' es una marca interna; 'parcial' se muestra aparte como chip propio.
+      .filter(([k, v]) => k !== 'qa' && k !== 'parcial' && v != null && v !== '')
+      .sort((a, b) => { const ia = CIERRE_STAT_ORDER.indexOf(a[0]), ib = CIERRE_STAT_ORDER.indexOf(b[0]); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); })
+      .map(([k, v]) => {
+        const grams = typeof v === 'number' && /^avg(Prot|Carbs|Fat)$/.test(k);
+        const val = typeof v === 'number' ? fmtInt(v) + (grams ? ' g' : '') : String(v);
+        return `<div class="macro-chip"><div class="macro-label">${esc(CIERRE_STAT_LABEL[k] || k)}</div><div class="macro-value">${esc(val)}</div></div>`;
+      });
+    if (stats.parcial === true) chips.push('<div class="macro-chip"><div class="macro-label">Semana</div><div class="macro-value">parcial</div></div>');
+    return chips.length ? `<div class="macro-row">${chips.join('')}</div>` : '';
+  }
+
+  // Markdown mínimo y seguro para la devolución de la IA: títulos #, **negrita**,
+  // *cursiva*, listas (- / • / 1.) y separadores ---. Escapa el HTML PRIMERO y
+  // recién después aplica el formato (mismo orden que el render del main app),
+  // así un "<script>" dentro del texto jamás llega vivo al DOM.
+  function mdLite(text) {
+    const src = esc(String(text || '')).replace(/\r\n?/g, '\n');
+    const inline = s => s
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/(^|[^*\w])\*([^*\n]+?)\*(?!\w)/g, '$1<em>$2</em>');
+    const out = []; let para = []; let list = null;
+    // Dentro de un párrafo cada salto de línea se respeta (<br>), igual que
+    // formatResponse() en el main app: el coach lee lo mismo que vio la clienta.
+    const flushPara = () => { if (para.length) { out.push(`<p>${inline(para.join('<br>'))}</p>`); para = []; } };
+    const flushList = () => { if (list) { out.push(`<${list.tag}>${list.items.map(i => `<li>${inline(i)}</li>`).join('')}</${list.tag}>`); list = null; } };
+    for (const raw of src.split('\n')) {
+      const line = raw.trim();
+      let m;
+      if (!line) { flushPara(); flushList(); continue; }
+      if ((m = line.match(/^#{1,6}\s+(.+)$/))) { flushPara(); flushList(); out.push(`<h4>${inline(m[1])}</h4>`); continue; }
+      if (/^(-{3,}|\*{3,}|_{3,})$/.test(line)) { flushPara(); flushList(); out.push('<hr>'); continue; }
+      if ((m = line.match(/^[-*•–]\s+(.+)$/))) { flushPara(); if (!list || list.tag !== 'ul') { flushList(); list = { tag: 'ul', items: [] }; } list.items.push(m[1]); continue; }
+      if ((m = line.match(/^\d+[.)]\s+(.+)$/))) { flushPara(); if (!list || list.tag !== 'ol') { flushList(); list = { tag: 'ol', items: [] }; } list.items.push(m[1]); continue; }
+      flushList(); para.push(line);
+    }
+    flushPara(); flushList();
+    return out.join('');
+  }
+
+  // 'YYYY-MM-DD' (columna date) → "12 oct". Parseado como fecha LOCAL: con
+  // new Date('2026-10-12') JS asume UTC y en Argentina mostraría el 11.
+  function fmtDateOnly(s) {
+    if (!s) return '';
+    const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s);
+    return isNaN(d) ? '' : d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
+  }
+
+  function paintAnalisis(cierres) {
     const sec = document.getElementById('cli-analisis');
     if (!sec) return;
-    if (!cierre) {
-      sec.innerHTML = `<div class="detail-section-title">Último análisis semanal <span class="meta">sin cierres</span></div>
-        <div class="empty-row">Todavía no cerró ninguna semana — el análisis aparece después del primer cierre.</div>`;
+    const rows = (cierres || []).slice().sort((a, b) => (b.semana_num || 0) - (a.semana_num || 0));
+    if (!rows.length) {
+      sec.innerHTML = `<div class="detail-section-title">Análisis semanales <span class="meta">sin cierres</span></div>
+        <div class="empty-row">Todavía no cerró ninguna semana — las devoluciones aparecen acá después del primer cierre.</div>`;
       return;
     }
-    const stats = cierre.stats || {};
-    // Stats shape varies week-to-week; we render whatever keys came back as
-    // chips, and the full prose análisis (if present) as the body.
-    const statsHtml = Object.keys(stats).length
-      ? `<div class="macro-row">${Object.entries(stats).map(([k, v]) => `
-          <div class="macro-chip"><div class="macro-label">${esc(k)}</div><div class="macro-value">${esc(typeof v === 'number' ? fmtInt(v) : String(v))}</div></div>
-        `).join('')}</div>` : '';
-    const prose = cierre.analisis || cierre.resumen || cierre.observaciones || '';
+    const hasText = c => !!(c.analisis && String(c.analisis).trim());
+    const conTexto = rows.filter(hasText);
+    const pendientes = rows.length - conTexto.length;
+    const firstOpen = conTexto[0] || null;
+    const meta = `${rows.length} semana${rows.length === 1 ? '' : 's'} · ${conTexto.length} con devolución`
+      + (pendientes ? ` · ${pendientes} pendiente${pendientes === 1 ? '' : 's'}` : '');
+    const rowHtml = (c) => {
+      const has = hasText(c);
+      const open = has && c === firstOpen;
+      const rango = (c.fecha_inicio || c.fecha_fin)
+        ? `${fmtDateOnly(c.fecha_inicio)}${c.fecha_fin ? ' – ' + fmtDateOnly(c.fecha_fin) : ''}`
+        : fmtRelative(c.created_at);
+      const estado = has
+        ? '<span class="tl tl-green"><span class="tl-dot"></span>Con devolución</span>'
+        : '<span class="tl tl-yellow" title="Se cerró sola (cierre libre) — falta que haga su análisis (2 fotos + IA)"><span class="tl-dot"></span>Análisis pendiente</span>';
+      // Preview sin marcas markdown (#, **) para la fila colapsada.
+      const preview = has
+        ? String(c.analisis).replace(/^#+\s*/gm, '').replace(/\*\*?/g, '').split('\n').filter(l => l.trim()).slice(0, 2).join(' · ')
+        : '';
+      return `
+        <div class="collapsible cierre-row${open ? ' open' : ''}">
+          <div class="cierre-row-head">
+            <strong>Semana ${esc(c.semana_num ?? '?')}</strong>
+            <span class="meta">${esc(rango)}</span>
+            ${estado}
+          </div>
+          ${cierreStatsHtml(c.stats)}
+          ${has ? `
+            <div class="collapsible-preview">${esc(preview)}</div>
+            <div class="collapsible-body"><div class="md-rendered">${mdLite(c.analisis)}</div></div>
+            <div class="collapsible-toggle-row">
+              <button class="collapsible-toggle" type="button">${CHEV_DOWN_SVG}<span class="toggle-label">${open ? 'Ocultar' : 'Ver completa'}</span></button>
+            </div>`
+          : '<div class="empty-row" style="margin-top:8px;">Semana cerrada sin devolución — cuando el cliente haga su análisis aparece acá.</div>'}
+        </div>`;
+    };
     sec.innerHTML = `
-      <div class="detail-section-title">Último análisis semanal
-        <span class="meta">Semana ${esc(cierre.semana_num || '?')} · ${fmtRelative(cierre.fecha_fin || cierre.created_at)}</span>
-      </div>
-      ${statsHtml}
-      ${prose ? `<div class="markdown-body">${esc(prose)}</div>` : '<div class="empty-row">Cierre sin texto de análisis.</div>'}
+      <div class="detail-section-title">Análisis semanales <span class="meta">${esc(meta)}</span></div>
+      ${rows.map(rowHtml).join('')}
     `;
   }
 
