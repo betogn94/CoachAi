@@ -649,8 +649,18 @@
       font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
       font-size: 11px; color: var(--text-muted); letter-spacing: 0.02em;
     }
-    .cierre-row .collapsible-preview::after { background: linear-gradient(to bottom, transparent, var(--bg-elev-2)); }
     .cierre-row .macro-row { margin-bottom: 10px; }
+    /* Selector de semana: se muestra UNA devolución a la vez (con 14+ semanas
+       apiladas la sección se hacía eterna). select.clase para ganarle al
+       width:100% de .form-input; chevron propio porque appearance:none lo quita. */
+    .cierre-select-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .cierre-select-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+    select.cierre-week-select {
+      width: auto; min-width: 280px; max-width: 100%;
+      padding-right: 36px; cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center; background-size: 12px;
+    }
     /* Markdown renderizado (mdLite). A diferencia de .markdown-body NO usa
        pre-wrap: los bloques (h4/p/ul) ya traen su propio espaciado. */
     .md-rendered { font-size: 13px; line-height: 1.6; color: var(--text); }
@@ -3142,11 +3152,14 @@
 
   // 'YYYY-MM-DD' (columna date) → "12 oct". Parseado como fecha LOCAL: con
   // new Date('2026-10-12') JS asume UTC y en Argentina mostraría el 11.
+  // Mes abreviado fijo (no toLocaleDateString): cada motor formatea es-AR
+  // distinto ("06-jul" en ICU de Node, "06 jul" en Safari) — así es igual en todos.
+  const MES_CORTO = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   function fmtDateOnly(s) {
     if (!s) return '';
     const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
     const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(s);
-    return isNaN(d) ? '' : d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
+    return isNaN(d) ? '' : `${String(d.getDate()).padStart(2, '0')} ${MES_CORTO[d.getMonth()]}`;
   }
 
   function paintAnalisis(cierres) {
@@ -3161,43 +3174,51 @@
     const hasText = c => !!(c.analisis && String(c.analisis).trim());
     const conTexto = rows.filter(hasText);
     const pendientes = rows.length - conTexto.length;
-    const firstOpen = conTexto[0] || null;
     const meta = `${rows.length} semana${rows.length === 1 ? '' : 's'} · ${conTexto.length} con devolución`
       + (pendientes ? ` · ${pendientes} pendiente${pendientes === 1 ? '' : 's'}` : '');
-    const rowHtml = (c) => {
+    const rango = c => (c.fecha_inicio || c.fecha_fin)
+      ? `${fmtDateOnly(c.fecha_inicio)}${c.fecha_fin ? ' – ' + fmtDateOnly(c.fecha_fin) : ''}`
+      : fmtRelative(c.created_at);
+    // Desplegable de semanas: se pinta UNA sola a la vez (pedido de Jesús —
+    // con 14+ semanas apiladas había que scrollear una banda para pasar la
+    // sección). Arranca en la más reciente CON devolución; si ninguna tiene,
+    // en la más reciente. El value es el índice en `rows` (no semana_num:
+    // en datos viejos podría repetirse).
+    const selected = conTexto[0] || rows[0];
+    const options = rows.map((c, i) =>
+      `<option value="${i}"${c === selected ? ' selected' : ''}>Semana ${esc(c.semana_num ?? '?')} · ${esc(rango(c))} · ${hasText(c) ? '✓ con devolución' : '⏳ pendiente'}</option>`
+    ).join('');
+    const renderCierre = (c) => {
       const has = hasText(c);
-      const open = has && c === firstOpen;
-      const rango = (c.fecha_inicio || c.fecha_fin)
-        ? `${fmtDateOnly(c.fecha_inicio)}${c.fecha_fin ? ' – ' + fmtDateOnly(c.fecha_fin) : ''}`
-        : fmtRelative(c.created_at);
       const estado = has
         ? '<span class="tl tl-green"><span class="tl-dot"></span>Con devolución</span>'
         : '<span class="tl tl-yellow" title="Se cerró sola (cierre libre) — falta que haga su análisis (2 fotos + IA)"><span class="tl-dot"></span>Análisis pendiente</span>';
-      // Preview sin marcas markdown (#, **) para la fila colapsada.
-      const preview = has
-        ? String(c.analisis).replace(/^#+\s*/gm, '').replace(/\*\*?/g, '').split('\n').filter(l => l.trim()).slice(0, 2).join(' · ')
-        : '';
       return `
-        <div class="collapsible cierre-row${open ? ' open' : ''}">
+        <div class="cierre-row">
           <div class="cierre-row-head">
             <strong>Semana ${esc(c.semana_num ?? '?')}</strong>
-            <span class="meta">${esc(rango)}</span>
+            <span class="meta">${esc(rango(c))}</span>
             ${estado}
           </div>
           ${cierreStatsHtml(c.stats)}
-          ${has ? `
-            <div class="collapsible-preview">${esc(preview)}</div>
-            <div class="collapsible-body"><div class="md-rendered">${mdLite(c.analisis)}</div></div>
-            <div class="collapsible-toggle-row">
-              <button class="collapsible-toggle" type="button">${CHEV_DOWN_SVG}<span class="toggle-label">${open ? 'Ocultar' : 'Ver completa'}</span></button>
-            </div>`
-          : '<div class="empty-row" style="margin-top:8px;">Semana cerrada sin devolución — cuando el cliente haga su análisis aparece acá.</div>'}
+          ${has
+            ? `<div class="md-rendered">${mdLite(c.analisis)}</div>`
+            : '<div class="empty-row" style="margin-top:8px;">Semana cerrada sin devolución — cuando el cliente haga su análisis aparece acá.</div>'}
         </div>`;
     };
     sec.innerHTML = `
       <div class="detail-section-title">Análisis semanales <span class="meta">${esc(meta)}</span></div>
-      ${rows.map(rowHtml).join('')}
+      <div class="cierre-select-row">
+        <label for="cli-analisis-week" class="cierre-select-label">Semana</label>
+        <select id="cli-analisis-week" class="form-input cierre-week-select">${options}</select>
+      </div>
+      <div id="cli-analisis-body">${renderCierre(selected)}</div>
     `;
+    sec.querySelector('#cli-analisis-week')?.addEventListener('change', (e) => {
+      const c = rows[Number(e.target.value)];
+      const body = sec.querySelector('#cli-analisis-body');
+      if (c && body) body.innerHTML = renderCierre(c);
+    });
   }
 
   // ---- Transformación visual ----
