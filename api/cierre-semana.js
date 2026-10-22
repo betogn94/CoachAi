@@ -17,13 +17,13 @@
 //                  dieta si hay análisis). Sin IA salvo el ajuste. Idempotente: la nativa la llama al abrir.
 //   'analizar'   → { semana_num, fotos: { frente, espalda } } (las 2 fotos de la semana YA subidas por la
 //                  nativa a su carpeta del bucket): stats del lado del servidor, análisis de Haiku con las
-//                  4 fotos firmadas, upsert del cierre, reabrir el ciclo y logros. Sobre una semana que ya
-//                  tiene análisis = REGENERAR, con rate-limit real (60 s por semana, 5 por día).
+//                  4 fotos firmadas, upsert del cierre, reabrir el ciclo y logros. Una semana que ya tiene
+//                  análisis responde 409 (sin regeneración: decisión Beto 2026-10-22, no se queman tokens).
 // Cada llamada a la IA descuenta del mismo tope diario que el chat (chat_uso_incrementa).
 import Anthropic from '@anthropic-ai/sdk';
 
 import { crearCerebro } from './_chat-cerebro.js';
-import { actualizarContenidoDieta, actualizarStatsCierre, armarWeeklyPlans, cargarContextoCierre, fechaValida, firmarFoto, guardarCierre, guardarPlan, insertarCierresVacios, logrosDelCierre, otorgarLogros, regeneracionesRecientes, registrarEvento, rutaFoto } from './_chat-contexto.js';
+import { actualizarContenidoDieta, actualizarStatsCierre, armarWeeklyPlans, cargarContextoCierre, fechaValida, firmarFoto, guardarCierre, guardarPlan, insertarCierresVacios, logrosDelCierre, otorgarLogros, registrarEvento, rutaFoto } from './_chat-contexto.js';
 import { isAllowedOrigin } from './_origin.js';
 
 export const config = { maxDuration: 60 };
@@ -32,8 +32,6 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries
 const MODEL_HAIKU = 'claude-haiku-4-5-20251001';
 const DAILY_LIMIT = Number(process.env.CHAT_DAILY_LIMIT || 120);
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://vmvhlgzwufkardaruutt.supabase.co';
-const REGEN_MIN_GAP_MS = 60 * 1000;
-const REGEN_DAILY_CAP = 5;
 
 // Mismas piezas que api/chat-message.js (copiadas, no importadas).
 async function identifyUser(req) {
@@ -221,16 +219,10 @@ async function accionAnalizar({ req, res, cerebro, usuario, ctx, planes, cierres
   // Las fotos tienen que ser de SU carpeta del bucket (nunca de otra usuaria).
   if (!rutas.frente.startsWith(usuario.id + '/') || !rutas.espalda.startsWith(usuario.id + '/')) return res.status(403).json({ error: 'foto_ajena', retryable: false });
 
-  const regenerar = !!(existente && existente.analisis);
-  if (regenerar) {
-    const recientes = await regeneracionesRecientes(usuario.id);
-    if (recientes.length >= REGEN_DAILY_CAP) return res.status(429).json({ error: 'regen_daily', cap: REGEN_DAILY_CAP, retryable: false });
-    const ultima = recientes.find((r) => r.meta && Number(r.meta.semana) === semanaNum);
-    if (ultima) {
-      const hace = Date.now() - Date.parse(ultima.created_at);
-      if (hace < REGEN_MIN_GAP_MS) return res.status(429).json({ error: 'regen_cooldown', waitSec: Math.ceil((REGEN_MIN_GAP_MS - hace) / 1000), retryable: true });
-    }
-  }
+  // SIN regeneración (decisión Beto 2026-10-22, tras el QA): un análisis hecho es definitivo. La única
+  // "segunda vez" es cuando falló la IA o el guardado → el cierre quedó sin análisis y se puede volver a
+  // pedir. Así nadie puede quemar tokens regenerando.
+  if (existente && existente.analisis) return res.status(409).json({ error: 'ya_analizado', retryable: false });
 
   const range = cerebro.getWeekRange(createdAt, semanaNum);
   const stats = cerebro.computeWeekStats(ctx.recentDiario, range);
@@ -259,7 +251,7 @@ async function accionAnalizar({ req, res, cerebro, usuario, ctx, planes, cierres
     console.error('[cierre-semana] no se pudo guardar el cierre:', e?.message || e);
     return res.status(200).json({ semana_num: semanaNum, analisis, analisis_html: cerebro.formatResponse(analisis), stats: fila.stats, guardado: false, fila, planes: null, logros: [] });
   }
-  await registrarEvento(usuario.id, regenerar ? 'cierre_regenerado' : 'cierre_analizado', { semana: semanaNum });
+  await registrarEvento(usuario.id, 'cierre_analizado', { semana: semanaNum });
 
   // Reabrir el ciclo con la lista de cierres ya actualizada y los logros del cierre.
   const listaCierres = [...cierres.filter((c) => c.semana_num !== semanaNum), { ...fila, id: guardado && guardado.id }].sort((a, b) => a.semana_num - b.semana_num);
@@ -268,7 +260,7 @@ async function accionAnalizar({ req, res, cerebro, usuario, ctx, planes, cierres
   if (!usuario.role || usuario.role === 'user') logros = await otorgarLogros(usuario.id, logrosDelCierre(listaCierres, cerebro.getWeeklyTrainingTarget()));
   if (logros.length) await registrarEvento(usuario.id, 'logros_awarded', { keys: logros.join(','), silent: false });
 
-  return res.status(200).json({ semana_num: semanaNum, analisis, analisis_html: cerebro.formatResponse(analisis), stats: fila.stats, guardado: true, regenerado: regenerar, planes: planesEstado, logros, used });
+  return res.status(200).json({ semana_num: semanaNum, analisis, analisis_html: cerebro.formatResponse(analisis), stats: fila.stats, guardado: true, planes: planesEstado, logros, used });
 }
 
 export default async function handler(req, res) {

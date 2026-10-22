@@ -4,6 +4,15 @@
 (`api/cierre-semana.js` + helpers en `api/_chat-contexto.js` + funciones del cierre en el cerebro generado +
 `npm run test:cierre-semana`, 45 chequeos offline). Pendiente: env vars en Vercel + redeploy + QA real (§5).**
 
+**QA real 2026-10-22 OK** (cuenta de Beto): `autocerrar` sin escrituras (semana en curso, planes activos);
+`analizar` Semana 1 → 4 fotos firmadas, Haiku 12 s, análisis de 2.352 chars con comparativa de fotos,
+cierre guardado, sin clon (planes activos), medalla ya existente no duplicada, tope +1; la regeneración
+pasó una vez y la segunda la frenó el cooldown sin gastar.
+
+**Decisión posterior de Beto (reemplaza D4): SIN regeneración.** El botón se saca de la app y el servidor
+responde 409 `ya_analizado` a una semana con análisis. La única segunda vez es cuando falló la IA o el
+guardado (el cierre quedó sin análisis). Motivo: aun con límite, 5 por día por clienta son tokens tirados.
+
 Ajuste sobre la propuesta: `analizar` sin `fotos` en el body usa las que ya tiene el cierre (como el
 Regenerar de la PWA, `cierre.foto_url`); sirve para analizar un cierre del autocierre al que ya se le
 cargaron fotos, y para el QA con la Semana 1 de Beto.

@@ -257,21 +257,19 @@ ok(r.status === 400 && r.body.error === 'fotos_requeridas', 'falta una foto → 
 // Cierre pendiente (autocierre) que YA tiene las fotos → analizar sin mandar fotos las toma del cierre (como Regenerar en la PWA).
 reset({ cierres: [{ id: 'c1', semana_num: 1, fecha_inicio: mas(-20), fecha_fin: mas(-14), semana_iso: 'x', analisis: null, stats: { trained: 1, totalLogs: 1 }, foto_url: FOTOS.frente, foto_url_espalda: FOTOS.espalda }] });
 r = await run({ accion: 'analizar', fecha: hoyUtc, semana_num: 1 });
-ok(r.status === 200 && r.body.regenerado === false && E.cierresUpserts[0].body.foto_url === FOTOS.frente && E.anthropic[0].messages[0].content.filter((x) => x.type === 'image').length === 4, 'sin fotos en el body, usa las del cierre (no es regeneración: el cierre no tenía análisis)');
+ok(r.status === 200 && E.cierresUpserts[0].body.foto_url === FOTOS.frente && E.anthropic[0].messages[0].content.filter((x) => x.type === 'image').length === 4, 'sin fotos en el body, usa las del cierre (que no tenía análisis)');
 reset();
 r = await run({ accion: 'analizar', fecha: hoyUtc, semana_num: 99, fotos: FOTOS });
 ok(r.status === 400 && r.body.error === 'semana_invalida' && E.anthropic.length === 0 && E.usados === 0, 'semana futura → 400 sin gastar');
-// regenerar + rate-limit
-const cierreHecho = { id: 'c1', semana_num: 1, fecha_inicio: mas(-20), fecha_fin: mas(-14), semana_iso: 'x', analisis: 'viejo', stats: { trained: 1, totalLogs: 1 } };
-reset({ cierres: [cierreHecho], regenEventos: Array.from({ length: 5 }, (_, i) => ({ created_at: new Date(Date.now() - (i + 1) * 3600000).toISOString(), meta: { semana: 2 } })) });
+// sin regeneración: una semana con análisis responde 409 sin gastar (decisión Beto 2026-10-22)
+const cierreHecho = { id: 'c1', semana_num: 1, fecha_inicio: mas(-20), fecha_fin: mas(-14), semana_iso: 'x', analisis: 'hecho', stats: { trained: 1, totalLogs: 1 }, foto_url: FOTOS.frente, foto_url_espalda: FOTOS.espalda };
+reset({ cierres: [cierreHecho] });
 r = await run({ accion: 'analizar', fecha: hoyUtc, semana_num: 1, fotos: FOTOS });
-ok(r.status === 429 && r.body.error === 'regen_daily' && E.anthropic.length === 0, 'regenerar con 5 en 24 h → 429 regen_daily (sin gastar)');
-reset({ cierres: [cierreHecho], regenEventos: [{ created_at: new Date(Date.now() - 10000).toISOString(), meta: { semana: 1 } }] });
-r = await run({ accion: 'analizar', fecha: hoyUtc, semana_num: 1, fotos: FOTOS });
-ok(r.status === 429 && r.body.error === 'regen_cooldown' && r.body.waitSec >= 45, 'regenerar la misma semana hace 10 s → 429 cooldown');
-reset({ cierres: [cierreHecho], regenEventos: [{ created_at: new Date(Date.now() - 10000).toISOString(), meta: { semana: 2 } }] });
-r = await run({ accion: 'analizar', fecha: hoyUtc, semana_num: 1, fotos: FOTOS });
-ok(r.status === 200 && r.body.regenerado === true && E.eventos.some((e) => e.evento === 'cierre_regenerado' && e.meta.semana === 1), 'regenerar otra semana → pasa y registra cierre_regenerado');
+ok(r.status === 409 && r.body.error === 'ya_analizado' && E.anthropic.length === 0 && E.usados === 0 && E.cierresUpserts.length === 0, 'semana ya analizada → 409 ya_analizado, sin gastar ni escribir');
+// …pero si quedó SIN análisis (falló la IA o el guardado), se puede volver a pedir
+reset({ cierres: [{ ...cierreHecho, analisis: null }] });
+r = await run({ accion: 'analizar', fecha: hoyUtc, semana_num: 1 });
+ok(r.status === 200 && r.body.guardado === true && E.anthropic.length === 1, 'cierre sin análisis (reintento tras un fallo) → se analiza');
 // errores
 reset({ falloAnthropic: 529 });
 r = await run({ accion: 'analizar', fecha: hoyUtc, semana_num: 1, fotos: FOTOS });

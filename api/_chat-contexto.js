@@ -311,13 +311,6 @@ export async function otorgarLogros(usuarioId, keys) {
   }
 }
 
-/** Rate-limit real de la regeneración (la PWA lo tenía en localStorage): eventos `cierre_regenerado` de las últimas 24 h. */
-export async function regeneracionesRecientes(usuarioId) {
-  const desde = new Date(Date.now() - 86400000).toISOString();
-  const rows = await sb(`/beta_eventos?usuario_id=eq.${usuarioId}&evento=eq.cierre_regenerado&created_at=gte.${encodeURIComponent(desde)}&select=created_at,meta&order=created_at.desc&limit=20`);
-  return rows || [];
-}
-
 /** Upsert de la fila del día (misma clave que `saveChatToSupabase`: usuario_id + fecha). */
 export async function guardarTurno({ usuarioId, fecha, mensajes, conversation_history }) {
   await sb(`/historial_chat?on_conflict=usuario_id,fecha`, {
