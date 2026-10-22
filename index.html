@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261021-2212-deploy">
+<meta name="app-version" content="20261022-1313-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12118,6 +12118,21 @@ body.alimv2-on.theme-king .alimv2-kcal-chip { color: var(--accent); }
 .alimv2-meal { cursor: pointer; }
 .alimv2-meal-checkcol { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding-left: 2px; }
 .alimv2-meal-chev { font-size: 15px; color: var(--muted2); line-height: 1; }
+/* Cards de MEDIDA UNIFORME (2026-10-22, pedido de Beto: "se ven muy
+   estiradas"): la descripción es un ADELANTO — grupos en línea separados por
+   " · ", recortada a 3 líneas con "…" — y la foto queda cuadrada fija en vez
+   de estirarse con el texto. El texto completo vive en el sheet de detalle
+   (tap en la card). Sin body.alimcard-on = card anterior (escape ?alimcard=0). */
+body.alimcard-on .alimv2-meal { align-items: center; }
+body.alimcard-on .alimv2-meal-img { width: 72px; height: 72px; min-height: 0; flex-basis: 72px; }
+body.alimcard-on .alimv2-meal-detail {
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden; min-height: calc(1.45em * 3); margin: 3px 0 0;
+}
+.alimv2-meal-detail .av2-sep { color: var(--muted2); opacity: .7; }
+/* La "o" de las alternativas (elegí UNA) va en negrita y con el color del
+   texto para que las opciones se separen a simple vista (card y sheet). */
+.alimv2-o { font-weight: 800; color: var(--text); }
 /* Sheet de detalle */
 .alimv2-detail-desc { font-size: 13px; line-height: 1.55; color: var(--text); margin: 10px 0 12px; }
 .alimv2-detail-stats { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 4px; }
@@ -12151,6 +12166,7 @@ body.alimv2-on.theme-king .alimv2-kcal-chip { color: var(--accent); }
   .alimv2-days { padding-left: 12px; padding-right: 12px; }
   .alimv2-meal { padding: 9px; gap: 8px; }
   .alimv2-meal-img { width: 56px; min-height: 56px; flex-basis: 56px; }
+  body.alimcard-on .alimv2-meal-img { width: 64px; height: 64px; min-height: 0; flex-basis: 64px; }
   .alimv2-meal-detail { font-size: 10.5px; }
   .alimv2-check { width: 28px; height: 28px; }
   .alimv2-check svg { width: 14px; height: 14px; }
@@ -25790,6 +25806,40 @@ const ALIM_V2_ENABLED = (() => {
   } catch { return true; }
 })();
 try { if (ALIM_V2_ENABLED) document.body.classList.add('alimv2-on'); } catch (e) {}
+// Cards de MEDIDA UNIFORME en Mi Alimentación V2 (2026-10-22, pedido de Beto):
+// descripción recortada a 3 líneas (grupos en línea con " · ") + foto cuadrada
+// fija; el texto completo sigue en el sheet de detalle. `?alimcard=0` apaga
+// (persiste en localStorage como escape); `?alimcard=1` re-prende.
+const ALIM_CARD_FIXED = (() => {
+  try {
+    const v = new URLSearchParams(window.location.search).get('alimcard');
+    if (v === '0') { try { localStorage.setItem('coachai_alimcard', '0'); } catch {} return false; }
+    if (v === '1') { try { localStorage.removeItem('coachai_alimcard'); } catch {} return true; }
+    return localStorage.getItem('coachai_alimcard') !== '0';
+  } catch { return true; }
+})();
+try { if (ALIM_V2_ENABLED && ALIM_CARD_FIXED) document.body.classList.add('alimcard-on'); } catch (e) {}
+
+// Texto de una comida → HTML de display (card V1/V2 y sheet de detalle).
+// Solo afecta el render: en la base queda tal cual lo pegó el coach.
+// - " / " = alternativas (elegí una) → " o " en NEGRITA (.alimv2-o); la "o"
+//   literal que ya venga en el texto también va en negrita (siempre es "o" de
+//   alternativa: "pan mediano o chico").
+// - " + " = combinados (van juntos) → TAL CUAL (retirado el "///" 2026-09-18;
+//   "Cómo leer tu plan" lo explica).
+// - " · " = grupos (proteína · carbo · grasa · infusión, dietas estilo Jesús)
+//   → una línea por grupo (sheet) o en línea con un "·" tenue (card de
+//   medida fija, `inline`). No-op para dietas de IA (no usan " · ").
+function alimMealTextHtml(txt, inline) {
+  const optHtml = (g) => _esc(g)
+    .replace(/\s\/\s/g, ' <b class="alimv2-o">o</b> ')
+    .replace(/(^|\s)o(?=\s)/g, '$1<b class="alimv2-o">o</b>');
+  return (txt || '')
+    .split(/\s·\s/)
+    .map(g => optHtml(g.trim()))
+    .filter(Boolean)
+    .join(inline ? ' <span class="av2-sep">·</span> ' : '<br>');
+}
 
 // Día seleccionado en el strip (0=Lun..6=Dom). null = hoy. Se resetea al
 // entrar a la sección (showDiario) para que siempre abra en el día real.
@@ -25832,12 +25882,10 @@ function alimV2ShowDetail(i, j) {
   const dayName = _alimDays[i].dayName || '';
   document.getElementById('alimv2-detail-title').textContent =
     `${meal.name} — ${dayName.charAt(0) + dayName.slice(1).toLowerCase()}`;
-  // Descripción con el mismo formato display de la card (" / " → " o ",
-  // grupos " · " en líneas)
+  // Descripción completa con el mismo formato display que la card ("o" en
+  // negrita, un grupo " · " por línea) — ver alimMealTextHtml.
   document.getElementById('alimv2-detail-desc').innerHTML =
-    ((st.customText || meal.content) || '')
-      .replace(/\s\/\s/g, ' o ')
-      .split(/\s·\s/).map(g => _esc(g.trim())).filter(Boolean).join('<br>')
+    alimMealTextHtml(st.customText || meal.content, false)
     + (st.customText ? ' <em style="opacity:.7;font-style:normal">· editada</em>' : '');
   // Stats con la misma prioridad de siempre: custom (comida editada) > plan
   const kcal = st.customText ? st.customKcal : meal.kcal;
@@ -26273,26 +26321,11 @@ async function renderMiAlimentacion() {
   const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
   const EDIT_SVG  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
 
-  // Display helper — solo afecta el render, el texto en la base queda como
-  // lo pegó el coach.
-  // " / " = alternativas (elegí una) → se muestra como " o " (imposible de
-  // leer como "y"). " + " = combinados (van juntos) → se muestra TAL CUAL:
-  // el "+" es universal y la card "Cómo leer tu plan" lo explica. (Antes se
-  // convertía a "///"; retirado 2026-09-18 a pedido de Beto — confundía más
-  // de lo que separaba.)
-  const _displayMealContent = (txt) => (txt || '')
-    .replace(/\s\/\s/g, ' o ');
-  // Las dietas migradas estilo Jesús separan los GRUPOS de una comida con " · "
-  // (proteína · carbo · grasa · infusión) y dentro de cada grupo las opciones con
-  // "/". En una columna angosta todo eso se renderiza como UNA línea corrida →
-  // parece "llenísima de comida" cuando en realidad es un menú (elegís una opción
-  // por grupo). Partimos cada grupo a su propia línea para que se lea como menú.
-  // No-op para dietas de IA (no usan " · " en el contenido de la comida).
-  const _mealDetailHtml = (txt) => _displayMealContent(txt)
-    .split(/\s·\s/)
-    .map(g => _esc(g.trim()))
-    .filter(Boolean)
-    .join('<br>');
+  // Display del texto de la comida: ver alimMealTextHtml (" / " → "o" en
+  // negrita, " + " tal cual, grupos " · " en líneas). Con la card de medida
+  // fija (V2 + ALIM_CARD_FIXED) los grupos van en línea: la card es un
+  // adelanto recortado a 3 líneas y el texto completo está en el detalle.
+  const _mealDetailHtml = (txt) => alimMealTextHtml(txt, ALIM_V2_ENABLED && ALIM_CARD_FIXED);
   // Datos por comida compartidos entre los templates V1 y V2. Source
   // priority de macros:
   //   1. Custom macros (st.customProt etc) if the meal was edited and the
