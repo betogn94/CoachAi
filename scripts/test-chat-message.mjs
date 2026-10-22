@@ -74,7 +74,8 @@ const c0 = armarCtx(casos[0][1]);
 ok(c0.form['f-lugar'] === 'gimnasio_completo' && c0.form['f-nodislike'] === '' && c0.chips.dieta.length === 0 && c0.selectedComidas === '' && c0.form['f-peso'] === '65.00', 'defaults de la PWA cuando las columnas son null');
 ok(c0.recentChatHistory[0].fecha === '2026-10-13' && c0.recentChatHistory.length === 2 && c0.allChatHistory.length === 2, 'recentChatHistory = últimas filas, más reciente primero');
 const cer = crearCerebro(c0);
-ok(cer.getISOWeekKey() === '2026-W42' && cer.formatLocalDate(new Date()) === '2026-10-14', 'el "hoy" del cerebro es la fecha del teléfono (ISO W42, 2026-10-14)');
+// getTodayKey() = formatLocalDate(new Date()) DENTRO del cerebro (su Date es la fija); con el new Date() real de la PC el test caducaba.
+ok(cer.getISOWeekKey() === '2026-W42' && cer.getTodayKey() === '2026-10-14', 'el "hoy" del cerebro es la fecha del teléfono (ISO W42, 2026-10-14)');
 ok(crearCerebro(armarCtx({ ...casos[0][1], fecha: '2026-01-01' })).getISOWeekKey() === '2026-W01', 'fecha 2026-01-01 → W01');
 const wp = armarWeeklyPlans(planes, [{ fecha_fin: '2026-10-12' }]);
 ok(wp.dieta.closed === true && wp.rutina.closed === true && armarWeeklyPlans(planes, []).dieta.closed === false, 'closed = cierre con fecha_fin ≥ fecha_entrega');

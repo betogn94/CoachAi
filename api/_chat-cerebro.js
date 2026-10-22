@@ -13,11 +13,17 @@
 //   ctx.allChatHistory  filas de historial_chat (para isReturningUser)
 //   ctx.recentChatHistory  últimas 7 filas, más reciente primero (como launchCoach)
 //   ctx.recentDiario  progreso_diario asc (buildDiarioSummary toma los últimos 7)
-//   ctx.currentUser   { metodo_king, foco_entreno }
+//   ctx.currentUser   { metodo_king, foco_entreno } (+ peso, altura, dias_entreno, created_at para el cierre)
 //   ctx.lang          'es' | 'en'
 //   ctx.ahora         ms del "hoy" de la usuaria (mediodía UTC de su fecha local): fija new Date()
 //                     sin argumentos para getISOWeekKey / formatLocalDate.
-// Funciones: buildSystemPrompt, buildHistorySummary, buildDiarioSummary, kingEsCohorte, _koMapaPromptBlock, _koNormArq, _bloqueRestriccionDieta, _focoPromptBlock, _splitSemanal, _splitPromptBlock, validarRutinaEsqueleto, countUniqueDays, getISOWeekKey, formatLocalDate, parseDietaContenido, parseRutinaContenido, sanitizeTurnsForAPI, detectPlanRequest, detectPlanInReply, planReplyHasStructure, formatResponse, computeDietTarget, evaluatePlanQuality, dietaHasMacros, dietaAvgDayKcal, rutinaEntrenaPecho, reconcileDietKcal, buildPlanReadyNotification, validateDietaConsistency
+//   — 3.5.e (cierre semanal) —
+//   ctx.cierresSemanales  filas de cierres_semanales (semana_num, fecha_inicio, fecha_fin, analisis, stats)
+//   ctx.alimHeader    header de la dieta vigente (parseDietaContenido(...).header), lo que la PWA tiene en _alimHeader
+//   ctx.trainedDates  fechas de dias_entrenados (la PWA: _trainedDatesSet)
+//   ctx.firmarFotos   async ({inicioFrente, inicioEspalda, semanaFrente, semanaEspalda}) → mismas claves firmadas
+//   ctx.fetchIA       async (url, opts) → Response-like {ok, status, json(), text()}: reemplaza fetch('/api/chat')
+// Funciones: buildSystemPrompt, buildHistorySummary, buildDiarioSummary, kingEsCohorte, _koMapaPromptBlock, _koNormArq, _bloqueRestriccionDieta, _focoPromptBlock, _splitSemanal, _splitPromptBlock, validarRutinaEsqueleto, countUniqueDays, getISOWeekKey, formatLocalDate, parseDietaContenido, parseRutinaContenido, sanitizeTurnsForAPI, detectPlanRequest, detectPlanInReply, planReplyHasStructure, formatResponse, computeDietTarget, evaluatePlanQuality, dietaHasMacros, dietaAvgDayKcal, rutinaEntrenaPecho, reconcileDietKcal, buildPlanReadyNotification, validateDietaConsistency, generateWeeklyAnalysis, adjustDietViaAI, computeWeekStats, getWeekNum, getWeekRange, _getWeekNumLegacy, _getWeekRangeLegacy, _lastCierre, _addDaysStr, _isoKeyOfStr, isoWeekRange, isoWeekShift, isoWeeksBetween, getTodayKey, stripLeadingDietFromRutina, getWeeklyTrainingTarget
 // Constantes: METODO_RELOJ_ARENA_ES, METODO_V_MASCULINO_ES, REGLAS_KING_MUJER_ES, REGLAS_KING_DIETA_ES, REGLAS_VEGANAS_ES, REGLAS_VEGETARIANAS_ES, REGLAS_VEGANAS_EN, REGLAS_VEGETARIANAS_EN, DAY_REGEX
 
 export function crearCerebro(ctx) {
@@ -41,6 +47,14 @@ export function crearCerebro(ctx) {
   const recentChatHistory = Array.isArray(ctx.recentChatHistory) ? ctx.recentChatHistory : [];
   const recentDiario = Array.isArray(ctx.recentDiario) ? ctx.recentDiario : [];
   const currentUser = ctx.currentUser || null;
+  // — 3.5.e: lo que el cierre lee como globales en la PWA —
+  const SEMANA_ISO = true;   // reloj ISO híbrido (semanas-calendario F3, live para todas)
+  const cierresSemanales = Array.isArray(ctx.cierresSemanales) ? ctx.cierresSemanales : [];
+  const _alimHeader = ctx.alimHeader || null;
+  const _trainedDatesSet = new Set(Array.isArray(ctx.trainedDates) ? ctx.trainedDates : []);
+  const _signPhotosForAI = async (p) => (ctx.firmarFotos ? ctx.firmarFotos(p || {}) : (p || {}));
+  const aiAuthHeaders = async () => ({});
+  const fetch = (url, opts) => { if (!ctx.fetchIA) throw new Error('ctx.fetchIA no provisto'); return ctx.fetchIA(url, opts); };
 
 // (cuerpo VERBATIM, sin re-indentar: un espacio de más adentro de un template literal cambia el prompt)
 const METODO_RELOJ_ARENA_ES = `
@@ -1987,5 +2001,420 @@ function validateDietaConsistency(parsed) {
   return issues;
 }
 
-  return { buildSystemPrompt, buildHistorySummary, buildDiarioSummary, kingEsCohorte, _koMapaPromptBlock, _koNormArq, _bloqueRestriccionDieta, _focoPromptBlock, _splitSemanal, _splitPromptBlock, validarRutinaEsqueleto, countUniqueDays, getISOWeekKey, formatLocalDate, parseDietaContenido, parseRutinaContenido, sanitizeTurnsForAPI, detectPlanRequest, detectPlanInReply, planReplyHasStructure, formatResponse, computeDietTarget, evaluatePlanQuality, dietaHasMacros, dietaAvgDayKcal, rutinaEntrenaPecho, reconcileDietKcal, buildPlanReadyNotification, validateDietaConsistency };
+async function generateWeeklyAnalysis(nombre, weekNum, stats, objetivo, language, photos = {}, indiceCtx = null) {
+  const isEs = language === 'es';
+  const systemPrompt = isEs
+    ? `Sos CoachAI, un coach personal experto y MUY motivador. Tu análisis semanal es lo que hace que el cliente quiera volver la semana que viene: entregás la verdad basada en datos, pero SIEMPRE de forma cálida, empática y que da ganas de seguir. Arrancás por los logros, enmarcás lo que falta como "el próximo paso" (nunca como fracaso) y cerrás motivando. Sos honesto sin ser duro: jamás mentís diciendo "todo perfecto", pero tampoco desinflás. Escribís en español rioplatense (voseo). Hacés inferencias físicas científicamente válidas basadas en entrenamiento, nutrición y fotos.`
+    : `You are CoachAI, an expert and HIGHLY motivating personal coach. Your weekly analysis is what makes the client want to come back next week: you deliver data-based truth, but ALWAYS in a warm, empathetic way that makes them want to keep going. You lead with wins, frame what's missing as "the next step" (never as failure), and close motivating. Honest without being harsh: you never lie saying "all perfect", but you never deflate them either. Make scientifically valid physical inferences based on training, nutrition and photos.`;
+
+  // Backwards compat: old 2-arg call signature (fotoUrl, fotoInicialUrl)
+  // gets mapped to the new shape so we don't break the legacy single-photo
+  // path during the deploy transition.
+  if (typeof photos === 'string') {
+    photos = { semanaFrente: photos, inicioFrente: arguments[6] || null };
+    indiceCtx = null;   // en la firma legacy el 7º argumento era la foto de inicio, no el Índice
+  }
+  // Bucket privado: firmar las URLs antes de mandarlas a la IA (una /public/ da
+  // 400 → el análisis fallaba con "Error, intentá de nuevo"). Ver _signPhotosForAI.
+  const { inicioFrente, inicioEspalda, semanaFrente, semanaEspalda } =
+    await _signPhotosForAI(photos || {});
+
+  // Build the photo grid the model will see — order matters because the
+  // prompt below refers to them positionally. We always send pairs that
+  // exist; if espalda baseline is missing (legacy user pre-vista column),
+  // we still send frente-vs-frente and the cierre espalda alone.
+  const photosForModel = [];
+  if (inicioFrente)  photosForModel.push({ url: inicioFrente,  label: isEs ? 'INICIO · FRENTE'  : 'START · FRONT'  });
+  if (inicioEspalda) photosForModel.push({ url: inicioEspalda, label: isEs ? 'INICIO · ESPALDA' : 'START · BACK'   });
+  if (semanaFrente)  photosForModel.push({ url: semanaFrente,  label: isEs ? `SEMANA ${weekNum} · FRENTE`  : `WEEK ${weekNum} · FRONT` });
+  if (semanaEspalda) photosForModel.push({ url: semanaEspalda, label: isEs ? `SEMANA ${weekNum} · ESPALDA` : `WEEK ${weekNum} · BACK`  });
+
+  const hasFullCompare = !!(inicioFrente && inicioEspalda && semanaFrente && semanaEspalda);
+  const partialCompare = !hasFullCompare && photosForModel.length >= 2;
+
+  const photoInstructions = hasFullCompare
+    ? (isEs
+        ? `\n\nCUATRO FOTOS ADJUNTAS EN ESTE ORDEN: (1) INICIO frente, (2) INICIO espalda, (3) SEMANA ${weekNum} frente, (4) SEMANA ${weekNum} espalda.\n\nINSTRUCCIONES DE COMPARACIÓN VISUAL:\n- Comparativa FRENTE (foto 1 vs 3): mirá hombros, pecho, definición abdominal, simetría, postura, marcación de oblicuos y cintura.\n- Comparativa ESPALDA (foto 2 vs 4): mirá ancho dorsal, definición de la espalda baja y media, postura, simetría entre hemisferios, glúteos.\n- Combiná lo que ves con los datos numéricos (adherencia al entreno, kcal vs target, proteína) para interpretar los cambios: si entrenó pierna y hubo déficit, ¿se ve menos grasa en la parte baja? si subió proteína y entrenó espalda, ¿se ven más anchos los dorsales?\n\nREGLAS:\n- NO estimes porcentaje de grasa corporal ni hagas diagnósticos médicos.\n- Si los cambios son sutiles porque es la primera semana, decilo honestamente — no inventes diferencias para motivar.\n- Las fotos son tan importantes como los datos. Mencioná observaciones concretas de cada par.`
+        : `\n\nFOUR PHOTOS ATTACHED IN THIS ORDER: (1) START front, (2) START back, (3) WEEK ${weekNum} front, (4) WEEK ${weekNum} back.\n\nVISUAL COMPARISON INSTRUCTIONS:\n- FRONT pair (photo 1 vs 3): observe shoulders, chest, abdominal definition, symmetry, posture, oblique definition, waist.\n- BACK pair (photo 2 vs 4): observe lat width, lower/mid back definition, posture, left/right symmetry, glutes.\n- Combine what you see with the numeric data (training adherence, kcal vs target, protein) to interpret changes.\n\nRULES:\n- Do NOT estimate body fat percentage or make medical diagnoses.\n- If changes are subtle because it's the first week, say so honestly — don't invent differences to motivate.\n- Photos matter as much as the data. Reference concrete observations from each pair.`)
+    : partialCompare
+      ? (isEs
+          ? `\n\nFOTOS ADJUNTAS (parcial — falta alguna vista): ${photosForModel.map(p => p.label).join(' / ')}. Compará las que correspondan al mismo ángulo y comentá lo que veas; menciona que falta alguna foto para el análisis completo si aplica. NO estimes porcentaje de grasa corporal.`
+          : `\n\nPHOTOS ATTACHED (partial — some view missing): ${photosForModel.map(p => p.label).join(' / ')}. Compare matching angles and comment on what you see; note any missing view if applicable. Do NOT estimate body fat percentage.`)
+      : '';
+
+  // ── Enrich context: planned vs actual ──────────────────────────────────
+  // The bare stats ("X trained of 7") aren't enough — the AI needs to know
+  // the user's planned target to judge adherence properly. We also pass body
+  // weight + dieta macro targets so it can make grounded inferences about
+  // caloric deficit/surplus instead of guessing what "average" looks like.
+  const plannedDays = (currentUser?.dias_entreno && currentUser.dias_entreno.length) || null;
+  const peso       = currentUser?.peso || null;
+  const altura     = currentUser?.altura || null;
+  const tgtKcal    = _alimHeader?.targetKcal || null;
+  const tgtProt    = _alimHeader?.targetProt || null;
+  const tgtCarbs   = _alimHeader?.targetCarbs || null;
+  const tgtFat     = _alimHeader?.targetFat || null;
+  // Semana PARCIAL (<7 días: arranque del proceso o puente de transición del
+  // reloj ISO — semanas-calendario, decisión 1A): el objetivo de entrenos se
+  // PRORRATEA a los días reales y el análisis no compara contra el historial.
+  const diasSemana  = (stats && stats.dias) || 7;
+  const esParcial   = diasSemana < 7;
+  const plannedPror = plannedDays ? Math.max(1, Math.ceil(plannedDays * diasSemana / 7)) : null;
+  const adherencia = (stats.trained != null && plannedPror)
+    ? Math.round((stats.trained / plannedPror) * 100) + '%'
+    : null;
+  // Per-week history for trend context (only meaningful from week 2 onwards)
+  // Las semanas parciales NO se comparan con el historial (arrancan/transicionan).
+  const prevSummary = (!esParcial && weekNum > 1 && Array.isArray(cierresSemanales))
+    ? cierresSemanales
+        .filter(c => c.semana_num < weekNum && c.stats)
+        .sort((a, b) => a.semana_num - b.semana_num)
+        .map(c => `Sem ${c.semana_num}: ${c.stats.trained || 0} entrenos${c.stats.avgCal ? `, ${c.stats.avgCal} kcal prom` : ''}${c.stats.avgProt ? `, ${c.stats.avgProt}g prot prom` : ''}`)
+        .join('\n')
+    : '';
+
+  const textContent = isEs
+    ? `Generá el análisis de la Semana ${weekNum} del cliente ${nombre}.
+
+PERFIL DEL CLIENTE:
+- Objetivo: ${objetivo || 'no especificado'}
+${peso  ? `- Peso actual: ${peso} kg\n` : ''}${altura ? `- Altura: ${altura} cm\n` : ''}- Plan: ${plannedDays ? `${plannedDays} días/semana de entreno` : 'sin plan de días'}
+${tgtKcal ? `- Target diario: ${tgtKcal} kcal · P:${tgtProt||'—'}g · C:${tgtCarbs||'—'}g · G:${tgtFat||'—'}g\n` : ''}
+DATOS DE LA SEMANA ${weekNum}:
+- Entrenos cumplidos: ${stats.trained}${plannedPror ? `/${plannedPror} planeados${esParcial ? ` — semana de ${diasSemana} días, objetivo prorrateado del plan de ${plannedDays}` : ''} (${adherencia} adherencia)` : ` de ${diasSemana} posibles`}
+- Calorías consumidas: ${stats.avgCal ? `${stats.avgCal} kcal/día prom${tgtKcal ? ` (target ${tgtKcal}, ${stats.avgCal < tgtKcal ? 'déficit' : stats.avgCal > tgtKcal ? 'superávit' : 'on target'} de ${Math.abs(stats.avgCal - tgtKcal)} kcal/día)` : ''}` : 'no registradas'}
+- Proteína: ${stats.avgProt ? `${stats.avgProt}g/día prom${tgtProt ? ` (target ${tgtProt}g)` : ''}` : 'no registrada'}
+- Carbos: ${stats.avgCarbs ? `${stats.avgCarbs}g/día prom${tgtCarbs ? ` (target ${tgtCarbs}g)` : ''}` : 'no registrados'}
+- Grasas: ${stats.avgFat ? `${stats.avgFat}g/día prom${tgtFat ? ` (target ${tgtFat}g)` : ''}` : 'no registradas'}
+- Días con registro de comidas: ${stats.totalLogs}/${diasSemana}
+- Número de semana en el proceso: ${weekNum}${esParcial ? `\n\n⚠ SEMANA PARCIAL DE ${diasSemana} DÍAS (arranque del proceso o semana de transición del calendario): NO la compares con otras semanas ni la trates como floja por tener menos días. Evaluá SOLO contra el objetivo prorrateado de arriba y enmarcala con tono de puesta en marcha.` : ''}
+${indiceCtx ? `\nÍNDICE DE ARMONÍA (Método King — su puntaje hacia la silueta reloj de arena): esta semana ${indiceCtx.delta > 0 ? `SUBE +${indiceCtx.delta} → ${indiceCtx.indice}/100` : `se mantiene en ${indiceCtx.indice}/100`}${indiceCtx.checkpoint ? ` (incluye CHECKPOINT VISUAL de cada 4 semanas: el veredicto mirando sus fotos fue "${indiceCtx.checkpoint.replace('_', ' ')}"${indiceCtx.bonus > 0 ? ` → +${indiceCtx.bonus} extra` : ''})` : ' por su adherencia'}. Mencionalo BREVE (1-2 frases) en el cierre motivador: ${indiceCtx.delta > 0 ? 'celebrá la suba y conectala con su constancia.' : 'sin dramatizar — su Índice no baja nunca, invitala a mover la aguja la próxima semana con adherencia.'}${indiceCtx.checkpoint === 'mejora_clara' ? ' El checkpoint confirmó mejora visible: destacalo como hito.' : ''} Podés decirle que lo vea en su Perfil.\n` : ''}${prevSummary ? `\nHISTORIAL DE SEMANAS ANTERIORES:\n${prevSummary}\n` : ''}
+Escribí un análisis cálido y motivador de 4-5 párrafos. El ORDEN importa: SIEMPRE arrancá por lo bueno.
+1. ARRANCÁ CELEBRANDO lo que ${nombre} hizo bien, con datos concretos (días entrenados, adherencia, lo que SÍ cumplió del target). Que lo primero que lea la haga sentir orgullosa de su esfuerzo.
+2. FOTOS: si ves mejoras —por sutiles que sean— marcalas PRIMERO y con entusiasmo, conectándolas con lo que hizo (entrenó + déficit → se ve más definida). Si es la primera semana y los cambios son sutiles, decilo con honestidad pero sin desinflar (es totalmente normal).
+3. OPORTUNIDADES (nunca "errores" ni "fugas"): presentá lo mejorable como "el próximo nivel". Hacé inferencias físicas con evidencia (déficit+entreno → perdiendo grasa; proteína baja → cuidemos el músculo) pero enmarcadas en positivo ("si sumás un poco más de proteína, recuperás aún mejor"). Honesto con los números, pero con energía de coach que la banca. EVITÁ palabras duras: "fuga", "fallaste", "incompleto", "no-negociable".
+4. Si es semana 2 o más, mencioná PRIMERO lo que mejoró vs semanas anteriores. CERRÁ MOTIVANDO con 2-3 objetivos concretos y ALCANZABLES, dejando la sensación de "vas muy bien, seguí así, la próxima la rompés".
+CALIBRÁ EL TONO SEGÚN LA SEMANA: semana buena (alta adherencia/registro) → celebrá fuerte y mencioná los ajustes al pasar; semana floja → sé MÁS contenedor, NO más duro (es justo cuando la persona está por abandonar): empatía, recordale por qué empezó, y dale UN solo objetivo chico para retomar. La severidad nunca sube; lo que cambia es cuánto celebrás. Nunca inventes progreso que no hubo, pero entregá la verdad de forma que dé ganas de seguir. Sé específico con los números reales. LENGUAJE (IMPORTANTE): NUNCA uses insultos ni malas palabras, ni en tono cariñoso (PROHIBIDO "boluda", "cagar", "mierda", "carajo", etc.). Tono cálido, motivador y cercano, pero con lenguaje 100% limpio y profesional.${photoInstructions}`
+    : `Generate the Week ${weekNum} analysis for client ${nombre}.
+
+CLIENT PROFILE:
+- Goal: ${objetivo || 'unspecified'}
+${peso  ? `- Current weight: ${peso} kg\n` : ''}${altura ? `- Height: ${altura} cm\n` : ''}- Plan: ${plannedDays ? `${plannedDays} training days/week` : 'no day plan'}
+${tgtKcal ? `- Daily target: ${tgtKcal} kcal · P:${tgtProt||'—'}g · C:${tgtCarbs||'—'}g · F:${tgtFat||'—'}g\n` : ''}
+WEEK ${weekNum} DATA:
+- Trained: ${stats.trained}${plannedPror ? `/${plannedPror} planned${esParcial ? ` — ${diasSemana}-day week, prorated from the ${plannedDays}-day plan` : ''} (${adherencia} adherence)` : ` of ${diasSemana} possible`}
+- Calories: ${stats.avgCal ? `${stats.avgCal} kcal/day avg${tgtKcal ? ` (target ${tgtKcal}, ${stats.avgCal < tgtKcal ? 'deficit' : stats.avgCal > tgtKcal ? 'surplus' : 'on target'} of ${Math.abs(stats.avgCal - tgtKcal)} kcal/day)` : ''}` : 'not logged'}
+- Protein: ${stats.avgProt ? `${stats.avgProt}g/day avg${tgtProt ? ` (target ${tgtProt}g)` : ''}` : 'not logged'}
+- Carbs: ${stats.avgCarbs ? `${stats.avgCarbs}g/day avg${tgtCarbs ? ` (target ${tgtCarbs}g)` : ''}` : 'not logged'}
+- Fat: ${stats.avgFat ? `${stats.avgFat}g/day avg${tgtFat ? ` (target ${tgtFat}g)` : ''}` : 'not logged'}
+- Days with food log: ${stats.totalLogs}/${diasSemana}
+- Week number in the process: ${weekNum}${esParcial ? `\n\n⚠ PARTIAL ${diasSemana}-DAY WEEK (process start or calendar transition week): do NOT compare it with other weeks or treat it as weak for having fewer days. Judge ONLY against the prorated target above and frame it as a warm-up/kick-off.` : ''}
+${prevSummary ? `\nPRIOR WEEKS HISTORY:\n${prevSummary}\n` : ''}
+Write a warm, motivating 4-5 paragraph analysis. ORDER matters: ALWAYS lead with the good.
+1. OPEN BY CELEBRATING what ${nombre} did well, with concrete data (days trained, adherence, what they DID hit of the target). The first thing they read should make them proud of their effort.
+2. PHOTOS: if you see improvements —however subtle— call them out FIRST and with enthusiasm, connecting them to what they did. If it's week one and changes are subtle, say so honestly but without deflating (it's totally normal).
+3. OPPORTUNITIES (never "mistakes" or "leaks"): frame what's improvable as "the next level". Make evidence-based physical inferences (deficit+training → losing fat; low protein → let's protect muscle) but framed positively ("if you add a bit more protein, you'll recover even better"). Honest with the numbers, but with the energy of a coach in their corner. AVOID harsh words: "failed", "incomplete", "non-negotiable".
+4. If week 2+, mention FIRST what improved vs prior weeks. CLOSE MOTIVATING with 2-3 concrete, ACHIEVABLE goals, leaving the feeling of "you're doing great, keep it up, next week you crush it".
+CALIBRATE TONE TO THE WEEK: good week (high adherence/logging) → celebrate strongly, mention tweaks lightly; weak week → be MORE supportive, NOT harsher (that's exactly when people quit): empathy, remind them why they started, and give ONE small goal to get back on track. Severity never rises; what changes is how much you celebrate. Never invent progress that didn't happen, but deliver the truth in a way that makes them want to continue. Be specific with real numbers.${photoInstructions}`;
+
+  // Build multimodal content. Order = the order the prompt references
+  // ((1) INICIO frente, (2) INICIO espalda, (3) SEMANA frente, (4) SEMANA
+  // espalda). When some photo is missing (legacy user or upload partial),
+  // we still send what we have and the prompt acknowledges the gap.
+  let messageContent;
+  if (photosForModel.length > 0) {
+    messageContent = [
+      ...photosForModel.map(p => ({ type: 'image', source: { type: 'url', url: p.url } })),
+      { type: 'text', text: textContent },
+    ];
+  } else {
+    messageContent = textContent;
+  }
+
+  // Hard error path: if /api/chat fails (500 / timeout / truncated JSON),
+  // the previous version silently returned null and the caller persisted a
+  // cierre row with `analisis = null`. That looked like a successful analysis
+  // to the user (no error message) but the perfil "Análisis" tab showed empty
+  // cards forever. Throw on non-ok responses + on missing content so the
+  // caller's catch path runs and the user sees a real error.
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: await aiAuthHeaders(),
+    body: JSON.stringify({
+      system: systemPrompt,
+      messages: [{ role: 'user', content: messageContent }],
+      // Haiku por ahora (estado verificado). El cierre es texto libre, así que
+      // Sonnet sería un buen candidato acá (mejor análisis, sin riesgo de romper
+      // parser) — pero no lo testeamos todavía. Pasarlo a 'sonnet' cuando se
+      // verifique que no agrega comentarios meta ni se va de largo.
+      model: 'haiku'
+    })
+  });
+  if (!response.ok) {
+    const errBody = await response.text().catch(() => '');
+    throw new Error(`weekly_analysis_api_${response.status}` + (errBody ? `: ${errBody.slice(0, 200)}` : ''));
+  }
+  let data;
+  try { data = await response.json(); }
+  catch (e) { throw new Error('weekly_analysis_invalid_json'); }
+  const text = data?.content?.[0]?.text;
+  if (!text || typeof text !== 'string' || text.trim().length < 40) {
+    throw new Error('weekly_analysis_empty_response');
+  }
+  return text;
+}
+
+async function adjustDietViaAI(diet, analisis, objetivo) {
+  const system = `Sos un nutricionista que AJUSTA una dieta semanal existente para la semana siguiente, según el progreso del cliente.
+
+REGLA DE ORO: por DEFAULT devolvés la dieta IGUAL. Solo la ajustás si el análisis de la semana lo justifica claramente para el objetivo (ej: proteína por debajo del target → subir proteína; definición estancada → bajar un poco las calorías; pérdida de músculo o sin energía → subir calorías o proteína).
+
+PODÉS tocar: cantidades (gramos/ml) y, en consecuencia, las kcal y macros (por comida, el Total del día y el Target del header).
+NO PODÉS tocar la ESTRUCTURA: mismos días, mismas comidas, mismos alimentos. NO agregues ni quites comidas ni días. NO inventes alimentos. Respetás la dieta del coach — solo calibrás cantidades.
+
+Si ajustás, mantené la COHERENCIA: el Total de cada día = suma de sus comidas; el Target del header acorde al promedio de los días.
+
+FORMATO idéntico al de entrada: header "Plan ... | Target: X kcal/día | P:..g C:..g G:..g", días en MAYÚSCULA, comidas "Tipo: alimentos — Xkcal · P:..g C:..g G:..g", "Total: ..." por día.
+
+Respondé SOLO con el texto de la dieta (ajustada o igual). Sin introducción, sin explicaciones, sin comentarios.`;
+  const user = `OBJETIVO DEL CLIENTE: ${objetivo || 'no especificado'}
+
+ANÁLISIS DE LA SEMANA QUE CERRÓ:
+"""
+${analisis}
+"""
+
+DIETA ACTUAL (mantener o ajustar):
+"""
+${diet}
+"""`;
+  try {
+    const resp = await fetch('/api/chat', {
+      method: 'POST', headers: await aiAuthHeaders(),
+      body: JSON.stringify({ system, messages: [{ role: 'user', content: user }], model: 'haiku' }),
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    let txt = (data.content && data.content[0] && data.content[0].text) || '';
+    txt = txt.replace(/^```[a-zA-Z]*\s*\n?/, '').replace(/\n?```\s*$/, '').trim();
+    if (!txt) return null;
+    if (!planReplyHasStructure('dieta', txt)) return null;             // debe parsear como dieta
+    if (txt.length < Math.floor((diet || '').length * 0.5)) return null; // anti-truncado
+    return txt;
+  } catch (e) {
+    console.warn('adjustDietViaAI failed:', e);
+    return null;
+  }
+}
+
+function computeWeekStats(logs, range) {
+  const wLogs = logs.filter(l => l.fecha >= range.start && l.fecha <= range.end);
+  // Entrenos = unión de progreso_diario.entreno y dias_entrenados (fuente de
+  // verdad), contando FECHAS distintas para no duplicar si un día está en ambas.
+  // Sin esto, un día que solo llegó a dias_entrenados (mirror a progreso_diario
+  // perdido) no se contaba y el cierre subcontaba la adherencia (caso Bárbara).
+  const trainedDates = new Set(wLogs.filter(l => l.entreno === true).map(l => l.fecha));
+  for (const f of _trainedDatesSet) {
+    if (f >= range.start && f <= range.end) trainedDates.add(f);
+  }
+  const trained = trainedDates.size;
+  const avg = (field) => {
+    const rows = wLogs.filter(l => l[field] > 0);
+    return rows.length ? Math.round(rows.reduce((s, l) => s + l[field], 0) / rows.length) : null;
+  };
+  // Días que abarca el rango (1-7). Una semana PARCIAL (<7: arranque del proceso
+  // o puente de transición del reloj ISO) prorratea objetivos y el análisis no
+  // la compara con semanas completas (semanas-calendario, decisiones 1A/2A).
+  const dias = Math.max(1, Math.min(7, Math.round((Date.parse(range.end + 'T12:00:00') - Date.parse(range.start + 'T12:00:00')) / 86400000) + 1));
+  return {
+    trained,
+    avgCal:   avg('calorias_consumidas'),
+    avgProt:  avg('proteinas_g'),
+    avgCarbs: avg('carbos_g'),
+    avgFat:   avg('grasas_g'),
+    totalLogs: wLogs.length,
+    dias,
+    parcial: dias < 7,
+    wLogs,
+  };
+}
+
+function getWeekNum(createdAt, cierres) {
+  if (!SEMANA_ISO) return _getWeekNumLegacy(createdAt);
+  try {
+    const list = (cierres !== undefined) ? cierres : (typeof cierresSemanales !== 'undefined' ? cierresSemanales : []);
+    const last = _lastCierre(list);
+    const baseNum   = last ? last.semana_num + 1 : 1;
+    const baseStart = last ? _addDaysStr(last.fecha_fin, 1) : createdAt.slice(0, 10);
+    const today = getTodayKey();
+    if (today < baseStart) return Math.max(1, baseNum);   // reloj adelantado / carrera
+    const baseEnd = isoWeekRange(_isoKeyOfStr(baseStart)).end;
+    if (today <= baseEnd) return baseNum;
+    return baseNum + (isoWeeksBetween(_isoKeyOfStr(baseStart), _isoKeyOfStr(today)) || 0);
+  } catch (e) {
+    console.warn('[semana-iso] getWeekNum cayó al legacy:', e?.message || e);
+    return _getWeekNumLegacy(createdAt);
+  }
+}
+
+function getWeekRange(createdAt, weekNum, cierres) {
+  if (!SEMANA_ISO) return _getWeekRangeLegacy(createdAt, weekNum);
+  try {
+    const list = (cierres !== undefined) ? cierres : (typeof cierresSemanales !== 'undefined' ? cierresSemanales : []);
+    const arr = Array.isArray(list) ? list : [];
+    const c = arr.find(x => x && x.semana_num === weekNum && x.fecha_inicio && x.fecha_fin);
+    if (c) return { start: c.fecha_inicio, end: c.fecha_fin };
+    const last = _lastCierre(arr);
+    const baseNum   = last ? last.semana_num + 1 : 1;
+    const baseStart = last ? _addDaysStr(last.fecha_fin, 1) : createdAt.slice(0, 10);
+    if (weekNum <= baseNum) {
+      // Primera semana abierta (puente / arranque): hasta el domingo de SU semana ISO.
+      return { start: baseStart, end: isoWeekRange(_isoKeyOfStr(baseStart)).end };
+    }
+    const iso = isoWeekShift(_isoKeyOfStr(baseStart), weekNum - baseNum);
+    return isoWeekRange(iso);
+  } catch (e) {
+    console.warn('[semana-iso] getWeekRange cayó al legacy:', e?.message || e);
+    return _getWeekRangeLegacy(createdAt, weekNum);
+  }
+}
+
+function _getWeekNumLegacy(createdAt) {
+  const start = new Date(createdAt.slice(0, 10) + 'T00:00:00');
+  // "Hoy" vía getTodayKey(): idéntico en prod (local midnight) pero mockeable
+  // en test-semanas.mjs — con new Date() directo el caso F era una bomba de
+  // tiempo que explotaba cuando el fixture envejecía (falló el 2026-10-06).
+  const today = new Date(getTodayKey() + 'T00:00:00');
+  const diff = Math.floor((today - start) / 86400000);
+  // Clamp to at least 1: if `created_at` is in the future (clock skew or a
+  // manual DB edit), `diff` is negative and we'd produce week 0 or negative,
+  // which makes renderSemanas show an empty state for an existing user.
+  if (diff < 0) {
+    console.warn('[CoachAI] created_at is in the future, clamping to week 1');
+  }
+  return Math.max(1, Math.floor(diff / 7) + 1);
+}
+
+function _getWeekRangeLegacy(createdAt, weekNum) {
+  const start = new Date(createdAt.slice(0, 10) + 'T00:00:00');
+  const wStart = new Date(start);
+  wStart.setDate(start.getDate() + (weekNum - 1) * 7);
+  const wEnd = new Date(wStart);
+  wEnd.setDate(wStart.getDate() + 6);
+  return { start: formatLocalDate(wStart), end: formatLocalDate(wEnd) };
+}
+
+function _lastCierre(cierres) {
+  const list = Array.isArray(cierres) ? cierres : [];
+  let best = null;
+  for (const c of list) if (c && c.fecha_fin && (!best || c.semana_num > best.semana_num)) best = c;
+  return best;
+}
+
+function _addDaysStr(dateStr, n) {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() + n);
+  return formatLocalDate(d);
+}
+
+function _isoKeyOfStr(dateStr) { return getISOWeekKey(new Date(dateStr + 'T12:00:00')); }
+
+function isoWeekRange(isoKey) {
+  const m = /^(\d{4})-W(\d{2})$/.exec(String(isoKey || ''));
+  if (!m) return null;
+  const year = +m[1], week = +m[2];
+  if (week < 1 || week > 53) return null;
+  // El 4 de enero SIEMPRE cae en la semana 1 ISO → su lunes ancla la W01.
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const week1Monday = new Date(jan4);
+  week1Monday.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() || 7) - 1));
+  const monday = new Date(week1Monday);
+  monday.setUTCDate(week1Monday.getUTCDate() + (week - 1) * 7);
+  const sunday = new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate() + 6);
+  const fmt = d => d.toISOString().slice(0, 10);
+  return { start: fmt(monday), end: fmt(sunday) };
+}
+
+function isoWeekShift(isoKey, n) {
+  const r = isoWeekRange(isoKey);
+  if (!r || !Number.isFinite(n)) return null;
+  const d = new Date(r.start + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + Math.round(n) * 7 + 3);
+  return getISOWeekKey(new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+
+function isoWeeksBetween(isoA, isoB) {
+  const a = isoWeekRange(isoA), b = isoWeekRange(isoB);
+  if (!a || !b) return null;
+  return Math.round((Date.parse(b.start) - Date.parse(a.start)) / (7 * 86400000));
+}
+
+function getTodayKey() {
+  return formatLocalDate(new Date());
+}
+
+function stripLeadingDietFromRutina(contenido) {
+  if (!contenido || typeof contenido !== 'string') return contenido;
+  const t = contenido.replace(/^﻿/, '');
+  if (!/^\s*(🥗\s*)?Plan\s+(nutricional|de\s+alimentaci)/i.test(t)) return contenido;
+  // Cortar al inicio de la rutina: preferí un header "RUTINA", si no el primer "Día N".
+  const mRut = t.match(/(?:^|\n)\s*(?:💪\s*)?RUTINA\b/i);
+  const mDia = t.match(/(?:^|\n)\s*\**\s*D[ií]a\s*\d+/);
+  let cut = -1;
+  if (mRut) cut = t.indexOf('RUTINA', mRut.index);
+  else if (mDia) cut = t.indexOf(mDia[0].replace(/^\n/, ''), mDia.index);
+  if (cut > 0) return t.slice(cut).trim();
+  return contenido; // no pude ubicar la rutina con seguridad → no toco nada
+}
+
+function getWeeklyTrainingTarget() {
+  try {
+    const contenido = (typeof weeklyPlans !== 'undefined' && weeklyPlans?.rutina?.contenido) || '';
+    if (contenido) {
+      // Calendar day headers + numbered "Día N" headers. Strip leading
+      // markdown bold (**LUNES**), accept accents and no-accent variants.
+      const calendar = (contenido.match(/^\**\s*(LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)\b/gim) || [])
+        .map(m => m.replace(/^\**\s*/, '').toUpperCase());
+      const numbered = contenido.match(/^D[ií]a\s+\d+/gim) || [];
+      // Treat "Descanso" tokens as non-training days so they don't pad the
+      // denominator (a rutina with LUNES/MARTES/JUEVES + MIÉRCOLES descanso
+      // should target 3, not 4).
+      const calendarTrain = calendar.filter(d => {
+        // Only inspect the SAME LINE as the day header for a Descanso/Off
+        // marker. Looking further (e.g. next 80 chars) would catch
+        // "descanso: 90s" between exercise sets and mis-classify real
+        // training days as rest. Bug surfaced with Camila's rutina (LUNES
+        // Pierna + MIÉRCOLES Espalda + VIERNES Hombros) where the home
+        // showed 0/4 instead of 0/3.
+        const upper = contenido.toUpperCase();
+        const idx = upper.indexOf(d);
+        if (idx < 0) return true;
+        const lineEnd = contenido.indexOf('\n', idx);
+        const headerLine = contenido.slice(idx, lineEnd === -1 ? contenido.length : lineEnd);
+        return !/descanso|\boff\b|cardio.*solo|sin\s+entreno/i.test(headerLine);
+      });
+      const numberedTrain = numbered; // numbered always implies a training day
+      const total = new Set([...calendarTrain, ...numberedTrain.map(n => n.toLowerCase())]).size;
+      if (total > 0) return total;
+    }
+  } catch {}
+  if (typeof currentUser !== 'undefined' && Array.isArray(currentUser?.dias_entreno) && currentUser.dias_entreno.length > 0) {
+    return currentUser.dias_entreno.length;
+  }
+  // 3rd fallback: the in-memory onboarding selection (selectedDias) before
+  // currentUser has been refreshed in the launchCoach handshake. This catches
+  // the brief window right after finishing onboarding when the home renders
+  // but currentUser is still mid-sync with the DB write.
+  if (typeof selectedDias !== 'undefined' && Array.isArray(selectedDias) && selectedDias.length > 0) {
+    return selectedDias.length;
+  }
+  // Nothing known yet — return 0 instead of the legacy "4" so the hero ring
+  // shows "0/0" (honest empty state) rather than "0/4" out of nowhere when
+  // the user has no rutina + no day plan yet. Renderers handle target=0 by
+  // showing no fill and the literal "0/0".
+  return 0;
+}
+
+  return { buildSystemPrompt, buildHistorySummary, buildDiarioSummary, kingEsCohorte, _koMapaPromptBlock, _koNormArq, _bloqueRestriccionDieta, _focoPromptBlock, _splitSemanal, _splitPromptBlock, validarRutinaEsqueleto, countUniqueDays, getISOWeekKey, formatLocalDate, parseDietaContenido, parseRutinaContenido, sanitizeTurnsForAPI, detectPlanRequest, detectPlanInReply, planReplyHasStructure, formatResponse, computeDietTarget, evaluatePlanQuality, dietaHasMacros, dietaAvgDayKcal, rutinaEntrenaPecho, reconcileDietKcal, buildPlanReadyNotification, validateDietaConsistency, generateWeeklyAnalysis, adjustDietViaAI, computeWeekStats, getWeekNum, getWeekRange, _getWeekNumLegacy, _getWeekRangeLegacy, _lastCierre, _addDaysStr, _isoKeyOfStr, isoWeekRange, isoWeekShift, isoWeeksBetween, getTodayKey, stripLeadingDietFromRutina, getWeeklyTrainingTarget };
 }

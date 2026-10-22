@@ -1,6 +1,12 @@
 # Propuesta de backend: el cierre semanal EN EL SERVIDOR (3.5.e del port)
 
-**Estado: PROPUESTA, pendiente del OK de Beto. No se tocó una línea del servidor.**
+**Estado: APROBADA por Beto 2026-10-22 (sí a D1–D5, opción A en D3) → IMPLEMENTADA en el repo
+(`api/cierre-semana.js` + helpers en `api/_chat-contexto.js` + funciones del cierre en el cerebro generado +
+`npm run test:cierre-semana`, 45 chequeos offline). Pendiente: env vars en Vercel + redeploy + QA real (§5).**
+
+Ajuste sobre la propuesta: `analizar` sin `fotos` en el body usa las que ya tiene el cierre (como el
+Regenerar de la PWA, `cierre.foto_url`); sirve para analizar un cierre del autocierre al que ya se le
+cargaron fotos, y para el QA con la Semana 1 de Beto.
 Segunda propuesta de backend del port (la primera fue `/api/chat-message`, 3.4.b/c). Misma regla de oro:
 aditivo, detrás de un interruptor, con rollback sin deploy, sin DDL, sin tocar `api/chat.js`, `api/_origin.js`
 ni `index.html`.

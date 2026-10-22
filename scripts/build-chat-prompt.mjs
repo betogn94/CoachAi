@@ -25,7 +25,13 @@ const SALIDA = join(RAIZ, 'api', '_chat-cerebro.js');
 export function extractFunction(src, name) {
   let start = src.indexOf(`function ${name}(`);
   if (start === -1) throw new Error(`No encontré function ${name}`);
-  let i = src.indexOf('{', start);
+  // `async function x(` → conservar el `async` (3.5.e: generateWeeklyAnalysis / adjustDietViaAI).
+  if (src.slice(Math.max(0, start - 6), start) === 'async ') start -= 6;
+  // El cuerpo arranca en la primera `{` DESPUÉS del `)` que cierra los parámetros (un parámetro por
+  // defecto como `photos = {}` tiene llaves propias — generateWeeklyAnalysis).
+  let p = src.indexOf('(', start);
+  for (let depth = 0; p < src.length; p++) { if (src[p] === '(') depth++; else if (src[p] === ')' && --depth === 0) break; }
+  let i = src.indexOf('{', p);
   const stack = [{ kind: 'code', depth: 1, prevSig: '' }];
   i++;
   for (; i < src.length; i++) {
@@ -83,6 +89,12 @@ export const FUNCIONES = [
   // 3.4.c — planes por chat: vara de calidad, reconciliación de kcal, aviso "plan listo", alertas Tower.
   'evaluatePlanQuality', 'dietaHasMacros', 'dietaAvgDayKcal', 'rutinaEntrenaPecho', 'reconcileDietKcal',
   'buildPlanReadyNotification', 'validateDietaConsistency',
+  // 3.5.e — el cierre semanal en el servidor: el prompt del análisis (con las 4 fotos), el ajuste de la
+  // dieta post-cierre, el reloj de semanas ISO híbrido, las stats de la semana y el objetivo semanal.
+  // Las que llaman a /api/chat usan `fetch` → acá es ctx.fetchIA (el SDK de Anthropic en el servidor).
+  'generateWeeklyAnalysis', 'adjustDietViaAI', 'computeWeekStats', 'getWeekNum', 'getWeekRange', '_getWeekNumLegacy', '_getWeekRangeLegacy',
+  '_lastCierre', '_addDaysStr', '_isoKeyOfStr', 'isoWeekRange', 'isoWeekShift', 'isoWeeksBetween', 'getTodayKey',
+  'stripLeadingDietFromRutina', 'getWeeklyTrainingTarget',
 ];
 export const CONSTANTES = [
   'METODO_RELOJ_ARENA_ES', 'METODO_V_MASCULINO_ES', 'REGLAS_KING_MUJER_ES', 'REGLAS_KING_DIETA_ES',
@@ -106,10 +118,16 @@ export function generar() {
 //   ctx.allChatHistory  filas de historial_chat (para isReturningUser)
 //   ctx.recentChatHistory  últimas 7 filas, más reciente primero (como launchCoach)
 //   ctx.recentDiario  progreso_diario asc (buildDiarioSummary toma los últimos 7)
-//   ctx.currentUser   { metodo_king, foco_entreno }
+//   ctx.currentUser   { metodo_king, foco_entreno } (+ peso, altura, dias_entreno, created_at para el cierre)
 //   ctx.lang          'es' | 'en'
 //   ctx.ahora         ms del "hoy" de la usuaria (mediodía UTC de su fecha local): fija new Date()
 //                     sin argumentos para getISOWeekKey / formatLocalDate.
+//   — 3.5.e (cierre semanal) —
+//   ctx.cierresSemanales  filas de cierres_semanales (semana_num, fecha_inicio, fecha_fin, analisis, stats)
+//   ctx.alimHeader    header de la dieta vigente (parseDietaContenido(...).header), lo que la PWA tiene en _alimHeader
+//   ctx.trainedDates  fechas de dias_entrenados (la PWA: _trainedDatesSet)
+//   ctx.firmarFotos   async ({inicioFrente, inicioEspalda, semanaFrente, semanaEspalda}) → mismas claves firmadas
+//   ctx.fetchIA       async (url, opts) → Response-like {ok, status, json(), text()}: reemplaza fetch('/api/chat')
 // Funciones: ${FUNCIONES.join(', ')}
 // Constantes: ${CONSTANTES.join(', ')}
 
@@ -134,6 +152,14 @@ export function crearCerebro(ctx) {
   const recentChatHistory = Array.isArray(ctx.recentChatHistory) ? ctx.recentChatHistory : [];
   const recentDiario = Array.isArray(ctx.recentDiario) ? ctx.recentDiario : [];
   const currentUser = ctx.currentUser || null;
+  // — 3.5.e: lo que el cierre lee como globales en la PWA —
+  const SEMANA_ISO = true;   // reloj ISO híbrido (semanas-calendario F3, live para todas)
+  const cierresSemanales = Array.isArray(ctx.cierresSemanales) ? ctx.cierresSemanales : [];
+  const _alimHeader = ctx.alimHeader || null;
+  const _trainedDatesSet = new Set(Array.isArray(ctx.trainedDates) ? ctx.trainedDates : []);
+  const _signPhotosForAI = async (p) => (ctx.firmarFotos ? ctx.firmarFotos(p || {}) : (p || {}));
+  const aiAuthHeaders = async () => ({});
+  const fetch = (url, opts) => { if (!ctx.fetchIA) throw new Error('ctx.fetchIA no provisto'); return ctx.fetchIA(url, opts); };
 
 // (cuerpo VERBATIM, sin re-indentar: un espacio de más adentro de un template literal cambia el prompt)
 ${cuerpo}
