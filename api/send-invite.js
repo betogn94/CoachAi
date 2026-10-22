@@ -119,7 +119,20 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
   const TENANT_BASE_URL = {
     'jesus': 'https://king.coachaipro.ai',
   };
-  const appUrl = safeTenantSlug ? (TENANT_BASE_URL[safeTenantSlug] || APP_URL) : APP_URL;
+  // Coach sin subdominio propio (cualquier tenant nuevo): su puerta es
+  // coachaipro.ai/#tenant=<slug>. El hash sobrevive al proxy de links de Gmail
+  // y al "Agregar a inicio" de iOS; el boot de index.html lo lee y fija el
+  // tenant. Sin esto la alumna entraba por la puerta del default y, en un
+  // teléfono nuevo, rebotaba con "tu cuenta está en otro coach". El regex
+  // impide meter cualquier cosa en la URL.
+  const genericSlug =
+    !safeTenantSlug && typeof tenantSlug === 'string' && !['coachai-default', 'coachaipro'].includes(tenantSlug)
+      && /^[a-z0-9-]{2,40}$/.test(tenantSlug)
+      ? tenantSlug
+      : null;
+  const appUrl = safeTenantSlug
+    ? (TENANT_BASE_URL[safeTenantSlug] || APP_URL)
+    : (genericSlug ? `${APP_URL}/#tenant=${genericSlug}` : APP_URL);
   // Resolve the per-tenant theme so the email visually matches the app
   // the invitee will land on.
   const theme = tenantEmailTheme(safeTenantSlug);

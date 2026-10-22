@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261022-2036-deploy">
+<meta name="app-version" content="20261022-2041-fix--re-entrada-de-alumnas-de-coaches-nuevos">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -21681,13 +21681,18 @@ async function proceedAfterAuth(email, nombre, authUid) {
       const expected = result.expected;
       // Build the right URL for their tenant. Known subdomain mappings.
       // For "coachai-default" we send them to the root domain.
+      // Coach sin subdominio propio → su puerta es coachaipro.ai/?tenant=<slug>.
+      // Va con ?query (no #hash) para forzar una navegación real: desde
+      // coachaipro.ai un cambio de solo-hash no recarga y el resolver del boot
+      // no correría. El default usa ?tenant=clear para soltar la señal vieja.
       const TENANT_URLS = {
-        'coachai-default': 'https://coachaipro.ai',
+        'coachai-default': 'https://coachaipro.ai/?tenant=clear',
         'jesus': 'https://king.coachaipro.ai',
       };
-      const targetUrl = TENANT_URLS[theirs.slug] || theirs.domain
-        ? (theirs.domain ? `https://${theirs.domain}` : TENANT_URLS[theirs.slug])
-        : null;
+      const safeSlug = /^[a-z0-9-]{2,40}$/.test(theirs.slug || '') ? theirs.slug : null;
+      const targetUrl = TENANT_URLS[theirs.slug]
+        || (theirs.domain ? `https://${theirs.domain}` : null)
+        || (safeSlug ? `https://coachaipro.ai/?tenant=${safeSlug}` : null);
       error.innerHTML = `🚪 <strong>Tu cuenta está en otro coach.</strong><br>` +
         `Estás intentando entrar en <em>${expected.name}</em> pero tu cuenta pertenece a <em>${theirs.name}</em>.` +
         (targetUrl
@@ -24936,6 +24941,16 @@ async function launchCoach() {
       .then(tenant => {
         currentTenant = tenant;
         applyTenantBranding(tenant);
+        // Recordar el coach de la alumna en este dispositivo: si mañana abre
+        // coachaipro.ai pelado (o se le vence la sesión), el login ya sabe que
+        // su puerta es la de su coach y no la rebota por cross-tenant. Solo
+        // coaches de marca (no los de la casa, que no se rebotan entre sí).
+        try {
+          if (tenant && tenant.slug && !['coachai-default', 'coachaipro'].includes(tenant.slug)
+              && !(typeof _getImpersonateUid === 'function' && _getImpersonateUid())) {
+            localStorage.setItem('coachai_preview_tenant_v1', tenant.slug);
+          }
+        } catch (e) {}
         // Kill-switch: si el tenant está suspendido, tapar la app con la pantalla
         // de pausa (idempotente; cubre incluso el preview ?as= del coach).
         if (isTenantSuspended(tenant)) showTenantSuspendedScreen();
