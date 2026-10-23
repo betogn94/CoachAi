@@ -15,7 +15,7 @@ const APP_URL  = 'https://coachaipro.ai';
 // arbitrary input into the URL — that would let a malformed admin payload
 // inject querystrings into the CTA link. Anything not on this list falls
 // back to no querystring (CoachAI default landing).
-const VALID_TENANT_SLUGS = new Set(['coachai-default', 'jesus']);
+const VALID_TENANT_SLUGS = new Set(['coachai-default', 'jesus', 'salma']);
 
 // Per-tenant email theme. Each tenant's invite gets its own logo + color
 // palette so the inbox preview, the hero banner, the CTA button and every
@@ -118,6 +118,7 @@ function buildEmail({ nombre, invitadoPor, tenantSlug }) {
   // very first one. No flash, no email-lookup fallback needed.
   const TENANT_BASE_URL = {
     'jesus': 'https://king.coachaipro.ai',
+    'salma': 'https://salma.coachaipro.ai',
   };
   // Coach sin subdominio propio (cualquier tenant nuevo): su puerta es
   // coachaipro.ai/#tenant=<slug>. El hash sobrevive al proxy de links de Gmail

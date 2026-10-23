@@ -1978,6 +1978,7 @@
   function resolveTenantSlug() {
     const host = window.location.hostname.toLowerCase();
     if (/^king\./.test(host)) return 'jesus';
+    if (/^salma\./.test(host)) return 'salma';
     // Local dev / cached fallback: the main app's boot resolver persists the
     // detected slug in this localStorage key as soon as it knows the origin.
     // Reading it means Studio agrees with the main app on tenant identity

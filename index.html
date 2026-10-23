@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261022-2041-fix--re-entrada-de-alumnas-de-coaches-nuevos">
+<meta name="app-version" content="20261023-1350-feat--subdominio-salma-coachaipro-ai">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15655,6 +15655,10 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       var host = window.location.hostname || '';
       // king.coachaipro.ai or any king.* subdomain → KING tenant
       if (/^king\./i.test(host)) slug = 'jesus';
+      // Coaches con subdominio propio (slug = subdominio). Agregar acá + en los
+      // otros 2 resolvers de este archivo, studio/index.html, api/_origin.js y
+      // api/send-invite.js cada vez que un coach estrena subdominio.
+      else if (/^salma\./i.test(host)) slug = 'salma';
     } catch(e) {}
     // 1) Try the query string (?tenant=<slug>) — fallback for browser navigation
     if (!slug) slug = params.get('tenant');
@@ -19424,6 +19428,7 @@ async function loginOrRegister(email, nombre, authUid = null) {
       try {
         const host = (location.hostname || '').toLowerCase();
         if (/^king\./.test(host)) { entrySlug = 'jesus'; }
+        else if (/^salma\./.test(host)) { entrySlug = 'salma'; }
         else {
           const params = new URLSearchParams(location.search);
           entrySlug = params.get('tenant') || null;
@@ -19496,6 +19501,8 @@ async function loginOrRegister(email, nombre, authUid = null) {
           const host = (window.location.hostname || '').toLowerCase();
           if (/^king\./.test(host)) {
             expectedSlug = 'jesus';
+          } else if (/^salma\./.test(host)) {
+            expectedSlug = 'salma';
           } else {
             const params = new URLSearchParams(window.location.search);
             const qp = params.get('tenant');

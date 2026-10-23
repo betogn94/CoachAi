@@ -17,6 +17,7 @@ export const ALLOWED_ORIGINS = [
   'https://coachaipro.com',
   'https://www.coachaipro.com',
   'https://king.coachaipro.ai',
+  'https://salma.coachaipro.ai',
   'https://coach-ai-pearl.vercel.app',
 ];
 
