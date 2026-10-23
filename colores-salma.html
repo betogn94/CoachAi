@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Colores para Salma</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap">
+<style>
+/* Layout: encabezado corto → escenario con 2 celulares que cambian de color en vivo → fichas de cada paleta → próximos pasos */
+:root {
+  --bg: #F6F5FB;
+  --panel: #FFFFFF;
+  --ink: #1B1A29;
+  --muted: #676679;
+  --line: #E4E2EF;
+  --pick: #1B1A29;
+  --display: "Bricolage Grotesque", "DM Sans", system-ui, sans-serif;
+  --body: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #12111A; --panel: #1C1B27; --ink: #F1F0F7; --muted: #A3A1B5; --line: #2E2D3C; --pick: #F1F0F7; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #12111A; --panel: #1C1B27; --ink: #F1F0F7; --muted: #A3A1B5; --line: #2E2D3C; --pick: #F1F0F7; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 64px; display: flex; flex-direction: column; gap: 44px; }
+
+header { display: flex; flex-direction: column; gap: 10px; max-width: 640px; }
+.eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(32px, 6vw, 52px); line-height: 1.02; letter-spacing: -.02em; margin: 0; text-wrap: balance; }
+h1 span { color: var(--acc, #7c6aff); transition: color .35s; }
+.lead { color: var(--muted); margin: 0; font-size: 17px; }
+h2 { font-family: var(--display); font-weight: 700; font-size: 26px; letter-spacing: -.01em; margin: 0; text-wrap: balance; }
+
+/* ---------- Escenario ---------- */
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 300px); gap: 28px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 28px; padding: 28px; }
+.phones { display: flex; gap: 22px; justify-content: center; flex-wrap: wrap; }
+.now { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.now .name { font-family: var(--display); font-size: 30px; font-weight: 700; line-height: 1.1; }
+.now p { margin: 0; color: var(--muted); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 10px 6px 6px; border: 1px solid var(--line); border-radius: 99px; font-variant-numeric: tabular-nums; }
+.chip i { width: 18px; height: 18px; border-radius: 50%; display: block; border: 1px solid rgba(0,0,0,.08); }
+.tag { align-self: flex-start; font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 99px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
+
+/* ---------- Celular (siempre claro: así se ve la app) ---------- */
+.phone {
+  --a: #7c6aff; --ab: #9d8dff; --g2: #2ecfb5; --s2: #F3F2FE; --bd: #E9E7F5; --pbg: #FAFAFF;
+  width: 236px; max-width: 100%; aspect-ratio: 236 / 480; border-radius: 34px; padding: 9px;
+  background: #15141d; box-shadow: 0 18px 40px rgba(20, 18, 40, .18);
+}
+.screen { height: 100%; border-radius: 26px; background: var(--pbg); overflow: hidden; display: flex; flex-direction: column; font-family: "DM Sans", system-ui, sans-serif; color: #1A1A2E; position: relative; transition: background .35s; }
+.sbar { display: flex; justify-content: space-between; font-size: 9px; font-weight: 700; padding: 9px 18px 4px; }
+.scroll { flex: 1; padding: 6px 10px 0; display: flex; flex-direction: column; gap: 7px; }
+.card { background: #fff; border: 1px solid var(--bd); border-radius: 13px; padding: 9px 10px; transition: border-color .35s; }
+.lbl { font-size: 7.5px; color: #6B6B80; font-weight: 500; }
+.hero { display: flex; align-items: center; gap: 10px; }
+.ring { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; background: conic-gradient(var(--a) 0 25%, var(--s2) 25% 100%); display: grid; place-items: center; transition: background .35s; }
+.ring::after { content: ""; width: 34px; height: 34px; border-radius: 50%; background: #fff; }
+.big { font-size: 20px; font-weight: 700; line-height: 1; letter-spacing: -.02em; }
+.big b { color: var(--a); transition: color .35s; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.t { font-size: 10px; font-weight: 700; margin-top: 2px; line-height: 1.2; }
+.gt { background: linear-gradient(90deg, var(--a), var(--g2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.mini { font-size: 7px; color: #6B6B80; margin-top: 3px; line-height: 1.35; }
+.kc { font-size: 15px; font-weight: 700; color: var(--a); transition: color .35s; }
+.bars { display: flex; gap: 3px; align-items: flex-end; height: 18px; margin-top: 4px; }
+.bars i { flex: 1; border-radius: 3px; background: var(--ab); opacity: .85; transition: background .35s; }
+.bars i:first-child { background: linear-gradient(180deg, var(--a), var(--g2)); }
+.btn { border-radius: 99px; padding: 8px; text-align: center; font-size: 8.5px; font-weight: 700; color: #fff; letter-spacing: .03em; background: linear-gradient(90deg, var(--a), var(--g2)); transition: background .35s; }
+.tabbar { margin: 8px auto 10px; display: flex; gap: 4px; background: #fff; border: 1px solid var(--bd); border-radius: 99px; padding: 4px; box-shadow: 0 6px 16px rgba(30, 20, 60, .08); }
+.tabbar i { width: 24px; height: 17px; border-radius: 99px; display: block; position: relative; }
+.tabbar i::after { content: ""; position: absolute; inset: 5px 8px; border-radius: 2px; border: 1.4px solid #A9A9C0; }
+.tabbar i.on { background: linear-gradient(90deg, var(--a), var(--g2)); }
+.tabbar i.on::after { border-color: #fff; }
+.h { font-size: 13px; font-weight: 700; margin: 2px 0 0; }
+.h span { color: var(--a); transition: color .35s; }
+.prog { height: 4px; border-radius: 4px; background: var(--s2); margin-top: 6px; overflow: hidden; }
+.prog i { display: block; height: 100%; width: 25%; background: linear-gradient(90deg, var(--a), var(--g2)); }
+.ex { display: flex; align-items: center; gap: 6px; background: var(--s2); border-radius: 9px; padding: 6px 7px; font-size: 8px; font-weight: 500; transition: background .35s; }
+.ex .n { width: 14px; height: 14px; border-radius: 50%; background: #fff; color: var(--a); font-size: 7px; font-weight: 700; display: grid; place-items: center; }
+.ex .sr { margin-left: auto; font-size: 6.5px; color: var(--a); border: 1px solid var(--ab); border-radius: 5px; padding: 1px 4px; }
+.day { font-size: 7px; color: var(--a); font-weight: 700; letter-spacing: .06em; }
+
+/* ---------- Fichas ---------- */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 14px; }
+.opt { all: unset; box-sizing: border-box; cursor: pointer; background: var(--panel); border: 1.5px solid var(--line); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px; transition: border-color .2s, transform .2s; min-width: 0; }
+.opt:hover { transform: translateY(-2px); }
+.opt:focus-visible { outline: 2px solid var(--pick); outline-offset: 3px; }
+.opt[aria-pressed="true"] { border-color: var(--pick); }
+.sw { display: flex; height: 54px; border-radius: 12px; overflow: hidden; }
+.sw i { flex: 1; }
+.sw i.g { flex: 2; }
+.opt .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.opt b { font-family: var(--display); font-size: 19px; font-weight: 700; }
+.opt small { font-size: 12px; color: var(--muted); }
+.opt p { margin: 0; font-size: 14px; color: var(--muted); }
+.sel { font-size: 12px; font-weight: 700; color: var(--pick); visibility: hidden; }
+.opt[aria-pressed="true"] .sel { visibility: visible; }
+
+/* ---------- Cierre ---------- */
+.next { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px; }
+.step { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.step b { font-family: var(--display); font-size: 17px; }
+.step p { margin: 0; color: var(--muted); font-size: 14.5px; }
+.copy { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.copy button { font: 700 14px var(--body); color: #fff; background: var(--acc, #7c6aff); border: 0; border-radius: 99px; padding: 11px 18px; cursor: pointer; transition: background .35s; }
+.copy button:focus-visible { outline: 2px solid var(--pick); outline-offset: 3px; }
+.copy span { font-size: 14px; color: var(--muted); }
+footer { font-size: 13px; color: var(--muted); }
+
+@media (max-width: 760px) {
+  .stage { grid-template-columns: minmax(0, 1fr); padding: 18px; }
+  .phone { width: 200px; }
+}
+@media (max-width: 460px) { .phone.alt { display: none; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">CoachAI Pro · salma.coachaipro.ai</div>
+    <h1>Elegí el color de <span id="h-acc">tu app</span></h1>
+    <p class="lead">Salma, estas son las paletas que podemos activar en tu app en el día. Tocá cada una y mirá cómo quedan la pantalla de inicio y la de entrenamiento que ven tus alumnos.</p>
+  </header>
+
+  <section class="stage" aria-label="Vista previa">
+    <div class="phones">
+      <div class="phone" aria-hidden="true">
+        <div class="screen">
+          <div class="sbar"><span>9:41</span><span>●●● ▮</span></div>
+          <div class="scroll">
+            <div class="card hero">
+              <div class="ring"></div>
+              <div>
+                <div class="lbl">Entrenamientos</div>
+                <div class="big"><b>1</b>/4</div>
+                <div class="lbl">completados esta semana</div>
+              </div>
+            </div>
+            <div class="row2">
+              <div class="card">
+                <div class="lbl">Próxima comida</div>
+                <div class="t">Almuerzo</div>
+                <div class="mini">Salmón 160 g + batata 180 g + espinaca salteada</div>
+              </div>
+              <div class="card">
+                <div class="lbl">Hoy toca</div>
+                <div class="t gt">Glúteos / Femorales</div>
+                <div class="mini">Día 3 · 5 ejercicios</div>
+              </div>
+            </div>
+            <div class="row2">
+              <div class="card">
+                <div class="lbl">Calorías hoy</div>
+                <div class="kc">1.105</div>
+                <div class="bars"><i style="height:70%"></i><i style="height:100%"></i><i style="height:85%"></i><i style="height:45%"></i></div>
+              </div>
+              <div class="card">
+                <div class="lbl">Recordá</div>
+                <div class="t">Hoy tocan</div>
+                <div class="t gt">20 min de cardio</div>
+              </div>
+            </div>
+            <div class="btn">CHATEAR CON TU COACH →</div>
+          </div>
+          <div class="tabbar"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        </div>
+      </div>
+
+      <div class="phone alt" aria-hidden="true">
+        <div class="screen">
+          <div class="sbar"><span>9:41</span><span>●●● ▮</span></div>
+          <div class="scroll">
+            <div class="h">Hola, Paula 👋</div>
+            <div class="lbl">¿Qué vamos a entrenar hoy?</div>
+            <div class="card">
+              <div class="lbl">Esta semana</div>
+              <div class="big"><b>1</b>/4 <span class="lbl">días entrenados</span></div>
+              <div class="prog"><i></i></div>
+            </div>
+            <div class="btn">▶ COMENZAR ENTRENAMIENTO</div>
+            <div class="card" style="display:flex;flex-direction:column;gap:5px">
+              <div class="day">HOY · DÍA 3</div>
+              <div class="t gt" style="font-size:13px">Glúteos / Femorales</div>
+              <div class="ex"><span class="n">1</span>Glute bridge en máquina<span class="sr">3×15</span></div>
+              <div class="ex"><span class="n">2</span>Pull through<span class="sr">3×12</span></div>
+              <div class="ex"><span class="n">3</span>Peso muerto rumano<span class="sr">3×12</span></div>
+            </div>
+          </div>
+          <div class="tabbar"><i></i><i></i><i></i><i class="on"></i><i></i></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="now" aria-live="polite">
+      <span class="tag" id="now-tag">Ya está lista</span>
+      <div class="name" id="now-name">Violeta CoachAI</div>
+      <p id="now-desc">El color con el que arranca tu app hoy.</p>
+      <div class="chips" id="now-chips"></div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:16px">
+    <h2>Las 6 opciones</h2>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:16px">
+    <h2>¿Cómo seguimos?</h2>
+    <div class="next">
+      <div class="step"><b>Elegís una paleta</b><p>Mandale a Beto el nombre de la que más te guste. Con el botón de abajo copiás el mensaje listo para WhatsApp.</p></div>
+      <div class="step"><b>La activamos en el día</b><p>El cambio es en la configuración de tu app. Tus alumnos lo ven la próxima vez que la abren, sin reinstalar nada.</p></div>
+      <div class="step"><b>Tu logo, cuando quieras</b><p>Si nos pasás tu logo en PNG con fondo transparente, lo sumamos arriba en la app y en los mails de invitación.</p></div>
+    </div>
+    <div class="copy">
+      <button type="button" id="copy-btn">Copiar mi elección</button>
+      <span id="copy-msg">Elegida: Violeta CoachAI</span>
+    </div>
+  </section>
+
+  <footer>Los celulares muestran pantallas reales de la app con datos de ejemplo. El fondo de la app siempre es claro; lo que cambia es el color de acento y sus degradados.</footer>
+</div>
+
+<script>
+const PALETAS = [
+  { id: 'violeta', name: 'Violeta CoachAI', tag: 'Ya está lista', desc: 'El color con el que arranca tu app hoy. Violeta con un toque turquesa en los degradados.',
+    a: '#7c6aff', ab: '#9d8dff', g2: '#2ecfb5', s2: '#F3F2FE', bd: '#E9E7F5', bg: '#FAFAFF' },
+  { id: 'rosa', name: 'Rosa KING', tag: 'Ya está lista', desc: 'El rosa intenso que ya usa la app de KING. Femenino y con mucha energía.',
+    a: '#FF4F7B', ab: '#FF6B95', g2: '#E03A6F', s2: '#FFF0F4', bd: '#F4E3E9', bg: '#FAFAFB' },
+  { id: 'esmeralda', name: 'Verde esmeralda', tag: 'En el día', desc: 'Fresco y saludable. Ideal si tu marca va por el lado del bienestar y la nutrición.',
+    a: '#12A27A', ab: '#34C095', g2: '#1FB5C9', s2: '#E9F7F1', bd: '#DCEEE6', bg: '#F8FBFA' },
+  { id: 'oceano', name: 'Azul océano', tag: 'En el día', desc: 'Profesional y de confianza. Se lleva bien con marcas deportivas.',
+    a: '#2F6BFF', ab: '#5B8CFF', g2: '#22C3E6', s2: '#EDF2FF', bd: '#E1E8F7', bg: '#F8FAFF' },
+  { id: 'coral', name: 'Coral durazno', tag: 'En el día', desc: 'Cálido y cercano. Transmite motivación sin ser agresivo.',
+    a: '#F2683F', ab: '#FF8F6B', g2: '#F7A928', s2: '#FFF1EA', bd: '#F5E4DB', bg: '#FFFBF9' },
+  { id: 'grafito', name: 'Grafito elegante', tag: 'En el día', desc: 'Sobrio y minimalista. Para una estética premium, casi en blanco y negro.',
+    a: '#27263A', ab: '#4A4960', g2: '#7A7890', s2: '#F0F0F4', bd: '#E3E3EA', bg: '#FAFAFB' },
+];
+
+const root = document.documentElement;
+const phones = document.querySelectorAll('.phone');
+const grid = document.getElementById('grid');
+let current = PALETAS[0];
+
+function aplicar(p) {
+  current = p;
+  phones.forEach(ph => {
+    ph.style.setProperty('--a', p.a); ph.style.setProperty('--ab', p.ab); ph.style.setProperty('--g2', p.g2);
+    ph.style.setProperty('--s2', p.s2); ph.style.setProperty('--bd', p.bd); ph.style.setProperty('--pbg', p.bg);
+  });
+  root.style.setProperty('--acc', p.a);
+  document.getElementById('now-name').textContent = p.name;
+  document.getElementById('now-desc').textContent = p.desc;
+  document.getElementById('now-tag').textContent = p.tag;
+  document.getElementById('now-chips').innerHTML =
+    [['Principal', p.a], ['Suave', p.ab], ['Degradado', p.g2], ['Fondo de tarjeta', p.s2]]
+      .map(([n, c]) => `<span class="chip"><i style="background:${c}"></i>${n} · ${c}</span>`).join('');
+  grid.querySelectorAll('.opt').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.id === p.id)));
+  document.getElementById('copy-msg').textContent = 'Elegida: ' + p.name;
+  try { localStorage.setItem('salma_paleta', p.id); } catch (e) {}
+}
+
+grid.innerHTML = PALETAS.map(p => `
+  <button class="opt" type="button" data-id="${p.id}" aria-pressed="false" id="opt-${p.id}">
+    <div class="sw"><i class="g" style="background:linear-gradient(90deg, ${p.a}, ${p.g2})"></i><i style="background:${p.ab}"></i><i style="background:${p.s2}"></i></div>
+    <div class="top"><b>${p.name}</b><small>${p.tag}</small></div>
+    <p>${p.desc}</p>
+    <span class="sel">✓ Elegida</span>
+  </button>`).join('');
+grid.addEventListener('click', e => {
+  const b = e.target.closest('.opt'); if (!b) return;
+  aplicar(PALETAS.find(p => p.id === b.dataset.id));
+});
+
+let inicial = PALETAS[0];
+try { const s = localStorage.getItem('salma_paleta'); inicial = PALETAS.find(p => p.id === s) || inicial; } catch (e) {}
+aplicar(inicial);
+
+document.getElementById('copy-btn').addEventListener('click', () => {
+  const txt = `¡Hola Beto! Para mi app elijo la paleta "${current.name}" 🎨`;
+  const msg = document.getElementById('copy-msg');
+  navigator.clipboard.writeText(txt)
+    .then(() => { msg.textContent = 'Copiado. Pegalo en WhatsApp.'; })
+    .catch(() => { msg.textContent = txt; });
+});
+</script>
+</body>
+</html>

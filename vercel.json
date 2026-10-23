@@ -42,6 +42,10 @@
       "destination": "/presentacion.html"
     },
     {
+      "source": "/colores-salma",
+      "destination": "/colores-salma.html"
+    },
+    {
       "source": "/jesus",
       "destination": "/index.html"
     },
