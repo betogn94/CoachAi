@@ -12,7 +12,8 @@
     "chat:cerebro": "node scripts/build-chat-prompt.mjs",
     "chat:cerebro:check": "node scripts/build-chat-prompt.mjs --check",
     "test:chat-message": "node scripts/test-chat-message.mjs && node scripts/test-chat-message-handler.mjs && node scripts/test-chat-message-planes.mjs",
-    "test:cierre-semana": "node scripts/test-cierre-semana.mjs"
+    "test:cierre-semana": "node scripts/test-cierre-semana.mjs",
+    "test:plan-generate": "node scripts/test-plan-generate.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

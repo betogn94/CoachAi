@@ -201,6 +201,34 @@ export async function guardarAlertasDieta({ usuarioId, planId, issues }) {
   }
 }
 
+// ─── 3.5.f — generación de planes en el servidor (/api/plan-generate: la renovación de rutina) ───
+
+/**
+ * Igual que `cargarContexto` (el prompt necesita historial y diario para salir idéntico al de la PWA)
+ * + lo que la elegibilidad de la renovación lee de `currentUser` (rol, email, self_serve) y los
+ * cierres con su `semana_num` (cadencia 4/8/12).
+ */
+export async function cargarContextoPlan({ authUid, fecha, lang }) {
+  const filas = await sb(`/usuarios?auth_id=eq.${encodeURIComponent(authUid)}&select=${COLS_USUARIO},role,email,created_at,self_serve&limit=1`);
+  const usuario = filas && filas[0];
+  if (!usuario) return null;
+  const uid = usuario.id;
+  const desde = fechaMas(fecha, -90);
+  const [planes, cierres, historial, diario] = await Promise.all([
+    sb(`/planes_semanales?usuario_id=eq.${uid}&select=tipo,contenido,fecha_entrega,semana_iso,updated_at,origen&order=updated_at.desc`),
+    sb(`/cierres_semanales?usuario_id=eq.${uid}&select=semana_num,fecha_fin&order=semana_num.asc`),
+    sb(`/historial_chat?usuario_id=eq.${uid}&select=fecha,mensajes,conversation_history&order=fecha.asc`),
+    sb(`/progreso_diario?usuario_id=eq.${uid}&fecha=gte.${desde}&select=fecha,desayuno,almuerzo,merienda,cena,calorias_consumidas,proteinas_g,carbos_g,grasas_g,entreno,ejercicios_realizados,notas_entreno&order=fecha.asc`),
+  ]);
+  const ctx = armarCtx({ usuario, planes, cierres, historial, diario, fecha, lang });
+  return { usuario, ctx, planes: planes || [], cierres: cierres || [] };
+}
+
+/** `renovGenerate` L31397: los días y el foco elegidos en el wizard, a `usuarios` (solo esas 2 columnas). */
+export async function actualizarPreferenciasRutina(usuarioId, dias, foco) {
+  await sb(`/usuarios?id=eq.${encodeURIComponent(usuarioId)}`, { method: 'PATCH', prefer: 'return=minimal', body: { dias_entreno: dias, foco_entreno: foco } });
+}
+
 // ─── 3.5.e — el cierre semanal en el servidor (lo que ejecutarCierreSemana / autoCloseEndedWeeks /
 // autoRepeatPlans / autoAdjustDiet / checkAndAwardLogros hacían en el cliente) ───
 
