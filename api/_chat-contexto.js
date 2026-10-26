@@ -229,6 +229,37 @@ export async function actualizarPreferenciasRutina(usuarioId, dias, foco) {
   await sb(`/usuarios?id=eq.${encodeURIComponent(usuarioId)}`, { method: 'PATCH', prefer: 'return=minimal', body: { dias_entreno: dias, foco_entreno: foco } });
 }
 
+// ─── 3.6.x — primeros planes en el servidor (/api/plan-generate: primeros_estado + primeros) ───
+
+/** `get_my_migration` con la service key: los planes precargados por el coach en la invitación (o null). */
+export async function leerMigracion(email) {
+  if (!email) return null;
+  const filas = await sb(`/beta_invitados?email=ilike.${encodeURIComponent(String(email).trim())}&select=pre_rutina,pre_dieta,migrada_de_coach&limit=1`);
+  return (filas && filas[0]) || null;
+}
+
+/** `migrateClientPreloadedPlans` L24482: inserta los planes del coach; ignoreDuplicates = idempotente si se repite la llamada. */
+export async function insertarPlanesMigrados(rows) {
+  if (!rows.length) return [];
+  const ins = await sb(`/planes_semanales?on_conflict=usuario_id,tipo,semana_iso`, { method: 'POST', prefer: 'resolution=ignore-duplicates,return=representation', body: rows });
+  return ins || [];
+}
+
+/** `clear_my_migration`: one-shot, para que una segunda entrada no re-inserte. */
+export async function limpiarMigracion(email) {
+  await sb(`/beta_invitados?email=ilike.${encodeURIComponent(String(email).trim())}`, { method: 'PATCH', prefer: 'return=minimal', body: { pre_rutina: null, pre_dieta: null } });
+}
+
+/** Alertas de una dieta MIGRADA (`source='migration'`, L24494): solo inserta, no limpia (la dieta del coach no tiene alertas previas). */
+export async function insertarAlertasDieta({ usuarioId, planId, issues, source }) {
+  if (!issues || !issues.length) return;
+  try {
+    await sb('/dieta_consistency_alerts', { method: 'POST', prefer: 'return=minimal', body: issues.map((i) => ({ usuario_id: usuarioId, plan_id: planId, source, severity: i.severity, issue_type: i.type, details: i })) });
+  } catch (e) {
+    console.warn('[plan-generate] dieta_consistency_alerts (migración):', e?.message || e);
+  }
+}
+
 // ─── 3.5.e — el cierre semanal en el servidor (lo que ejecutarCierreSemana / autoCloseEndedWeeks /
 // autoRepeatPlans / autoAdjustDiet / checkAndAwardLogros hacían en el cliente) ───
 
