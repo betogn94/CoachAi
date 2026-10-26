@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261026-1301-feat--capa-de-tema-generica-theme-brand">
+<meta name="app-version" content="20261026-1306-fix--ajustes-de-contraste-theme-brand">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -43097,6 +43097,17 @@ body.theme-brand .cai-perfil-info-head:active {
   background: transparent !important;
 }
 }
+
+/* Pastilla "HOY" en Mi Entreno: la regla general "body.theme-brand div {color:var(--text)}"
+   le pinta el texto del color del acento → con un acento oscuro queda negro sobre negro. */
+body.theme-brand .cai-entv2-card-hoy { color: #fff !important; }
+/* Puntito del pie del menú: el brillo base es turquesa (KING nunca lo pisó). */
+@keyframes navFooterPulse__brand {
+  0%   { box-shadow: 0 0 0 0 rgba(var(--brand-ab-rgb), 0.55); }
+  70%  { box-shadow: 0 0 0 10px rgba(var(--brand-ab-rgb), 0); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--brand-ab-rgb), 0); }
+}
+body.theme-brand .nav-footer-pulse { animation-name: navFooterPulse__brand !important; }
 </style><!-- /THEME-BRAND -->
 
   <div class="br-overlay" id="browser-reminder-overlay">

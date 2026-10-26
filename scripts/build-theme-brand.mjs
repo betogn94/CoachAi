@@ -168,6 +168,21 @@ function walk(nodes) {
 }
 const generated = walk(parse(css));
 
+// Ajustes propios de la capa de marca (escritos a mano). Casos donde copiar KING no
+// alcanza porque el acento de un coach puede ser OSCURO (KING es un rosa medio):
+// encontrados en el QA de qa-coach con los colores de Salma (2026-10-26).
+const PATCHES = `
+/* Pastilla "HOY" en Mi Entreno: la regla general "body.theme-brand div {color:var(--text)}"
+   le pinta el texto del color del acento → con un acento oscuro queda negro sobre negro. */
+body.theme-brand .cai-entv2-card-hoy { color: #fff !important; }
+/* Puntito del pie del menú: el brillo base es turquesa (KING nunca lo pisó). */
+@keyframes navFooterPulse__brand {
+  0%   { box-shadow: 0 0 0 0 rgba(var(--brand-ab-rgb), 0.55); }
+  70%  { box-shadow: 0 0 0 10px rgba(var(--brand-ab-rgb), 0); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--brand-ab-rgb), 0); }
+}
+body.theme-brand .nav-footer-pulse { animation-name: navFooterPulse__brand !important; }`;
+
 const block = `${START}
 /* ============================================================
    GENERADO por scripts/build-theme-brand.mjs — NO editar a mano.
@@ -179,6 +194,7 @@ const block = `${START}
    ============================================================ */
 ${keyframes.join('\n')}
 ${generated.join('\n')}
+${PATCHES}
 ${END}`;
 
 const last = html.lastIndexOf('</style>');
