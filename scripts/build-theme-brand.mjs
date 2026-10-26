@@ -179,6 +179,9 @@ body.theme-brand .cai-entv2-card-hoy { color: #fff !important; }
    acento, pero sus span (día y número) heredaban --text por la misma regla general. */
 body.theme-brand .alimv2-day.sel .dw,
 body.theme-brand .alimv2-day.sel .dn { color: #fff !important; }
+/* Anillo de carbohidratos: naranja fijo para todos; en la marca, el tono claro del
+   coach a media opacidad (distinto de proteínas = acento y grasas = acento3). */
+body.theme-brand { --av2-ring-c: rgba(var(--brand-ab-rgb), 0.55); }
 /* Puntito del pie del menú: el brillo base es turquesa (KING nunca lo pisó). */
 @keyframes navFooterPulse__brand {
   0%   { box-shadow: 0 0 0 0 rgba(var(--brand-ab-rgb), 0.55); }
