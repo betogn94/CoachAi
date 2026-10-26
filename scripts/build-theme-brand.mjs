@@ -175,6 +175,10 @@ const PATCHES = `
 /* Pastilla "HOY" en Mi Entreno: la regla general "body.theme-brand div {color:var(--text)}"
    le pinta el texto del color del acento → con un acento oscuro queda negro sobre negro. */
 body.theme-brand .cai-entv2-card-hoy { color: #fff !important; }
+/* Día seleccionado de Mi Alimentación: el botón es blanco sobre el degradado del
+   acento, pero sus span (día y número) heredaban --text por la misma regla general. */
+body.theme-brand .alimv2-day.sel .dw,
+body.theme-brand .alimv2-day.sel .dn { color: #fff !important; }
 /* Puntito del pie del menú: el brillo base es turquesa (KING nunca lo pisó). */
 @keyframes navFooterPulse__brand {
   0%   { box-shadow: 0 0 0 0 rgba(var(--brand-ab-rgb), 0.55); }
