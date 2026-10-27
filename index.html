@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261026-1320-fix--anillo-de-carbos-en-la-paleta-del-coach">
+<meta name="app-version" content="20261027-1348-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12135,6 +12135,16 @@ body.alimcard-on .alimv2-meal-detail {
 .alimv2-o { font-weight: 800; color: var(--text); }
 /* Sheet de detalle */
 .alimv2-detail-desc { font-size: 13px; line-height: 1.55; color: var(--text); margin: 10px 0 12px; }
+/* Ítems de la comida en el sheet (un grupo " · " = un ítem): punto de color
+   + aire entre ítems para que se vea dónde termina uno y empieza el otro
+   (ver alimMealTextHtml). */
+.alimv2-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.alimv2-items li { position: relative; padding-left: 15px; }
+.alimv2-items li::before {
+  content: ''; position: absolute; left: 0; top: .6em; width: 7px; height: 7px;
+  border-radius: 50%; background: var(--accent);
+}
+.alimv2-item-cap { font-family: 'DM Sans', sans-serif; font-size: 11px; color: var(--muted2); letter-spacing: .4px; margin-bottom: 6px; }
 .alimv2-detail-stats { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 4px; }
 .alimv2-stat-pill {
   font-family: 'DM Sans', sans-serif; font-size: 11px;
@@ -25899,15 +25909,26 @@ try { if (ALIM_V2_ENABLED && ALIM_CARD_FIXED) document.body.classList.add('alimc
 // - " · " = grupos (proteína · carbo · grasa · infusión, dietas estilo Jesús)
 //   → una línea por grupo (sheet) o en línea con un "·" tenue (card de
 //   medida fija, `inline`). No-op para dietas de IA (no usan " · ").
+// Sheet (no inline): cada grupo es un ÍTEM con su punto de color y aire entre
+// ítems (.alimv2-items). Antes iban con <br> corrido y las clientas leían
+// "huevo o pollo / 2 galletas o avena…" como UNA sola lista de opciones sin
+// saber dónde terminaba un ítem y empezaba el otro (captura de Roxana,
+// 2026-10-27). Un primer grupo sin números y corto ("Desayuno") es el título
+// de la comida, no un ítem → va como caption sin punto. Un solo grupo (dietas
+// de IA) se muestra como texto plano, sin lista.
 function alimMealTextHtml(txt, inline) {
   const optHtml = (g) => _esc(g)
     .replace(/\s\/\s/g, ' <b class="alimv2-o">o</b> ')
     .replace(/(^|\s)o(?=\s)/g, '$1<b class="alimv2-o">o</b>');
-  return (txt || '')
-    .split(/\s·\s/)
-    .map(g => optHtml(g.trim()))
-    .filter(Boolean)
-    .join(inline ? ' <span class="av2-sep">·</span> ' : '<br>');
+  const groups = (txt || '').split(/\s·\s/).map(g => g.trim()).filter(Boolean);
+  let cap = '';
+  if (groups.length >= 2 && !/\d/.test(groups[0]) && !/\s(o|\/)\s/.test(groups[0]) && groups[0].length <= 30) {
+    cap = '<div class="alimv2-item-cap">' + _esc(groups.shift()) + '</div>';
+  }
+  // En la card (inline) el título sobra: la card ya dice el nombre de la comida.
+  if (inline) return groups.map(optHtml).join(' <span class="av2-sep">·</span> ');
+  if (groups.length < 2) return cap + groups.map(optHtml).join('');
+  return cap + '<ul class="alimv2-items">' + groups.map(g => '<li>' + optHtml(g) + '</li>').join('') + '</ul>';
 }
 
 // Día seleccionado en el strip (0=Lun..6=Dom). null = hoy. Se resetea al
