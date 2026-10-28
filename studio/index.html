@@ -4528,7 +4528,11 @@ Descanso: miércoles, domingo`,
         .filter(c => /^(desayuno|almuerzo|merienda|cena|colaci[oó]n|snack|pre[\s-]*entreno|post[\s-]*entreno|comida\s*\d*)$/i.test(c))
         .slice(0, 3);
       if (!hayDia) {
-        motivos.push('Falta el día. Poné LUNES arriba de las comidas — si come igual toda la semana, con un solo LUNES alcanza (la app lo repite los 7 días).');
+        // "Día 1" sirve en rutinas pero NO en dietas (la IA lo pone igual).
+        const diaN = lines.map(clean).find(c => /^d[ií]a\s*\d+/i.test(c));
+        motivos.push(diaN
+          ? `“${diaN}” no sirve en dietas: la app necesita el día de la semana. Cambialo por LUNES (si come igual toda la semana, con un solo LUNES alcanza: la app lo repite los 7 días).`
+          : 'Falta el día. Poné LUNES arriba de las comidas — si come igual toda la semana, con un solo LUNES alcanza (la app lo repite los 7 días).');
       }
       if (!lineasComida) {
         motivos.push(titulosSueltos.length

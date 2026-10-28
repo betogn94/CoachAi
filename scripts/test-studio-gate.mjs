@@ -53,6 +53,14 @@ const CASOS = [
 
 **MERIENDA**
 - 150g de queso cottage` },
+  { tipo: 'dieta', esperado: false, motivo: /“DÍA 1” no sirve en dietas/, nombre: 'salida real de la IA: **DÍA 1** + **DESAYUNO** (QA 2026-10-28)', txt:
+`**DÍA 1**
+
+**DESAYUNO**
+- 2 claras de huevo + 1 huevo entero
+
+**CENA**
+- 110g de carne roja` },
   { tipo: 'dieta', esperado: false, motivo: /Falta el día/, nombre: 'Comida N: bien pero sin día', txt:
 `Comida 1: Desayuno — 482kcal · P:34g C:37g G:22g
 - 2 huevos enteros
