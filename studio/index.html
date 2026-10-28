@@ -1241,6 +1241,29 @@
     .modal-msg.warn { color: var(--warning); }
     .modal-msg.err  { color: var(--danger); }
     .modal-msg.hint { color: var(--accent); }
+    .pe-gate {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--danger);
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .pe-gate.hidden { display: none; }
+    .pe-gate-title { color: var(--danger); font-weight: 700; margin-bottom: 6px; }
+    .pe-gate ul { margin: 0 0 10px; padding-left: 18px; }
+    .pe-gate li { margin: 3px 0; }
+    .pe-gate-ej-label { color: var(--text-muted); font-size: 12px; margin-bottom: 4px; }
+    .pe-gate pre {
+      margin: 0;
+      padding: 10px 12px;
+      background: var(--bg-elev-2);
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
     .btn-ghost {
       background: transparent;
       border: 1px solid var(--border);
@@ -1699,6 +1722,9 @@
         </div>
         <label class="form-label" for="pe-contenido">Contenido del plan</label>
         <textarea class="modal-textarea" id="pe-contenido" spellcheck="false" placeholder="Pegá la dieta o rutina acá. Puede venir en cualquier formato — la IA la reordena al canónico de la app cuando le des Guardar."></textarea>
+        <!-- Gate de legibilidad: qué le falta al texto para que la app lo lea
+             (lo arma showPlanGate). Oculto mientras el plan sea legible. -->
+        <div class="pe-gate hidden" id="pe-gate" role="alert"></div>
       </div>
       <div class="modal-foot">
         <span class="modal-msg" id="pe-msg"></span>
@@ -1943,6 +1969,440 @@
       <main id="content" class="content"></main>
     </section>
   </div>
+
+  <!-- BEGIN studio-plan-parsers — GENERADO por scripts/build-studio-parsers.mjs desde index.html. NO editar a mano: correr `npm run studio:parsers`. -->
+  <script>
+  // Parsers REALES de la app (copia fiel). Studio los usa para no guardar un
+  // plan que la clienta vería vacío. Expuestos como window.StudioPlanParsers.
+  window.StudioPlanParsers = (function () {
+  "use strict";
+  // parseRutinaContenido usa `lang` para el label de descanso; Studio es es.
+  let lang = 'es';
+
+function planReplyHasStructure(tipo, reply) {
+  if (!reply) return false;
+  if (tipo === 'dieta') {
+    // ^[*_#\t ]* tolera prefijos markdown (**, __, ##) y sangría antes del
+    // header, igual que el clean() del parser. Sin esto, "**LUNES**"/"## LUNES"
+    // pasaban por el parser pero el gate los rechazaba (inconsistencia).
+    const hasMarker = /Target\s*:\s*\d/i.test(reply)
+      || /^[*_#\t ]*(LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)\b/im.test(reply)
+      || /^[*_#\t ]*(Desayuno|Almuerzo|Merienda|Cena|Colaci[oó]n|Snack|Pre[\s-]*entreno|Post[\s-]*entreno|Comida(?:\s+\d+)?)\s*:/im.test(reply);
+    if (!hasMarker) return false;
+    try {
+      const p = parseDietaContenido(reply);
+      return !!(p && p.days && p.days.some(d => d.meals && d.meals.length > 0));
+    } catch (e) { return false; }
+  }
+  if (tipo === 'rutina') {
+    const hasDay = /^[*_#\t ]*(D[ií]a\s*\d|LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)/im.test(reply);
+    const hasExercise = /\d+\s*(?:series?\s*)?[×x]\s*\d+/.test(reply);
+    if (!(hasDay && hasExercise)) return false;
+    try {
+      const days = parseRutinaContenido(reply);
+      return days.some(d => !d.isRest && d.exercises && d.exercises.length > 0);
+    } catch (e) { return false; }
+  }
+  return false;
+}
+
+function parseRutinaContenido(text) {
+  if (!text || typeof text !== 'string') return [];
+  const DAY_NAMES = 'lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|monday|tuesday|wednesday|thursday|friday|saturday|sunday';
+  const days = [];
+  let current = null;
+
+  const clean = s => s.replace(/[*_#]/g, '').trim();
+  // Exercise lines come in TWO forms in real-world rutinas:
+  //   1. Marker-prefixed: numbered ("1. ", "2) ") or bullet ("• ", "- ", "* ", "– ")
+  //   2. UNMARKED but with "—" detail separator: "Sentadilla — 4 series x 8 reps — descanso: 90s"
+  //      This is how human coaches like Jesús write them when migrating from
+  //      Word/Notes/WhatsApp. The line has no bullet but the detail block
+  //      after the "—" is the telltale of an exercise (series/reps/descanso).
+  // isExercise covers both. The body extractor below strips whichever
+  // marker (if any) is present and parses name/detail off the first "—".
+  const isExercise = s => {
+    if (/^\s*(?:\d+[\.\)]|[•\-*–])\s+/.test(s)) return true;                  // marker-prefixed
+    // Unmarked: a non-empty line with "—"/"·"/"-" + a series/reps/descanso pattern after it
+    // The pattern is loose on purpose: anything resembling "X series", "X reps",
+    // "X x Y", or "descanso" in the detail half is enough.
+    if (/\s[—·–]\s/.test(s) && /(serie|rep|descanso|fallo)/i.test(s)) return true;
+    return false;
+  };
+  // Notes prefixed with the "↳" arrow are continuation lines explaining the
+  // previous exercise (Jesús uses these for execution cues + drop sets).
+  // Treated as note attached to the last exercise of the current day.
+  const isNoteLine = s => /^[↳→▸]\s+/.test(s);
+  const isDayHeader = s => {
+    const c = clean(s);
+    if (/^d[ií]a\s*\d+/i.test(c)) return true;                          // "Día 1 · ..."
+    if (new RegExp(`^(${DAY_NAMES})\\b`, 'i').test(c)) return true;      // "LUNES — PUSH"
+    return false;
+  };
+  // A real rest-day marker is a STANDALONE line that begins with "descanso"
+  // (optionally prefixed with the 🛋️ emoji or "días de"). Exercise NOTES often
+  // contain the word "descanso" in mid-sentence prose — e.g. Jesús writes
+  // things like "último set al fallo + 15 segundos descanso + fallo nuevamente"
+  // as a coaching cue under an exercise. Treating those as rest days nulls
+  // `current` and orphans all subsequent exercises of that day (the cause of
+  // the "1 ej." bug in the "resto de la semana" subcard). Anchoring to the
+  // start of the line eliminates the false positives without giving up on the
+  // legitimate standalone markers ("Descanso", "Día de descanso",
+  // "Descanso: martes, jueves", "🛋️ Descanso").
+  const isRest = s => {
+    const c = clean(s);
+    if (!c) return false;
+    if (!/^(?:🛋️?\s*)?(?:d[ií]as?\s+de\s+)?descanso\b/i.test(c)) return false;
+    // Exclude the detail-of-exercise tag form: "descanso: 90s" / "descanso 90s"
+    if (/^descanso\s*:?\s*\d+\s*s/i.test(c)) return false;
+    if (isExercise(s) || isNoteLine(s)) return false;
+    return true;
+  };
+  // Intensifier annotation that BELONGS to the previous exercise, even though
+  // it may contain words like "rep" or have an em-dash that would otherwise
+  // match isExercise. Real examples from AI-generated routines:
+  //   "Intens set 3: drop set — al llegar a fallo, bajá el peso 30%..."
+  //   "Intens set 2: rest-pause — 5s descanso, 5 reps, etc"
+  //   "Intensificador: superset con curl martillo"
+  const isIntensifierLine = s => {
+    const c = clean(s);
+    return /^(intens(?:ificador)?[\s.]*(?:set\s*\d+)?|drop\s+set|rest[\s-]?pause|superset|cluster\s+set|pausa\s+muerta)\b\s*[:.]/i.test(c);
+  };
+  // Section break — anything that signals "the day blocks ended". After a
+  // section break, bullets like "- Pesá cada semana..." (general tips) must
+  // NOT be appended to the previous day as fake exercises. Triggers on:
+  //   - "---" or "===" separators
+  //   - Emoji-prefixed non-day sections (🏃 Cardio, 🛋️ Descanso, 📌 Notas,
+  //     💡 Tips, ⚠️ Importante)
+  //   - Bold section titles that aren't days ("**Clave para resultados:**")
+  const isSectionBreak = s => {
+    const trimmed = s.trim();
+    if (/^-{3,}$/.test(trimmed)) return true;
+    if (/^={3,}$/.test(trimmed)) return true;
+    if (isDayHeader(s)) return false; // protect actual day headers
+    // Emoji prefixes that mark a non-day section
+    if (/^(🏃|🛋️|📌|💡|⚠️|🎯|📝)\s/.test(trimmed)) return true;
+    // "Clave para resultados:", "Tips importantes", "Notas:", "Recordatorios:"
+    const c = clean(s).toLowerCase();
+    // "Descanso: 90s" es el TIEMPO de descanso de un ejercicio (va inline), no un
+    // encabezado de sección. Si lo tomáramos como section break nularíamos
+    // `current` y huerfanaríamos los ejercicios que siguen (caso Marianela: la IA
+    // metió "Descanso: 90s" entre ejercicios y el parser leía 2 de 10). Un
+    // "Descanso:" seguido de número = duración → dejalo pasar (cae como nota del
+    // ejercicio anterior). "Descanso: martes, jueves" (sin número) sí es sección.
+    if (/^descanso\s*:?\s*\d/i.test(c)) return false;
+    if (/^(clave\b|tips?\b|notas?\b|consejos?\b|importante\b|recordatorios?\b|cardio\s*:|descanso\s*:)/i.test(c)) return true;
+    return false;
+  };
+  const isSkippable = s => {
+    const c = clean(s).toLowerCase();
+    if (!c) return true;
+    if (/^-{2,}$/.test(s.trim())) return true;                          // --- separators
+    if (/^═{2,}/.test(s.trim())) return true;                           // ═══ template separators
+    if (/^rutina\s+semanal\b/i.test(c)) return true;                    // "RUTINA SEMANAL — Template"
+    if (/^(💪\s*)?rutina\b/i.test(c)) return true;                      // title line
+    if (/^📋|^estructura\b|reloj de arena/i.test(c)) return true;       // meta line
+    if (/dudas|cargá tus|acordate de cargar|¿tenés alguna duda/i.test(c)) return true; // footer
+    return false;
+  };
+
+  for (const raw of text.split('\n')) {
+    const line = raw.replace(/\r/g, '');
+    const s = line.trim();
+    if (!s) continue;
+
+    if (isRest(s)) {
+      const label = clean(s).replace(/^🛋️?\s*/, '').replace(/^d[ií]as?\s+de\s+/i, '').trim();
+      days.push({ label: label || (lang === 'es' ? 'Descanso' : 'Rest'), isRest: true, exercises: [] });
+      current = null;
+      continue;
+    }
+    // Section break — bullets/lines after this point must NOT attach to the
+    // previous day as fake exercises ("Clave para resultados", "Tips", etc).
+    if (isSectionBreak(s)) {
+      current = null;
+      continue;
+    }
+    if (isSkippable(s)) {
+      current = null; // also reset on separators so post-day bullets don't leak
+      continue;
+    }
+
+    if (isDayHeader(s)) {
+      current = { label: clean(s), isRest: false, exercises: [] };
+      days.push(current);
+      continue;
+    }
+
+    // Intensifier lines are notes for the previous exercise — check BEFORE
+    // isExercise because they often contain words like "rep" that would
+    // otherwise match the exercise pattern.
+    if (isIntensifierLine(s) && current && current.exercises.length) {
+      const last = current.exercises[current.exercises.length - 1];
+      const noteBody = clean(s);
+      last.note = last.note ? `${last.note} • ${noteBody}` : noteBody;
+      continue;
+    }
+
+    if (isExercise(s) && current) {
+      // Strip the leading marker if present (numbered "1. " / "2) " OR
+      // bullet "• "/"- "/"* "/"– "). For unmarked exercises (Jesús-style)
+      // this is a no-op — the body IS the line minus markdown chars.
+      const body = clean(s).replace(/^\s*(?:\d+[\.\)]|[•\-*–])\s+/, '').trim();
+      let name = body, detail = '';
+      // Use a more permissive separator regex: hyphen-spaces or em-dash or
+      // middle-dot or en-dash. The first separator split is name vs detail.
+      const m = body.search(/\s[—·–-]\s/);
+      if (m !== -1) { name = body.slice(0, m).trim(); detail = body.slice(m + 3).trim(); }
+      current.exercises.push({ name, detail, note: '' });
+      continue;
+    }
+
+    // Note-prefixed lines (↳ arrow, used by Jesús) → attach to last exercise
+    if (isNoteLine(s) && current && current.exercises.length) {
+      const last = current.exercises[current.exercises.length - 1];
+      const noteBody = clean(s).replace(/^[↳→▸]\s+/, '').trim();
+      last.note = last.note ? `${last.note} • ${noteBody}` : noteBody;
+      continue;
+    }
+
+    // Continuation line (Babot execution cue / intensifier) → attach as note
+    if (current && current.exercises.length && !isDayHeader(s)) {
+      const last = current.exercises[current.exercises.length - 1];
+      const c = clean(s);
+      last.note = last.note ? `${last.note} ${c}` : c;
+    }
+  }
+  return days;
+}
+
+function parseDietaContenido(text) {
+  if (!text || typeof text !== 'string') return { header: null, days: [], notes: [] };
+  const DAY_NAMES_RE = /^(LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)\b/i;
+  const DAY_TO_KEY = {
+    'LUNES':'lun','MARTES':'mar','MIÉRCOLES':'mie','MIERCOLES':'mie',
+    'JUEVES':'jue','VIERNES':'vie','SÁBADO':'sab','SABADO':'sab','DOMINGO':'dom',
+  };
+  const MEAL_PREFIX = {
+    'des':           { key:'desayuno',     name:'Desayuno',     emoji:'🌅' },
+    'desayuno':      { key:'desayuno',     name:'Desayuno',     emoji:'🌅' },
+    'alm':           { key:'almuerzo',     name:'Almuerzo',     emoji:'☀️' },
+    'almuerzo':      { key:'almuerzo',     name:'Almuerzo',     emoji:'☀️' },
+    'mer':           { key:'merienda',     name:'Merienda',     emoji:'🕐' },
+    'merienda':      { key:'merienda',     name:'Merienda',     emoji:'🕐' },
+    'cena':          { key:'cena',         name:'Cena',         emoji:'🌙' },
+    'col':           { key:'colacion',     name:'Colación',     emoji:'🍎' },
+    'colacion':      { key:'colacion',     name:'Colación',     emoji:'🍎' },
+    // Pre/post-entreno: accept multiple writings since coaches like Jesús
+    // write them with hyphens ("Pre-entreno:", "Post-entreno:"). The
+    // captured prefix is normalized (lowercased + hyphens-stripped) before
+    // lookup, so all of these variants converge on the same meal type:
+    //   Pre:, Pre-entreno:, Preentreno:, pre entreno:, etc.
+    'pre':           { key:'pre-entreno',  name:'Pre-entreno',  emoji:'⚡' },
+    'preentreno':    { key:'pre-entreno',  name:'Pre-entreno',  emoji:'⚡' },
+    'post':          { key:'post-entreno', name:'Post-entreno', emoji:'💪' },
+    'postentreno':   { key:'post-entreno', name:'Post-entreno', emoji:'💪' },
+    'snack':         { key:'snack',        name:'Snack',        emoji:'🍎' },
+    // Generic "Comida" prefix — Jesús's habitual style. Each "Comida 1:",
+    // "Comida 2:", ... line gets a numbered display name via the meal-counter
+    // logic below, so the original sequence is preserved.
+    'comida':        { key:'comida',       name:'Comida',       emoji:'🍽️' },
+  };
+  // Strip accents for prefix lookup (so "Colación:" → "colacion")
+  const stripAcc = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  let header = null;
+  const days = [];
+  const notes = [];      // notas generales del plan (post "---" / "Notas…")
+  let inNotes = false;   // una vez true, las líneas son notas, no comidas
+  let current = null;
+  for (const raw of text.split('\n')) {
+    const line = raw.replace(/\r/g, '').trim();
+    if (!line) continue;
+    // Header: "Target: Xkcal/día | P:Xg C:Xg G:Xg"
+    if (!header && /Target\s*:\s*\d/i.test(line)) {
+      const tgt   = line.match(/Target\s*:\s*(\d+)\s*kcal/i);
+      const prot  = line.match(/P\s*:\s*(\d+)\s*g/i);
+      const carbs = line.match(/C\s*:\s*(\d+)\s*g/i);
+      const fat   = line.match(/G\s*:\s*(\d+)\s*g/i);
+      header = {
+        targetKcal:  tgt   ? parseInt(tgt[1])   : null,
+        targetProt:  prot  ? parseInt(prot[1])  : null,
+        targetCarbs: carbs ? parseInt(carbs[1]) : null,
+        targetFat:   fat   ? parseInt(fat[1])   : null,
+      };
+      continue;
+    }
+    const clean = line.replace(/[*_#]/g, '').trim();
+    // Fin de la sección de comidas: un separador "---" o un encabezado "Notas…"
+    // marca el inicio de las notas generales del plan. Todo lo que sigue son
+    // notas, NO comida → así no se pegan a la última comida del último día
+    // (bug: los bullets "• …" finales se adjudicaban a la Cena del domingo).
+    if (!inNotes && (/^-{3,}$/.test(clean) || /^notas\b/i.test(stripAcc(clean).toLowerCase()))) {
+      inNotes = true;
+      continue;
+    }
+    if (inNotes) {
+      const nb = clean.match(/^[-·•*]\s+(.*)$/);
+      if (nb && nb[1].trim()) notes.push(nb[1].trim());
+      continue; // ignoramos encabezados/cierres; solo juntamos los bullets
+    }
+    // Day header
+    const dm = clean.match(DAY_NAMES_RE);
+    if (dm) {
+      const upper = stripAcc(dm[1]).toUpperCase();
+      const normUpper = (upper === 'MIERCOLES' ? 'MIÉRCOLES' : upper === 'SABADO' ? 'SÁBADO' : dm[1].toUpperCase());
+      if (current) days.push(current);
+      current = { dayName: normUpper, dayKey: DAY_TO_KEY[normUpper] || DAY_TO_KEY[upper] || normUpper.slice(0,3).toLowerCase(), meals: [], totalKcal: null };
+      continue;
+    }
+    if (!current) continue;
+    // Total
+    const total = clean.match(/^Total\s*:\s*(\d+)\s*(?:kcal|cal)?/i);
+    if (total) { current.totalKcal = parseInt(total[1]); continue; }
+    // Bullet line — belongs to the most recent meal in the current day.
+    // Supports the multi-line meal style trainers like Jesús use:
+    //   Comida 1:
+    //   - 3 claras de huevo + 1 entero / 250g yogurt
+    //   - 3 galletas de arroz / 50g avena
+    //   ...
+    // Items get joined into the meal's content field at the end.
+    if (/^[-·•*]\s+/.test(clean) && current.meals.length) {
+      const lastMeal = current.meals[current.meals.length - 1];
+      const item = clean.replace(/^[-·•*]\s+/, '').trim();
+      if (item) {
+        if (!lastMeal._items) lastMeal._items = [];
+        lastMeal._items.push(item);
+      }
+      continue;
+    }
+    // Hidratación / Cardio / similar standalone notes get attached to the
+    // most recent meal as appended content (preserves Jesús's "Hidratación:
+    // 3L" line at the end of the dieta).
+    // ... handled by general meal regex below if it has a colon ...
+    // Meal: "Prefix: content — Xcal" OR "Prefix:" alone (multi-line, bullets
+    // following). Accepts letters, accents, hyphens AND an optional trailing
+    // " N" digit for the "Comida 1" / "Snack 3" style. After-colon content
+    // is OPTIONAL (`.*` not `.+`) so we recognize "Comida 1:" with bullets
+    // on next lines.
+    const mm = clean.match(/^([\wáéíóúñÁÉÍÓÚÑ-]+(?:\s+\d+)?)\s*:\s*(.*)$/);
+    if (!mm) continue;
+    const rawPrefix = mm[1].trim();
+    const prefixWord = rawPrefix.replace(/\s+\d+$/, '').trim();
+    const prefix = stripAcc(prefixWord.toLowerCase()).replace(/-/g, '');
+    const meta = MEAL_PREFIX[prefix];
+    if (!meta) continue;
+    const rest = mm[2].trim();
+    // Per-meal display name: if the source had "Comida 1" / "Comida 2"
+    // explicit numbering, preserve it. Otherwise just use the meta name.
+    // (Multiple "Comida" lines with no number get auto-suffixed below.)
+    const explicitNumMatch = rawPrefix.match(/\s+(\d+)$/);
+    const sameKindSoFar = current.meals.filter(m => m.key === meta.key).length;
+    const explicitNum = explicitNumMatch ? parseInt(explicitNumMatch[1]) : null;
+    const displayName = explicitNum
+      ? `${meta.name} ${explicitNum}`
+      : (sameKindSoFar > 0 ? `${meta.name} ${sameKindSoFar + 1}` : meta.name);
+    // Match "— 450 kcal · P:25g C:42g G:8g" (new format) OR just "— 450 kcal" (legacy).
+    // Macros are optional; if missing they default to null (summary card will
+    // fall back to proportional estimation from the daily header targets).
+    const extMatch = rest.match(/[—–-]\s*(\d+)\s*(?:kcal|cal)\s*(?:[·|·\-]\s*P\s*:?\s*(\d+)\s*g?\s*[,·\s]*C\s*:?\s*(\d+)\s*g?\s*[,·\s]*[GF]\s*:?\s*(\d+)\s*g?)?\s*$/i);
+    let content = rest, kcal = null, prot = null, carbs = null, fat = null;
+    if (extMatch) {
+      kcal = parseInt(extMatch[1]);
+      if (extMatch[2]) prot  = parseInt(extMatch[2]);
+      if (extMatch[3]) carbs = parseInt(extMatch[3]);
+      if (extMatch[4]) fat   = parseInt(extMatch[4]);
+      content = rest.substring(0, extMatch.index).replace(/[—–-]\s*$/, '').trim();
+    }
+    current.meals.push({ key: meta.key, name: displayName, emoji: meta.emoji, content, kcal, prot, carbs, fat, _items: null });
+  }
+  if (current) days.push(current);
+
+  // Flatten any multi-line bullet items collected via _items into the
+  // meal's content field. Items are joined with " · " so the rendered
+  // card shows them as one "alternatives" line — visually matches
+  // Jesús's intent (each line is an option set within a meal).
+  for (const day of days) {
+    for (const meal of day.meals) {
+      if (meal._items && meal._items.length) {
+        const joined = meal._items.join(' · ');
+        meal.content = meal.content ? `${meal.content} · ${joined}` : joined;
+      }
+      delete meal._items;
+    }
+  }
+
+  // TOTAL DIARIO COHERENTE: cuando las comidas del día traen kcal, el "Total"
+  // del día = la SUMA real de sus comidas, NO el número que escribió la IA
+  // (Haiku a veces anuncia un total que no cuadra con sus comidas: suman 2000
+  // pero escribe "Total: 2400"). Es determinístico → el total mostrado SIEMPRE
+  // cuadra con las comidas. Las dietas SIN kcal por comida (texto plano de
+  // coach) conservan su total tal cual (el loop las saltea).
+  for (const day of days) {
+    const withK = day.meals.filter(m => m.kcal != null);
+    if (!withK.length) continue;
+    day.totalKcal = withK.reduce((s, m) => s + (m.kcal || 0), 0);
+    if (withK.some(m => m.prot != null)) {
+      day.totalProt  = withK.reduce((s, m) => s + (m.prot  || 0), 0);
+      day.totalCarbs = withK.reduce((s, m) => s + (m.carbs || 0), 0);
+      day.totalFat   = withK.reduce((s, m) => s + (m.fat   || 0), 0);
+    }
+  }
+
+  // COHERENCIA OBJETIVO ↔ DIETA: el "objetivo diario" (header) debe reflejar lo
+  // que realmente suma la dieta. Si las comidas traen kcal/macros, derivamos el
+  // header del PROMEDIO de los días (la fuente de verdad de lo que el usuario come
+  // si cumple el plan). La línea "Target:" del texto queda solo como fallback para
+  // dietas sin kcal por comida. Sin esto CoachAI se contradecía: el card decía
+  // p.ej. 2320 kcal pero la dieta sumaba 1820, el "cumplí mi dieta" no daba
+  // sensación de logro, y el análisis del cierre reportaba un "déficit" FALSO de
+  // ~500 kcal/día contra un objetivo que la propia app jamás iba a alcanzar con
+  // ese plan. Ahora cumplir la dieta = cumplir el objetivo, en card + gráfico +
+  // análisis (todos leen este header).
+  const _deriveHeader = (hdr, dayList) => {
+    const withK = (dayList || []).filter(d => d.meals && d.meals.some(m => m.kcal != null));
+    if (!withK.length) return hdr;
+    const sumDay = (d, fn) => d.meals.reduce((s, m) => s + (fn(m) || 0), 0);
+    const avg = (fn) => Math.round(withK.reduce((s, d) => s + sumDay(d, fn), 0) / withK.length);
+    const dk = avg(m => m.kcal);
+    if (dk <= 0) return hdr;
+    const out = { ...(hdr || {}) };
+    out.targetKcal = dk;
+    if (withK.some(d => d.meals.some(m => m.prot != null))) {
+      out.targetProt  = avg(m => m.prot);
+      out.targetCarbs = avg(m => m.carbs);
+      out.targetFat   = avg(m => m.fat);
+    }
+    return out;
+  };
+
+  // Template mode: a single day with meals is a common style for trainers
+  // who give "the same dieta every day" (Jesús writes Virginia like this).
+  // Replicate the day to all 7 so the user can navigate Lun→Dom and see the
+  // same meals every day. Days that already exist (e.g. user wrote both
+  // LUNES and MARTES with different content) are kept as authored.
+  if (days.length === 1 && days[0].meals.length > 0) {
+    const template = days[0];
+    const dayKeys  = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
+    const dayNames = ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO'];
+    const expanded = dayKeys.map((k, i) => ({
+      dayName: dayNames[i],
+      dayKey: k,
+      // Shallow clone of each meal so per-day done-state tracking stays
+      // independent across days (the user can check Comida 1 done on
+      // Lunes without affecting Martes).
+      meals: template.meals.map(m => ({ ...m })),
+      totalKcal: template.totalKcal,
+    }));
+    return { header: _deriveHeader(header, expanded), days: expanded, notes };
+  }
+
+  return { header: _deriveHeader(header, days), days, notes };
+}
+
+  return { planReplyHasStructure, parseRutinaContenido, parseDietaContenido };
+  })();
+  </script>
+  <!-- END studio-plan-parsers -->
 
   <script>
   // =====================================================================
@@ -3904,7 +4364,8 @@
   // the content through AI to normalize the format (paste-from-anywhere
   // → canonical structure the app's parsers understand), and the second
   // click commits to DB. The AI step is non-blocking: if /api/chat fails
-  // or returns nothing, the coach can still save the raw text.
+  // or returns nothing, the coach can still save the raw text — PERO solo si
+  // la app lo puede leer (gate de legibilidad, planGateCheck).
 
   // The clienta whose plan is being edited. Set when openPlanEditor runs,
   // read by savePlan to know whose usuarios row to upsert against.
@@ -3942,6 +4403,7 @@
     const msg = document.getElementById('pe-msg');
     msg.textContent = '';
     msg.className = 'modal-msg';
+    showPlanGate(tipo, null);
     const btn = document.getElementById('pe-save');
     btn.textContent = 'Guardar';
     btn.disabled = false;
@@ -4016,6 +4478,109 @@ Agrupá por día (LUNES, MARTES, ... o "Día 1, Día 2" si así viene) y dentro 
     }
   }
 
+  // GATE DE LEGIBILIDAD — nunca guardar un plan que la app de la clienta no
+  // puede leer (Roxana 2026-10-23, Ana 2026-10-28: dieta cruda con
+  // "**DESAYUNO**" sin día → Alimentación vacía + `plan_unparseable_on_load`).
+  // Usa la MISMA función con la que la app decide si el plan es legible
+  // (planReplyHasStructure, copia fiel en window.StudioPlanParsers — ver
+  // scripts/build-studio-parsers.mjs). Si el gate dice ok, la app lo lee.
+  const PLAN_EJEMPLO = {
+    dieta: `Plan nutricional — Ana | Target: 1620 kcal/día | P:130g C:160g G:55g
+
+LUNES
+Comida 1: Desayuno
+- 2 huevos enteros + 0.5 scoop de proteína
+- 140g de camote / 2 tostadas de pan
+Comida 2: Almuerzo
+- 120g de carne magra
+- 220g de camote / 130g de arroz`,
+    rutina: `Día 1 · Glúteos y femorales
+1. Hip thrust — 4×10 · desc 90s
+2. Peso muerto rumano — 3×12
+Día 2 · Tren superior
+1. Press militar — 4×8
+Descanso: miércoles, domingo`,
+  };
+
+  // → { ok, motivos: [texto para el coach] }. `ok` sale SOLO de
+  // planReplyHasStructure; los motivos son un diagnóstico aproximado para
+  // decirle al coach qué arreglar (no deciden nada).
+  function planGateCheck(tipo, text) {
+    const P = window.StudioPlanParsers;
+    if (!P) {
+      // Solo pasa si el bloque generado no cargó (bug nuestro). No trabamos
+      // al coach por eso: mismo comportamiento que antes del gate.
+      console.error('[studio] StudioPlanParsers no cargó — gate de legibilidad desactivado');
+      return { ok: true, motivos: [] };
+    }
+    const src = text || '';
+    if (P.planReplyHasStructure(tipo, src)) return { ok: true, motivos: [] };
+
+    const lines = src.split('\n').map(l => l.replace(/\r/g, '').trim()).filter(Boolean);
+    const clean = l => l.replace(/[*_#]/g, '').trim();
+    const motivos = [];
+    if (tipo === 'dieta') {
+      const parsed = P.parseDietaContenido(src);
+      const hayDia = parsed.days.length > 0;
+      const MEAL = /^(Desayuno|Almuerzo|Merienda|Cena|Colaci[oó]n|Snack|Pre[\s-]*entreno|Post[\s-]*entreno|Comida(?:\s+\d+)?)\s*:/i;
+      const lineasComida = lines.filter(l => MEAL.test(clean(l))).length;
+      const titulosSueltos = lines.map(clean)
+        .filter(c => /^(desayuno|almuerzo|merienda|cena|colaci[oó]n|snack|pre[\s-]*entreno|post[\s-]*entreno|comida\s*\d*)$/i.test(c))
+        .slice(0, 3);
+      if (!hayDia) {
+        motivos.push('Falta el día. Poné LUNES arriba de las comidas — si come igual toda la semana, con un solo LUNES alcanza (la app lo repite los 7 días).');
+      }
+      if (!lineasComida) {
+        motivos.push(titulosSueltos.length
+          ? `Las comidas no están en el formato de la app: “${titulosSueltos.join('”, “')}” tienen que ser “Comida 1: Desayuno”, “Comida 2: Almuerzo”… (con los dos puntos).`
+          : 'No encontré ninguna comida. Cada una tiene que arrancar con “Comida 1:”, “Comida 2:”… y los alimentos abajo, cada uno con “- ”.');
+      } else if (hayDia) {
+        motivos.push('Las comidas tienen que ir DEBAJO del día (LUNES…), no arriba.');
+      }
+    } else {
+      const days = P.parseRutinaContenido(src);
+      const hayDia = lines.some(l => /^[*_#\t ]*(D[ií]a\s*\d|LUNES|MARTES|MI[EÉ]RCOLES|JUEVES|VIERNES|S[AÁ]BADO|DOMINGO)/i.test(l));
+      const haySeries = /\d+\s*(?:series?\s*)?[×x]\s*\d+/.test(src);
+      const hayEj = days.some(d => !d.isRest && d.exercises && d.exercises.length);
+      if (!hayDia) motivos.push('Falta el encabezado de cada día: “Día 1 · Glúteos”, “Día 2 · Tren superior”…');
+      if (!haySeries) motivos.push('Ningún ejercicio tiene series×reps que la app entienda. Escribilos como “4×10” o “4 series x 10”.');
+      if (hayDia && haySeries && !hayEj) motivos.push('Los ejercicios tienen que ir numerados debajo de cada día: “1. Hip thrust — 4×10”.');
+    }
+    if (!motivos.length) motivos.push(`La app no encuentra ${tipo === 'dieta' ? 'días con comidas' : 'días con ejercicios'} en este texto.`);
+    return { ok: false, motivos };
+  }
+
+  // Pinta (o esconde, con null) el panel de "qué falta" bajo el textarea.
+  // Todo con textContent: el texto del coach nunca entra como HTML.
+  function showPlanGate(tipo, gate) {
+    const box = document.getElementById('pe-gate');
+    if (!box) return;
+    box.replaceChildren();
+    if (!gate || gate.ok) { box.classList.add('hidden'); return; }
+    const el = (tag, cls, txt) => { const n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; };
+    box.appendChild(el('div', 'pe-gate-title', `La app no puede leer ${tipo === 'dieta' ? 'esta dieta' : 'esta rutina'} — la clienta la vería vacía.`));
+    const ul = el('ul');
+    gate.motivos.forEach(m => ul.appendChild(el('li', null, m)));
+    box.appendChild(ul);
+    box.appendChild(el('div', 'pe-gate-ej-label', 'Formato que la app lee (ejemplo):'));
+    box.appendChild(el('pre', null, PLAN_EJEMPLO[tipo] || ''));
+    box.classList.remove('hidden');
+  }
+
+  // Plan ilegible → no se guarda. El próximo click vuelve a pasar el texto por
+  // la IA (que respeta el contenido); si el coach lo arregla a mano, el input
+  // listener lo detecta y habilita guardar sin otra pasada de IA.
+  function blockUnreadablePlan(gate, texto) {
+    const btn = document.getElementById('pe-save');
+    const msg = document.getElementById('pe-msg');
+    showPlanGate(_planTipo, gate);
+    msg.textContent = texto;
+    msg.className = 'modal-msg err';
+    _planNormalized = false;
+    btn.disabled = false;
+    btn.textContent = 'Reintentar con IA';
+  }
+
   // Save flow: first click → AI normalize + show in textarea for review.
   // Second click → upsert to planes_semanales. Done as one handler with
   // _planNormalized state so the button stays a single "Guardar" → then
@@ -4063,12 +4628,22 @@ Agrupá por día (LUNES, MARTES, ... o "Día 1, Día 2" si así viene) y dentro 
       btn.textContent = '⏳ Procesando con IA…';
       msg.textContent = '';
       const norm = await aiNormalizePlan(_planTipo, contenido);
+      if (norm) ta.value = norm;
+      // Aunque la IA haya respondido, su texto puede seguir sin ser legible
+      // para la app → mismo gate que al guardar, así el coach se entera ya.
+      const gate = planGateCheck(_planTipo, ta.value);
+      if (!gate.ok) {
+        blockUnreadablePlan(gate, norm
+          ? '✗ Aun ordenado por la IA, la app no puede leer este plan. No se guardó.'
+          : '✗ La IA no respondió y la app no puede leer este texto. No se guardó — reintentá o ajustalo al ejemplo.');
+        return;
+      }
+      showPlanGate(_planTipo, null);
       if (norm) {
-        ta.value = norm;
         msg.textContent = '✨ La IA ordenó el plan (sin cambiar contenido). Revisalo y tocá "Confirmar y guardar".';
         msg.className = 'modal-msg hint';
       } else {
-        msg.textContent = '⚠ No se pudo formatear con IA. Revisá el texto y guardalo tal cual.';
+        msg.textContent = '⚠ La IA no respondió, pero el texto ya está en un formato que la app lee. Revisalo y tocá "Confirmar y guardar".';
         msg.className = 'modal-msg warn';
       }
       _planNormalized = true;
@@ -4077,7 +4652,13 @@ Agrupá por día (LUNES, MARTES, ... o "Día 1, Día 2" si así viene) y dentro 
       return;
     }
 
-    // STEP 2 — commit to DB.
+    // STEP 2 — commit to DB. Gate otra vez sobre el texto FINAL (el coach pudo
+    // editarlo después de la IA): ilegible → no llega a planes_semanales.
+    const gate = planGateCheck(_planTipo, ta.value.trim());
+    if (!gate.ok) {
+      blockUnreadablePlan(gate, '✗ La app no puede leer este plan — no se guardó. Abajo te digo qué falta.');
+      return;
+    }
     btn.disabled = true;
     btn.textContent = 'Guardando…';
     try {
@@ -4134,13 +4715,28 @@ Agrupá por día (LUNES, MARTES, ... o "Día 1, Día 2" si así viene) y dentro 
   });
   // If the coach edits the textarea after the AI normalization, treat it
   // as still "review needed" → don't skip the second click.
-  document.getElementById('pe-contenido')?.addEventListener('input', () => {
-    if (_planNormalized) {
-      // Re-arm: another normalization pass before commit. We don't reset
-      // _planNormalized to false here — that would re-trigger AI on next
-      // click. Instead we just make the button reflect the new state.
-      const btn = document.getElementById('pe-save');
-      if (btn) btn.textContent = 'Confirmar y guardar';
+  document.getElementById('pe-contenido')?.addEventListener('input', (e) => {
+    // Después del 1er click (o con el panel de "qué falta" abierto) →
+    // revalidar en vivo. Si el coach lo dejó legible a mano, se habilita
+    // guardar sin otra pasada de IA; si lo rompió, se avisa ya (el STEP 2
+    // vuelve a correr el gate igual antes del upsert).
+    const gateBox = document.getElementById('pe-gate');
+    const gateOpen = gateBox && !gateBox.classList.contains('hidden');
+    if (gateOpen || _planNormalized) {
+      const gate = planGateCheck(_planTipo, e.target.value);
+      if (gate.ok && gateOpen) {
+        showPlanGate(_planTipo, null);
+        const msg = document.getElementById('pe-msg');
+        msg.textContent = '✓ Ahora la app lo lee. Tocá "Confirmar y guardar".';
+        msg.className = 'modal-msg ok';
+        _planNormalized = true;
+        const btn = document.getElementById('pe-save');
+        if (btn) btn.textContent = 'Confirmar y guardar';
+      } else if (!gate.ok) {
+        blockUnreadablePlan(gate, '✗ Así la app no puede leer el plan. Abajo te digo qué falta.');
+      }
+      // Legible y ya revisado: el botón sigue en "Confirmar y guardar" (no
+      // reseteamos _planNormalized → no se re-dispara la IA).
     }
   });
 

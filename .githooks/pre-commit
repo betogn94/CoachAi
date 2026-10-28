@@ -18,6 +18,16 @@
 set -e
 staged=$(git diff --cached --name-only)
 
+# Paridad de parsers app ↔ Studio: Studio frena planes ilegibles usando una
+# copia fiel de los parsers de index.html. Si el commit toca alguno de los dos
+# y la copia quedó vieja → abortar (fix: npm run studio:parsers + git add).
+if printf '%s\n' "$staged" | grep -qxE 'index.html|studio/index.html'; then
+  if ! node scripts/build-studio-parsers.mjs --check; then
+    echo "[pre-commit] ✗ parsers de Studio desincronizados — corré 'npm run studio:parsers' y sumá studio/index.html." >&2
+    exit 1
+  fi
+fi
+
 # ¿Está index.html en el commit? Si no, no hay nada que bustear.
 printf '%s\n' "$staged" | grep -qx 'index.html' || exit 0
 
