@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261027-1348-deploy">
+<meta name="app-version" content="20261102-1321-anfix">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -17326,6 +17326,17 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     .pd-title { font-size:16px; font-weight:800; color:var(--text,#eee); }
     .pd-close { background:none; border:none; color:var(--muted,#9a9aa8); font-size:20px; line-height:1; cursor:pointer; padding:4px 8px; font-family:inherit; }
     @media(min-width:520px){ .perfil-datos-overlay{ align-items:center; } .pd-sheet{ border-radius:22px; } }
+    /* Sheet del análisis semanal en Perfil (anfix, 2026-11-02): "Ver análisis
+       completo" lo abre acá en vez de saltar al Inicio. Reusa la sheet de "Tus
+       datos" y, adentro, el scope .cai-home-semanas para heredar el estilo del
+       análisis/fotos de la card de Home en todos los temas. */
+    .pan-chips { display:flex; gap:6px; overflow-x:auto; padding:6px 18px 2px; scrollbar-width:none; }
+    .pan-chips::-webkit-scrollbar { display:none; }
+    .pan-chip { flex:0 0 auto; border:1px solid color-mix(in srgb, var(--accent) 35%, transparent); background:transparent; color:var(--muted,#9a9aa8); border-radius:100px; padding:6px 12px; font-size:12px; font-weight:700; font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+    .pan-chip.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+    .pan-wrap.cai-home-semanas { background:none; border:none; box-shadow:none; border-radius:0; padding:6px 14px 4px; }
+    .pan-wrap .semana-transformacion { margin-top:8px; }
+    body.pan-open .foto-lightbox { z-index:6500; }
     .cph-id { flex:1; min-width:0; }
     .cph-name { font-size:18px; font-weight:800; color:var(--text,#eee); line-height:1.15; }
     .cph-goal { font-size:13px; color:var(--muted,#9a9aa8); margin-top:3px; }
@@ -17621,6 +17632,18 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
         <button class="pd-close" type="button" onclick="closePerfilDatos()" aria-label="Cerrar">✕</button>
       </div>
       <div id="perfil-datos-slot"></div>
+    </div>
+  </div>
+
+  <!-- Sheet del análisis semanal (anfix) — la abre "Ver análisis completo" de
+       ÚLTIMO ANÁLISIS. La pinta _renderPerfilAnalisisSheet(). -->
+  <div class="perfil-datos-overlay" id="perfil-analisis-overlay" onclick="if(event.target===this) closePerfilAnalisis()">
+    <div class="pd-sheet" id="pan-sheet">
+      <div class="pd-head">
+        <div class="pd-title" id="pan-title">Análisis</div>
+        <button class="pd-close" type="button" onclick="closePerfilAnalisis()" aria-label="Cerrar">✕</button>
+      </div>
+      <div id="pan-body"></div>
     </div>
   </div>
 
@@ -25898,6 +25921,20 @@ const ALIM_CARD_FIXED = (() => {
   } catch { return true; }
 })();
 try { if (ALIM_V2_ENABLED && ALIM_CARD_FIXED) document.body.classList.add('alimcard-on'); } catch (e) {}
+// ANÁLISIS SEMANAL — robustez + ver en Perfil (2026-11-02, casos Andrea/FlorL):
+// (1) "Ver análisis completo" abre una sheet en el propio Perfil (antes saltaba
+// al Inicio); (2) Perfil muestra el análisis RECIÉN HECHO aunque sea de una semana
+// vieja pendiente; (3) un reintento ante fallas transitorias de /api/chat y, si
+// igual falla, el reintento manual reusa las fotos ya subidas (no deja huérfanas).
+// `?anfix=0` apaga todo (persiste en localStorage); `?anfix=1` re-prende.
+const ANFIX = (() => {
+  try {
+    const v = new URLSearchParams(window.location.search).get('anfix');
+    if (v === '0') { try { localStorage.setItem('coachai_anfix', '0'); } catch {} return false; }
+    if (v === '1') { try { localStorage.removeItem('coachai_anfix'); } catch {} return true; }
+    return localStorage.getItem('coachai_anfix') !== '0';
+  } catch { return true; }
+})();
 
 // Texto de una comida → HTML de display (card V1/V2 y sheet de detalle).
 // Solo afecta el render: en la base queda tal cual lo pegó el coach.
@@ -28714,16 +28751,15 @@ async function renderSemanas() {
     }
 
     // AI analysis — clean text block. No eyebrow title, no decoration —
-    // just the markdown-formatted analysis + a minimal footer (date +
-    // regenerate). Headings inside come pre-styled by the .semana-analisis
-    // CSS scope (cyan bold instead of gradient hero treatment).
+    // just the markdown-formatted analysis + a minimal footer (date).
+    // Headings inside come pre-styled by the .semana-analisis CSS scope.
+    // (El botón REGENERAR se retiró el 2026-11-02 — pedido de Beto.)
     if (cierre?.analisis) {
       bodyHtml += `
         <div class="semana-analisis">
           ${formatResponse(cierre.analisis)}
           <div class="semana-analisis-footer">
             <span>CoachAI · ${formatDateShort(cierre.fecha_fin || range.end)}</span>
-            <button onclick="regenerarAnalisisSemana(${w})" id="btn-regen-${w}">${isEs?'REGENERAR':'REGENERATE'}</button>
           </div>
         </div>`;
     }
@@ -29427,6 +29463,30 @@ function hideAnalisisWait() {
   if (ov) ov.classList.remove('open');
 }
 
+// ── Robustez del análisis (anfix) ───────────────────────────────────────────
+// Fotos que un intento anterior YA subió (la IA falló después). Se reusan solo si
+// es la misma usuaria, la misma semana y los MISMOS File elegidos (si cambia una
+// foto, se sube de nuevo). Vive en memoria: recargar la app la descarta.
+let _cierreFotosSubidas = null;   // { uid, week, fFile, eFile, frente, espalda }
+function _cierreFotosReusables(frenteFile, espaldaFile) {
+  const p = _cierreFotosSubidas;
+  if (!ANFIX || !p || !currentUser) return null;
+  if (p.uid !== currentUser.id || p.week !== cierreActualWeekNum) return null;
+  if (p.fFile !== frenteFile || p.eFile !== espaldaFile) return null;
+  return (p.frente && p.espalda) ? p : null;
+}
+// ¿Reintentar el análisis? Sí: red caída ("Failed to fetch"/"Load failed"),
+// respuesta rota/vacía (sin status), timeout/caída de la función (502-504) o un
+// 500 que api/chat.js marcó retryable. No: 400/401/403/413/429 (reintentar no
+// cambia nada y gasta tope diario).
+function _analisisRetryable(e) {
+  const st = Number(e && e.status) || 0;
+  if (!st) return true;
+  if (st === 502 || st === 503 || st === 504) return true;
+  if (st === 500) return e.retryable === true;
+  return false;
+}
+
 async function ejecutarCierreSemana() {
   if (cierreInflight) return;
   // Hard gate: both this-week photos must be uploaded before we burn an AI
@@ -29483,11 +29543,17 @@ async function ejecutarCierreSemana() {
     // so we abort and let them retry (their inputs are still staged).
     let semanaFrenteUrl  = null;
     let semanaEspaldaUrl = null;
+    // anfix: si un intento anterior (misma usuaria, misma semana, MISMOS archivos)
+    // ya subió las fotos y lo que falló fue la IA, se reusan — así el reintento no
+    // vuelve a subir ni deja un par de fotos huérfanas en fotos_progreso.
+    const _prev = _cierreFotosReusables(frenteFile, espaldaFile);
     try {
-      const [frenteRes, espaldaRes] = await Promise.allSettled([
-        uploadFoto(frenteFile,  'semana', 'frente'),
-        uploadFoto(espaldaFile, 'semana', 'espalda'),
-      ]);
+      const [frenteRes, espaldaRes] = _prev
+        ? [{ status: 'fulfilled', value: _prev.frente }, { status: 'fulfilled', value: _prev.espalda }]
+        : await Promise.allSettled([
+            uploadFoto(frenteFile,  'semana', 'frente'),
+            uploadFoto(espaldaFile, 'semana', 'espalda'),
+          ]);
       if (frenteRes.status === 'fulfilled')  semanaFrenteUrl  = frenteRes.value;
       if (espaldaRes.status === 'fulfilled') semanaEspaldaUrl = espaldaRes.value;
       if (!semanaFrenteUrl || !semanaEspaldaUrl) {
@@ -29517,6 +29583,9 @@ async function ejecutarCierreSemana() {
       btn.disabled = false;
       _setBtnTxt(lang === 'es' ? '⚠ Error subiendo fotos' : '⚠ Photo upload error');
       return;
+    }
+    if (ANFIX && !_prev) {
+      _cierreFotosSubidas = { uid: currentUser.id, week: cierreActualWeekNum, fFile: frenteFile, eFile: espaldaFile, frente: semanaFrenteUrl, espalda: semanaEspaldaUrl };
     }
     // foto_url on cierres_semanales = the frente "headline" photo. Espalda
     // lives only in fotos_progreso so the column schema stays untouched.
@@ -29564,21 +29633,50 @@ async function ejecutarCierreSemana() {
       }
     } catch (e) { console.warn('[king-cierre] puntaje:', e && e.message); }
 
-    let analisis = null;
-    try {
-      analisis = await generateWeeklyAnalysis(nombre, cierreActualWeekNum, stats, objetivo, lang, {
-        inicioFrente:  inicioFrenteUrl,
-        inicioEspalda: inicioEspaldaUrl,
-        semanaFrente:  semanaFrenteUrl,
-        semanaEspalda: semanaEspaldaUrl,
-      }, kingPje);
-    } catch(e) {
-      console.error('Weekly analysis generation failed:', e);
+    const _fotosIA = {
+      inicioFrente:  inicioFrenteUrl,
+      inicioEspalda: inicioEspaldaUrl,
+      semanaFrente:  semanaFrenteUrl,
+      semanaEspalda: semanaEspaldaUrl,
+    };
+    const _nFotos = Object.values(_fotosIA).filter(Boolean).length;
+    // anfix: 1 reintento automático (2.5s) si la falla es transitoria — ver
+    // _analisisRetryable. Sin flag: un solo intento, como siempre.
+    const _maxIntentos = ANFIX ? 2 : 1;
+    let analisis = null, _anErr = null, _intentos = 0;
+    while (!analisis && _intentos < _maxIntentos) {
+      _intentos++;
+      try {
+        analisis = await generateWeeklyAnalysis(nombre, cierreActualWeekNum, stats, objetivo, lang, _fotosIA, kingPje);
+        _anErr = null;
+      } catch(e) {
+        _anErr = e;
+        console.error(`Weekly analysis generation failed (intento ${_intentos}):`, e);
+        if (_intentos < _maxIntentos && _analisisRetryable(e)) await new Promise(r => setTimeout(r, 2500));
+        else break;
+      }
     }
 
     if (!analisis) {
+      // Telemetría del fallo (antes solo quedaba en la consola del teléfono).
+      // Consultar: select * from beta_eventos where evento='analisis_fail'.
+      try {
+        trackEvent('analisis_fail', {
+          flujo: 'cierre', semana: cierreActualWeekNum, n_fotos: _nFotos, intentos: _intentos,
+          status: Number(_anErr && _anErr.status) || 0,
+          retryable: (_anErr && typeof _anErr.retryable === 'boolean') ? _anErr.retryable : null,
+          motivo: String((_anErr && _anErr.message) || _anErr || 'sin_respuesta').slice(0, 180),
+          fotos_reusables: !!(ANFIX && _cierreFotosSubidas),
+        });
+      } catch (e2) { /* la telemetría nunca rompe el flujo */ }
       btn.disabled = false;
       _setBtnTxt(lang === 'es' ? 'Error — intentá de nuevo' : 'Error — try again');
+      if (ANFIX && _cierreFotosSubidas) {
+        const _stFoto = document.getElementById('cierre-foto-status');
+        if (_stFoto) _stFoto.textContent = lang === 'es'
+          ? 'Tus fotos ya quedaron guardadas. Tocá el botón de nuevo para generar el análisis.'
+          : 'Your photos are already saved. Tap the button again to generate the analysis.';
+      }
       return;
     }
 
@@ -29606,8 +29704,17 @@ async function ejecutarCierreSemana() {
 
     _kingPjePending = kingPje;   // si el upsert falla, el retry path lo aplica después
     try {
-      await sbClient.from('cierres_semanales').upsert([lastCierrePending], { onConflict: 'usuario_id,semana_num' });
+      const { error: _upErr } = await sbClient.from('cierres_semanales').upsert([lastCierrePending], { onConflict: 'usuario_id,semana_num' });
+      // supabase-js DEVUELVE el error (no lo tira): sin esto un upsert rechazado
+      // mostraba "✓ Análisis guardado" sin haber guardado nada (anfix).
+      if (_upErr && ANFIX) throw _upErr;
       lastCierrePending = null; // success — clear cache
+      _cierreFotosSubidas = null;
+      _marcarUltimoAnalisis(cierreActualWeekNum);
+      try {
+        const _diasTarde = Math.round((Date.parse(getTodayKey()) - Date.parse(range.end)) / 86400000);
+        trackEvent('analisis_ok', { semana: cierreActualWeekNum, intentos: _intentos, n_fotos: _nFotos, dias_tarde: _diasTarde, fotos_reusadas: !!_prev });
+      } catch (e2) {}
       // King: el cierre persistió → guardar el punto del Índice de esta semana.
       try { if (_kingPjePending) { await kingCierreGuarda(_kingPjePending); _kingPjePending = null; } } catch (eK) {}
       // Reabrir el ciclo EN CALIENTE. El cierre que acabamos de guardar hace que
@@ -29643,6 +29750,7 @@ async function ejecutarCierreSemana() {
       try { if (typeof checkAndAwardLogros === 'function') checkAndAwardLogros(); } catch (eL) {}
     } catch(e) {
       console.error('Post-analysis save/refresh failed (analysis still shown):', e);
+      try { trackEvent('analisis_save_fail', { semana: cierreActualWeekNum, guardado: !lastCierrePending, motivo: String((e && e.message) || e).slice(0, 180) }); } catch (e2) {}
       _setBtnTxt(lang === 'es' ? '⚠ Análisis no guardado' : '⚠ Analysis not saved');
       if (retryBanner) {
         document.getElementById('cierre-retry-text').textContent = lang === 'es'
@@ -29658,122 +29766,8 @@ async function ejecutarCierreSemana() {
   }
 }
 
-// Re-runs generateWeeklyAnalysis for an already-closed week and overwrites the
-// row. Useful when the user uploaded a different baseline/current photo after
-// the original cierre and wants the AI to consider them. Confirms before
-// burning a fresh Claude vision call.
-// Client-side rate limit on weekly analysis regeneration. Each call is one
-// Claude vision request (~5-10¢). Without this, an attacker who got past
-// the confirm() (or a scripted abuser) could fire the function in a loop
-// from devtools and drain the API budget within minutes.
-// SECURITY NOTE: this is client-side and bypassable — proper protection
-// requires server-side rate-limiting via an edge function. This is a
-// best-effort budget protector for the common case.
-const REGEN_MIN_GAP_MS = 60 * 1000;       // 60s between regenerations of the same week
-const REGEN_DAILY_CAP_PER_USER = 5;        // max 5 regenerations/day per user
-function checkRegenRateLimit(userId, weekNum) {
-  const key = 'coachai_regen_history';
-  let store = {};
-  try { store = JSON.parse(localStorage.getItem(key) || '{}'); } catch(e) {}
-  const userStore = store[userId] || { perWeek: {}, daily: [] };
-  // Cleanup daily entries older than 24h
-  const now = Date.now();
-  userStore.daily = (userStore.daily || []).filter(ts => now - ts < 86400000);
-  if (userStore.daily.length >= REGEN_DAILY_CAP_PER_USER) {
-    return { ok: false, reason: 'daily' };
-  }
-  const lastForWeek = userStore.perWeek?.[weekNum] || 0;
-  if (now - lastForWeek < REGEN_MIN_GAP_MS) {
-    const waitSec = Math.ceil((REGEN_MIN_GAP_MS - (now - lastForWeek)) / 1000);
-    return { ok: false, reason: 'cooldown', waitSec };
-  }
-  return { ok: true };
-}
-function recordRegenAttempt(userId, weekNum) {
-  const key = 'coachai_regen_history';
-  let store = {};
-  try { store = JSON.parse(localStorage.getItem(key) || '{}'); } catch(e) {}
-  const userStore = store[userId] || { perWeek: {}, daily: [] };
-  userStore.perWeek = userStore.perWeek || {};
-  userStore.perWeek[weekNum] = Date.now();
-  userStore.daily = (userStore.daily || []).filter(ts => Date.now() - ts < 86400000);
-  userStore.daily.push(Date.now());
-  store[userId] = userStore;
-  try { localStorage.setItem(key, JSON.stringify(store)); } catch(e) {}
-}
-
-async function regenerarAnalisisSemana(weekNum) {
-  if (!currentUser) return;
-
-  // Rate-limit check BEFORE confirm — fail fast if user is over their cap.
-  const limit = checkRegenRateLimit(currentUser.id, weekNum);
-  if (!limit.ok) {
-    if (limit.reason === 'daily') {
-      showToast(lang === 'es'
-        ? `Llegaste al máximo de ${REGEN_DAILY_CAP_PER_USER} regeneraciones por día. Probá mañana.`
-        : `You've hit the daily cap of ${REGEN_DAILY_CAP_PER_USER} regenerations. Try again tomorrow.`, 'err');
-    } else {
-      showToast(lang === 'es'
-        ? `Esperá ${limit.waitSec}s antes de regenerar esta semana de vuelta.`
-        : `Wait ${limit.waitSec}s before regenerating this week again.`, 'err');
-    }
-    return;
-  }
-
-  const ok = confirm(lang === 'es'
-    ? '¿Generar un nuevo análisis para esta semana? (consume una llamada a la IA)'
-    : 'Generate a new analysis for this week? (uses one AI call)');
-  if (!ok) return;
-
-  const uidAtStart = currentUser.id;
-  recordRegenAttempt(uidAtStart, weekNum);
-
-  const btn = document.getElementById(`btn-regen-${weekNum}`);
-  if (btn) { btn.disabled = true; btn.textContent = lang === 'es' ? '⏳ REGENERANDO...' : '⏳ REGENERATING...'; }
-  showAnalisisWait();
-
-  try {
-    const cierre = cierresSemanales.find(c => c.semana_num === weekNum);
-    if (!cierre) throw new Error('Cierre no encontrado');
-
-    const createdAt = currentUser.created_at || new Date().toISOString();
-    const range = getWeekRange(createdAt, weekNum);
-    const stats = computeWeekStats(recentDiario, range);
-    const nombre = document.getElementById('f-nombre').value.trim();
-    const objetivo = selections.objetivo || '';
-
-    // Pick fresh baseline + current photos (user may have replaced them)
-    const fotos = await loadFotosProgreso();
-    const baseline = pickBaselinePhoto(fotos);
-    const fotoInicialUrl = baseline?.url_foto || null;
-    const fotoUrl = cierre.foto_url || null;
-
-    const analisis = await generateWeeklyAnalysis(nombre, weekNum, stats, objetivo, lang, fotoUrl, fotoInicialUrl);
-    if (!analisis) throw new Error('La IA no devolvió respuesta');
-
-    // Session-switch guard
-    if (currentUser?.id !== uidAtStart) {
-      console.warn('[CoachAI] regen aborted — session switched mid-flight');
-      return;
-    }
-
-    await sbClient.from('cierres_semanales').upsert([{
-      usuario_id: uidAtStart,
-      semana_num: weekNum,
-      fecha_inicio: range.start,
-      fecha_fin: range.end,
-      foto_url: fotoUrl,
-      analisis,
-      stats: { trained: stats.trained, avgCal: stats.avgCal, avgProt: stats.avgProt, totalLogs: stats.totalLogs }
-    }], { onConflict: 'usuario_id,semana_num' });
-    await renderSemanas();
-  } catch(e) {
-    console.error('Regenerar análisis falló:', e);
-    if (btn) { btn.disabled = false; btn.textContent = lang === 'es' ? '⚠ ERROR — REINTENTAR' : '⚠ ERROR — RETRY'; }
-  } finally {
-    hideAnalisisWait();
-  }
-}
+// (regenerarAnalisisSemana + su rate-limit cliente se retiraron el 2026-11-02:
+// la opción de regenerar el análisis ya no se ofrece a las usuarias.)
 
 async function retryCierreSave() {
   if (!lastCierrePending) return;
@@ -29783,7 +29777,10 @@ async function retryCierreSave() {
   btn.disabled = true;
   btn.textContent = lang === 'es' ? 'Guardando...' : 'Saving...';
   try {
-    await sbClient.from('cierres_semanales').upsert([lastCierrePending], { onConflict: 'usuario_id,semana_num' });
+    const { error: _upErr } = await sbClient.from('cierres_semanales').upsert([lastCierrePending], { onConflict: 'usuario_id,semana_num' });
+    if (_upErr && ANFIX) throw _upErr;
+    _marcarUltimoAnalisis(lastCierrePending.semana_num);
+    _cierreFotosSubidas = null;
     lastCierrePending = null;
     // King: aplicar el puntaje del Índice que quedó pendiente del intento fallido.
     try { if (_kingPjePending) { await kingCierreGuarda(_kingPjePending); _kingPjePending = null; } } catch (eK) {}
@@ -29951,7 +29948,11 @@ CALIBRATE TONE TO THE WEEK: good week (high adherence/logging) → celebrate str
   });
   if (!response.ok) {
     const errBody = await response.text().catch(() => '');
-    throw new Error(`weekly_analysis_api_${response.status}` + (errBody ? `: ${errBody.slice(0, 200)}` : ''));
+    const err = new Error(`weekly_analysis_api_${response.status}` + (errBody ? `: ${errBody.slice(0, 200)}` : ''));
+    // status + retryable (lo manda api/chat.js) para el reintento y la telemetría.
+    err.status = response.status;
+    try { const j = JSON.parse(errBody); if (typeof j.retryable === 'boolean') err.retryable = j.retryable; } catch (e) {}
+    throw err;
   }
   let data;
   try { data = await response.json(); }
@@ -31972,6 +31973,7 @@ const _BACK_OVERLAYS = [
   { id: 'peso-log-overlay',     close: () => closePesoLog() },
   { id: 'peso-prompt-overlay',  close: () => dismissPesoPrompt() },
   { id: 'perfil-datos-overlay', close: () => closePerfilDatos() },
+  { id: 'perfil-analisis-overlay', close: () => closePerfilAnalisis() },
   { id: 'delete-account-overlay', close: () => closeDeleteAccount() },
   { id: 'cancel-sub-overlay', close: () => closeCancelSub() },
 ];
@@ -32510,10 +32512,39 @@ function renderPerfilStats(stats) {
   `).join('');
 }
 
-function renderPerfilAnalisis(cierres) {
+// "Último análisis HECHO" en este dispositivo (anfix). Un análisis diferido puede
+// caer en una semana vieja pendiente (caso Andrea: hizo la semana 1 el día 21 de
+// su proceso) y Perfil mostraba igual el de semana_num más alto → "no veo mi
+// análisis". cierres_semanales no tiene updated_at, así que lo recordamos acá:
+// {w, t} con vencimiento de 8 días (pasada una semana manda de nuevo la más alta,
+// así un análisis hecho después en OTRO dispositivo no queda tapado para siempre).
+const _ULT_ANALISIS_TTL_MS = 8 * 86400000;
+function _ultAnalisisKey() { return 'cai_ult_analisis_' + ((currentUser && currentUser.id) || 'anon'); }
+function _marcarUltimoAnalisis(week) {
+  try { localStorage.setItem(_ultAnalisisKey(), JSON.stringify({ w: week, t: Date.now() })); } catch (e) {}
+}
+function _leerUltimoAnalisis() {
+  try {
+    const o = JSON.parse(localStorage.getItem(_ultAnalisisKey()) || 'null');
+    if (!o || !Number.isInteger(o.w) || !(Date.now() - o.t < _ULT_ANALISIS_TTL_MS)) return null;
+    return o.w;
+  } catch (e) { return null; }
+}
+
+let _perfilAnalisisCierres = [];
+let _perfilAnalisisFotos = [];
+function renderPerfilAnalisis(cierres, fotos) {
   const isEs = lang === 'es';
   const container = document.getElementById('perfil-analisis-preview');
-  const last = (cierres || []).filter(c => c.analisis).sort((a,b) => b.semana_num - a.semana_num)[0];
+  const conAnalisis = (cierres || []).filter(c => c.analisis).sort((a,b) => b.semana_num - a.semana_num);
+  let last = conAnalisis[0];
+  if (ANFIX) {
+    const ult = _leerUltimoAnalisis();
+    const hit = ult && conAnalisis.find(c => c.semana_num === ult);
+    if (hit) last = hit;
+  }
+  _perfilAnalisisCierres = conAnalisis;
+  _perfilAnalisisFotos = fotos || [];
 
   if (!last) {
     container.innerHTML = `<div class="cai-perfil-analisis-empty">${isEs ? 'Cuando cierres tu primera semana, tu análisis aparecerá acá.' : 'When you close your first week, your analysis will appear here.'}</div>`;
@@ -32532,10 +32563,102 @@ function renderPerfilAnalisis(cierres) {
   container.innerHTML = `
     <div class="cai-perfil-analisis-week">${labelSemana}</div>
     <div class="cai-perfil-analisis-text">${plain}</div>
-    <button class="cai-perfil-analisis-cta" onclick="goToWeekAnalisis(${last.semana_num})" type="button">
+    <button class="cai-perfil-analisis-cta" onclick="${ANFIX ? 'openPerfilAnalisis' : 'goToWeekAnalisis'}(${last.semana_num})" type="button">
       ${isEs?'VER ANÁLISIS COMPLETO →':'SEE FULL ANALYSIS →'}
     </button>
   `;
+}
+
+// Sheet del análisis en Perfil (anfix). Antes el CTA mandaba al Seguimiento del
+// Inicio (goToWeekAnalisis) y para la clienta era "me manda al inicio" (FlorL lo
+// reportó 2 veces). Muestra fotos inicio vs esa semana + el texto, y chips para
+// ver los análisis de las otras semanas. Solo lectura: no toca la base.
+function openPerfilAnalisis(weekNum) {
+  const ov = document.getElementById('perfil-analisis-overlay');
+  if (!ov || !_perfilAnalisisCierres.length) { goToWeekAnalisis(weekNum); return; }
+  if (ov.parentElement !== document.body) document.body.appendChild(ov);
+  _renderPerfilAnalisisSheet(weekNum);
+  ov.style.display = 'flex';
+  document.body.classList.add('pan-open');   // el lightbox de fotos por encima de la sheet
+  try { trackEvent('analisis_ver', { semana: weekNum, origen: 'perfil' }); } catch (e) {}
+}
+function closePerfilAnalisis() {
+  const ov = document.getElementById('perfil-analisis-overlay');
+  if (ov) ov.style.display = 'none';
+  document.body.classList.remove('pan-open');
+}
+function _renderPerfilAnalisisSheet(weekNum) {
+  const isEs = lang === 'es';
+  const list = _perfilAnalisisCierres || [];
+  const c = list.find(x => x.semana_num === weekNum) || list[0];
+  const body = document.getElementById('pan-body');
+  if (!c || !body) return;
+  const title = document.getElementById('pan-title');
+  if (title) title.textContent = `${isEs ? 'Análisis · Semana' : 'Analysis · Week'} ${c.semana_num}`;
+
+  const chips = list.length > 1
+    ? `<div class="pan-chips">${list.map(x =>
+        `<button type="button" class="pan-chip${x.semana_num === c.semana_num ? ' on' : ''}" onclick="_renderPerfilAnalisisSheet(${x.semana_num})">${isEs ? 'Sem' : 'Wk'} ${x.semana_num}</button>`
+      ).join('')}</div>`
+    : '';
+
+  // Fotos: misma comparativa que la card de Home (renderSemanas) — inicio vs
+  // esta semana, fila frente y fila espalda si están las dos vistas.
+  const fotos = _perfilAnalisisFotos || [];
+  const inicios = fotos.filter(f => f.tipo === 'inicio');
+  const inicioFrenteUrl  = (inicios.find(f => f.vista === 'frente') || inicios.find(f => !f.vista) || pickBaselinePhoto(fotos) || {}).url_foto || null;
+  const inicioEspaldaUrl = (inicios.find(f => f.vista === 'espalda') || {}).url_foto || null;
+  const semLabel = `${isEs ? 'SEM' : 'W'} ${String(c.semana_num).padStart(2, '0')}`;
+  const esc = u => String(u || '').replace(/'/g, "\\'");
+  const half = (url, lbl, side, onclick, alt) => `
+      <div class="semana-transf-half" onclick="${onclick}">
+        <img src="${url}" alt="${alt}" loading="lazy">
+        <span class="semana-transf-lbl ${side}">${lbl}</span>
+      </div>`;
+  const row = (inicioUrl, semUrl, vistaEs, vistaEn) => {
+    if (!semUrl) return '';
+    if (!inicioUrl) return '';
+    const oc = `openLightboxDiptych('${esc(inicioUrl)}','${esc(semUrl)}','INICIO','${semLabel}')`;
+    return `<div class="semana-transf-row">
+      ${half(inicioUrl, 'INICIO', 'l', oc, `${isEs ? 'Inicio' : 'Start'} ${isEs ? vistaEs : vistaEn}`)}
+      ${half(semUrl, semLabel, 'r', oc, `${semLabel} ${isEs ? vistaEs : vistaEn}`)}
+    </div>`;
+  };
+  let rows = row(inicioFrenteUrl, c.foto_url, 'frente', 'front') + row(inicioEspaldaUrl, c.foto_url_espalda, 'espalda', 'back');
+  if (!rows && c.foto_url) {
+    // Sin foto de inicio: mostramos las de la semana solas (frente | espalda).
+    const oc = c.foto_url_espalda
+      ? `openLightboxDiptych('${esc(c.foto_url)}','${esc(c.foto_url_espalda)}','${semLabel}','${semLabel}')`
+      : `openLightbox('${esc(c.foto_url)}')`;
+    rows = `<div class="semana-transf-row">
+      ${half(c.foto_url, semLabel, 'l', oc, `${semLabel} ${isEs ? 'frente' : 'front'}`)}
+      ${c.foto_url_espalda ? half(c.foto_url_espalda, semLabel, 'r', oc, `${semLabel} ${isEs ? 'espalda' : 'back'}`) : ''}
+    </div>`;
+  }
+  const transf = rows ? `
+    <div class="semana-transformacion">
+      <div class="semana-transf-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/>
+        </svg>
+        ${isEs ? 'TRANSFORMACIÓN' : 'TRANSFORMATION'}
+      </div>
+      <div class="semana-transf-stack">${rows}</div>
+    </div>` : '';
+
+  body.innerHTML = `${chips}
+    <div class="cai-home-semanas pan-wrap">
+      ${transf}
+      <div class="semana-analisis">
+        ${formatResponse(c.analisis)}
+        <div class="semana-analisis-footer">
+          <span>CoachAI · ${formatDateShort(c.fecha_fin)}</span>
+        </div>
+      </div>
+    </div>`;
+  const sheet = document.getElementById('pan-sheet');
+  if (sheet) sheet.scrollTop = 0;
 }
 
 function goToWeekAnalisis(weekNum) {
@@ -32799,7 +32922,7 @@ async function renderPerfil() {
   // position:fixed → el bottom-nav (a nivel root) les ganaba y tapaba los botones.
   // Moviéndolos a body, su z-index compite a nivel root y quedan por encima de todo.
   try {
-    ['peso-log-overlay', 'peso-prompt-overlay', 'perfil-datos-overlay', 'delete-account-overlay'].forEach(function (id) {
+    ['peso-log-overlay', 'peso-prompt-overlay', 'perfil-datos-overlay', 'perfil-analisis-overlay', 'delete-account-overlay'].forEach(function (id) {
       const el = document.getElementById(id);
       if (el && el.parentElement !== document.body) document.body.appendChild(el);
     });
@@ -32819,7 +32942,7 @@ async function renderPerfil() {
     loadCierresSemanales().catch(() => []),
   ]);
   renderPerfilTransform(fotos, cierres);
-  renderPerfilAnalisis(cierres);
+  renderPerfilAnalisis(cierres, fotos);
   // Foto Inicio prompt — only renders the CTA when the user hasn't uploaded
   // a 'inicio' photo yet. Moved here from the (now-deleted) Progreso section.
   if (typeof renderFotoInicioCard === 'function') {
@@ -43137,7 +43260,7 @@ body.theme-brand { --av2-ring-c: rgba(var(--brand-ab-rgb), 0.55); }
   100% { box-shadow: 0 0 0 0 rgba(var(--brand-ab-rgb), 0); }
 }
 body.theme-brand .nav-footer-pulse { animation-name: navFooterPulse__brand !important; }
-</style><!-- /THEME-BRAND -->
+</style><!-- /THEME-BRAND -->
 
   <div class="br-overlay" id="browser-reminder-overlay">
     <div class="br-card">
