@@ -2863,16 +2863,22 @@ function parseDietaContenido(text) {
       // pero ya no manejan el semáforo — lo que importa es no dejar a un cliente
       // sin respuesta. _openBugs queda como nombre interno = mensajes sin leer.)
       const activos = await Promise.all((usuarios || []).map(async (u) => {
-        // 2 conteos por clienta: mensajes sin leer (semáforo) + semanas cerradas
-        // sin análisis (CIERRE LIBRE: la semana se cierra sola y el análisis queda
-        // pendiente — este badge le recuerda al coach a quién empujar).
-        const [notas, cierresPend] = await Promise.all([
+        // Por clienta: mensajes sin leer (semáforo) + si su ÚLTIMA semana cerrada
+        // quedó sin análisis (CIERRE LIBRE: la semana se cierra sola y el análisis
+        // queda pendiente). Desde 2026-11-02 la app solo deja analizar la última
+        // semana cerrada → las más viejas ya no se pueden hacer y no cuentan acá
+        // (si no, el coach empujaba un análisis que la clienta no puede hacer).
+        const [notas, ultCierre, ultSinAnalisis] = await Promise.all([
           sb.from('notas_coach').select('id', { count: 'exact', head: true })
             .eq('usuario_id', u.id).eq('de', 'cliente').eq('leido', false),
-          sb.from('cierres_semanales').select('id', { count: 'exact', head: true })
-            .eq('usuario_id', u.id).is('analisis', null),
+          sb.from('cierres_semanales').select('semana_num')
+            .eq('usuario_id', u.id).order('semana_num', { ascending: false }).limit(1),
+          sb.from('cierres_semanales').select('semana_num')
+            .eq('usuario_id', u.id).is('analisis', null).order('semana_num', { ascending: false }).limit(1),
         ]);
-        return { ...u, _openBugs: notas.count || 0, _pendAnalisis: cierresPend.count || 0, _origin: originMap.get(u.email.toLowerCase()) || null };
+        const ultW  = ultCierre.data?.[0]?.semana_num ?? null;
+        const pendW = ultSinAnalisis.data?.[0]?.semana_num ?? null;
+        return { ...u, _openBugs: notas.count || 0, _pendAnalisis: (ultW != null && pendW === ultW) ? 1 : 0, _origin: originMap.get(u.email.toLowerCase()) || null };
       }));
 
       // Compute traffic-light bucket counts for dashboard
@@ -2959,7 +2965,7 @@ function parseDietaContenido(text) {
         <td>${c._isInvited
           ? '<span class="cell-dim">—</span>'
           : (c._pendAnalisis > 0
-            ? `<span class="badge badge-warning" title="Semana${c._pendAnalisis > 1 ? 's' : ''} cerrada${c._pendAnalisis > 1 ? 's' : ''} sin análisis — recordale hacerlo (2 fotos + IA)">📸 ${c._pendAnalisis} pend.</span>`
+            ? `<span class="badge badge-warning" title="Su última semana cerrada está sin análisis — recordale hacerlo (2 fotos + IA)">📸 pend.</span>`
             : '<span class="cell-dim">al día</span>')}</td>
         <td class="cell-right">
           ${c._openBugs > 0 ? `<span class="badge badge-danger">${c._openBugs}</span>` : '<span class="cell-dim">0</span>'}
@@ -3634,9 +3640,14 @@ function parseDietaContenido(text) {
     }
     const hasText = c => !!(c.analisis && String(c.analisis).trim());
     const conTexto = rows.filter(hasText);
-    const pendientes = rows.length - conTexto.length;
+    // Desde 2026-11-02 la app solo deja analizar la ÚLTIMA semana cerrada: esa es
+    // la única "pendiente"; las más viejas sin texto quedan "Sin análisis".
+    const esPendiente = c => c === rows[0] && !hasText(c);
+    const pendientes = esPendiente(rows[0]) ? 1 : 0;
+    const sinAnalisis = rows.length - conTexto.length - pendientes;
     const meta = `${rows.length} semana${rows.length === 1 ? '' : 's'} · ${conTexto.length} con devolución`
-      + (pendientes ? ` · ${pendientes} pendiente${pendientes === 1 ? '' : 's'}` : '');
+      + (pendientes ? ' · última pendiente' : '')
+      + (sinAnalisis ? ` · ${sinAnalisis} sin análisis` : '');
     const rango = c => (c.fecha_inicio || c.fecha_fin)
       ? `${fmtDateOnly(c.fecha_inicio)}${c.fecha_fin ? ' – ' + fmtDateOnly(c.fecha_fin) : ''}`
       : fmtRelative(c.created_at);
@@ -3647,13 +3658,15 @@ function parseDietaContenido(text) {
     // en datos viejos podría repetirse).
     const selected = conTexto[0] || rows[0];
     const options = rows.map((c, i) =>
-      `<option value="${i}"${c === selected ? ' selected' : ''}>Semana ${esc(c.semana_num ?? '?')} · ${esc(rango(c))} · ${hasText(c) ? '✓ con devolución' : '⏳ pendiente'}</option>`
+      `<option value="${i}"${c === selected ? ' selected' : ''}>Semana ${esc(c.semana_num ?? '?')} · ${esc(rango(c))} · ${hasText(c) ? '✓ con devolución' : esPendiente(c) ? '⏳ pendiente' : '— sin análisis'}</option>`
     ).join('');
     const renderCierre = (c) => {
       const has = hasText(c);
       const estado = has
         ? '<span class="tl tl-green"><span class="tl-dot"></span>Con devolución</span>'
-        : '<span class="tl tl-yellow" title="Se cerró sola (cierre libre) — falta que haga su análisis (2 fotos + IA)"><span class="tl-dot"></span>Análisis pendiente</span>';
+        : esPendiente(c)
+          ? '<span class="tl tl-yellow" title="Se cerró sola (cierre libre) — falta que haga su análisis (2 fotos + IA)"><span class="tl-dot"></span>Análisis pendiente</span>'
+          : '<span class="tl tl-gray" title="No hizo el análisis a tiempo — la app solo deja analizar la última semana cerrada"><span class="tl-dot"></span>Sin análisis</span>';
       return `
         <div class="cierre-row">
           <div class="cierre-row-head">

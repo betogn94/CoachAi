@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261102-1321-anfix">
+<meta name="app-version" content="20261102-1338-anultima">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -25935,6 +25935,19 @@ const ANFIX = (() => {
     return localStorage.getItem('coachai_anfix') !== '0';
   } catch { return true; }
 })();
+// ANÁLISIS SOLO DE LA ÚLTIMA SEMANA (2026-11-02, decisión de Beto): el análisis
+// diferido se ofrece solo para la ÚLTIMA semana cerrada. Las más viejas sin
+// análisis quedan "Sin análisis" para siempre — nunca más una foto de hoy analiza
+// una semana de hace 2-3 semanas (caso Andrea: analizó la semana 1 el día 21).
+// `?anultima=0` vuelve a la regla vieja (la pendiente más reciente, aunque sea vieja).
+const ANALISIS_SOLO_ULTIMA = (() => {
+  try {
+    const v = new URLSearchParams(window.location.search).get('anultima');
+    if (v === '0') { try { localStorage.setItem('coachai_anultima', '0'); } catch {} return false; }
+    if (v === '1') { try { localStorage.removeItem('coachai_anultima'); } catch {} return true; }
+    return localStorage.getItem('coachai_anultima') !== '0';
+  } catch { return true; }
+})();
 
 // Texto de una comida → HTML de display (card V1/V2 y sheet de detalle).
 // Solo afecta el render: en la base queda tal cual lo pegó el coach.
@@ -28566,6 +28579,9 @@ async function renderSemanas() {
 
   const weeks = [];
   for (let w = currentWeek; w >= 1; w--) weeks.push(w);
+  // Semana a la que se le ofrece el análisis (ANALISIS_SOLO_ULTIMA: solo la última
+  // cerrada). Las demás cerradas sin análisis quedan "Sin análisis", sin botón.
+  const _pendAnalisisW = pendingAnalisisWeek();
 
   if (weeks.length === 0) { if (empty) empty.style.display = 'flex'; return; }
   if (empty) empty.style.display = 'none';
@@ -28588,8 +28604,12 @@ async function renderSemanas() {
     // CIERRE LIBRE: la semana cerrada sin análisis es un estado propio
     // ("Análisis pendiente", ámbar) y la cerrada CON análisis pasa a "Completa".
     const analisisPendiente = CIERRE_LIBRE && !!cierre && !cierre.analisis;
+    // Cerrada sin análisis pero ya NO es la última → no se puede hacer más.
+    const analisisVencido = analisisPendiente && ANALISIS_SOLO_ULTIMA && w !== _pendAnalisisW;
     const statusPill = cierre
-      ? (analisisPendiente
+      ? (analisisVencido
+          ? `<span class="semana-status">${isEs?'Sin análisis':'No analysis'}</span>`
+        : analisisPendiente
           ? `<span class="semana-status pendiente">${isEs?'Análisis pendiente':'Analysis pending'}</span>`
           : `<span class="semana-status cerrada">${CIERRE_LIBRE ? (isEs?'Completa':'Complete') : (isEs?'Cerrada':'Closed')}</span>`)
       : isCurrent
@@ -28849,8 +28869,9 @@ async function renderSemanas() {
     // CIERRE LIBRE: semana ya cerrada automáticamente, análisis pendiente →
     // CTA para hacerlo cuando quiera (fotos + análisis completan la fila).
     // Pasa por attemptCierreSemana: si quedaron días sin registrar, primero
-    // ofrece completarlos (opcional, como siempre).
-    if (analisisPendiente) {
+    // ofrece completarlos (opcional, como siempre). ANALISIS_SOLO_ULTIMA: solo en
+    // la última semana cerrada (ver analisisVencido).
+    if (analisisPendiente && !analisisVencido) {
       bodyHtml += `
         <button class="btn-cerrar-semana" onclick="attemptCierreSemana(${w})">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -31181,12 +31202,17 @@ function pendingCierreWeek() {
   return null;
 }
 
-// CIERRE LIBRE: semana cerrada SIN análisis más reciente. Solo mostramos UNA
-// (la última) para no abrumar con backlog; las demás quedan accesibles desde
-// sus cards en Seguimiento. null si no hay pendientes.
+// CIERRE LIBRE: semana cuyo análisis se ofrece hacer. Con ANALISIS_SOLO_ULTIMA es
+// la ÚLTIMA semana cerrada, y solo si todavía no tiene análisis (si ya lo tiene, no
+// hay nada pendiente hasta que cierre la próxima). Sin el flag: la cerrada SIN
+// análisis más reciente, aunque sea vieja. null si no hay pendientes.
 function pendingAnalisisWeek() {
   if (!CIERRE_LIBRE) return null;
   const cierres = (typeof cierresSemanales !== 'undefined' && Array.isArray(cierresSemanales)) ? cierresSemanales : [];
+  if (ANALISIS_SOLO_ULTIMA) {
+    const ult = cierres.filter(Boolean).sort((a, b) => b.semana_num - a.semana_num)[0];
+    return (ult && !ult.analisis) ? ult.semana_num : null;
+  }
   const pend = cierres.filter(c => c && !c.analisis).sort((a, b) => b.semana_num - a.semana_num);
   return pend.length ? pend[0].semana_num : null;
 }
