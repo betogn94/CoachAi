@@ -70,13 +70,48 @@ function localParts(tz) {
   return { fecha, hour, weekday };
 }
 
+// App nativa (coachai-native): guarda su token de Expo en push_subscriptions con el
+// token como `endpoint` (p256dh/auth = 'expo'). Esas filas van por el servicio de
+// Expo, no por web-push; las de la PWA siguen exactamente igual.
+const EXPO_PREFIX = 'ExponentPushToken[';
+const esExpo = (s) => String(s.endpoint || '').startsWith(EXPO_PREFIX);
+
+async function pushToExpo(tokens, payload) {
+  const r = await fetch('https://exp.host/--/api/v2/push/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(tokens.map((to) => ({
+      to, title: payload.title, body: payload.body,
+      data: { url: payload.url, tag: payload.tag },
+      sound: 'default', channelId: 'default', priority: 'high',
+    }))),
+  });
+  const j = await r.json().catch(() => null);
+  const tickets = Array.isArray(j && j.data) ? j.data : [];
+  let sent = 0;
+  for (let i = 0; i < tickets.length; i++) {
+    const t = tickets[i];
+    if (t && t.status === 'ok') sent++;
+    else if (t && t.details && t.details.error === 'DeviceNotRegistered') {
+      await sbDelete(`push_subscriptions?endpoint=eq.${encodeURIComponent(tokens[i])}`);
+    }
+  }
+  return sent;
+}
+
 // Manda un payload a TODAS las suscripciones de una clienta. Limpia las muertas.
 async function pushToUser(usuario_id, payload) {
   const subs = await sbGet(`push_subscriptions?usuario_id=eq.${usuario_id}&select=endpoint,p256dh,auth`);
   if (!Array.isArray(subs) || !subs.length) return 0;
   let sent = 0;
   const body = JSON.stringify(payload);
+  const expo = subs.filter(esExpo).map((s) => s.endpoint);
+  if (expo.length) {
+    try { sent += await pushToExpo(expo, payload); }
+    catch (err) { console.warn('[cron-notifications] expo push:', err && err.message); }
+  }
   for (const s of subs) {
+    if (esExpo(s)) continue;
     try {
       await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, body);
       sent++;
