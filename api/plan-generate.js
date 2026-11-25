@@ -27,6 +27,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { crearCerebro } from './_chat-cerebro.js';
 import {
   actualizarPreferenciasRutina,
+  ajustarACatalogo,
   cargarContextoPlan,
   fechaValida,
   getBackupPlan,
@@ -276,6 +277,8 @@ async function accionRenovar({ res, usuario, ctx, cierres, cerebroBase, uid, bod
   const maxEnd = ends.length ? ends[ends.length - 1] : null;
   const hoy = cerebro.getTodayKey();
   const fechaEntrega = maxEnd && maxEnd >= hoy ? cerebro._addDaysStr(maxEnd, 1) : hoy;
+  // Coach con catálogo propio (Team Arete): solo sus ejercicios (saveWeeklyPlan de la PWA).
+  planText = await ajustarACatalogo(cerebro, planText, usuario.id, 'renovacion');
   const saved = await guardarPlan({ usuarioId: usuario.id, tipo: 'rutina', contenido: planText, semanaIso: cerebro.getISOWeekKey(), fecha: fechaEntrega, origen: 'ia' });
   if (!saved) {
     await registrarEvento(usuario.id, 'renov_fail', { week, reason: 'save' });
@@ -372,6 +375,8 @@ async function accionPrimeros({ res, usuario, ctx, cerebroBase, uid, body, lang 
   }
   // `saveWeeklyPlan` L20463: la dieta se guarda con las kcal reconciliadas; semana ISO y fecha_entrega de hoy
   // (sin cierres todavía) → nace vigente.
+  // Coach con catálogo propio (Team Arete): solo sus ejercicios (saveWeeklyPlan de la PWA).
+  if (tipo === 'rutina') planText = await ajustarACatalogo(cerebro, planText, usuario.id, 'onboarding');
   const contenido = tipo === 'dieta' ? cerebro.reconcileDietKcal(planText) : planText;
   const saved = await guardarPlan({ usuarioId: usuario.id, tipo, contenido, semanaIso: cerebro.getISOWeekKey(), fecha: cerebro.getTodayKey(), origen: 'ia' });
   if (!saved) {

@@ -18,7 +18,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 
 import { crearCerebro } from './_chat-cerebro.js';
-import { cargarContexto, fechaValida, getBackupPlan, guardarAlertasDieta, guardarPlan, guardarTurno, registrarEvento } from './_chat-contexto.js';
+import { ajustarACatalogo, cargarContexto, fechaValida, getBackupPlan, guardarAlertasDieta, guardarPlan, guardarTurno, registrarEvento } from './_chat-contexto.js';
 import { isAllowedOrigin } from './_origin.js';
 
 export const config = { maxDuration: 60 };
@@ -243,6 +243,8 @@ export default async function handler(req, res) {
           console.warn('[chat-message] clamp dieta:', e?.message || e);
         }
       }
+      // Coach con catálogo propio (Team Arete): la rutina se guarda solo con sus ejercicios (saveWeeklyPlan de la PWA).
+      if (tipo === 'rutina') planText = await ajustarACatalogo(cerebro, planText, usuario.id, 'chat');
       contenidoGuardado = tipo === 'dieta' ? cerebro.reconcileDietKcal(planText) : planText;
       const saved = await guardarPlan({ usuarioId: usuario.id, tipo, contenido: contenidoGuardado, semanaIso: cerebro.getISOWeekKey(), fecha });
       if (!saved) await registrarEvento(usuario.id, 'plan_save_failed', { tipo, reason: 'db' });

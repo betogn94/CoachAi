@@ -23,8 +23,10 @@
 //   ctx.trainedDates  fechas de dias_entrenados (la PWA: _trainedDatesSet)
 //   ctx.firmarFotos   async ({inicioFrente, inicioEspalda, semanaFrente, semanaEspalda}) → mismas claves firmadas
 //   ctx.fetchIA       async (url, opts) → Response-like {ok, status, json(), text()}: reemplaza fetch('/api/chat')
-// Funciones: buildSystemPrompt, buildHistorySummary, buildDiarioSummary, kingEsCohorte, _koMapaPromptBlock, _koNormArq, _bloqueRestriccionDieta, _focoPromptBlock, _splitSemanal, _splitPromptBlock, validarRutinaEsqueleto, countUniqueDays, getISOWeekKey, formatLocalDate, parseDietaContenido, parseRutinaContenido, sanitizeTurnsForAPI, detectPlanRequest, detectPlanInReply, planReplyHasStructure, formatResponse, computeDietTarget, evaluatePlanQuality, dietaHasMacros, dietaAvgDayKcal, rutinaEntrenaPecho, reconcileDietKcal, buildPlanReadyNotification, validateDietaConsistency, generateWeeklyAnalysis, adjustDietViaAI, computeWeekStats, getWeekNum, getWeekRange, _getWeekNumLegacy, _getWeekRangeLegacy, _lastCierre, _addDaysStr, _isoKeyOfStr, isoWeekRange, isoWeekShift, isoWeeksBetween, getTodayKey, stripLeadingDietFromRutina, getWeeklyTrainingTarget
-// Constantes: METODO_RELOJ_ARENA_ES, METODO_V_MASCULINO_ES, REGLAS_KING_MUJER_ES, REGLAS_KING_DIETA_ES, REGLAS_VEGANAS_ES, REGLAS_VEGETARIANAS_ES, REGLAS_VEGANAS_EN, REGLAS_VEGETARIANAS_EN, DAY_REGEX
+//   — Team Arete —
+//   ctx.currentTenant { id, slug, branding_config: { ejercicios } } del alumno (null = sin catálogo propio)
+// Funciones: buildSystemPrompt, buildHistorySummary, buildDiarioSummary, kingEsCohorte, _koMapaPromptBlock, _koNormArq, _bloqueRestriccionDieta, _focoPromptBlock, _splitSemanal, _splitPromptBlock, validarRutinaEsqueleto, countUniqueDays, getISOWeekKey, formatLocalDate, parseDietaContenido, parseRutinaContenido, sanitizeTurnsForAPI, detectPlanRequest, detectPlanInReply, planReplyHasStructure, formatResponse, computeDietTarget, evaluatePlanQuality, dietaHasMacros, dietaAvgDayKcal, rutinaEntrenaPecho, reconcileDietKcal, buildPlanReadyNotification, validateDietaConsistency, generateWeeklyAnalysis, adjustDietViaAI, computeWeekStats, getWeekNum, getWeekRange, _getWeekNumLegacy, _getWeekRangeLegacy, _lastCierre, _addDaysStr, _isoKeyOfStr, isoWeekRange, isoWeekShift, isoWeeksBetween, getTodayKey, stripLeadingDietFromRutina, getWeeklyTrainingTarget, _normalizeExName, _ejTokens, _findEjercicioMatch, _tenantEjCatalog, _catGruposDeTexto, _catGrupoDeEjercicio, _catalogoPromptBlock, ajustarRutinaACatalogo
+// Constantes: METODO_RELOJ_ARENA_ES, METODO_V_MASCULINO_ES, REGLAS_KING_MUJER_ES, REGLAS_KING_DIETA_ES, REGLAS_VEGANAS_ES, REGLAS_VEGETARIANAS_ES, REGLAS_VEGANAS_EN, REGLAS_VEGETARIANAS_EN, DAY_REGEX, _EJ_STOPWORDS
 
 export function crearCerebro(ctx) {
   const document = {
@@ -55,6 +57,9 @@ export function crearCerebro(ctx) {
   const _signPhotosForAI = async (p) => (ctx.firmarFotos ? ctx.firmarFotos(p || {}) : (p || {}));
   const aiAuthHeaders = async () => ({});
   const fetch = (url, opts) => { if (!ctx.fetchIA) throw new Error('ctx.fetchIA no provisto'); return ctx.fetchIA(url, opts); };
+  // — Team Arete: catálogo propio del coach (null = el resto de los tenants, sin cambios) —
+  const currentTenant = ctx.currentTenant || null;
+  const _ejBiblioteca = null;   // _findEjercicioMatch siempre recibe la lista del catálogo acá
 
 // (cuerpo VERBATIM, sin re-indentar: un espacio de más adentro de un template literal cambia el prompt)
 const METODO_RELOJ_ARENA_ES = `
@@ -510,6 +515,8 @@ VEGETARIAN RESTRICTION — SUPREME FOOD RULE (overrides the REFERENCE TABLE):
 
 const DAY_REGEX = /\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo|monday|tuesday|wednesday|thursday|friday|saturday|sunday|lun|mar|mie|jue|vie|sab|dom|mon|tue|wed|thu|fri|sat|sun)\b/g;
 
+const _EJ_STOPWORDS = new Set(['de','del','con','en','y','o','a','el','la','los','las','al','un','una','para']);
+
 function buildSystemPrompt() {
   // Cohorte King (Fase 4): en el onboarding King, metodo_king ya está estampado
   // ANTES de generar el plan (ver handoff King ~17109), así que kingEsCohorte()
@@ -809,7 +816,7 @@ ${_dietTarget ? `- TARGET (ya calculado para este cliente — NO recalcules el T
 ${esKing ? REGLAS_KING_DIETA_ES : ''}${_bloqueRestriccionDieta(dieta, true)}
 
 ${sexo === 'femenino' ? METODO_RELOJ_ARENA_ES : METODO_V_MASCULINO_ES}
-${(esKing && sexo === 'femenino') ? REGLAS_KING_MUJER_ES : ''}${_focoPromptBlock(true)}${_splitPromptBlock(true)}
+${(esKing && sexo === 'femenino') ? REGLAS_KING_MUJER_ES : ''}${_focoPromptBlock(true)}${_splitPromptBlock(true)}${_catalogoPromptBlock(true)}
 
 EJEMPLO DE REFERENCIA — formato y nivel de detalle de UN día bien hecho (es solo formato: los días, títulos y cantidad de ejercicios salen del ESQUELETO DE LA SEMANA; NO lo copies literal):
 
@@ -1047,7 +1054,7 @@ CRITICAL CONSTRAINTS:
 - For every exercise: sets, reps and rest — no exceptions.
 - For beginners: add a technique note on compound movements.
 - Adapt to location (gym with machines / home with bodyweight or dumbbells).
-- Respect injuries 100% — substitute any exercises that affect them.${_focoPromptBlock(false)}${_splitPromptBlock(false)}
+- Respect injuries 100% — substitute any exercises that affect them.${_focoPromptBlock(false)}${_splitPromptBlock(false)}${_catalogoPromptBlock(false)}
 
 FOR ANY OTHER CLIENT QUESTION:
 Answer concisely, directly and motivationally. Maximum 4-6 sentences unless the topic requires more detail. For questions about diet changes or what to train today, answer with precision. At the end of your responses, when relevant, remind them to log in My Day.
@@ -2165,7 +2172,11 @@ CALIBRATE TONE TO THE WEEK: good week (high adherence/logging) → celebrate str
   });
   if (!response.ok) {
     const errBody = await response.text().catch(() => '');
-    throw new Error(`weekly_analysis_api_${response.status}` + (errBody ? `: ${errBody.slice(0, 200)}` : ''));
+    const err = new Error(`weekly_analysis_api_${response.status}` + (errBody ? `: ${errBody.slice(0, 200)}` : ''));
+    // status + retryable (lo manda api/chat.js) para el reintento y la telemetría.
+    err.status = response.status;
+    try { const j = JSON.parse(errBody); if (typeof j.retryable === 'boolean') err.retryable = j.retryable; } catch (e) {}
+    throw err;
   }
   let data;
   try { data = await response.json(); }
@@ -2429,5 +2440,217 @@ function getWeeklyTrainingTarget() {
   return 0;
 }
 
-  return { buildSystemPrompt, buildHistorySummary, buildDiarioSummary, kingEsCohorte, _koMapaPromptBlock, _koNormArq, _bloqueRestriccionDieta, _focoPromptBlock, _splitSemanal, _splitPromptBlock, validarRutinaEsqueleto, countUniqueDays, getISOWeekKey, formatLocalDate, parseDietaContenido, parseRutinaContenido, sanitizeTurnsForAPI, detectPlanRequest, detectPlanInReply, planReplyHasStructure, formatResponse, computeDietTarget, evaluatePlanQuality, dietaHasMacros, dietaAvgDayKcal, rutinaEntrenaPecho, reconcileDietKcal, buildPlanReadyNotification, validateDietaConsistency, generateWeeklyAnalysis, adjustDietViaAI, computeWeekStats, getWeekNum, getWeekRange, _getWeekNumLegacy, _getWeekRangeLegacy, _lastCierre, _addDaysStr, _isoKeyOfStr, isoWeekRange, isoWeekShift, isoWeeksBetween, getTodayKey, stripLeadingDietFromRutina, getWeeklyTrainingTarget };
+function _normalizeExName(s) {
+  return String(s || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '') // strip accents
+    .replace(/\(.*?\)/g, ' ')          // strip parentheticals
+    .replace(/[^a-z0-9\s]/g, ' ')      // strip punctuation
+    .replace(/\s+/g, ' ').trim();
+}
+
+function _ejTokens(s) {
+  return s.split(' ').filter(t => t.length >= 1 && !_EJ_STOPWORDS.has(t));
+}
+
+function _findEjercicioMatch(freeName, lista) {
+  const fuente = lista || _ejBiblioteca;
+  if (!fuente || !fuente.length) return null;
+  const norm = _normalizeExName(freeName);
+  if (!norm) return null;
+  // Cada fila participa con TODOS sus nombres (canónico + aliases). Entries:
+  // { row, n } — una entrada por nombre normalizado.
+  const entries = [];
+  for (const r of fuente) {
+    for (const n of (r._normNames || [r._normName])) entries.push({ row: r, n });
+  }
+  // 1) exact normalized match — when multiple entries tie (e.g. "Face pull" and
+  // "Face pull (foco trapecio)" both normalize to "face pull"), prefer the entry
+  // whose name is closest in length to the input. That picks the
+  // generic over the more qualified variant when the user typed the generic.
+  const exactList = entries.filter(e => e.n === norm);
+  if (exactList.length) {
+    exactList.sort((a, b) => Math.abs(a.n.length - norm.length) - Math.abs(b.n.length - norm.length));
+    return exactList[0].row;
+  }
+  // 2) substring containment in either direction
+  const subMatches = entries.filter(e => e.n.includes(norm) || norm.includes(e.n));
+  if (subMatches.length) {
+    // On tie, prefer the entry whose normalized name is closest in LENGTH to the
+    // input (more generic = same length; specialized variants are longer)
+    subMatches.sort((a, b) => Math.abs(a.n.length - norm.length) - Math.abs(b.n.length - norm.length));
+    return subMatches[0].row;
+  }
+  // 3) token overlap — keep single-char tokens (e.g. "Z" in Curl barra Z); ignore stopwords
+  const tokens = _ejTokens(norm);
+  if (!tokens.length) return null;
+  let best = null, bestOverlap = 0, bestLenDiff = Infinity;
+  for (const e of entries) {
+    const tb = _ejTokens(e.n);
+    if (!tb.length) continue;
+    const overlap = tokens.filter(t => tb.includes(t)).length;
+    if (overlap < 2) continue;
+    const lenDiff = Math.abs(e.n.length - norm.length);
+    // Pick by max overlap first, then by closest length (better match for variants like "Z")
+    if (overlap > bestOverlap || (overlap === bestOverlap && lenDiff < bestLenDiff)) {
+      bestOverlap = overlap; bestLenDiff = lenDiff; best = e.row;
+    }
+  }
+  return bestOverlap >= 2 ? best : null;
+}
+
+function _tenantEjCatalog() {
+  const raw = currentTenant && currentTenant.branding_config && currentTenant.branding_config.ejercicios;
+  if (!Array.isArray(raw) || !raw.length) return null;
+  return raw.filter(r => r && r.n && /^[\w-]{11}$/.test(String(r.yt || ''))).map(r => {
+    const names = [r.n, ...(Array.isArray(r.a) ? r.a : [])];
+    const _normNames = names.map(_normalizeExName).filter(Boolean);
+    return { nombre_es: r.n, muscle_group: r.g || '', youtube_id: r.yt, _normName: _normNames[0] || '', _normNames };
+  });
+}
+
+function _catGruposDeTexto(s) {
+  const t = _normalizeExName(s);
+  const out = [];
+  const add = (g) => { if (!out.includes(g)) out.push(g); };
+  if (/pecho|pectoral|chest/.test(t)) add('pecho');
+  if (/espalda|dorsal|back/.test(t)) add('espalda');
+  if (/hombro|deltoid|shoulder/.test(t)) add('hombros');
+  if (/trapecio|traps/.test(t)) { add('hombros'); add('espalda'); }
+  if (/bicep/.test(t)) add('biceps');
+  if (/tricep/.test(t)) add('triceps');
+  if (/cuadricep|quad/.test(t)) add('cuadriceps');
+  if (/femoral|isquio|hamstring/.test(t)) add('femorales');
+  if (/gluteo|glute/.test(t)) add('gluteos');
+  if (/pantorrilla|gemelo|calves|calf/.test(t)) add('gemelos');
+  if (/abdom|core|abs/.test(t)) add('abdomen');
+  if (/aductor/.test(t)) add('aductores');
+  if (/pierna|legs/.test(t)) { add('cuadriceps'); add('femorales'); add('gluteos'); }
+  return out;
+}
+
+function _catGrupoDeEjercicio(nombre) {
+  const t = _normalizeExName(nombre);
+  const R = [
+    [/pantorrilla|gemelo|talon/, 'gemelos'],
+    [/curl femoral|femoral|rumano|rdl|camilla|isquio|peso muerto/, 'femorales'],
+    [/tricep|frances|rompecraneo|pushdown|kickback|patada de tricep|extension overhead|sobre la cabeza/, 'triceps'],
+    [/hip thrust|pelvis|gluteo|patada|abducc|abductor|puente|pull through/, 'gluteos'],
+    [/aducc|aductor/, 'aductores'],
+    [/crunch|abdom|plancha|elevacion de piernas|elevaciones de piernas/, 'abdomen'],
+    [/encogimiento|trapecio/, 'hombros'],
+    [/press (de )?banca|press plano|press inclinado|apertura|pec ?de|crossover|cruce|flexiones|fondos|pecho/, 'pecho'],
+    [/jalon|remo|dominada|pull ?over|pulldown|lumbar|hiperextension|espalda/, 'espalda'],
+    [/lateral|frontal|militar|hombro|face ?pull|facepull|posterior|pajaro|arnold|vuelo|shoulder/, 'hombros'],
+    [/curl|bicep|martillo|predicador|scott/, 'biceps'],
+    [/sentadilla|prensa|hack|bulgara|zancada|estocada|cuadricep|sillon|step/, 'cuadriceps'],
+  ];
+  for (const [re, g] of R) if (re.test(t)) return g;
+  return null;
+}
+
+function _catalogoPromptBlock(isEs) {
+  const cat = _tenantEjCatalog();
+  if (!cat || !cat.length) return '';
+  const sexo = document.getElementById('f-sexo').value;
+  const ES = { pecho: 'Pecho', espalda: 'Espalda', hombros: 'Hombros (y Trapecios)', biceps: 'Bíceps', triceps: 'Tríceps', cuadriceps: 'Cuádriceps', femorales: 'Femorales', gluteos: 'Glúteos', aductores: 'Aductores', gemelos: 'Pantorrillas / gemelos', abdomen: 'Abdomen' };
+  const orden = ['cuadriceps', 'gluteos', 'femorales', 'gemelos', 'aductores', 'espalda', 'pecho', 'hombros', 'biceps', 'triceps', 'abdomen'];
+  const grupos = orden.filter((g) => !(sexo === 'femenino' && g === 'pecho'))
+    .map((g) => [g, cat.filter((r) => r.muscle_group === g).map((r) => r.nombre_es)])
+    .filter(([, ns]) => ns.length);
+  const lista = grupos.map(([g, ns]) => `- ${ES[g] || g}: ${ns.join(' · ')}`).join('\n');
+  if (isEs) {
+    return `
+
+CATÁLOGO DE EJERCICIOS DE TU COACH — OBLIGATORIO (MANDA sobre EJERCICIOS PERMITIDOS, los ejemplos y cualquier otra lista de ejercicios de este prompt):
+Tu coach grabó un video de cada uno de estos ejercicios y sus alumnos SOLO pueden recibir estos. Elegí TODOS los ejercicios de la rutina de esta lista:
+${lista}
+
+REGLAS DEL CATÁLOGO (no negociables):
+- Escribí cada nombre EXACTAMENTE como figura en la lista, letra por letra, sin agregar paréntesis, aclaraciones, variantes ni equipamiento ("Sillón de cuádriceps", NO "Extensión de cuádriceps en máquina").
+- Prohibido cualquier ejercicio que no esté en la lista, aunque sea parecido o sea el ejemplo del método.
+- Usá el ejercicio en el músculo que indica la lista. Si el esqueleto pide "Trapecios", usá los de Hombros (Facepull) o el Remo Gironda alto agarre neutro. Si pide "Femorales", usá los de Femorales; "Pantorrillas", los de gemelos.
+- Nunca repitas un ejercicio en el mismo día. Si un músculo tiene pocos ejercicios en la lista, SÍ podés repetir un ejercicio en otro día de la semana.
+- Si un músculo del esqueleto no tiene suficientes ejercicios en la lista para la cantidad pedida, completá con los ejercicios de la lista que más lo trabajen (ej. Glúteos: Búlgara en Smith, Peso muerto rumano, Prensa 45 pies abiertos).`;
+  }
+  return `
+
+YOUR COACH'S EXERCISE CATALOG — MANDATORY (OVERRIDES the allowed-exercises list, the examples and any other exercise list in this prompt):
+Your coach recorded a video of each of these exercises and their clients can ONLY get these. Pick EVERY exercise of the routine from this list:
+${lista}
+
+CATALOG RULES (non-negotiable):
+- Write each name EXACTLY as it appears in the list (in Spanish, letter by letter), with no parentheses, variants or equipment notes.
+- Any exercise not in the list is forbidden, even if similar.
+- Never repeat an exercise on the same day; you MAY repeat one on another day of the week if the muscle has few options.`;
+}
+
+function ajustarRutinaACatalogo(contenido, lista) {
+  const cat = lista || _tenantEjCatalog();
+  if (!cat || !cat.length || !contenido || typeof contenido !== 'string') return { contenido, cambios: [] };
+  const exacto = new Map();
+  for (const r of cat) for (const n of r._normNames) if (!exacto.has(n)) exacto.set(n, r);
+  const usosSemana = {};
+  const cambios = [];
+  const out = [];
+  let enDia = false, gruposDia = [], usadosDia = new Set(), saltarNotas = false, num = 0;
+  const elegir = (grupos) => {
+    const cand = cat.filter((r) => grupos.includes(r.muscle_group) && !usadosDia.has(r.nombre_es));
+    if (!cand.length) return null;
+    // El menos usado en la semana; a igualdad, el primero del catálogo (orden del coach).
+    return cand.reduce((a, b) => ((usosSemana[b.nombre_es] || 0) < (usosSemana[a.nombre_es] || 0) ? b : a));
+  };
+  for (const raw of contenido.split('\n')) {
+    const s = raw.replace(/\r$/, '').trim();
+    const c = s.replace(/[*_#]/g, '').trim();
+    if (/^d[ií]a\s*\d+/i.test(c) || /^day\s*\d+/i.test(c)) {
+      enDia = true; gruposDia = _catGruposDeTexto(c.replace(/^(d[ií]a|day)\s*\d+/i, '')); usadosDia = new Set(); saltarNotas = false; num = 0;
+      out.push(raw); continue;
+    }
+    if (!s) { saltarNotas = false; out.push(raw); continue; }
+    const finDeDias = /^-{3,}$|^={3,}$/.test(s)
+      || (/^(?:🛋️?\s*)?(descanso|cardio|notas?|tips?|clave|rest|cardio)\b/i.test(c) && !/^descanso\s*:?\s*\d/i.test(c));
+    if (finDeDias) { enDia = false; saltarNotas = false; out.push(raw); continue; }
+    if (!enDia) { out.push(raw); continue; }
+    const esIntens = /^(intens(?:ificador)?[\s.]*(?:set\s*\d+)?|drop\s+set|rest[\s-]?pause|superset|cluster\s+set|pausa\s+muerta)\b\s*[:.]/i.test(c);
+    const m = /^(\s*\**\s*)(\d+[.)]|[•\-*–])(\s+)(.*)$/.exec(raw.replace(/\r$/, ''));
+    const cuerpo = m ? m[4] : '';
+    const sep = cuerpo.search(/\s[—·–-]\s/);
+    const detalle = sep >= 0 ? cuerpo.slice(sep) : '';
+    const esEjercicio = !esIntens && m && sep > 0 && /\d\s*[x×]|serie|rep|set|fallo/i.test(detalle);
+    if (!esEjercicio) {
+      if (saltarNotas && !esIntens) continue;     // explicación del ejercicio reemplazado
+      out.push(raw); continue;
+    }
+    const nombreCrudo = cuerpo.slice(0, sep);
+    const nombre = nombreCrudo.replace(/[*_]/g, '').trim();
+    let row = exacto.get(_normalizeExName(nombre)) || null, modo = 'exacto';
+    if (row && usadosDia.has(row.nombre_es)) row = null;
+    if (!row) {
+      const f = _findEjercicioMatch(nombre, cat);
+      const g = _catGrupoDeEjercicio(nombre);
+      // Un parecido vale solo si es del mismo músculo que el original Y de un músculo del día
+      // (si no, "Jalones a la frente" en un día de hombros caería en un jalón de espalda).
+      if (f && !usadosDia.has(f.nombre_es) && (!g || f.muscle_group === g) && (!gruposDia.length || gruposDia.includes(f.muscle_group))) { row = f; modo = 'parecido'; }
+    }
+    if (!row) {
+      const g = _catGrupoDeEjercicio(nombre);
+      const delDia = gruposDia.length ? gruposDia : (g ? [g] : []);
+      row = (g && delDia.includes(g) ? elegir([g]) : null) || elegir(delDia);
+      modo = 'reemplazo';
+    }
+    if (!row) { cambios.push({ de: nombre, a: null, modo: 'quitado' }); saltarNotas = true; continue; }
+    usadosDia.add(row.nombre_es);
+    usosSemana[row.nombre_es] = (usosSemana[row.nombre_es] || 0) + 1;
+    saltarNotas = modo === 'reemplazo';
+    num++;
+    if (row.nombre_es !== nombre) cambios.push({ de: nombre, a: row.nombre_es, modo });
+    const marca = /^\d/.test(m[2]) ? `${num}${m[2].slice(-1)}` : m[2];
+    const nuevoNombre = nombreCrudo.replace(nombre, row.nombre_es);
+    out.push(`${m[1]}${marca}${m[3]}${nuevoNombre}${cuerpo.slice(sep)}${/\r$/.test(raw) ? '\r' : ''}`);
+  }
+  return { contenido: out.join('\n'), cambios };
+}
+
+  return { buildSystemPrompt, buildHistorySummary, buildDiarioSummary, kingEsCohorte, _koMapaPromptBlock, _koNormArq, _bloqueRestriccionDieta, _focoPromptBlock, _splitSemanal, _splitPromptBlock, validarRutinaEsqueleto, countUniqueDays, getISOWeekKey, formatLocalDate, parseDietaContenido, parseRutinaContenido, sanitizeTurnsForAPI, detectPlanRequest, detectPlanInReply, planReplyHasStructure, formatResponse, computeDietTarget, evaluatePlanQuality, dietaHasMacros, dietaAvgDayKcal, rutinaEntrenaPecho, reconcileDietKcal, buildPlanReadyNotification, validateDietaConsistency, generateWeeklyAnalysis, adjustDietViaAI, computeWeekStats, getWeekNum, getWeekRange, _getWeekNumLegacy, _getWeekRangeLegacy, _lastCierre, _addDaysStr, _isoKeyOfStr, isoWeekRange, isoWeekShift, isoWeeksBetween, getTodayKey, stripLeadingDietFromRutina, getWeeklyTrainingTarget, _normalizeExName, _ejTokens, _findEjercicioMatch, _tenantEjCatalog, _catGruposDeTexto, _catGrupoDeEjercicio, _catalogoPromptBlock, ajustarRutinaACatalogo };
 }

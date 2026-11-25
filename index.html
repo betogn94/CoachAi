@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261125-0119-arete-videos-youtube">
+<meta name="app-version" content="20261125-0135-arete-rutinas-catalogo">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -20535,6 +20535,17 @@ function reconcileDietKcal(text) {
 async function saveWeeklyPlan(tipo, contenido, opts) {
   if (!sbClient || !currentUser) return null;
   if (tipo === 'dieta') contenido = reconcileDietKcal(contenido);   // kcal per-comida = sus macros
+  // Coach con catálogo propio (Team Arete): la rutina se guarda SOLO con sus ejercicios.
+  // Studio (el coach a mano) no pasa por acá. Sin catálogo → no-op.
+  if (tipo === 'rutina') {
+    try {
+      const aj = ajustarRutinaACatalogo(contenido);
+      if (aj.cambios.length) {
+        contenido = aj.contenido;
+        if (typeof trackEvent === 'function') trackEvent('rutina_catalogo_ajuste', { n: aj.cambios.length, cambios: aj.cambios.map((x) => `${x.de} → ${x.a || '(quitado)'} [${x.modo}]`).join(' | ').slice(0, 500) });
+      }
+    } catch (e) { console.warn('[catalogo] ajuste rutina:', e); }
+  }
   const semana = getISOWeekKey();
   const fecha = (opts && opts.fechaEntrega) || getTodayKey();
   const { data, error } = await sbClient.from('planes_semanales').upsert({
@@ -23982,6 +23993,168 @@ function validarRutinaEsqueleto(contenido, sexo, nDias) {
   return reasons;
 }
 
+// ===== CATÁLOGO PROPIO DEL COACH EN LAS RUTINAS (Team Arete, 2026-11-25) =====
+// Si el tenant tiene catálogo (branding_config.ejercicios, ver _tenantEjCatalog), la IA
+// arma la rutina SOLO con esos ejercicios (mismo método y esqueleto de siempre) y, como
+// red, ajustarRutinaACatalogo corrige al guardar lo que se le haya escapado. Sin
+// catálogo, las dos funciones no hacen nada → el resto de los coaches, igual que antes.
+// Grupos del catálogo: pecho espalda hombros biceps triceps cuadriceps femorales gluteos
+// aductores gemelos abdomen.
+
+// Músculos de un título de día ("Día 2 · Espalda/Trapecios/Bíceps") → grupos del catálogo.
+function _catGruposDeTexto(s) {
+  const t = _normalizeExName(s);
+  const out = [];
+  const add = (g) => { if (!out.includes(g)) out.push(g); };
+  if (/pecho|pectoral|chest/.test(t)) add('pecho');
+  if (/espalda|dorsal|back/.test(t)) add('espalda');
+  if (/hombro|deltoid|shoulder/.test(t)) add('hombros');
+  if (/trapecio|traps/.test(t)) { add('hombros'); add('espalda'); }
+  if (/bicep/.test(t)) add('biceps');
+  if (/tricep/.test(t)) add('triceps');
+  if (/cuadricep|quad/.test(t)) add('cuadriceps');
+  if (/femoral|isquio|hamstring/.test(t)) add('femorales');
+  if (/gluteo|glute/.test(t)) add('gluteos');
+  if (/pantorrilla|gemelo|calves|calf/.test(t)) add('gemelos');
+  if (/abdom|core|abs/.test(t)) add('abdomen');
+  if (/aductor/.test(t)) add('aductores');
+  if (/pierna|legs/.test(t)) { add('cuadriceps'); add('femorales'); add('gluteos'); }
+  return out;
+}
+
+// Músculo probable de un ejercicio por su nombre (para elegir un reemplazo del catálogo).
+// El orden importa: "curl femoral" antes que "curl", "kickback" (tríceps) antes que "patada".
+function _catGrupoDeEjercicio(nombre) {
+  const t = _normalizeExName(nombre);
+  const R = [
+    [/pantorrilla|gemelo|talon/, 'gemelos'],
+    [/curl femoral|femoral|rumano|rdl|camilla|isquio|peso muerto/, 'femorales'],
+    [/tricep|frances|rompecraneo|pushdown|kickback|patada de tricep|extension overhead|sobre la cabeza/, 'triceps'],
+    [/hip thrust|pelvis|gluteo|patada|abducc|abductor|puente|pull through/, 'gluteos'],
+    [/aducc|aductor/, 'aductores'],
+    [/crunch|abdom|plancha|elevacion de piernas|elevaciones de piernas/, 'abdomen'],
+    [/encogimiento|trapecio/, 'hombros'],
+    [/press (de )?banca|press plano|press inclinado|apertura|pec ?de|crossover|cruce|flexiones|fondos|pecho/, 'pecho'],
+    [/jalon|remo|dominada|pull ?over|pulldown|lumbar|hiperextension|espalda/, 'espalda'],
+    [/lateral|frontal|militar|hombro|face ?pull|facepull|posterior|pajaro|arnold|vuelo|shoulder/, 'hombros'],
+    [/curl|bicep|martillo|predicador|scott/, 'biceps'],
+    [/sentadilla|prensa|hack|bulgara|zancada|estocada|cuadricep|sillon|step/, 'cuadriceps'],
+  ];
+  for (const [re, g] of R) if (re.test(t)) return g;
+  return null;
+}
+
+// Bloque del prompt: la lista CERRADA de ejercicios, por músculo. Va después del
+// esqueleto (lo complementa: el esqueleto dice cuántos por músculo, esto dice cuáles).
+function _catalogoPromptBlock(isEs) {
+  const cat = _tenantEjCatalog();
+  if (!cat || !cat.length) return '';
+  const sexo = document.getElementById('f-sexo').value;
+  const ES = { pecho: 'Pecho', espalda: 'Espalda', hombros: 'Hombros (y Trapecios)', biceps: 'Bíceps', triceps: 'Tríceps', cuadriceps: 'Cuádriceps', femorales: 'Femorales', gluteos: 'Glúteos', aductores: 'Aductores', gemelos: 'Pantorrillas / gemelos', abdomen: 'Abdomen' };
+  const orden = ['cuadriceps', 'gluteos', 'femorales', 'gemelos', 'aductores', 'espalda', 'pecho', 'hombros', 'biceps', 'triceps', 'abdomen'];
+  const grupos = orden.filter((g) => !(sexo === 'femenino' && g === 'pecho'))
+    .map((g) => [g, cat.filter((r) => r.muscle_group === g).map((r) => r.nombre_es)])
+    .filter(([, ns]) => ns.length);
+  const lista = grupos.map(([g, ns]) => `- ${ES[g] || g}: ${ns.join(' · ')}`).join('\n');
+  if (isEs) {
+    return `
+
+CATÁLOGO DE EJERCICIOS DE TU COACH — OBLIGATORIO (MANDA sobre EJERCICIOS PERMITIDOS, los ejemplos y cualquier otra lista de ejercicios de este prompt):
+Tu coach grabó un video de cada uno de estos ejercicios y sus alumnos SOLO pueden recibir estos. Elegí TODOS los ejercicios de la rutina de esta lista:
+${lista}
+
+REGLAS DEL CATÁLOGO (no negociables):
+- Escribí cada nombre EXACTAMENTE como figura en la lista, letra por letra, sin agregar paréntesis, aclaraciones, variantes ni equipamiento ("Sillón de cuádriceps", NO "Extensión de cuádriceps en máquina").
+- Prohibido cualquier ejercicio que no esté en la lista, aunque sea parecido o sea el ejemplo del método.
+- Usá el ejercicio en el músculo que indica la lista. Si el esqueleto pide "Trapecios", usá los de Hombros (Facepull) o el Remo Gironda alto agarre neutro. Si pide "Femorales", usá los de Femorales; "Pantorrillas", los de gemelos.
+- Nunca repitas un ejercicio en el mismo día. Si un músculo tiene pocos ejercicios en la lista, SÍ podés repetir un ejercicio en otro día de la semana.
+- Si un músculo del esqueleto no tiene suficientes ejercicios en la lista para la cantidad pedida, completá con los ejercicios de la lista que más lo trabajen (ej. Glúteos: Búlgara en Smith, Peso muerto rumano, Prensa 45 pies abiertos).`;
+  }
+  return `
+
+YOUR COACH'S EXERCISE CATALOG — MANDATORY (OVERRIDES the allowed-exercises list, the examples and any other exercise list in this prompt):
+Your coach recorded a video of each of these exercises and their clients can ONLY get these. Pick EVERY exercise of the routine from this list:
+${lista}
+
+CATALOG RULES (non-negotiable):
+- Write each name EXACTLY as it appears in the list (in Spanish, letter by letter), with no parentheses, variants or equipment notes.
+- Any exercise not in the list is forbidden, even if similar.
+- Never repeat an exercise on the same day; you MAY repeat one on another day of the week if the muscle has few options.`;
+}
+
+// Red de seguridad al GUARDAR una rutina de un coach con catálogo: cada ejercicio que no
+// sea del catálogo se renombra al del catálogo que corresponde (sinónimo / parecido del
+// mismo músculo) o se cambia por uno del catálogo del mismo músculo del día (sin repetir
+// en el día); si no hay ninguno posible, se saca. Al cambiar de ejercicio se borran sus
+// líneas de explicación (eran del ejercicio viejo) pero se conservan los intensificadores.
+// Devuelve { contenido, cambios: [{ de, a, modo }] }. Sin catálogo: el mismo texto, [].
+function ajustarRutinaACatalogo(contenido, lista) {
+  const cat = lista || _tenantEjCatalog();
+  if (!cat || !cat.length || !contenido || typeof contenido !== 'string') return { contenido, cambios: [] };
+  const exacto = new Map();
+  for (const r of cat) for (const n of r._normNames) if (!exacto.has(n)) exacto.set(n, r);
+  const usosSemana = {};
+  const cambios = [];
+  const out = [];
+  let enDia = false, gruposDia = [], usadosDia = new Set(), saltarNotas = false, num = 0;
+  const elegir = (grupos) => {
+    const cand = cat.filter((r) => grupos.includes(r.muscle_group) && !usadosDia.has(r.nombre_es));
+    if (!cand.length) return null;
+    // El menos usado en la semana; a igualdad, el primero del catálogo (orden del coach).
+    return cand.reduce((a, b) => ((usosSemana[b.nombre_es] || 0) < (usosSemana[a.nombre_es] || 0) ? b : a));
+  };
+  for (const raw of contenido.split('\n')) {
+    const s = raw.replace(/\r$/, '').trim();
+    const c = s.replace(/[*_#]/g, '').trim();
+    if (/^d[ií]a\s*\d+/i.test(c) || /^day\s*\d+/i.test(c)) {
+      enDia = true; gruposDia = _catGruposDeTexto(c.replace(/^(d[ií]a|day)\s*\d+/i, '')); usadosDia = new Set(); saltarNotas = false; num = 0;
+      out.push(raw); continue;
+    }
+    if (!s) { saltarNotas = false; out.push(raw); continue; }
+    const finDeDias = /^-{3,}$|^={3,}$/.test(s)
+      || (/^(?:🛋️?\s*)?(descanso|cardio|notas?|tips?|clave|rest|cardio)\b/i.test(c) && !/^descanso\s*:?\s*\d/i.test(c));
+    if (finDeDias) { enDia = false; saltarNotas = false; out.push(raw); continue; }
+    if (!enDia) { out.push(raw); continue; }
+    const esIntens = /^(intens(?:ificador)?[\s.]*(?:set\s*\d+)?|drop\s+set|rest[\s-]?pause|superset|cluster\s+set|pausa\s+muerta)\b\s*[:.]/i.test(c);
+    const m = /^(\s*\**\s*)(\d+[.)]|[•\-*–])(\s+)(.*)$/.exec(raw.replace(/\r$/, ''));
+    const cuerpo = m ? m[4] : '';
+    const sep = cuerpo.search(/\s[—·–-]\s/);
+    const detalle = sep >= 0 ? cuerpo.slice(sep) : '';
+    const esEjercicio = !esIntens && m && sep > 0 && /\d\s*[x×]|serie|rep|set|fallo/i.test(detalle);
+    if (!esEjercicio) {
+      if (saltarNotas && !esIntens) continue;     // explicación del ejercicio reemplazado
+      out.push(raw); continue;
+    }
+    const nombreCrudo = cuerpo.slice(0, sep);
+    const nombre = nombreCrudo.replace(/[*_]/g, '').trim();
+    let row = exacto.get(_normalizeExName(nombre)) || null, modo = 'exacto';
+    if (row && usadosDia.has(row.nombre_es)) row = null;
+    if (!row) {
+      const f = _findEjercicioMatch(nombre, cat);
+      const g = _catGrupoDeEjercicio(nombre);
+      // Un parecido vale solo si es del mismo músculo que el original Y de un músculo del día
+      // (si no, "Jalones a la frente" en un día de hombros caería en un jalón de espalda).
+      if (f && !usadosDia.has(f.nombre_es) && (!g || f.muscle_group === g) && (!gruposDia.length || gruposDia.includes(f.muscle_group))) { row = f; modo = 'parecido'; }
+    }
+    if (!row) {
+      const g = _catGrupoDeEjercicio(nombre);
+      const delDia = gruposDia.length ? gruposDia : (g ? [g] : []);
+      row = (g && delDia.includes(g) ? elegir([g]) : null) || elegir(delDia);
+      modo = 'reemplazo';
+    }
+    if (!row) { cambios.push({ de: nombre, a: null, modo: 'quitado' }); saltarNotas = true; continue; }
+    usadosDia.add(row.nombre_es);
+    usosSemana[row.nombre_es] = (usosSemana[row.nombre_es] || 0) + 1;
+    saltarNotas = modo === 'reemplazo';
+    num++;
+    if (row.nombre_es !== nombre) cambios.push({ de: nombre, a: row.nombre_es, modo });
+    const marca = /^\d/.test(m[2]) ? `${num}${m[2].slice(-1)}` : m[2];
+    const nuevoNombre = nombreCrudo.replace(nombre, row.nombre_es);
+    out.push(`${m[1]}${marca}${m[3]}${nuevoNombre}${cuerpo.slice(sep)}${/\r$/.test(raw) ? '\r' : ''}`);
+  }
+  return { contenido: out.join('\n'), cambios };
+}
+
 function buildSystemPrompt() {
   // Cohorte King (Fase 4): en el onboarding King, metodo_king ya está estampado
   // ANTES de generar el plan (ver handoff King ~17109), así que kingEsCohorte()
@@ -24281,7 +24454,7 @@ ${_dietTarget ? `- TARGET (ya calculado para este cliente — NO recalcules el T
 ${esKing ? REGLAS_KING_DIETA_ES : ''}${_bloqueRestriccionDieta(dieta, true)}
 
 ${sexo === 'femenino' ? METODO_RELOJ_ARENA_ES : METODO_V_MASCULINO_ES}
-${(esKing && sexo === 'femenino') ? REGLAS_KING_MUJER_ES : ''}${_focoPromptBlock(true)}${_splitPromptBlock(true)}
+${(esKing && sexo === 'femenino') ? REGLAS_KING_MUJER_ES : ''}${_focoPromptBlock(true)}${_splitPromptBlock(true)}${_catalogoPromptBlock(true)}
 
 EJEMPLO DE REFERENCIA — formato y nivel de detalle de UN día bien hecho (es solo formato: los días, títulos y cantidad de ejercicios salen del ESQUELETO DE LA SEMANA; NO lo copies literal):
 
@@ -24519,7 +24692,7 @@ CRITICAL CONSTRAINTS:
 - For every exercise: sets, reps and rest — no exceptions.
 - For beginners: add a technique note on compound movements.
 - Adapt to location (gym with machines / home with bodyweight or dumbbells).
-- Respect injuries 100% — substitute any exercises that affect them.${_focoPromptBlock(false)}${_splitPromptBlock(false)}
+- Respect injuries 100% — substitute any exercises that affect them.${_focoPromptBlock(false)}${_splitPromptBlock(false)}${_catalogoPromptBlock(false)}
 
 FOR ANY OTHER CLIENT QUESTION:
 Answer concisely, directly and motivationally. Maximum 4-6 sentences unless the topic requires more detail. For questions about diet changes or what to train today, answer with precision. At the end of your responses, when relevant, remind them to log in My Day.
@@ -27820,19 +27993,15 @@ function _ejTokens(s) {
 // Arete 2026-11-25): [{ n: nombre, g: músculo, yt: id de YouTube, a: [sinónimos] }].
 // Si el tenant lo tiene, "Cómo se hace" muestra SU video de YouTube y nunca nuestras
 // demos. Sin catálogo → null y todo sigue igual que siempre.
-let _tenantEjCache = { key: null, list: null };
+// (Sin caché a propósito: son ~50 filas, y el servidor la copia a api/_chat-cerebro.js.)
 function _tenantEjCatalog() {
   const raw = currentTenant && currentTenant.branding_config && currentTenant.branding_config.ejercicios;
   if (!Array.isArray(raw) || !raw.length) return null;
-  const key = (currentTenant.id || currentTenant.slug) + ':' + raw.length;
-  if (_tenantEjCache.key === key) return _tenantEjCache.list;
-  const list = raw.filter(r => r && r.n && /^[\w-]{11}$/.test(String(r.yt || ''))).map(r => {
+  return raw.filter(r => r && r.n && /^[\w-]{11}$/.test(String(r.yt || ''))).map(r => {
     const names = [r.n, ...(Array.isArray(r.a) ? r.a : [])];
     const _normNames = names.map(_normalizeExName).filter(Boolean);
     return { nombre_es: r.n, muscle_group: r.g || '', youtube_id: r.yt, _normName: _normNames[0] || '', _normNames };
   });
-  _tenantEjCache = { key, list };
-  return list;
 }
 
 function _findEjercicioMatch(freeName, lista) {

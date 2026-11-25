@@ -49,7 +49,25 @@ export function fechaValida(fecha) {
   return fecha === hoyUtc || fecha === fechaMas(hoyUtc, -1) || fecha === fechaMas(hoyUtc, 1);
 }
 
-const COLS_USUARIO = 'id,nombre,edad,sexo,peso,altura,cuello,cintura,cadera,objetivo,nivel,actividad,dias_entreno,lugar_entreno,lesiones,restricciones_dieta,alergias,comidas_dia,no_le_gusta,metodo_king,foco_entreno,es_interno';
+const COLS_USUARIO = 'id,nombre,edad,sexo,peso,altura,cuello,cintura,cadera,objetivo,nivel,actividad,dias_entreno,lugar_entreno,lesiones,restricciones_dieta,alergias,comidas_dia,no_le_gusta,metodo_king,foco_entreno,es_interno,tenant_id';
+
+/**
+ * Catálogo propio del coach del alumno (Team Arete, 2026-11-25): solo branding_config.ejercicios de su tenant,
+ * con la forma que lee el cerebro como `currentTenant`. null si el tenant no tiene catálogo (el resto: sin
+ * cambios) o si la lectura falla (fail-open: la rutina sale como siempre y queda el aviso en el log).
+ */
+export async function cargarTenantCatalogo(tenantId) {
+  if (!tenantId) return null;
+  try {
+    const rows = await sb(`/tenants?id=eq.${encodeURIComponent(tenantId)}&select=id,slug,ejercicios:branding_config->ejercicios&limit=1`);
+    const t = rows && rows[0];
+    if (!t || !Array.isArray(t.ejercicios) || !t.ejercicios.length) return null;
+    return { id: t.id, slug: t.slug, branding_config: { ejercicios: t.ejercicios } };
+  } catch (e) {
+    console.warn('[contexto] catálogo del tenant:', e?.message || e);
+    return null;
+  }
+}
 
 const arr = (v) => (Array.isArray(v) ? v.map((x) => String(x).trim()).filter(Boolean) : []);
 const str = (v) => (v == null ? '' : String(v));
@@ -117,13 +135,15 @@ export async function cargarContexto({ authUid, fecha, lang }) {
   if (!usuario) return null;
   const uid = usuario.id;
   const desde = fechaMas(fecha, -90);
-  const [planes, cierres, historial, diario] = await Promise.all([
+  const [planes, cierres, historial, diario, tenant] = await Promise.all([
     sb(`/planes_semanales?usuario_id=eq.${uid}&select=tipo,contenido,fecha_entrega,semana_iso,updated_at,origen&order=updated_at.desc`),
     sb(`/cierres_semanales?usuario_id=eq.${uid}&select=fecha_fin`),
     sb(`/historial_chat?usuario_id=eq.${uid}&select=fecha,mensajes,conversation_history&order=fecha.asc`),
     sb(`/progreso_diario?usuario_id=eq.${uid}&fecha=gte.${desde}&select=fecha,desayuno,almuerzo,merienda,cena,calorias_consumidas,proteinas_g,carbos_g,grasas_g,entreno,ejercicios_realizados,notas_entreno&order=fecha.asc`),
+    cargarTenantCatalogo(usuario.tenant_id),
   ]);
   const ctx = armarCtx({ usuario, planes, cierres, historial, diario, fecha, lang });
+  ctx.currentTenant = tenant;
   const hoy = (historial || []).find((r) => r.fecha === fecha) || null;
   return { usuario, ctx, historial: historial || [], hoy, turnos: turnosPrevios(historial) };
 }
@@ -190,6 +210,26 @@ export async function registrarEvento(usuarioId, evento, meta) {
   }
 }
 
+/**
+ * Team Arete: si el coach del alumno tiene catálogo propio, la rutina se guarda SOLO con sus ejercicios
+ * (`ajustarRutinaACatalogo` del cerebro = la misma función que usa `saveWeeklyPlan` de la PWA). Sin
+ * catálogo devuelve el mismo texto. Nunca rompe el guardado: ante un error, el texto original.
+ */
+export async function ajustarACatalogo(cerebro, planText, usuarioId, origen) {
+  try {
+    const aj = cerebro.ajustarRutinaACatalogo(planText);
+    if (!aj || !aj.cambios || !aj.cambios.length) return planText;
+    await registrarEvento(usuarioId, 'rutina_catalogo_ajuste', {
+      origen, n: aj.cambios.length,
+      cambios: aj.cambios.map((x) => `${x.de} → ${x.a || '(quitado)'} [${x.modo}]`).join(' | ').slice(0, 500),
+    });
+    return aj.contenido;
+  } catch (e) {
+    console.warn('[contexto] ajuste de rutina al catálogo:', e?.message || e);
+    return planText;
+  }
+}
+
 /** Alertas de consistencia de la dieta para Tower (saveWeeklyPlan L20454): limpia las no resueltas del plan y escribe las nuevas. */
 export async function guardarAlertasDieta({ usuarioId, planId, issues }) {
   try {
@@ -214,13 +254,15 @@ export async function cargarContextoPlan({ authUid, fecha, lang }) {
   if (!usuario) return null;
   const uid = usuario.id;
   const desde = fechaMas(fecha, -90);
-  const [planes, cierres, historial, diario] = await Promise.all([
+  const [planes, cierres, historial, diario, tenant] = await Promise.all([
     sb(`/planes_semanales?usuario_id=eq.${uid}&select=tipo,contenido,fecha_entrega,semana_iso,updated_at,origen&order=updated_at.desc`),
     sb(`/cierres_semanales?usuario_id=eq.${uid}&select=semana_num,fecha_fin&order=semana_num.asc`),
     sb(`/historial_chat?usuario_id=eq.${uid}&select=fecha,mensajes,conversation_history&order=fecha.asc`),
     sb(`/progreso_diario?usuario_id=eq.${uid}&fecha=gte.${desde}&select=fecha,desayuno,almuerzo,merienda,cena,calorias_consumidas,proteinas_g,carbos_g,grasas_g,entreno,ejercicios_realizados,notas_entreno&order=fecha.asc`),
+    cargarTenantCatalogo(usuario.tenant_id),
   ]);
   const ctx = armarCtx({ usuario, planes, cierres, historial, diario, fecha, lang });
+  ctx.currentTenant = tenant;
   return { usuario, ctx, planes: planes || [], cierres: cierres || [] };
 }
 

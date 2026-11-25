@@ -95,10 +95,14 @@ export const FUNCIONES = [
   'generateWeeklyAnalysis', 'adjustDietViaAI', 'computeWeekStats', 'getWeekNum', 'getWeekRange', '_getWeekNumLegacy', '_getWeekRangeLegacy',
   '_lastCierre', '_addDaysStr', '_isoKeyOfStr', 'isoWeekRange', 'isoWeekShift', 'isoWeeksBetween', 'getTodayKey',
   'stripLeadingDietFromRutina', 'getWeeklyTrainingTarget',
+  // Team Arete (2026-11-25) — catálogo propio del coach: el prompt solo con sus ejercicios y el ajuste al guardar.
+  '_normalizeExName', '_ejTokens', '_findEjercicioMatch', '_tenantEjCatalog', '_catGruposDeTexto', '_catGrupoDeEjercicio',
+  '_catalogoPromptBlock', 'ajustarRutinaACatalogo',
 ];
 export const CONSTANTES = [
   'METODO_RELOJ_ARENA_ES', 'METODO_V_MASCULINO_ES', 'REGLAS_KING_MUJER_ES', 'REGLAS_KING_DIETA_ES',
   'REGLAS_VEGANAS_ES', 'REGLAS_VEGETARIANAS_ES', 'REGLAS_VEGANAS_EN', 'REGLAS_VEGETARIANAS_EN', 'DAY_REGEX',
+  '_EJ_STOPWORDS',
 ];
 
 export function generar() {
@@ -128,6 +132,8 @@ export function generar() {
 //   ctx.trainedDates  fechas de dias_entrenados (la PWA: _trainedDatesSet)
 //   ctx.firmarFotos   async ({inicioFrente, inicioEspalda, semanaFrente, semanaEspalda}) → mismas claves firmadas
 //   ctx.fetchIA       async (url, opts) → Response-like {ok, status, json(), text()}: reemplaza fetch('/api/chat')
+//   — Team Arete —
+//   ctx.currentTenant { id, slug, branding_config: { ejercicios } } del alumno (null = sin catálogo propio)
 // Funciones: ${FUNCIONES.join(', ')}
 // Constantes: ${CONSTANTES.join(', ')}
 
@@ -160,6 +166,9 @@ export function crearCerebro(ctx) {
   const _signPhotosForAI = async (p) => (ctx.firmarFotos ? ctx.firmarFotos(p || {}) : (p || {}));
   const aiAuthHeaders = async () => ({});
   const fetch = (url, opts) => { if (!ctx.fetchIA) throw new Error('ctx.fetchIA no provisto'); return ctx.fetchIA(url, opts); };
+  // — Team Arete: catálogo propio del coach (null = el resto de los tenants, sin cambios) —
+  const currentTenant = ctx.currentTenant || null;
+  const _ejBiblioteca = null;   // _findEjercicioMatch siempre recibe la lista del catálogo acá
 
 // (cuerpo VERBATIM, sin re-indentar: un espacio de más adentro de un template literal cambia el prompt)
 ${cuerpo}
