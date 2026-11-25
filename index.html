@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261125-1352-esqueleto-sexo-onboarding">
+<meta name="app-version" content="20261125-1944-vidriera-coaches-marca">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15744,10 +15744,9 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
     // MutationObserver had already done — leaving coral logos on top of
     // a default-themed app. Better to only apply KING when we're
     // CERTAIN the visitor is on a whitelabel.)
-    if (!slug) {
-      applyLightDefault();
-      return;
-    }
+    // (El `if (!slug) return` vive más abajo, DESPUÉS de definir
+    // window.applySyncTenantTheme: la vidriera de stores arranca sin slug y la
+    // necesita para pintar el login del coach que elige la visitante.)
     // Hardcoded synchronous palettes for each whitelabel. Must match the
     // colors in the tenant's branding_config so the post-fetch overlay is
     // a no-op (or just adds the logos / manifest / etc.). Bonus: when the
@@ -15872,6 +15871,10 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       return true;
     };
 
+    if (!slug) {
+      applyLightDefault();
+      return;
+    }
     var theme = THEMES[slug];
     // Tenant sin tema de marca propio (cualquier coach nuevo que no sea King) →
     // claro default. Antes hacía `return` pelado y el login quedaba en el dark viejo.
@@ -21754,8 +21757,13 @@ async function proceedAfterAuth(email, nombre, authUid) {
     // Closed beta gate: a new email that isn't on the invite allowlist
     // stays on the landing with a clear, friendly message (no account created).
     if (result.notInvited) {
-      error.innerHTML = '🔒 <strong>CoachAI está en beta cerrada.</strong><br>' +
-        'El acceso es solo por invitación. Si querés sumarte, escribinos y te agregamos.';
+      // Entró eligiendo un coach en la vidriera de stores → el acceso lo da ESE
+      // coach (lo invita desde Studio); no es "nuestra beta cerrada".
+      error.innerHTML = (typeof _storesPickedCoach === 'string' && _storesPickedCoach)
+        ? '🔒 <strong>Necesitás una invitación de ' + _esc(_storesPickedCoach) + '.</strong><br>' +
+          'Pedile a tu coach que te sume y volvé a entrar con este mismo mail.'
+        : '🔒 <strong>CoachAI está en beta cerrada.</strong><br>' +
+          'El acceso es solo por invitación. Si querés sumarte, escribinos y te agregamos.';
       error.style.lineHeight = '1.5';
       btn.disabled = false;
       loading.style.display = 'none';
@@ -21888,6 +21896,7 @@ async function proceedAfterAuth(email, nombre, authUid) {
 // STORES FUNNEL — buscador de coaches + demo IA (corre en el landing, pre-login).
 // ============================
 let _storesCoaches = [];   // cache del directorio para filtrar sin re-consultar
+let _storesPickedCoach = null;  // nombre del coach elegido en la vidriera (null = ninguno)
 
 // El buscador (directorio) es la entrada NEUTRAL de la app de stores. En el
 // subdominio de un coach (<coach>.coachaipro.ai, o ?tenant=/#tenant=/path a un
@@ -22022,6 +22031,10 @@ async function pickStoresTenant(slug) {
       new Promise(r => setTimeout(r, 420)),
     ]);
     if (tenant && typeof applyTenantBranding === 'function') applyTenantBranding(tenant);
+    // Sin sesión (lo normal en la vidriera) el RLS no deja leer `tenants` → tenant
+    // llega null. Caemos a la paleta sincrónica embebida (THEMES) para que el login
+    // salga con la marca del coach igual (King rosado, Arete negro/rojo).
+    else if (!tenant && typeof window.applySyncTenantTheme === 'function') window.applySyncTenantTheme(slug);
     // Setear el CONTEXTO de tenant: el guard cross-tenant del login tiene que saber
     // que la puerta es la de ESTE coach. currentTenant solo NO alcanza porque
     // resetAppState() lo BORRA justo antes del guard (durante el login). La señal de
@@ -22035,6 +22048,7 @@ async function pickStoresTenant(slug) {
   const t = _storesCoaches.find(x => x.slug === slug) || {};
   const d = t.directory || {};
   const nombre = d.nombre || t.name || slug;
+  _storesPickedCoach = nombre;   // para el mensaje de "sin invitación" del login
   const social = t.social_links || {};
   const url = social.instagram || social.web || social.whatsapp || null;
   const extIco = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"/></svg>';
@@ -22073,6 +22087,7 @@ function _showStoresLogin(headlineHtml, extraHtml) {
 
 function backToStoresBuscador() {
   clearStoresTrial();
+  _storesPickedCoach = null;
   // Revertir el branding del coach (quita theme-king + vars + logos) ANTES de
   // volver a la entrada NEUTRAL — sino el buscador quedaría teñido con el tema del
   // último coach abierto. Pasar branding_config vacío dispara la rama de limpieza.
@@ -22339,9 +22354,10 @@ function applyTenantBranding(tenant) {
     var defaultLogoIcon = (b.logoIcon && typeof b.logoIcon === 'string') ? b.logoIcon : '/logo-icon.png';
     document.querySelectorAll('img').forEach(function(img){
       var src = img.getAttribute('src') || '';
-      if (/^\/tenants\/[^/]+\/icon\.png/.test(src)) {
+      // icon*.png / logo*.png: cubre también los de Arete (icon-arete.png, logo-arete.png).
+      if (/^\/tenants\/[^/]+\/icon[^/]*\.png/.test(src)) {
         try { img.src = defaultLogoIcon; } catch (e) {}
-      } else if (/^\/tenants\/[^/]+\/logo\.png/.test(src)) {
+      } else if (/^\/tenants\/[^/]+\/logo[^/]*\.png/.test(src)) {
         try { img.src = defaultLogo; } catch (e) {}
       }
     });
