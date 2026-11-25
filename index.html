@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261125-1944-vidriera-coaches-marca">
+<meta name="app-version" content="20261125-1945-vidriera-avatar-tilde">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -41139,6 +41139,10 @@ async function forceAppUpdate() {
     .sc-name { font-size:15px; font-weight:600; color:var(--ink); letter-spacing:-.01em; display:flex; align-items:center; gap:5px; min-width:0; }
     .sc-name-txt { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .sc-verif { flex:0 0 auto; display:inline-flex; color:var(--accent); }
+    /* El tema claro pinta todo span con var(--text) (body.theme-light span) y le
+       ganaba a estos dos: inicial del avatar invisible + tilde verificado negro. */
+    .stores-coach-card .sc-avatar span { color:#fff; }
+    .stores-coach-card .sc-verif { color:var(--accent); }
     .sc-esp { font-size:12.5px; color:var(--sec); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .sc-meta { display:flex; align-items:center; margin-top:4px; }
     .sc-meta-item { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--sec); font-weight:500; }
