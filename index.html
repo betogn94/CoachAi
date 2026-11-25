@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261125-1333-arete-catalogo-onboarding">
+<meta name="app-version" content="20261125-1352-esqueleto-sexo-onboarding">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -21090,7 +21090,14 @@ async function prefetchPlan(tipo, opts) {
     // Rutina: además de la estructura, medimos si respeta el ESQUELETO DE LA SEMANA
     // (reglas de split de Jesús). Si no, se pide otra; si ninguna lo cumple, queda la
     // primera que parseó (_rutinaFueraEsqueleto) → nunca peor que antes del esqueleto.
-    const _sexoSplit = currentUser && currentUser.sexo;
+    // Perfil para los controles: en el ONBOARDING currentUser todavía no tiene el perfil
+    // (se copia al terminar, en launchCoach) y la rutina se pide en el paso 5 → antes el
+    // sexo quedaba vacío y TODAS las mujeres se validaban contra el esqueleto de VARÓN
+    // (6/6 eventos rutina_fuera_esqueleto, 2026-11). Fallback: el formulario, que es lo
+    // mismo que lee buildSystemPrompt.
+    const _campo = (id) => { const el = document.getElementById(id); return (el && el.value) || null; };
+    const _perfilDe = (k, id) => (currentUser && currentUser[k] != null && currentUser[k] !== '') ? currentUser[k] : _campo(id);
+    const _sexoSplit = _perfilDe('sexo', 'f-sexo');
     const _diasSplit = (opts && opts.expectedDays) || selectedDias.length;
     // Coach con catálogo propio: tenerlo ANTES de armar el prompt (en el onboarding
     // currentTenant todavía no está cargado). Sin catálogo: no hace nada.
@@ -21146,7 +21153,7 @@ async function prefetchPlan(tipo, opts) {
       || ((typeof getWeeklyTrainingTarget === 'function') ? getWeeklyTrainingTarget() : 0);
     // Mujeres: la rutina NUNCA entrena pecho (regla de Beto/Jesús 2026-10-19; antes
     // solo cohorte King). Si la IA lo mete igual, la vara la manda al backup.
-    const _noChest = !!(currentUser && currentUser.sexo === 'femenino');
+    const _noChest = _sexoSplit === 'femenino';
     let _useBackup = false, _reasons = [];
     if (!planText) { _useBackup = true; _reasons = ['no se genero']; }
     else {
