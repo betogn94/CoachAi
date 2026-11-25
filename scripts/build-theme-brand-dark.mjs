@@ -259,16 +259,26 @@ const baseDecls = new Map();   // selector base → [decl,…] de color (en orde
     for (const s of sels) { if (!baseDecls.has(s)) baseDecls.set(s, []); baseDecls.get(s).push(...ds); }
   }
 })(tree);
-const unstick = [];
+const unstick = [], seenUnstick = new Set();
 (function findRevert(nodes, inHoverNone) {
   for (const n of nodes) {
     if (n.type === 'group') findRevert(n.children, inHoverNone || /hover:\s*none/i.test(n.prelude));
     if (n.type !== 'rule' || !inHoverNone || !/revert/i.test(n.body)) continue;
     for (const s of splitSelectors(n.selector)) {
       if (!/:hover\b/.test(s) || OTHER_THEME.test(stripNot(s))) continue;
-      const ds = baseDecls.get(s.replace(/:hover\b/g, ''));
-      if (!ds) continue;
-      unstick.push(`  ${scope(s)} {\n    ${ds.map(d => d + ' !important').join(';\n    ')};\n  }`);
+      const base = s.replace(/:hover\b/g, '');
+      // El estado normal Y sus variantes con clase (".chip.selected", ".semana-card.activa"…):
+      // sin esto, un chip MARCADO tocado en el celular se veía como no marcado (bug que vio
+      // Beto en el onboarding). Van de menos a más clases → la variante gana por especificidad.
+      const variantes = [...baseDecls.keys()]
+        .filter(k => k === base || (k.startsWith(base) && /^(\.[\w-]+|\[[^\]]+\])+$/.test(k.slice(base.length))))
+        .sort((a, b) => a.length - b.length);
+      for (const k of variantes) {
+        const sel = scope(k.replace(/((?:\.[\w-]+|\[[^\]]+\])*)$/, (m) => m + ':hover'));
+        if (!sel || seenUnstick.has(sel)) continue;
+        seenUnstick.add(sel);
+        unstick.push(`  ${sel} {\n    ${baseDecls.get(k).map(d => d + ' !important').join(';\n    ')};\n  }`);
+      }
     }
   }
 })(tree, false);

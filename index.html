@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261125-0135-arete-rutinas-catalogo">
+<meta name="app-version" content="20261125-1318-arete-logo-chips">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15794,10 +15794,11 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       // --bd-* son los que lee la capa body.theme-brand-dark (applyBrandDarkVars).
       'arete': {
         bodyClass: 'theme-brand-dark',
-        // Provisorios hasta tener el logo de Lucas: los nuestros recoloreados a su
-        // rojo → naranja (scripts/recolor-logo.mjs).
-        logo:     '/tenants/arete/logo.png',
-        logoIcon: '/tenants/arete/icon.png',
+        // Logo real de Team Arete (2026-11-25): "TEAM ARETÉ" + la figura, blancos con
+        // fondo transparente, recortados del original de Lucas.
+        logo:     '/tenants/arete/logo-arete.png',
+        logoIcon: '/tenants/arete/icon-arete.png',
+        appleTouchIcon: '/tenants/arete/icon-arete-180.png',
         themeColor: '#030303',
         vars: {
           '--bg':            '#030303',
@@ -15816,7 +15817,7 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
           '--bd-ab': '#FF4D4D', '--bd-ab-rgb': '255, 77, 77',
           '--bd-a2': '#B80000', '--bd-a2-rgb': '184, 0, 0',
           '--bd-t':  '#FF6A00', '--bd-t-rgb':  '255, 106, 0',
-          '--bd-logo': "url('/tenants/arete/logo.png')"
+          '--bd-logo': "url('/tenants/arete/logo-arete.png')"
         }
       }
     };
@@ -46957,17 +46958,41 @@ body.theme-brand-dark .cai-perfil-info-avatar {
     border: 1.5px solid var(--border) !important;
     color: var(--muted) !important;
   }
+  body.theme-brand-dark .chip.selected:hover {
+    background: rgba(var(--bd-a-rgb), 0.12) !important;
+    border-color: var(--accent) !important;
+    color: var(--accent-bright) !important;
+  }
+  body.theme-brand-dark .chip.selected-green:hover {
+    background: rgba(var(--bd-t-rgb), 0.1) !important;
+    border-color: var(--accent3) !important;
+    color: var(--accent3) !important;
+  }
   body.theme-brand-dark .level-card:hover {
     background: var(--surface2) !important;
     border: 2px solid var(--border) !important;
+  }
+  body.theme-brand-dark .level-card.selected:hover {
+    border-color: var(--accent) !important;
+    background: rgba(var(--bd-a-rgb), 0.07) !important;
+    box-shadow: 0 0 18px rgba(var(--bd-a-rgb), 0.1) !important;
   }
   body.theme-brand-dark .objetivo-card:hover {
     background: var(--surface2) !important;
     border: 2px solid var(--border) !important;
   }
+  body.theme-brand-dark .objetivo-card.selected:hover {
+    border-color: var(--accent) !important;
+    background: rgba(var(--bd-a-rgb), 0.07) !important;
+    box-shadow: 0 0 18px rgba(var(--bd-a-rgb), 0.10) !important;
+  }
   body.theme-brand-dark .dia-card:hover {
     background: var(--surface2) !important;
     border: 2px solid var(--border) !important;
+  }
+  body.theme-brand-dark .dia-card.selected:hover {
+    border-color: var(--accent) !important;
+    background: rgba(var(--bd-a-rgb), 0.1) !important;
   }
   body.theme-brand-dark .coach-card:hover {
     background: var(--surface2) !important;
@@ -47008,9 +47033,19 @@ body.theme-brand-dark .cai-perfil-info-avatar {
     border: 1px solid rgba(var(--bd-a-rgb), 0.22) !important;
     color: var(--accent-bright) !important;
   }
+  body.theme-brand-dark .nav-drawer .nav-item.active:hover {
+    background: linear-gradient(135deg, rgba(var(--bd-a-rgb), 0.30), rgba(var(--bd-t-rgb), 0.16)) !important;
+    border: 1px solid rgba(var(--bd-a-rgb), 0.45) !important;
+    box-shadow:
+    0 0 18px rgba(var(--bd-a-rgb), 0.20),
+    inset 0 1px 0 rgba(255,255,255,0.06) !important;
+  }
   body.theme-brand-dark .perfil-transform-card:hover {
     background: var(--surface) !important;
     border: 1px solid rgba(var(--bd-a-rgb), 0.15) !important;
+  }
+  body.theme-brand-dark .perfil-transform-card.is-inicio:hover {
+    border-color: rgba(var(--bd-t-rgb), 0.3) !important;
   }
   body.theme-brand-dark .perfil-transform-card.is-current:hover {
     border-color: rgba(var(--bd-a-rgb), 0.38) !important;
@@ -47159,8 +47194,19 @@ body.theme-brand-dark .cai-perfil-info-avatar {
     border: 1px solid var(--border) !important;
     color: var(--muted) !important;
   }
+  body.theme-brand-dark .streak-day.today:hover {
+    border-color: var(--accent) !important;
+  }
+  body.theme-brand-dark .streak-day.trained:hover {
+    background: rgba(var(--bd-t-rgb), 0.15) !important;
+    border-color: var(--accent3) !important;
+  }
   body.theme-brand-dark .color-option:hover {
     border: 3px solid transparent !important;
+  }
+  body.theme-brand-dark .color-option.selected:hover {
+    border-color: white !important;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.3) !important;
   }
   body.theme-brand-dark .logo-upload-area:hover {
     border: 2px dashed var(--border) !important;
@@ -47189,6 +47235,9 @@ body.theme-brand-dark .cai-perfil-info-avatar {
   }
   body.theme-brand-dark .cai-home-card-dots .rot-dot:hover {
     background: rgba(255,255,255,0.25) !important;
+  }
+  body.theme-brand-dark .cai-home-card-dots .rot-dot.is-active:hover {
+    background: rgba(255,255,255,0.7) !important;
   }
 }
 /* /THEME-BRAND-DARK */</style>
