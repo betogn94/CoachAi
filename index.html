@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261125-0100-arete-tema-oscuro">
+<meta name="app-version" content="20261125-0114-arete-boton-logos">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15785,6 +15785,10 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
       // --bd-* son los que lee la capa body.theme-brand-dark (applyBrandDarkVars).
       'arete': {
         bodyClass: 'theme-brand-dark',
+        // Provisorios hasta tener el logo de Lucas: los nuestros recoloreados a su
+        // rojo → naranja (scripts/recolor-logo.mjs).
+        logo:     '/tenants/arete/logo.png',
+        logoIcon: '/tenants/arete/icon.png',
         themeColor: '#030303',
         vars: {
           '--bg':            '#030303',
@@ -15802,7 +15806,8 @@ body .cai-ent-ex, body.theme-king .cai-ent-ex {
           '--bd-a':  '#FF1E1E', '--bd-a-rgb':  '255, 30, 30',
           '--bd-ab': '#FF4D4D', '--bd-ab-rgb': '255, 77, 77',
           '--bd-a2': '#B80000', '--bd-a2-rgb': '184, 0, 0',
-          '--bd-t':  '#FF6A00', '--bd-t-rgb':  '255, 106, 0'
+          '--bd-t':  '#FF6A00', '--bd-t-rgb':  '255, 106, 0',
+          '--bd-logo': "url('/tenants/arete/logo.png')"
         }
       }
     };
@@ -22225,6 +22230,7 @@ function clearBrandVars() {
     root.style.removeProperty(`--bd-${k}`);
     root.style.removeProperty(`--bd-${k}-rgb`);
   });
+  root.style.removeProperty('--bd-logo');
 }
 // Tema oscuro de marca: violeta→accent, lila→accentBright, azul→accentDeep, turquesa→accent3.
 const BRAND_DARK_VAR_SOURCES = { a: 'accent', ab: 'accentBright', a2: 'accentDeep', t: 'accent3' };
@@ -22338,7 +22344,11 @@ function applyTenantBranding(tenant) {
   if (b.bodyClass === 'theme-brand') applyBrandVars(b.colors || {});
   // Capa OSCURA de marca (body.theme-brand-dark, scripts/build-theme-brand-dark.mjs):
   // sus reglas leen --bd-*. Mismo esquema: hex + gemelo "-rgb" para transparencias.
-  if (b.bodyClass === 'theme-brand-dark') applyBrandDarkVars(b.colors || {});
+  if (b.bodyClass === 'theme-brand-dark') {
+    applyBrandDarkVars(b.colors || {});
+    // El logo grande del login es un fondo por CSS: la capa lo lee de --bd-logo.
+    if (b.logo && /^\/[\w\/.-]+$/.test(b.logo)) document.documentElement.style.setProperty('--bd-logo', `url('${b.logo}')`);
+  }
 
   // Tab title — keep the "<name> — <tagline>" pattern so it reads
   // sensibly in browser tabs and on the OS app switcher.
@@ -40951,6 +40961,9 @@ async function forceAppUpdate() {
   --bd-a2: #5b9fff; --bd-a2-rgb: 91, 159, 255;
   --bd-t: #2ecfb5; --bd-t-rgb: 46, 207, 181;
 }
+/* Logo del login: es un FONDO por CSS (no un <img>), así que applyTenantBranding no lo
+   cambia. Lee --bd-logo (url del logo del tenant, la pone THEMES/applyTenantBranding). */
+body.theme-brand-dark .landing-logo { background-image: var(--bd-logo, url('logo.png')) !important; }
 /* SVG con colores como ATRIBUTO (degradados de los anillos, íconos): el CSS gana a
    los atributos de presentación, así que alcanza con apuntar al valor del atributo. */
 body.theme-brand-dark [stop-color="#7c6aff" i] { stop-color: var(--bd-a) !important; }
@@ -46665,6 +46678,268 @@ body.theme-brand-dark .br-continue {
 }
 body.theme-brand-dark .cai-perfil-info-avatar {
   box-shadow: var(--accent-shadow) !important;
+}
+@media (hover: none) {
+  body.theme-brand-dark .qbtn:hover {
+    background: rgba(255,255,255,0.025) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    color: var(--muted) !important;
+  }
+  body.theme-brand-dark .qbtn-main:hover {
+    border: 1px solid transparent !important;
+    background:
+    linear-gradient(rgba(var(--bd-a-rgb), 0.04), rgba(var(--bd-t-rgb), 0.04)) padding-box,
+    linear-gradient(135deg, rgba(var(--bd-a-rgb), 0.55), rgba(var(--bd-t-rgb), 0.55)) border-box !important;
+    color: var(--accent3) !important;
+  }
+  body.theme-brand-dark .qbtn-card:hover {
+    background: rgba(0,0,0,0.30) !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    color: var(--text) !important;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.4) !important;
+  }
+  body.theme-brand-dark .send-btn:hover {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--bd-a2) 50%, var(--accent3) 100%) !important;
+    box-shadow: 0 2px 14px rgba(var(--bd-a-rgb), 0.28), 0 0 18px rgba(var(--bd-t-rgb), 0.16) !important;
+  }
+  body.theme-brand-dark .chip:hover {
+    background: var(--surface2) !important;
+    border: 1.5px solid var(--border) !important;
+    color: var(--muted) !important;
+  }
+  body.theme-brand-dark .level-card:hover {
+    background: var(--surface2) !important;
+    border: 2px solid var(--border) !important;
+  }
+  body.theme-brand-dark .objetivo-card:hover {
+    background: var(--surface2) !important;
+    border: 2px solid var(--border) !important;
+  }
+  body.theme-brand-dark .dia-card:hover {
+    background: var(--surface2) !important;
+    border: 2px solid var(--border) !important;
+  }
+  body.theme-brand-dark .coach-card:hover {
+    background: var(--surface2) !important;
+    border: 1px solid rgba(var(--bd-a-rgb), 0.18) !important;
+    box-shadow:
+    0 4px 24px rgba(0,0,0,0.4),
+    0 0 0 1px rgba(var(--bd-a-rgb), 0.05),
+    inset 0 2px 0 var(--accent) !important;
+  }
+  body.theme-brand-dark .semana-card:hover {
+    background: var(--surface2) !important;
+    border-color: rgba(var(--bd-a-rgb), 0.12) !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.25) !important;
+    border: 1px solid var(--border) !important;
+  }
+  body.theme-brand-dark .semana-card.activa:hover {
+    border-color: rgba(var(--bd-t-rgb), 0.3) !important;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.3), 0 0 12px rgba(var(--bd-t-rgb), 0.07) !important;
+    border-color: var(--accent3) !important;
+  }
+  body.theme-brand-dark .cai-home-card:hover {
+    background-color: rgba(21, 21, 21, 0.93) !important;
+    background-image:
+    linear-gradient(135deg, rgba(var(--bd-a-rgb), 0.06) 0%, transparent 45%),
+    linear-gradient(225deg, rgba(var(--bd-t-rgb), 0.04) 0%, transparent 45%) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    box-shadow:
+    0 8px 28px rgba(0,0,0,0.30),
+    inset 0 1px 0 rgba(255,255,255,0.06) !important;
+    color: var(--text) !important;
+  }
+  body.theme-brand-dark .cai-ent-subcard:hover {
+    background: rgba(0,0,0,0.22) !important;
+    border: 1px solid rgba(255,255,255,0.05) !important;
+  }
+  body.theme-brand-dark .cai-ent-ex-info-btn:hover {
+    background: rgba(var(--bd-a-rgb), 0.08) !important;
+    border: 1px solid rgba(var(--bd-a-rgb), 0.22) !important;
+    color: var(--accent-bright) !important;
+  }
+  body.theme-brand-dark .perfil-transform-card:hover {
+    background: var(--surface) !important;
+    border: 1px solid rgba(var(--bd-a-rgb), 0.15) !important;
+  }
+  body.theme-brand-dark .perfil-transform-card.is-current:hover {
+    border-color: rgba(var(--bd-a-rgb), 0.38) !important;
+    box-shadow:
+    0 0 0 1px rgba(var(--bd-a-rgb), 0.14),
+    0 8px 24px rgba(var(--bd-a-rgb), 0.13),
+    0 0 16px rgba(var(--bd-a-rgb), 0.09) !important;
+  }
+  body.theme-brand-dark .perfil-stat:hover {
+    background:
+    radial-gradient(circle at top, rgba(var(--bd-a-rgb), 0.07), transparent 70%),
+    var(--surface) !important;
+    border: 1px solid rgba(var(--bd-a-rgb), 0.14) !important;
+    box-shadow:
+    0 2px 10px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.03) !important;
+  }
+  body.theme-brand-dark .cai-perfil-plan-head:hover {
+    background: transparent !important;
+    color: var(--text) !important;
+  }
+  body.theme-brand-dark .cai-perfil-info-head:hover {
+    background: transparent !important;
+    color: var(--text) !important;
+  }
+  body.theme-brand-dark .perfil-plan-view-btn:hover {
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    background-image:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(135deg, rgba(var(--bd-a-rgb), 0.55), rgba(var(--bd-t-rgb), 0.55)) border-box !important;
+    color: var(--accent-bright) !important;
+  }
+  body.theme-brand-dark .btn-perfil-ver-analisis:hover {
+    background: rgba(var(--bd-a-rgb), 0.08) !important;
+    border: 1px solid rgba(var(--bd-a-rgb), 0.3) !important;
+    color: var(--accent-bright) !important;
+  }
+  body.theme-brand-dark .btn-mi-info-save:hover {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%) !important;
+    color: white !important;
+    box-shadow: 0 4px 14px rgba(var(--bd-a-rgb), 0.30) !important;
+  }
+  body.theme-brand-dark .btn-back-chat:hover {
+    background: transparent !important;
+    border: 1px solid var(--border) !important;
+    color: var(--muted) !important;
+  }
+  body.theme-brand-dark .btn-edit-profile:hover {
+    background: transparent !important;
+    border: 1px solid var(--border) !important;
+    color: var(--muted) !important;
+  }
+  body.theme-brand-dark .btn-continue:hover {
+    background: linear-gradient(135deg, var(--accent), var(--accent3)) !important;
+    color: white !important;
+    box-shadow: 0 2px 10px rgba(var(--bd-a-rgb), 0.18) !important;
+  }
+  body.theme-brand-dark .btn-reset:hover {
+    background: transparent !important;
+    border: 1px solid var(--border) !important;
+    color: var(--muted) !important;
+  }
+  body.theme-brand-dark .btn-email-login:hover {
+    background: linear-gradient(135deg, var(--accent), var(--accent3)) !important;
+    color: white !important;
+  }
+  body.theme-brand-dark .btn-launch:hover {
+    background: linear-gradient(135deg, var(--accent), var(--accent3)) !important;
+    color: white !important;
+    box-shadow: 0 6px 28px rgba(var(--bd-a-rgb), 0.2) !important;
+  }
+  body.theme-brand-dark .btn-next:hover {
+    background: linear-gradient(135deg, var(--accent), var(--accent3)) !important;
+    color: white !important;
+    box-shadow: 0 4px 20px rgba(var(--bd-a-rgb), 0.18) !important;
+  }
+  body.theme-brand-dark .btn-back:hover {
+    background: transparent !important;
+    border: 1px solid var(--border) !important;
+    color: var(--muted) !important;
+  }
+  body.theme-brand-dark .onb-back-btn:hover {
+    background: rgba(21, 21, 21, 0.55) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    color: var(--text) !important;
+  }
+  body.theme-brand-dark .onb-next-btn:hover {
+    background: linear-gradient(135deg, var(--bd-a) 0%, var(--bd-a2) 50%, var(--bd-t) 100%) !important;
+    color: white !important;
+    box-shadow: 0 6px 24px rgba(var(--bd-a-rgb), 0.32) !important;
+  }
+  body.theme-brand-dark .alim-edit-close:hover {
+    color: var(--muted) !important;
+  }
+  body.theme-brand-dark .alim-edit-cancel:hover {
+    background: transparent !important;
+    border: 1px solid var(--border) !important;
+    color: var(--muted) !important;
+  }
+  body.theme-brand-dark .alim-edit-save:hover {
+    background: rgba(var(--bd-t-rgb), 0.22) !important;
+    border: 1px solid var(--accent3) !important;
+    color: var(--accent3) !important;
+  }
+  body.theme-brand-dark .ej-modal-close:hover {
+    color: var(--muted) !important;
+  }
+  body.theme-brand-dark .progress-skip-link:hover {
+    color: var(--muted) !important;
+  }
+  body.theme-brand-dark .plan-toggle-btn:hover {
+    border: 1px solid var(--border) !important;
+    color: var(--muted) !important;
+  }
+  body.theme-brand-dark #feedback-fab:hover {
+    background: linear-gradient(135deg, var(--accent), var(--accent3)) !important;
+    color: #fff !important;
+    box-shadow: 0 6px 20px rgba(var(--bd-a-rgb), 0.35) !important;
+  }
+  body.theme-brand-dark .btn-cerrar-semana:hover {
+    background: linear-gradient(135deg, var(--accent), var(--accent3)) !important;
+    color: #fff !important;
+  }
+  body.theme-brand-dark .btn-mark-trained:hover {
+    background: rgba(var(--bd-t-rgb), 0.1) !important;
+    border: 1px solid var(--accent3) !important;
+    color: var(--accent3) !important;
+  }
+  body.theme-brand-dark .btn-dashboard:hover {
+    background: transparent !important;
+    border: 1px solid var(--border) !important;
+    color: var(--muted) !important;
+  }
+  body.theme-brand-dark .btn-log:hover {
+    background: linear-gradient(135deg, var(--accent), var(--accent3)) !important;
+    color: white !important;
+  }
+  body.theme-brand-dark .btn-save-medidas:hover {
+    background: transparent !important;
+    border: 1px solid var(--accent) !important;
+    color: var(--accent-bright) !important;
+  }
+  body.theme-brand-dark .streak-day:hover {
+    background: var(--surface2) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--muted) !important;
+  }
+  body.theme-brand-dark .color-option:hover {
+    border: 3px solid transparent !important;
+  }
+  body.theme-brand-dark .logo-upload-area:hover {
+    border: 2px dashed var(--border) !important;
+  }
+  body.theme-brand-dark .btn-apply-wl:hover {
+    background: linear-gradient(135deg, var(--accent), var(--accent3)) !important;
+    color: white !important;
+    box-shadow: 0 4px 14px rgba(var(--bd-a-rgb), 0.18) !important;
+  }
+  body.theme-brand-dark .btn-reset-wl:hover {
+    background: transparent !important;
+    border: 1px solid var(--border) !important;
+    color: var(--muted) !important;
+  }
+  body.theme-brand-dark .btn-whitelabel:hover {
+    background: transparent !important;
+    border: 1px solid var(--border) !important;
+    color: var(--muted) !important;
+  }
+  body.theme-brand-dark .hamburger-btn:hover {
+    background: transparent !important;
+    border: 1px solid var(--border) !important;
+  }
+  body.theme-brand-dark .foto-upload-area:hover {
+    border: 2px dashed var(--border) !important;
+  }
+  body.theme-brand-dark .cai-home-card-dots .rot-dot:hover {
+    background: rgba(255,255,255,0.25) !important;
+  }
 }
 /* /THEME-BRAND-DARK */</style>
 <style id="theme-brand-css">

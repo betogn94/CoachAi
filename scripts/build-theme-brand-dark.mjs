@@ -236,6 +236,44 @@ function walk(nodes) {
 }
 const generated = walk(tree);
 
+// ---- Toque en celular: el "revert" de los :hover pegajosos ----
+// En @media (hover: none) el tema base hace `background: revert !important` (y
+// color/borde/sombra) sobre el :hover de botones y tarjetas, para que no quede
+// "pegado" el hover tras un toque. Pero revert vuelve al estilo del NAVEGADOR, no al
+// nuestro: en iOS un <button> queda gris con letra azul (bug que vio Beto en el
+// botón "Siguiente" del onboarding). KING y el claro no lo sufren porque declaran
+// sus colores con !important. Acá: para cada selector de esa lista, el :hover vuelve
+// a los colores de su estado normal, con !important.
+const REVERT_PROPS = /^(background(-color|-image)?|border(-color)?|box-shadow|color)$/i;
+const baseDecls = new Map();   // selector base → [decl,…] de color (en orden)
+(function collect(nodes) {
+  for (const n of nodes) {
+    if (n.type !== 'rule') continue;   // solo reglas de primer nivel (sin @media)
+    const sels = splitSelectors(n.selector).filter(s => !/theme-|:hover|:active|:focus|:disabled/.test(s));
+    if (!sels.length) continue;
+    const ds = splitDecls(n.body).filter(d => {
+      const c = d.indexOf(':'); if (c < 0) return false;
+      return REVERT_PROPS.test(d.slice(0, c).trim()) && HAS_COLOR.test(d) && !/url\(/i.test(d);
+    }).map(d => recolor(d.replace(/\s*!important\s*$/i, '')));
+    if (!ds.length) continue;
+    for (const s of sels) { if (!baseDecls.has(s)) baseDecls.set(s, []); baseDecls.get(s).push(...ds); }
+  }
+})(tree);
+const unstick = [];
+(function findRevert(nodes, inHoverNone) {
+  for (const n of nodes) {
+    if (n.type === 'group') findRevert(n.children, inHoverNone || /hover:\s*none/i.test(n.prelude));
+    if (n.type !== 'rule' || !inHoverNone || !/revert/i.test(n.body)) continue;
+    for (const s of splitSelectors(n.selector)) {
+      if (!/:hover\b/.test(s) || OTHER_THEME.test(stripNot(s))) continue;
+      const ds = baseDecls.get(s.replace(/:hover\b/g, ''));
+      if (!ds) continue;
+      unstick.push(`  ${scope(s)} {\n    ${ds.map(d => d + ' !important').join(';\n    ')};\n  }`);
+    }
+  }
+})(tree, false);
+if (unstick.length) generated.push(`@media (hover: none) {\n${unstick.join('\n')}\n}`);
+
 // Ajustes a mano (casos donde copiar no alcanza). Se suman con el QA visual.
 const PATCHES = `
 /* Valores por defecto de la capa (violeta) por si el tenant no trae colores. Van en
@@ -246,6 +284,9 @@ const PATCHES = `
   --bd-a2: #5b9fff; --bd-a2-rgb: 91, 159, 255;
   --bd-t: #2ecfb5; --bd-t-rgb: 46, 207, 181;
 }
+/* Logo del login: es un FONDO por CSS (no un <img>), así que applyTenantBranding no lo
+   cambia. Lee --bd-logo (url del logo del tenant, la pone THEMES/applyTenantBranding). */
+body.theme-brand-dark .landing-logo { background-image: var(--bd-logo, url('logo.png')) !important; }
 /* SVG con colores como ATRIBUTO (degradados de los anillos, íconos): el CSS gana a
    los atributos de presentación, así que alcanza con apuntar al valor del atributo. */
 ${[['7c6aff', 'a'], ['b4a7ff', 'ab'], ['5b9fff', 'a2'], ['2ecfb5', 't']].map(([h, k]) => [
