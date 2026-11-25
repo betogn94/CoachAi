@@ -13,6 +13,8 @@
     "chat:cerebro:check": "node scripts/build-chat-prompt.mjs --check",
     "theme:brand": "node scripts/build-theme-brand.mjs",
     "theme:brand:check": "node scripts/build-theme-brand.mjs --check",
+    "theme:brand-dark": "node scripts/build-theme-brand-dark.mjs",
+    "theme:brand-dark:check": "node scripts/build-theme-brand-dark.mjs --check",
     "studio:parsers": "node scripts/build-studio-parsers.mjs",
     "studio:parsers:check": "node scripts/build-studio-parsers.mjs --check",
     "test:studio-gate": "node scripts/test-studio-gate.mjs",
