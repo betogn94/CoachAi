@@ -97,7 +97,7 @@ export const FUNCIONES = [
   'stripLeadingDietFromRutina', 'getWeeklyTrainingTarget',
   // Team Arete (2026-11-25) — catálogo propio del coach: el prompt solo con sus ejercicios y el ajuste al guardar.
   '_normalizeExName', '_ejTokens', '_findEjercicioMatch', '_tenantEjCatalog', '_catGruposDeTexto', '_catGrupoDeEjercicio',
-  '_catalogoPromptBlock', 'ajustarRutinaACatalogo',
+  '_catalogoPromptBlock', 'ajustarRutinaACatalogo', '_promptConCatalogo',
 ];
 export const CONSTANTES = [
   'METODO_RELOJ_ARENA_ES', 'METODO_V_MASCULINO_ES', 'REGLAS_KING_MUJER_ES', 'REGLAS_KING_DIETA_ES',
