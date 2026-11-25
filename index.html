@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261125-0114-arete-boton-logos">
+<meta name="app-version" content="20261125-0119-arete-videos-youtube">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -11934,6 +11934,15 @@ footer {
   content: '📷  Demo en preparación';
   color: var(--muted); font-size: 12px;
 }
+/* Video de YouTube del coach (Shorts = vertical 9:16). Alto tope para que el título
+   y la X sigan a la vista en celulares chicos. */
+.ej-modal-gif-wrap.yt-mode {
+  aspect-ratio: 9 / 16; width: auto; height: min(62vh, 560px); max-width: 100%;
+  margin-left: auto; margin-right: auto; background: #000;
+}
+.ej-modal-gif-wrap.yt-mode img, .ej-modal-gif-wrap.yt-mode video { display: none; }
+.ej-modal-yt { width: 100%; height: 100%; border: 0; display: block; }
+.ej-modal-gif-wrap.yt-mode + .ej-modal-desc:empty { display: none; }
 .ej-modal-desc {
   font-size: 13.5px; line-height: 1.6; color: var(--text);
   background: rgba(124,106,255,0.06);
@@ -27807,14 +27816,34 @@ function _ejTokens(s) {
   return s.split(' ').filter(t => t.length >= 1 && !_EJ_STOPWORDS.has(t));
 }
 
-function _findEjercicioMatch(freeName) {
-  if (!_ejBiblioteca || !_ejBiblioteca.length) return null;
+// Catálogo PROPIO del coach (tenants.branding_config.ejercicios, primer caso Team
+// Arete 2026-11-25): [{ n: nombre, g: músculo, yt: id de YouTube, a: [sinónimos] }].
+// Si el tenant lo tiene, "Cómo se hace" muestra SU video de YouTube y nunca nuestras
+// demos. Sin catálogo → null y todo sigue igual que siempre.
+let _tenantEjCache = { key: null, list: null };
+function _tenantEjCatalog() {
+  const raw = currentTenant && currentTenant.branding_config && currentTenant.branding_config.ejercicios;
+  if (!Array.isArray(raw) || !raw.length) return null;
+  const key = (currentTenant.id || currentTenant.slug) + ':' + raw.length;
+  if (_tenantEjCache.key === key) return _tenantEjCache.list;
+  const list = raw.filter(r => r && r.n && /^[\w-]{11}$/.test(String(r.yt || ''))).map(r => {
+    const names = [r.n, ...(Array.isArray(r.a) ? r.a : [])];
+    const _normNames = names.map(_normalizeExName).filter(Boolean);
+    return { nombre_es: r.n, muscle_group: r.g || '', youtube_id: r.yt, _normName: _normNames[0] || '', _normNames };
+  });
+  _tenantEjCache = { key, list };
+  return list;
+}
+
+function _findEjercicioMatch(freeName, lista) {
+  const fuente = lista || _ejBiblioteca;
+  if (!fuente || !fuente.length) return null;
   const norm = _normalizeExName(freeName);
   if (!norm) return null;
   // Cada fila participa con TODOS sus nombres (canónico + aliases). Entries:
   // { row, n } — una entrada por nombre normalizado.
   const entries = [];
-  for (const r of _ejBiblioteca) {
+  for (const r of fuente) {
     for (const n of (r._normNames || [r._normName])) entries.push({ row: r, n });
   }
   // 1) exact normalized match — when multiple entries tie (e.g. "Face pull" and
@@ -27857,9 +27886,6 @@ async function showEjercicioModal(freeName) {
   if (!modal) return;
   if (_ejGifTimer) { clearInterval(_ejGifTimer); _ejGifTimer = null; }
 
-  await loadEjerciciosBiblioteca();
-  const row = _findEjercicioMatch(freeName);
-
   const title    = document.getElementById('ej-modal-title');
   const muscle   = document.getElementById('ej-modal-muscle');
   const gifWrap  = document.getElementById('ej-modal-gif-wrap');
@@ -27870,6 +27896,34 @@ async function showEjercicioModal(freeName) {
   // Reset del modo video antes de decidir qué mostrar
   gifWrap.classList.remove('video-mode');
   if (video) { video.pause(); video.removeAttribute('src'); video.hidden = true; }
+  _ejYoutubeReset(gifWrap);
+
+  // Coach con catálogo propio → SU video de YouTube, o "sin video" (nunca nuestras demos).
+  const catalogo = _tenantEjCatalog();
+  if (catalogo) {
+    const yt = _findEjercicioMatch(freeName, catalogo);
+    gifWrap.classList.remove('empty');
+    gif.removeAttribute('src');
+    desc.textContent = '';
+    if (yt) {
+      title.textContent = yt.nombre_es;
+      muscle.textContent = yt.muscle_group;
+      _ejYoutubeMount(gifWrap, yt.youtube_id, yt.nombre_es);
+    } else {
+      title.textContent = freeName;
+      muscle.textContent = '';
+      gifWrap.classList.add('empty');
+      desc.textContent = lang === 'es'
+        ? 'Tu coach todavía no subió el video de este ejercicio.'
+        : 'Your coach hasn\'t uploaded a video for this exercise yet.';
+    }
+    try { trackEvent && trackEvent('ej_video_open', { yt: yt ? yt.youtube_id : null, ok: !!yt }); } catch (e) {}
+    modal.classList.add('open');
+    return;
+  }
+
+  await loadEjerciciosBiblioteca();
+  const row = _findEjercicioMatch(freeName);
 
   if (!row) {
     title.textContent = freeName;
@@ -27919,6 +27973,30 @@ function closeEjercicioModal(event) {
   if (gif) gif.removeAttribute('src');
   const video = document.getElementById('ej-modal-video');
   if (video) { video.pause(); video.removeAttribute('src'); video.hidden = true; }
+  _ejYoutubeReset(document.getElementById('ej-modal-gif-wrap'));   // sacar el iframe = cortar el video
+}
+
+// Reproductor OFICIAL de YouTube embebido (sin sacar a la alumna de la app). Dominio
+// youtube-nocookie (sin cookies de seguimiento hasta que le da play). Arranca mudo y en
+// loop como nuestras demos; con un toque se le activa el sonido. El referrerpolicy es
+// necesario: sin Referer, YouTube rechaza el embed ("Error 153").
+function _ejYoutubeMount(wrap, id, nombre) {
+  if (!wrap || !/^[\w-]{11}$/.test(id)) return;
+  const f = document.createElement('iframe');
+  f.className = 'ej-modal-yt';
+  f.src = `https://www.youtube-nocookie.com/embed/${id}?playsinline=1&rel=0&modestbranding=1&autoplay=1&mute=1&loop=1&playlist=${id}`;
+  f.title = nombre || 'Video del ejercicio';
+  f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+  f.setAttribute('allowfullscreen', '');
+  f.referrerPolicy = 'strict-origin-when-cross-origin';
+  f.loading = 'eager';
+  wrap.classList.add('yt-mode');
+  wrap.appendChild(f);
+}
+function _ejYoutubeReset(wrap) {
+  if (!wrap) return;
+  wrap.classList.remove('yt-mode');
+  wrap.querySelectorAll('iframe.ej-modal-yt').forEach(f => f.remove());
 }
 
 // ===== Guía de intensificadores (chip en Mi Entreno) =====
@@ -40950,7 +41028,7 @@ async function forceAppUpdate() {
    las reglas de color del tema base con violeta/lila/azul/turquesa
    pasados a --bd-* (los carga applyTenantBranding desde
    branding_config.colors) y los grises azulados pasados a neutros.
-   Regenerar: npm run theme:brand-dark   (1474 reglas)
+   Regenerar: npm run theme:brand-dark   (1475 reglas)
    ============================================================ */
 
 /* Valores por defecto de la capa (violeta) por si el tenant no trae colores. Van en
@@ -44095,6 +44173,9 @@ body.theme-brand-dark .ej-modal-gif-wrap {
 }
 body.theme-brand-dark .ej-modal-gif-wrap.empty::after {
   color: var(--muted);
+}
+body.theme-brand-dark .ej-modal-gif-wrap.yt-mode {
+  background: #000;
 }
 body.theme-brand-dark .ej-modal-desc {
   color: var(--text);

@@ -1,0 +1,65 @@
+{
+  "_nota": "Catálogo de ejercicios de Team Arete (Lucas Casalins). Fuente de verdad de tenants.branding_config.ejercicios (copiar ahí al cambiar). n = nombre que ve el alumno (SIN paréntesis: el matcheo los ignora), g = músculo, yt = id del video de YouTube, a = sinónimos para el matcheo. 52 videos verificados públicos e insertables el 2026-11-24.",
+  "ejercicios": [
+    { "n": "Pec deck", "g": "pecho", "yt": "ZcYMuYKISWk", "a": ["Mariposa", "Pec deck mariposa", "Pec dec", "Pec dek"] },
+    { "n": "Press inclinado en Smith", "g": "pecho", "yt": "C-XbKHh3ixY", "a": ["Press inclinado Smith"] },
+    { "n": "Apertura inclinada", "g": "pecho", "yt": "o0Vs5p3oLBM", "a": ["Aperturas inclinadas", "Apertura inclinada con mancuernas"] },
+    { "n": "Press inclinado con mancuernas", "g": "pecho", "yt": "obI5h1zv0Cs", "a": ["Press inclinado c/mancuernas"] },
+    { "n": "Press superior en máquina", "g": "pecho", "yt": "iJe6j2WRbEY", "a": ["Press inclinado en máquina"] },
+
+    { "n": "Dominadas asistidas", "g": "espalda", "yt": "UFF5k4rFwbw", "a": ["Dominada asistida"] },
+    { "n": "Dominadas agarre neutro", "g": "espalda", "yt": "BlKXflGa4FY", "a": ["Dominada agarre neutro"] },
+    { "n": "Jalón dorsal agarre prono", "g": "espalda", "yt": "reZVFrFJ1X8", "a": ["Jalón al pecho agarre prono", "Jalón prono"] },
+    { "n": "Jalón dorsal en polea", "g": "espalda", "yt": "nO9zW6PTxuQ", "a": ["Jalón dorsal", "Jalón al pecho"] },
+    { "n": "Remo Gironda alto agarre neutro", "g": "espalda", "yt": "fUytBfT0NrE", "a": ["Remo alto agarre neutro", "Remo alto neutro"] },
+    { "n": "Remo Gironda agarre neutro", "g": "espalda", "yt": "TTxi6IDz9Eg", "a": ["Remo Gironda", "Remo sentado en polea agarre neutro"] },
+    { "n": "Lumbares", "g": "espalda", "yt": "x8s15-xJyc0", "a": ["Extensión lumbar", "Hiperextensiones"] },
+
+    { "n": "Press militar a 70 grados", "g": "hombros", "yt": "LaZL0XbDbzs", "a": ["Press militar 70 grados", "Press militar"] },
+    { "n": "Frontales en polea", "g": "hombros", "yt": "ou9TiXOVsIg", "a": ["Elevaciones frontales en polea", "Vuelos frontales en polea"] },
+    { "n": "Vuelos frontales alternos con mancuernas", "g": "hombros", "yt": "oby9pE6iWqw", "a": ["Vuelos frontales alterno con mancuernas", "Elevaciones frontales con mancuernas", "Vuelos frontales"] },
+    { "n": "Vuelos posteriores con mancuernas", "g": "hombros", "yt": "KL1EuloObXQ", "a": ["Vuelos posteriores", "Pájaros con mancuernas"] },
+    { "n": "Vuelos laterales con mancuernas", "g": "hombros", "yt": "kqCZStsnfLY", "a": ["Vuelos laterales", "Elevaciones laterales con mancuernas", "Elevaciones laterales"] },
+    { "n": "Vuelos laterales en polea baja", "g": "hombros", "yt": "2v4x05Dcc_8", "a": ["Elevaciones laterales en polea baja"] },
+    { "n": "Vuelos laterales en polea media", "g": "hombros", "yt": "8Pk-ovmxm8g", "a": ["Vuelos laterales en polea altura media", "Elevaciones laterales en polea media"] },
+    { "n": "Facepull", "g": "hombros", "yt": "gYEPuEzi73A", "a": ["Face pull", "Face pull con cuerda"] },
+
+    { "n": "Curl de bíceps martillo alterno", "g": "biceps", "yt": "u41mPFWjvY8", "a": ["Curl martillo alterno", "Curl martillo"] },
+    { "n": "Curl de bíceps en máquina Scott", "g": "biceps", "yt": "5d8-Nql6i9I", "a": ["Curl en máquina Scott", "Scott en máquina"] },
+    { "n": "Curl de bíceps supino con mancuernas", "g": "biceps", "yt": "3kEvhvXWCEQ", "a": ["Curl supino con mancuernas", "Curl de bíceps con mancuernas"] },
+    { "n": "Curl predicador", "g": "biceps", "yt": "cvAtfWgyKPU", "a": ["Curl en banco predicador"] },
+    { "n": "Curl de bíceps en banco Scott con barra", "g": "biceps", "yt": "QwNy8fLQw_E", "a": ["Bíceps en banco Scott con barra", "Curl en banco Scott"] },
+    { "n": "Curl de bíceps inclinado a 45 grados", "g": "biceps", "yt": "B_kiktU_fPg", "a": ["Curl inclinado", "Curl inclinado a 45 grados"] },
+    { "n": "Curl de bíceps con barra en polea", "g": "biceps", "yt": "jTHs8KSNUos", "a": ["Curl con barra en polea", "Curl en polea con barra"] },
+
+    { "n": "Extensión de tríceps unilateral", "g": "triceps", "yt": "KeFpPJmEXzI", "a": ["Extensión unilateral de tríceps"] },
+    { "n": "Tríceps rompecráneos con mancuernas", "g": "triceps", "yt": "jmZ_twkF48E", "a": ["Rompecráneos", "Rompecráneos con mancuernas", "Tríceps rompecráneos"] },
+    { "n": "Tríceps francés en polea", "g": "triceps", "yt": "zOttyag80EY", "a": ["Francés en polea", "Extensión de tríceps sobre la cabeza en polea"] },
+    { "n": "Extensión de tríceps en polea con barra", "g": "triceps", "yt": "R5a9chvQEPw", "a": ["Jalón de tríceps en polea", "Extensión de tríceps en polea", "Pushdown con barra"] },
+
+    { "n": "Búlgara en Smith", "g": "cuadriceps", "yt": "IABXN3Dw6MI", "a": ["Sentadilla búlgara en Smith", "Búlgara"] },
+    { "n": "Sentadilla en Smith", "g": "cuadriceps", "yt": "IqKjOh1Qy7A", "a": ["Sentadilla Smith"] },
+    { "n": "Sillón de cuádriceps", "g": "cuadriceps", "yt": "HrM-Sqobp9w", "a": ["Extensión de cuádriceps", "Sillón de cuádriceps en máquina"] },
+    { "n": "Prensa 45 ancho de hombros", "g": "cuadriceps", "yt": "crTmBYJvGj8", "a": ["Prensa 45 grados ancho de hombros", "Prensa 45 ancho de hombro"] },
+    { "n": "Sentadilla libre", "g": "cuadriceps", "yt": "HsVS3jy2KWs", "a": ["Sentadilla con barra"] },
+    { "n": "Prensa hack", "g": "cuadriceps", "yt": "DTAr7jPLs28", "a": ["Sentadilla hack", "Hack"] },
+
+    { "n": "Femorales parado en polea", "g": "femorales", "yt": "d86rsij9FY0", "a": [] },
+    { "n": "Camilla de femorales", "g": "femorales", "yt": "7qdSRvpQLMY", "a": ["Curl femoral acostado", "Camilla femoral"] },
+    { "n": "Peso muerto rumano", "g": "femorales", "yt": "OyOaMUNS6GQ", "a": ["Rumano"] },
+    { "n": "Sillón de femorales", "g": "femorales", "yt": "kk6H-xyzsTw", "a": ["Curl femoral sentado", "Sillón femoral"] },
+    { "n": "Curl femoral parado en polea", "g": "femorales", "yt": "6E5RMoR215c", "a": [] },
+    { "n": "Curl femoral parado en máquina", "g": "femorales", "yt": "PTs9pgrte0s", "a": ["Curl femoral de pie en máquina"] },
+
+    { "n": "Patada de glúteo hacia abajo en polea", "g": "gluteos", "yt": "AFhEb-6xCMo", "a": ["Step up en polea", "Patada de glúteo en polea"] },
+    { "n": "Elevación de pelvis con barra", "g": "gluteos", "yt": "X3F_o3oXspw", "a": ["Hip thrust", "Hip thrust con barra", "Elevación de pelvis"] },
+    { "n": "Abductores en máquina", "g": "gluteos", "yt": "32kguHxmurU", "a": ["Abducción en máquina", "Abducción de caderas en máquina"] },
+    { "n": "Prensa 45 pies abiertos", "g": "gluteos", "yt": "BO4TMFDjztA", "a": ["Prensa 45 grados pies abiertos"] },
+
+    { "n": "Aductores", "g": "aductores", "yt": "6qHG-P3tDxw", "a": ["Aductores en máquina", "Aducción en máquina"] },
+    { "n": "Gemelos sentado", "g": "gemelos", "yt": "hUEmxIMwwwY", "a": ["Pantorrillas sentado"] },
+    { "n": "Gemelos parado", "g": "gemelos", "yt": "fR4_sjzp7Zc", "a": ["Pantorrillas de pie", "Gemelos de pie"] },
+    { "n": "Crunch abdominal en polea", "g": "abdomen", "yt": "Hm0mvARlSgs", "a": ["Abdominales en polea", "Crunch en polea"] },
+    { "n": "Elevación de piernas", "g": "abdomen", "yt": "1O2XA1i1-8c", "a": ["Elevaciones de piernas"] }
+  ]
+}
