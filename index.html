@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261125-1322-arete-prompt-solo-catalogo">
+<meta name="app-version" content="20261125-1333-arete-catalogo-onboarding">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -21092,6 +21092,9 @@ async function prefetchPlan(tipo, opts) {
     // primera que parseó (_rutinaFueraEsqueleto) → nunca peor que antes del esqueleto.
     const _sexoSplit = currentUser && currentUser.sexo;
     const _diasSplit = (opts && opts.expectedDays) || selectedDias.length;
+    // Coach con catálogo propio: tenerlo ANTES de armar el prompt (en el onboarding
+    // currentTenant todavía no está cargado). Sin catálogo: no hace nada.
+    if (tipo === 'rutina') await _asegurarCatalogoTenant();
     let _rutinaFueraEsqueleto = null, _splitReasons = [];
     let planText = null;
     for (let attempt = 0; attempt < 2 && !planText; attempt++) {
@@ -28026,8 +28029,23 @@ function _ejTokens(s) {
 // Si el tenant lo tiene, "Cómo se hace" muestra SU video de YouTube y nunca nuestras
 // demos. Sin catálogo → null y todo sigue igual que siempre.
 // (Sin caché a propósito: son ~50 filas, y el servidor la copia a api/_chat-cerebro.js.)
+// Durante el ONBOARDING currentTenant está vacío (el login lo resetea y launchCoach lo carga
+// recién al final), pero la rutina ya se pide en el paso 5 → _asegurarCatalogoTenant lo
+// precarga en _catalogoPrecargado (sin tocar currentTenant ni el branding).
+let _catalogoPrecargado = null;
+async function _asegurarCatalogoTenant() {
+  try {
+    if (currentTenant && currentTenant.branding_config) return;
+    const tid = currentUser && currentUser.tenant_id;
+    if (!tid || !sbClient || (_catalogoPrecargado && _catalogoPrecargado.tenantId === tid)) return;
+    const { data } = await sbClient.from('tenants').select('branding_config').eq('id', tid).maybeSingle();
+    const ej = data && data.branding_config && data.branding_config.ejercicios;
+    _catalogoPrecargado = { tenantId: tid, ejercicios: Array.isArray(ej) ? ej : null };
+  } catch (e) { console.warn('[catalogo] precarga:', e); }
+}
 function _tenantEjCatalog() {
-  const raw = currentTenant && currentTenant.branding_config && currentTenant.branding_config.ejercicios;
+  const raw = (currentTenant && currentTenant.branding_config && currentTenant.branding_config.ejercicios)
+    || (!currentTenant && _catalogoPrecargado && currentUser && _catalogoPrecargado.tenantId === currentUser.tenant_id ? _catalogoPrecargado.ejercicios : null);
   if (!Array.isArray(raw) || !raw.length) return null;
   return raw.filter(r => r && r.n && /^[\w-]{11}$/.test(String(r.yt || ''))).map(r => {
     const names = [r.n, ...(Array.isArray(r.a) ? r.a : [])];

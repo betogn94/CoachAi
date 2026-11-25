@@ -44,12 +44,12 @@ ok(sinCrlf(readFileSync(join(RAIZ, 'api', '_chat-cerebro.js'), 'utf8')) === sinC
 console.log('2. prompt de la rutina renovada: PWA vs servidor');
 const src = [...CONSTANTES.map((c) => extractConst(html, c)), ...FUNCIONES.map((n) => extractFunction(html, n))].join('\n');
 function promptPWA(ctx) {
-  const names = ['document', 'window', 'lang', 'selections', 'selectedDias', 'selectedComidas', 'weeklyPlans', 'allChatHistory', 'recentChatHistory', 'recentDiario', 'currentUser', 'Date', 'currentTenant', '_ejBiblioteca'];
+  const names = ['document', 'window', 'lang', 'selections', 'selectedDias', 'selectedComidas', 'weeklyPlans', 'allChatHistory', 'recentChatHistory', 'recentDiario', 'currentUser', 'Date', 'currentTenant', '_ejBiblioteca', '_catalogoPrecargado'];
   const RealDate = globalThis.Date;
   class FixedDate extends RealDate { constructor(...a) { if (a.length) super(...a); else super(ctx.ahora); } static now() { return ctx.ahora; } }
   const vals = [
     { getElementById: (id) => ({ value: ctx.form[id] ?? '' }), querySelectorAll: (sel) => (sel.includes('lesiones') ? ctx.chips.lesiones : sel.includes('dieta') ? ctx.chips.dieta : ctx.chips.alergias).map((t) => ({ textContent: t })) },
-    undefined, ctx.lang, ctx.selections, ctx.selectedDias, ctx.selectedComidas, ctx.weeklyPlans, ctx.allChatHistory, ctx.recentChatHistory, ctx.recentDiario, ctx.currentUser, FixedDate, ctx.currentTenant || null, null,
+    undefined, ctx.lang, ctx.selections, ctx.selectedDias, ctx.selectedComidas, ctx.weeklyPlans, ctx.allChatHistory, ctx.recentChatHistory, ctx.recentDiario, ctx.currentUser, FixedDate, ctx.currentTenant || null, null, null,
   ];
   return new Function(...names, `"use strict"; ${src}\n return buildSystemPrompt();`)(...vals);
 }

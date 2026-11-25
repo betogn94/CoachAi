@@ -169,6 +169,7 @@ export function crearCerebro(ctx) {
   // — Team Arete: catálogo propio del coach (null = el resto de los tenants, sin cambios) —
   const currentTenant = ctx.currentTenant || null;
   const _ejBiblioteca = null;   // _findEjercicioMatch siempre recibe la lista del catálogo acá
+  const _catalogoPrecargado = null;   // la precarga es solo del onboarding de la PWA; acá viene en ctx.currentTenant
 
 // (cuerpo VERBATIM, sin re-indentar: un espacio de más adentro de un template literal cambia el prompt)
 ${cuerpo}

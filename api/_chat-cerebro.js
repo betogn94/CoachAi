@@ -60,6 +60,7 @@ export function crearCerebro(ctx) {
   // — Team Arete: catálogo propio del coach (null = el resto de los tenants, sin cambios) —
   const currentTenant = ctx.currentTenant || null;
   const _ejBiblioteca = null;   // _findEjercicioMatch siempre recibe la lista del catálogo acá
+  const _catalogoPrecargado = null;   // la precarga es solo del onboarding de la PWA; acá viene en ctx.currentTenant
 
 // (cuerpo VERBATIM, sin re-indentar: un espacio de más adentro de un template literal cambia el prompt)
 const METODO_RELOJ_ARENA_ES = `
@@ -2500,7 +2501,8 @@ function _findEjercicioMatch(freeName, lista) {
 }
 
 function _tenantEjCatalog() {
-  const raw = currentTenant && currentTenant.branding_config && currentTenant.branding_config.ejercicios;
+  const raw = (currentTenant && currentTenant.branding_config && currentTenant.branding_config.ejercicios)
+    || (!currentTenant && _catalogoPrecargado && currentUser && _catalogoPrecargado.tenantId === currentUser.tenant_id ? _catalogoPrecargado.ejercicios : null);
   if (!Array.isArray(raw) || !raw.length) return null;
   return raw.filter(r => r && r.n && /^[\w-]{11}$/.test(String(r.yt || ''))).map(r => {
     const names = [r.n, ...(Array.isArray(r.a) ? r.a : [])];
