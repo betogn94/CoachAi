@@ -96,12 +96,19 @@ function preciosApp(tenant) {
 
 // Devuelve { cfg, priceId, productId, recurring } del primer ítem que esté en
 // el mapa, o null si ninguno incluye la app.
+// Modo "toda la cuenta" (stripe_app.todos_los_productos=true): todo lo que se
+// vende por esa cuenta incluye la app; los pagos únicos dan stripe_app.dias_pago_unico.
+// El mapa por precio, si está, tiene prioridad (permite excepciones).
 function matchApp(tenant, prices) {
   const mapa = preciosApp(tenant);
+  const sa = tenant?.branding_config?.stripe_app || {};
   for (const pr of prices) {
     if (!pr) continue;
     const productId = typeof pr.product === 'string' ? pr.product : pr.product?.id || null;
-    const cfg = mapa[pr.id] || (productId && mapa[productId]) || null;
+    const excluido = v => v === false || (v && v.app === false);
+    if (excluido(mapa[pr.id]) || (productId && excluido(mapa[productId]))) continue; // excepción explícita
+    let cfg = mapa[pr.id] || (productId && mapa[productId]) || null;
+    if (!cfg && sa.todos_los_productos === true) cfg = { nombre: 'cuenta completa', dias: sa.dias_pago_unico };
     if (cfg) return { cfg, priceId: pr.id, productId, recurring: !!pr.recurring };
   }
   return null;
@@ -242,7 +249,7 @@ async function onCheckout(ctx, session) {
     });
   }
   await setAcceso(ctx, email, hasta, { suscripcion_cancelada_at: null });
-  await evento(ctx, 'alta', { email, producto: m.cfg.nombre || m.priceId, hasta, nueva: !previo });
+  await evento(ctx, 'alta', { email, producto: m.cfg.nombre || m.priceId, price: m.priceId, product: m.productId, monto: (session.amount_total || 0) / 100, hasta, nueva: !previo });
 
   if (!previo) {
     try {
