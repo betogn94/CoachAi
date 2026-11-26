@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261126-1432-arete-calentamiento">
+<meta name="app-version" content="20261126-1439-espera-planes-24h">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -24969,6 +24969,69 @@ function showRenewScreen(user) {
   });
 }
 
+// ======= Espera de planes (tenants.branding_config.espera_planes) =======
+// { horas: 24, coach: 'Lucas', desde: ISO } → la alumna NUEVA (role user, alta
+// posterior a `desde`) no puede usar la app hasta created_at + horas: ve "tu coach
+// está armando tu plan". Pedido de Lucas (Team Areté, low ticket): que se sienta
+// que un humano prepara el plan y que no toqueteen/abusen del chat mientras tanto.
+// El coach SÍ ve los planes en Studio en esas horas (puede retocarlos).
+// Sin config → no-op. Las cuentas viejas no pagan ni una consulta (corte por fecha).
+async function gateEsperaPlanes(user) {
+  if (!user || String(user.role || 'user').toLowerCase() !== 'user' || !user.created_at || !user.tenant_id) return false;
+  const alta = new Date(user.created_at).getTime();
+  if (!isFinite(alta) || Date.now() - alta > 72 * 3600 * 1000) return false;   // tope duro: nunca más de 72 h
+  let bc = (currentTenant && currentTenant.id === user.tenant_id) ? currentTenant.branding_config : null;
+  if (!bc && sbClient) {
+    const { data } = await sbClient.from('tenants').select('branding_config').eq('id', user.tenant_id).maybeSingle();
+    bc = data && data.branding_config;
+  }
+  const cfg = bc && bc.espera_planes;
+  const horas = cfg && Number(cfg.horas);
+  if (!horas || !(horas > 0) || horas > 72) return false;
+  if (cfg.desde && alta < new Date(cfg.desde).getTime()) return false;
+  const hasta = alta + horas * 3600 * 1000;
+  if (Date.now() >= hasta) return false;
+  showEsperaPlanesScreen(hasta, cfg, bc);
+  return true;
+}
+function showEsperaPlanesScreen(hasta, cfg, bc) {
+  if (document.getElementById('espera-overlay')) return;
+  const esc = (typeof _esc === 'function') ? _esc : (x => String(x));
+  const isEs = (typeof lang === 'undefined') || lang === 'es';
+  const accent = (bc && bc.colors && (bc.colors.accentBright || bc.colors.accent)) || '#7c5cff';
+  const coach = (cfg && cfg.coach) || (isEs ? 'Tu coach' : 'Your coach');
+  const logo = bc && /^\/[\w/.-]+\.png$/.test(String(bc.logo || '')) ? bc.logo : '';
+  let cuando = '';
+  try {
+    cuando = new Date(hasta).toLocaleString(isEs ? 'es-AR' : 'en-US', { weekday: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch (e) {}
+  const ov = document.createElement('div');
+  ov.id = 'espera-overlay';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:100005;background:#050505;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;font-family:inherit;gap:18px';
+  ov.innerHTML =
+    (logo ? `<img src="${logo}" alt="" style="max-width:190px;max-height:64px;object-fit:contain;margin-bottom:6px">` : '') +
+    `<div class="espera-pulse" style="width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;background:${accent}22;border:1px solid ${accent}66">📋</div>` +
+    `<div style="color:#fff;font-size:22px;font-weight:800;line-height:1.25;max-width:340px">${esc(coach)} ${isEs ? 'está armando tu plan' : 'is building your plan'}</div>` +
+    `<div style="color:#fff;opacity:.75;font-size:14.5px;line-height:1.6;max-width:360px">${isEs
+      ? 'Con todo lo que nos contaste, está preparando tu rutina y tu alimentación a tu medida. Apenas esté listo, lo vas a encontrar acá.'
+      : 'With everything you told us, your coach is preparing your training and nutrition plan. You\'ll find it here as soon as it\'s ready.'}</div>` +
+    (cuando ? `<div style="color:#fff;font-size:13.5px;line-height:1.5;padding:10px 16px;border-radius:12px;background:${accent}14;border:1px solid ${accent}40;max-width:340px">${isEs ? 'Listo a más tardar el' : 'Ready by'} <strong>${esc(cuando)}</strong></div>` : '') +
+    `<button id="espera-logout" type="button" style="background:transparent;color:#888;border:0;margin-top:10px;cursor:pointer;font-family:inherit;font-size:13px;text-decoration:underline">${isEs ? 'Cerrar sesión' : 'Log out'}</button>`;
+  document.body.appendChild(ov);
+  try { trackEvent && trackEvent('espera_planes_view', { horas_restantes: Math.round((hasta - Date.now()) / 360000) / 10 }); } catch (e) {}
+  const lo = document.getElementById('espera-logout');
+  if (lo) lo.addEventListener('click', async () => {
+    await clearSession();
+    try { localStorage.removeItem(LS_SESSION); } catch (e) {}
+    window.location.reload();
+  });
+  // Si la app queda abierta hasta que se cumple el plazo, se destapa sola.
+  const falta = hasta - Date.now();
+  if (falta > 0 && falta < 2147483647) setTimeout(() => { try { window.location.reload(); } catch (e) {} }, falta + 2000);
+}
+
 // ======= Paywall de suscripción (Google Play, invitado self-serve en Android) =======
 // El invitado directo (self_serve) en el wrapper nativo se suscribe con Google Play:
 // 14 días gratis (los da Play) → $9.99/mes. En web NO aplica (sigue Stripe). El pago
@@ -25187,6 +25250,10 @@ async function launchCoach() {
     showRenewScreen(currentUser);
     return;
   }
+  // Espera de planes (coach que "arma a mano", p.ej. Team Areté low ticket): las
+  // primeras N horas desde el alta, una pantalla tapa TODA la app. No cortamos el
+  // launch: el perfil se guarda y los planes se generan/guardan debajo igual.
+  if (!_getImpersonateUid()) { try { await gateEsperaPlanes(currentUser); } catch (e) { console.warn('[espera]', e); } }
   // Si venimos del onboarding con la pre-generación de planes en vuelo, mostramos
   // la pantalla de carga ANTES de pintar la app, así la persona entra recién
   // cuando dieta+rutina están listas (nativeFirstPlansFlow la cierra; hay timeout).
