@@ -3201,7 +3201,8 @@ function parseDietaContenido(text) {
       sb.from('cierres_semanales').select('semana_num,semana_iso,fecha_inicio,fecha_fin,foto_url,foto_url_espalda,analisis,stats,created_at').eq('usuario_id', uid).order('semana_num', { ascending: true }).limit(50),
       // Inicio photos — the baseline both vistas. We don't fetch every
       // progreso photo; just the immutable 'inicio' row(s).
-      sb.from('fotos_progreso').select('vista,url_foto,fecha,tipo').eq('usuario_id', uid).eq('tipo', 'inicio'),
+      // + 'control' = control obligatorio cada N días (Team Areté), una fila por control.
+      sb.from('fotos_progreso').select('vista,url_foto,fecha,tipo,created_at').eq('usuario_id', uid).in('tipo', ['inicio', 'control']).order('created_at', { ascending: true }),
       sb.from('feedback').select('id,mensaje,created_at,resolved_at,resolved_by,resolution_note').eq('usuario_id', uid).order('created_at', { ascending: false }).limit(20),
       sb.from('notas_coach').select('id,mensaje,created_at,leido,de').eq('usuario_id', uid).order('created_at', { ascending: false }).limit(50),
       // Origen de alta (para saber si el cobro es automático por Stripe o manual).
@@ -3707,9 +3708,20 @@ function parseDietaContenido(text) {
   // week and pause on the rows where they want to dig in. Putting all four
   // frames in one row keeps the "same week" comparison adjacent without
   // requiring the coach to scroll horizontally.
-  function paintTransformacion(fotos, cierres) {
+  function paintTransformacion(fotosAll, cierres) {
     const sec = document.getElementById('cli-transformacion');
     if (!sec) return;
+    // Controles (tipo 'control'): se agrupan por fecha → una fila "CONTROL" cada uno.
+    const fotos = (fotosAll || []).filter(f => f.tipo !== 'control');
+    const controlesMap = new Map();
+    for (const f of (fotosAll || [])) {
+      if (f.tipo !== 'control') continue;
+      const k = f.fecha || '';
+      if (!controlesMap.has(k)) controlesMap.set(k, { fecha: k });
+      const g = controlesMap.get(k);
+      if (f.vista === 'frente' || f.vista === 'espalda') g[f.vista] = f.url_foto;   // la última del día gana (orden asc)
+    }
+    const controles = [...controlesMap.values()];
     // Resolve the baseline (inicio) for each vista. Legacy users may have
     // an inicio row without a vista (single-photo onboarding pre-migration),
     // so we fall back to that for the frente slot.
@@ -3720,7 +3732,7 @@ function parseDietaContenido(text) {
     // photos can't contribute to the visual timeline.
     const rows = (cierres || []).filter(c => c.foto_url || c.foto_url_espalda);
 
-    if (!hasInicio && !rows.length) {
+    if (!hasInicio && !rows.length && !controles.length) {
       sec.innerHTML = `
         <div class="detail-section-title">Transformación visual <span class="meta">sin fotos</span></div>
         <div class="empty-row">El cliente todavía no subió fotos. Aparecerán acá apenas tenga onboarding + algún cierre con fotos.</div>`;
@@ -3783,12 +3795,31 @@ function parseDietaContenido(text) {
         </div>`;
     }).join('');
 
+    const controlRows = controles.map((c, i) => {
+      const tag = `CONTROL ${i + 1}`;
+      const labels = ['Inicio frente', `${tag} frente`, 'Inicio espalda', `${tag} espalda`];
+      return `
+        <div class="cli-transform-row" data-week-label="${esc(tag)}">
+          <div class="cli-transform-rowtitle">
+            <span class="cli-transform-rowtitle-tag">${esc(tag)}</span>
+            <span class="cli-transform-rowtitle-sub">${c.fecha ? esc(fmtDateShort(c.fecha)) : ''}</span>
+          </div>
+          <div class="cli-transform-thumbs">
+            ${thumb(inicioFrente?.url_foto  || null, labels[0], labels)}
+            ${thumb(c.frente               || null, labels[1], labels)}
+            ${thumb(inicioEspalda?.url_foto || null, labels[2], labels)}
+            ${thumb(c.espalda              || null, labels[3], labels)}
+          </div>
+        </div>`;
+    }).join('');
+
     sec.innerHTML = `
       <div class="detail-section-title">Transformación visual
-        <span class="meta">${rows.length} ${rows.length === 1 ? 'cierre' : 'cierres'} · ${hasInicio ? 'baseline OK' : 'sin baseline'}</span>
+        <span class="meta">${rows.length} ${rows.length === 1 ? 'cierre' : 'cierres'}${controles.length ? ` · ${controles.length} ${controles.length === 1 ? 'control' : 'controles'}` : ''} · ${hasInicio ? 'baseline OK' : 'sin baseline'}</span>
       </div>
       <div class="cli-transform-grid">
         ${inicioRow}
+        ${controlRows}
         ${cierreRows}
       </div>`;
 

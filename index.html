@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261126-1439-espera-planes-24h">
+<meta name="app-version" content="20261126-1445-control-mensual-fotos-peso">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -25032,6 +25032,146 @@ function showEsperaPlanesScreen(hasta, cfg, bc) {
   if (falta > 0 && falta < 2147483647) setTimeout(() => { try { window.location.reload(); } catch (e) {} }, falta + 2000);
 }
 
+// ======= Control obligatorio cada N días (tenants.branding_config.control_mensual) =======
+// { cada_dias: 30, coach: 'Lucas', desde: ISO } → a los días 30, 60, 90… desde el alta
+// la app queda tapada hasta que la alumna sube foto de FRENTE + ESPALDA y su PESO.
+// Pedido de Lucas (Team Areté). Fotos → fotos_progreso tipo 'control' (Studio las
+// muestra en Transformación); peso → progreso_peso (+ usuarios.peso).
+// "Hecho" = fotos frente y espalda tipo control + un peso con fecha ≥ el día del hito.
+async function gateControlMensual(user) {
+  if (!user || String(user.role || 'user').toLowerCase() !== 'user' || !user.created_at || !user.tenant_id || !sbClient) return false;
+  const alta = new Date(user.created_at).getTime();
+  if (!isFinite(alta)) return false;
+  let bc = (currentTenant && currentTenant.id === user.tenant_id) ? currentTenant.branding_config : null;
+  if (!bc) {
+    const { data } = await sbClient.from('tenants').select('branding_config').eq('id', user.tenant_id).maybeSingle();
+    bc = data && data.branding_config;
+  }
+  const cfg = bc && bc.control_mensual;
+  const cada = cfg && Number(cfg.cada_dias);
+  if (!cada || !(cada >= 7)) return false;
+  if (cfg.desde && alta < new Date(cfg.desde).getTime()) return false;
+  const DIA = 24 * 3600 * 1000;
+  const k = Math.floor((Date.now() - alta) / (cada * DIA));
+  if (k < 1) return false;
+  const hito = new Date(alta + k * cada * DIA);
+  const hitoDia = hito.toISOString().slice(0, 10);
+  const [fotosRes, pesoRes] = await Promise.all([
+    sbClient.from('fotos_progreso').select('vista').eq('usuario_id', user.id).eq('tipo', 'control').gte('created_at', hito.toISOString()),
+    sbClient.from('progreso_peso').select('fecha').eq('usuario_id', user.id).gte('fecha', hitoDia).limit(1),
+  ]);
+  // Si alguna consulta falla, NO bloqueamos (mejor dejar pasar que trabar a una clienta paga).
+  if (fotosRes.error || pesoRes.error) return false;
+  const vistas = new Set((fotosRes.data || []).map(r => r.vista));
+  const faltan = {
+    frente: !vistas.has('frente'),
+    espalda: !vistas.has('espalda'),
+    peso: !(pesoRes.data && pesoRes.data.length),
+  };
+  if (!faltan.frente && !faltan.espalda && !faltan.peso) return false;
+  showControlMensualScreen({ dia: k * cada, faltan, cfg, bc });
+  return true;
+}
+function showControlMensualScreen({ dia, faltan, cfg, bc }) {
+  if (document.getElementById('control-overlay')) return;
+  const esc = (typeof _esc === 'function') ? _esc : (x => String(x));
+  const isEs = (typeof lang === 'undefined') || lang === 'es';
+  const accent = (bc && bc.colors && (bc.colors.accentBright || bc.colors.accent)) || '#7c5cff';
+  const coach = (cfg && cfg.coach) || (isEs ? 'tu coach' : 'your coach');
+  const st = { frente: null, espalda: null, hecho: { frente: !faltan.frente, espalda: !faltan.espalda, peso: !faltan.peso } };
+  const tile = (vista, label) => st.hecho[vista]
+    ? `<div style="flex:1;aspect-ratio:3/4;border-radius:14px;border:1px solid ${accent}66;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#fff;font-size:13px;background:${accent}14">✓<span>${label}</span></div>`
+    : `<label id="control-tile-${vista}" style="text-transform:none;letter-spacing:normal;flex:1;aspect-ratio:3/4;border-radius:14px;border:1px dashed ${accent}88;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#fff;font-size:13px;cursor:pointer;background-size:cover;background-position:center;position:relative;overflow:hidden">
+         <span style="font-size:26px">📸</span><span>${label}</span>
+         <input type="file" accept="image/*" data-vista="${vista}" style="position:absolute;inset:0;opacity:0;cursor:pointer">
+       </label>`;
+  const ov = document.createElement('div');
+  ov.id = 'control-overlay';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:100004;background:#050505;color:#fff;overflow-y:auto;-webkit-overflow-scrolling:touch;font-family:inherit';
+  ov.innerHTML = `<div style="min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:36px 24px calc(28px + env(safe-area-inset-bottom,0px));gap:16px;max-width:420px;margin:0 auto">
+    <div style="color:#fff;font-size:12px;letter-spacing:.14em;font-weight:700;opacity:.7">${isEs ? 'CONTROL DEL DÍA' : 'DAY'} ${dia}</div>
+    <div style="color:#fff;font-size:22px;font-weight:800;line-height:1.25">${isEs ? 'Es momento de tu control' : 'Time for your check-in'}</div>
+    <div style="color:#fff;opacity:.75;font-size:14.5px;line-height:1.6">${isEs
+      ? `Subí tus fotos de hoy y tu peso para que ${esc(coach)} vea tu progreso y ajuste tu plan. Después seguís usando la app normalmente.`
+      : `Upload today's photos and your weight so ${esc(coach)} can review your progress. Then you can keep using the app.`}</div>
+    <div style="display:flex;gap:12px;width:100%">${tile('frente', isEs ? 'Frente' : 'Front')}${tile('espalda', isEs ? 'Espalda' : 'Back')}</div>
+    ${st.hecho.peso ? `<div style="color:#fff;font-size:13px;opacity:.8">✓ ${isEs ? 'Peso cargado' : 'Weight saved'}</div>` : `
+    <label style="text-transform:none;letter-spacing:normal;width:100%;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;border:1px solid #2a2a2a;background:#111;color:#fff;font-size:14px">
+      <span style="flex:1;text-align:left">${isEs ? 'Tu peso de hoy' : 'Today\'s weight'}</span>
+      <input id="control-peso" type="text" inputmode="decimal" placeholder="${currentUser && currentUser.peso ? esc(String(parseFloat(currentUser.peso))) : '0'}" style="width:80px;text-align:right;background:transparent;border:0;outline:0;color:#fff;font-size:18px;font-weight:700;font-family:inherit">
+      <span style="opacity:.7">kg</span>
+    </label>`}
+    <div id="control-error" style="color:#ff8a8a;font-size:13px;min-height:18px"></div>
+    <button id="control-enviar" type="button" style="width:100%;background:${accent};color:#fff;border:0;border-radius:14px;padding:15px 20px;font-family:inherit;font-size:15px;font-weight:800;cursor:pointer">${isEs ? 'Enviar mi control' : 'Send my check-in'}</button>
+    <button id="control-logout" type="button" style="background:transparent;color:#888;border:0;cursor:pointer;font-family:inherit;font-size:13px;text-decoration:underline">${isEs ? 'Cerrar sesión' : 'Log out'}</button>
+  </div>`;
+  document.body.appendChild(ov);
+  try { trackEvent && trackEvent('control_mensual_view', { dia, faltan_frente: faltan.frente, faltan_espalda: faltan.espalda, faltan_peso: faltan.peso }); } catch (e) {}
+
+  ov.querySelectorAll('input[type=file][data-vista]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const f = inp.files && inp.files[0];
+      const v = inp.dataset.vista;
+      st[v] = f || null;
+      const t = document.getElementById('control-tile-' + v);
+      if (t && f) {
+        try {
+          const u = URL.createObjectURL(f);
+          t.style.backgroundImage = `url("${u}")`;
+          t.style.borderStyle = 'solid';
+          t.querySelectorAll('span').forEach(s => { s.style.textShadow = '0 1px 6px #000'; });
+        } catch (e) {}
+      }
+    });
+  });
+  const err = document.getElementById('control-error');
+  const btn = document.getElementById('control-enviar');
+  btn.addEventListener('click', async () => {
+    err.textContent = '';
+    const pesoInp = document.getElementById('control-peso');
+    const peso = pesoInp ? parseFloat(String(pesoInp.value || '').replace(',', '.')) : null;
+    if ((!st.hecho.frente && !st.frente) || (!st.hecho.espalda && !st.espalda)) {
+      err.textContent = isEs ? 'Faltan fotos: subí frente y espalda.' : 'Missing photos: add front and back.'; return;
+    }
+    if (!st.hecho.peso && (!peso || peso < 30 || peso > 250)) {
+      err.textContent = isEs ? 'Ingresá un peso válido (30–250 kg).' : 'Enter a valid weight (30–250 kg).'; return;
+    }
+    btn.disabled = true; btn.style.opacity = '.6';
+    btn.textContent = isEs ? 'Enviando…' : 'Sending…';
+    try {
+      // De a una y marcando lo que ya subió: si falla la 2ª, el reintento no duplica la 1ª.
+      for (const v of ['frente', 'espalda']) {
+        if (!st.hecho[v]) { await uploadFoto(st[v], 'control', v); st.hecho[v] = true; }
+      }
+      if (!st.hecho.peso) {
+        await saveWeightToSupabase(peso);
+        currentUser.peso = peso;
+        try { await sbClient.from('usuarios').update({ peso }).eq('id', currentUser.id); } catch (e) {}
+        st.hecho.peso = true;
+      }
+      try { trackEvent && trackEvent('control_mensual_ok', { dia }); } catch (e) {}
+      ov.querySelector('div').innerHTML = `<div style="font-size:46px">💪</div>
+        <div style="color:#fff;font-size:22px;font-weight:800">${isEs ? '¡Control enviado!' : 'Check-in sent!'}</div>
+        <div style="color:#fff;opacity:.75;font-size:14.5px;line-height:1.6">${isEs ? `${esc(coach)} ya tiene tus fotos y tu peso. ¡A seguir!` : 'Your coach has your photos and weight. Keep going!'}</div>`;
+      setTimeout(() => { try { ov.remove(); } catch (e) {} }, 1800);
+    } catch (e) {
+      console.error('[control] envío:', e);
+      err.textContent = (e && e.message && /imagen|image/i.test(e.message)) ? e.message
+        : (isEs ? 'No se pudo enviar. Revisá tu conexión y reintentá.' : 'Could not send. Check your connection and retry.');
+      btn.disabled = false; btn.style.opacity = '1';
+      btn.textContent = isEs ? 'Reintentar' : 'Retry';
+    }
+  });
+  const lo = document.getElementById('control-logout');
+  if (lo) lo.addEventListener('click', async () => {
+    await clearSession();
+    try { localStorage.removeItem(LS_SESSION); } catch (e) {}
+    window.location.reload();
+  });
+}
+
 // ======= Paywall de suscripción (Google Play, invitado self-serve en Android) =======
 // El invitado directo (self_serve) en el wrapper nativo se suscribe con Google Play:
 // 14 días gratis (los da Play) → $9.99/mes. En web NO aplica (sigue Stripe). El pago
@@ -25254,6 +25394,9 @@ async function launchCoach() {
   // primeras N horas desde el alta, una pantalla tapa TODA la app. No cortamos el
   // launch: el perfil se guarda y los planes se generan/guardan debajo igual.
   if (!_getImpersonateUid()) { try { await gateEsperaPlanes(currentUser); } catch (e) { console.warn('[espera]', e); } }
+  // Control obligatorio cada N días (fotos frente/espalda + peso). Mismo criterio:
+  // tapa la app pero el launch sigue debajo.
+  if (!_getImpersonateUid()) { try { await gateControlMensual(currentUser); } catch (e) { console.warn('[control]', e); } }
   // Si venimos del onboarding con la pre-generación de planes en vuelo, mostramos
   // la pantalla de carga ANTES de pintar la app, así la persona entra recién
   // cuando dieta+rutina están listas (nativeFirstPlansFlow la cierra; hay timeout).
