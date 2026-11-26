@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261125-1947-vidriera-neutral-limpia">
+<meta name="app-version" content="20261126-1432-arete-calentamiento">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -7335,6 +7335,8 @@ body.theme-king .entreno-done-stat { background: rgba(255,79,123,0.06) !importan
 }
 .cai-entprev-chev { color: var(--muted2); font-size: 11px; flex-shrink: 0; transition: transform 0.2s ease; }
 .cai-entprev-ex.open .cai-entprev-chev { transform: rotate(180deg); }
+.cai-ent-warmup .cai-entprev-num { background: transparent; font-size: 14px; }
+.cai-ent-warmup + .cai-ent-ex { margin-top: 10px; }
 .cai-entprev-body {
   border: 1px solid rgba(124,106,255,0.18); border-top: 0;
   border-radius: 0 0 12px 12px;
@@ -28246,6 +28248,61 @@ function _ejYoutubeMount(wrap, id, nombre) {
   wrap.classList.add('yt-mode');
   wrap.appendChild(f);
 }
+// ===== Calentamiento del coach (branding_config.calentamiento = { yt, n?, d? }) =====
+// Video fijo que el coach quiere ANTES de cada día de fuerza (Lucas/arete). Se dibuja
+// como primer ítem del día pero NO entra en day.exercises: los índices de las series
+// (d{i}e{j}s{k}) y lo guardado quedan intactos. Sin config → '' (resto de tenants igual).
+function _tenantCalentamiento() {
+  const c = currentTenant && currentTenant.branding_config && currentTenant.branding_config.calentamiento;
+  if (!c || !/^[\w-]{11}$/.test(String(c.yt || ''))) return null;
+  return { yt: c.yt, nombre: c.n || (lang === 'es' ? 'Calentamiento' : 'Warm-up'), detalle: c.d || '' };
+}
+function showCalentamientoModal() {
+  const c = _tenantCalentamiento();
+  const modal = document.getElementById('ej-modal');
+  if (!c || !modal) return;
+  if (_ejGifTimer) { clearInterval(_ejGifTimer); _ejGifTimer = null; }
+  const gifWrap = document.getElementById('ej-modal-gif-wrap');
+  const gif = document.getElementById('ej-modal-gif');
+  const video = document.getElementById('ej-modal-video');
+  gifWrap.classList.remove('video-mode', 'empty');
+  if (video) { video.pause(); video.removeAttribute('src'); video.hidden = true; }
+  if (gif) gif.removeAttribute('src');
+  _ejYoutubeReset(gifWrap);
+  document.getElementById('ej-modal-title').textContent = c.nombre;
+  document.getElementById('ej-modal-muscle').textContent = lang === 'es' ? 'Calentamiento' : 'Warm-up';
+  document.getElementById('ej-modal-desc').textContent = lang === 'es'
+    ? 'Hacelo antes de arrancar con el primer ejercicio.'
+    : 'Do it before your first exercise.';
+  _ejYoutubeMount(gifWrap, c.yt, c.nombre);
+  try { trackEvent && trackEvent('calentamiento_open', { yt: c.yt }); } catch (e) {}
+  modal.classList.add('open');
+}
+function _entCalentamientoHtml(variant) {
+  const c = _tenantCalentamiento();
+  if (!c) return '';
+  const esc = (typeof _esc === 'function') ? _esc : (x => String(x));
+  const isEs = lang === 'es';
+  if (variant === 'preview') {
+    return `<div class="cai-entprev-ex cai-ent-warmup">
+      <div class="cai-entprev-row" onclick="showCalentamientoModal()" role="button" tabindex="0"
+           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showCalentamientoModal();}">
+        <span class="cai-entprev-num" aria-hidden="true">🔥</span>
+        <span class="cai-entprev-name">${esc(c.nombre)}</span>
+        <span class="cai-entprev-detail">${esc(c.detalle || (isEs ? 'Ver video' : 'Watch video'))}</span>
+        <span class="cai-entprev-chev" aria-hidden="true">▸</span>
+      </div>
+    </div>`;
+  }
+  return `<div class="cai-ent-ex cai-ent-warmup">
+    <div class="cai-ent-ex-top">
+      <div class="cai-ent-ex-name">🔥 ${esc(c.nombre)}</div>
+      ${c.detalle ? `<div class="cai-ent-ex-detail">${esc(c.detalle)}</div>` : ''}
+    </div>
+    <div class="cai-ent-ex-cue">${isEs ? 'Calentamiento: hacelo antes del primer ejercicio.' : 'Warm-up: do it before your first exercise.'}</div>
+    <button class="cai-ent-ex-info-btn" onclick="event.stopPropagation();showCalentamientoModal()" type="button"><svg class="cai-ent-ex-info-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z" fill="currentColor" stroke="none"/></svg>${isEs ? 'Ver calentamiento' : 'Watch warm-up'}</button>
+  </div>`;
+}
 function _ejYoutubeReset(wrap) {
   if (!wrap) return;
   wrap.classList.remove('yt-mode');
@@ -37359,7 +37416,7 @@ function _entPreviewHtml(displayIdx, day, state, mapping, ctx) {
         </div>
       </div>
       <div class="cai-ent-hero-body-wrap" style="max-height:none;overflow:visible;">
-        <div class="cai-entprev-list">${rows}</div>
+        <div class="cai-entprev-list">${_entCalentamientoHtml('preview')}${rows}</div>
         ${_buildCardioChipHtml({ isRestDay: false })}
       </div>
     </div>`;
@@ -37411,7 +37468,7 @@ function _entGuiadoHtml(displayIdx, day, state, mapping, ctx) {
           <div class="cai-entg-nums">${nums}</div>
           <div class="cai-entg-bar"><div class="cai-entg-bar-fill" style="width:${pct}%"></div></div>
         </div>
-        <div class="cai-ent-hero-ex-list">${_entExCardHtml(displayIdx, cur, ex, state, mapping)}</div>
+        <div class="cai-ent-hero-ex-list">${cur === 0 ? _entCalentamientoHtml('card') : ''}${_entExCardHtml(displayIdx, cur, ex, state, mapping)}</div>
         ${nextBtn}
         ${cur === last ? _buildCardioChipHtml({ isRestDay: false }) : ''}
       </div>
@@ -37789,7 +37846,7 @@ function renderMiEntreno() {
             </div>
           </div>
           <div class="cai-ent-hero-body-wrap">
-            <div class="cai-ent-hero-ex-list">${exHtml}</div>
+            <div class="cai-ent-hero-ex-list">${_entCalentamientoHtml('card')}${exHtml}</div>
             ${_buildCardioChipHtml({ isRestDay: false })}
           </div>
         </div>
@@ -41285,7 +41342,7 @@ async function forceAppUpdate() {
    las reglas de color del tema base con violeta/lila/azul/turquesa
    pasados a --bd-* (los carga applyTenantBranding desde
    branding_config.colors) y los grises azulados pasados a neutros.
-   Regenerar: npm run theme:brand-dark   (1475 reglas)
+   Regenerar: npm run theme:brand-dark   (1478 reglas)
    ============================================================ */
 
 /* Valores por defecto de la capa (violeta) por si el tenant no trae colores. Van en
@@ -42312,6 +42369,9 @@ body.theme-brand-dark .cai-entprev-detail {
 }
 body.theme-brand-dark .cai-entprev-chev {
   color: var(--muted2);
+}
+body.theme-brand-dark .cai-ent-warmup .cai-entprev-num {
+  background: transparent;
 }
 body.theme-brand-dark .cai-entprev-body {
   border: 1px solid rgba(var(--bd-a-rgb), 0.18);
@@ -46885,6 +46945,12 @@ body.theme-brand-dark .sc-name {
   color:var(--ink);
 }
 body.theme-brand-dark .sc-verif {
+  color:var(--accent);
+}
+body.theme-brand-dark .stores-coach-card .sc-avatar span {
+  color:#fff;
+}
+body.theme-brand-dark .stores-coach-card .sc-verif {
   color:var(--accent);
 }
 body.theme-brand-dark .sc-esp {
