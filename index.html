@@ -37,7 +37,7 @@
      differ, a "nueva versión disponible" banner appears. Bump on every deploy.
      AUTO: el hook .githooks/pre-commit bumpea esto solo en cada commit que toque
      index.html (si no lo hiciste a mano). Ver scripts/bump-version.mjs. -->
-<meta name="app-version" content="20261126-1445-control-mensual-fotos-peso">
+<meta name="app-version" content="20261127-1428-deploy">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -24938,9 +24938,18 @@ function applyIosDisclaimers() {
   if (rb) rb.style.display = 'block';
 }
 
+// Pantalla de acceso vencido v2: toma los colores del tema (King/claro/oscuro) en
+// vez del negro fijo — en King (tema claro) una regla del tema pintaba los textos
+// oscuros sobre el fondo negro e ilegibles (captura de Ana, 2026-11-27). Copy más
+// amable + "Ya renové" que reintenta sin cerrar la app. ?renew2=0 = pantalla vieja.
+function _renewV2On() {
+  try { return new URLSearchParams(window.location.search).get('renew2') !== '0'; } catch (e) { return true; }
+}
+
 function showRenewScreen(user) {
   // Overlay full-screen que tapa la app. Idempotente.
   if (document.getElementById('renew-overlay')) return;
+  if (_renewV2On()) return showRenewScreenV2(user);
   const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent-bright').trim() || '#7c5cff';
   const ov = document.createElement('div');
   ov.id = 'renew-overlay';
@@ -25166,6 +25175,40 @@ function showControlMensualScreen({ dia, faltan, cfg, bc }) {
   });
   const lo = document.getElementById('control-logout');
   if (lo) lo.addEventListener('click', async () => {
+    await clearSession();
+    try { localStorage.removeItem(LS_SESSION); } catch (e) {}
+    window.location.reload();
+  });
+}
+
+function showRenewScreenV2(user) {
+  const baseRenew = shouldHideExternalPay() ? null : (user?.renew_url || RENEW_URL);
+  const renewUrl = (baseRenew && user?.email)
+    ? `${baseRenew}?prefilled_email=${encodeURIComponent(user.email)}`
+    : baseRenew;
+  const nombre = String(user?.nombre || '').trim().split(/\s+/)[0] || '';
+  const ov = document.createElement('div');
+  ov.id = 'renew-overlay';
+  // Colores SIEMPRE explícitos por elemento (var del tema): así ninguna regla del
+  // tema puede heredarles un color que no combine con el fondo.
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:var(--bg);color:var(--text);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 24px;font-family:inherit;gap:16px;overflow-y:auto';
+  const cta = renewUrl
+    ? `<a href="${renewUrl}" style="display:block;width:100%;max-width:320px;box-sizing:border-box;background:var(--accent);color:#fff;text-decoration:none;font-weight:700;padding:15px 22px;border-radius:14px;font-size:15.5px;margin-top:6px">Renovar mi plan →</a>`
+    : `<div style="width:100%;max-width:340px;box-sizing:border-box;background:var(--surface);color:var(--text);border:1px solid color-mix(in srgb, var(--accent) 22%, transparent);border-radius:14px;padding:14px 16px;font-size:14.5px;line-height:1.55;margin-top:6px">💬 Escribile a tu coach para reactivarlo. Apenas lo renueve, volvés a entrar al instante.</div>`;
+  ov.innerHTML =
+    `<div style="width:76px;height:76px;border-radius:50%;background:color-mix(in srgb, var(--accent) 14%, transparent);display:flex;align-items:center;justify-content:center;margin-bottom:4px">` +
+      `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round"><line x1="9" y1="6" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="18"/></svg>` +
+    `</div>` +
+    `<div style="color:var(--text);font-size:23px;font-weight:800;line-height:1.25;max-width:340px">${nombre ? `${_esc(nombre)}, tu plan` : 'Tu plan'} está en pausa</div>` +
+    `<div style="color:var(--muted);font-size:15px;line-height:1.6;max-width:340px">Tu período de acceso terminó, pero tranqui: <strong style="color:var(--text)">tu plan, tu progreso y tus fotos quedan guardados</strong>. Cuando lo renueves, seguís exactamente donde lo dejaste.</div>` +
+    cta +
+    `<button id="renew-retry" type="button" style="width:100%;max-width:320px;box-sizing:border-box;background:transparent;color:var(--accent);border:1.5px solid color-mix(in srgb, var(--accent) 45%, transparent);border-radius:14px;padding:13px 22px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer">Ya renové · volver a entrar</button>` +
+    `<button id="renew-logout" type="button" style="background:transparent;color:var(--muted);border:0;margin-top:4px;cursor:pointer;font-family:inherit;font-size:13px;text-decoration:underline">Cerrar sesión</button>`;
+  document.body.appendChild(ov);
+  // "Ya renové": recargar vuelve a leer acceso_hasta de la base → si el coach
+  // ya la extendió, entra sin tener que cerrar la app a mano.
+  document.getElementById('renew-retry')?.addEventListener('click', () => window.location.reload());
+  document.getElementById('renew-logout')?.addEventListener('click', async () => {
     await clearSession();
     try { localStorage.removeItem(LS_SESSION); } catch (e) {}
     window.location.reload();
